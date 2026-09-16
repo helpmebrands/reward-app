@@ -66,9 +66,9 @@ export function Value() {
             <Show when={leaks()[0]} fallback="Nothing is repeating — these were one-off windows.">
               {(worst) => (
                 <>
-                  The worst of it is {worst().label.toLowerCase()} at{' '}
-                  {formatMoney(worst().missedCents)}. Small recurring credits are exactly the shape
-                  of loss the reminder ladder exists for.
+                  The biggest single leak is {worst().label} at {formatMoney(worst().missedCents)}.
+                  Small recurring credits are exactly the shape of loss the reminder ladder exists
+                  for.
                 </>
               )}
             </Show>

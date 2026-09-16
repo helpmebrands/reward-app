@@ -104,10 +104,17 @@ export function Today() {
             {formatHeaderDate(app.today())}
           </span>
         </div>
-        <button type="button" class="btn btn--small" onClick={() => void previewNudge()}>
-          <Ph name="bell-ringing" size={13} />
-          Preview nudge
-        </button>
+        <div class="row" style={{ gap: 'var(--space-2)' }}>
+          <button type="button" class="btn btn--small" onClick={() => void previewNudge()}>
+            <Ph name="bell-ringing" size={13} />
+            Preview nudge
+          </button>
+          {/* The only way into Settings, and therefore into turning reminders
+              on at all — so it lives on the screen people open every day. */}
+          <a class="icon-btn" href="/settings" aria-label="Settings">
+            <Ph name="gear-six" size={17} />
+          </a>
+        </div>
       </header>
 
       <Show when={hasCards()} fallback={<FirstRun />}>

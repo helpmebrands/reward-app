@@ -98,6 +98,9 @@ is the only backup.
 
 ## Running it
 
+See [TESTING.md](TESTING.md) for a walkthrough, including the sample household
+in `samples/` that fills the app with a year of history.
+
 ```sh
 npm install
 npm run dev        # http://localhost:5173
@@ -128,6 +131,8 @@ src/
   ui/          Components: rows, sheets, swipe, tab bar
   routes/      Today · Credits · Cards · Value, plus editors and settings
   sw.ts        Service worker: precache, push, reminder replay
+samples/     An importable household, for trying the app with real history
+scripts/     Generates that sample using the app's own cycle functions
 ```
 
 `design-reference/` holds the Nocturne tokens and the original design canvas,

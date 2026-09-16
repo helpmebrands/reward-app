@@ -1,0 +1,707 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "id": "card-0001",
+      "issuer": "American Express",
+      "product": "Platinum",
+      "holder": "Jim",
+      "network": "amex",
+      "annualFeeCents": 89500,
+      "anniversaryOn": "2021-03-14",
+      "muted": false,
+      "archived": false,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "card-0002",
+      "issuer": "American Express",
+      "product": "Platinum",
+      "holder": "Kathy",
+      "network": "amex",
+      "annualFeeCents": 89500,
+      "anniversaryOn": "2022-07-02",
+      "muted": false,
+      "archived": false,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "benefits": [
+    {
+      "id": "ben-0003",
+      "cardId": "card-0001",
+      "name": "Uber Cash",
+      "category": "rideshare",
+      "icon": "car-profile",
+      "valueCents": 1500,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Open the Uber app and make sure this card is the selected payment method.",
+        "Spend it on a ride or an Uber Eats order before the month closes.",
+        "It never rolls over — and December is $35, not $15."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Uber"
+    },
+    {
+      "id": "ben-0004",
+      "cardId": "card-0001",
+      "name": "Digital Entertainment Credit",
+      "category": "streaming",
+      "icon": "monitor-play",
+      "valueCents": 2500,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrolment is required once, on the issuer benefits page.",
+        "Pay a participating subscription with the card — Disney+, Hulu, ESPN+, Peacock, NYT, WSJ, YouTube Premium, Paramount+.",
+        "Up to $25 a month; the balance does not carry forward."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0005",
+      "cardId": "card-0001",
+      "name": "Walmart+ Membership Credit",
+      "category": "shopping",
+      "icon": "shopping-bag",
+      "valueCents": 1295,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the monthly Walmart+ membership with this card — not the annual plan.",
+        "$12.95 plus tax is reimbursed each month.",
+        "Plus Ups are excluded."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Walmart"
+    },
+    {
+      "id": "ben-0006",
+      "cardId": "card-0001",
+      "name": "Resy Dining Credit",
+      "category": "dining",
+      "icon": "fork-knife",
+      "valueCents": 10000,
+      "cadence": "quarterly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol once, and link the Resy profile to the card.",
+        "Spend at an eligible US Resy restaurant and pay with the card.",
+        "Up to $100 per quarter."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Resy",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0007",
+      "cardId": "card-0001",
+      "name": "lululemon Credit",
+      "category": "shopping",
+      "icon": "shopping-bag",
+      "valueCents": 7500,
+      "cadence": "quarterly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrolment required on the benefits page.",
+        "Spend at a US lululemon store or lululemon.com with the card.",
+        "Up to $75 per quarter."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "lululemon",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0008",
+      "cardId": "card-0001",
+      "name": "Hotel Credit (FHR / THC)",
+      "category": "lodging",
+      "icon": "bed",
+      "valueCents": 30000,
+      "cadence": "semiannual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Book prepaid through the issuer travel portal — not direct with the hotel.",
+        "Fine Hotels + Resorts, or The Hotel Collection with a two-night minimum.",
+        "$300 per half-year. One booking cannot draw on two cards."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0009",
+      "cardId": "card-0001",
+      "name": "Airline Fee Credit",
+      "category": "airline",
+      "icon": "airplane-tilt",
+      "valueCents": 20000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Select one qualifying airline for the calendar year — the selection is per card.",
+        "Charge incidental fees: checked bags, seat selection, lounge day passes.",
+        "Airfare itself is not eligible."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0010",
+      "cardId": "card-0001",
+      "name": "CLEAR+ Credit",
+      "category": "travel",
+      "icon": "fingerprint",
+      "valueCents": 21900,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the CLEAR+ membership with the card.",
+        "Covers the membership in full."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "CLEAR"
+    },
+    {
+      "id": "ben-0011",
+      "cardId": "card-0001",
+      "name": "Uber One Membership Credit",
+      "category": "rideshare",
+      "icon": "moped",
+      "valueCents": 12000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Set the auto-renewing Uber One membership to bill this card.",
+        "Up to $120 a year, credited as it bills."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Uber"
+    },
+    {
+      "id": "ben-0012",
+      "cardId": "card-0001",
+      "name": "Oura Ring Credit",
+      "category": "wellness",
+      "icon": "heartbeat",
+      "valueCents": 20000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol on the benefits page first.",
+        "Buy the ring directly from Oura with the card."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Oura",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0013",
+      "cardId": "card-0001",
+      "name": "Equinox Credit",
+      "category": "wellness",
+      "icon": "barbell",
+      "valueCents": 30000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol on the benefits page — this is the blocker, not the spend.",
+        "Charge an Equinox club membership or Equinox+ to the card."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Equinox",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0014",
+      "cardId": "card-0001",
+      "name": "Global Entry / TSA PreCheck",
+      "category": "travel",
+      "icon": "identification-card",
+      "valueCents": 12000,
+      "cadence": "manual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the application fee with the card when you next become eligible.",
+        "Global Entry $120 every four years, or PreCheck up to $85 every four and a half."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "notes": "No cycle tracks this — review it by hand when the membership nears expiry."
+    },
+    {
+      "id": "ben-0015",
+      "cardId": "card-0002",
+      "name": "Uber Cash",
+      "category": "rideshare",
+      "icon": "car-profile",
+      "valueCents": 1500,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Open the Uber app and make sure this card is the selected payment method.",
+        "Spend it on a ride or an Uber Eats order before the month closes.",
+        "It never rolls over — and December is $35, not $15."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Uber"
+    },
+    {
+      "id": "ben-0016",
+      "cardId": "card-0002",
+      "name": "Digital Entertainment Credit",
+      "category": "streaming",
+      "icon": "monitor-play",
+      "valueCents": 2500,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrolment is required once, on the issuer benefits page.",
+        "Pay a participating subscription with the card — Disney+, Hulu, ESPN+, Peacock, NYT, WSJ, YouTube Premium, Paramount+.",
+        "Up to $25 a month; the balance does not carry forward."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0017",
+      "cardId": "card-0002",
+      "name": "Walmart+ Membership Credit",
+      "category": "shopping",
+      "icon": "shopping-bag",
+      "valueCents": 1295,
+      "cadence": "monthly",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the monthly Walmart+ membership with this card — not the annual plan.",
+        "$12.95 plus tax is reimbursed each month.",
+        "Plus Ups are excluded."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Walmart"
+    },
+    {
+      "id": "ben-0018",
+      "cardId": "card-0002",
+      "name": "Resy Dining Credit",
+      "category": "dining",
+      "icon": "fork-knife",
+      "valueCents": 10000,
+      "cadence": "quarterly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol once, and link the Resy profile to the card.",
+        "Spend at an eligible US Resy restaurant and pay with the card.",
+        "Up to $100 per quarter."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Resy",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0019",
+      "cardId": "card-0002",
+      "name": "lululemon Credit",
+      "category": "shopping",
+      "icon": "shopping-bag",
+      "valueCents": 7500,
+      "cadence": "quarterly",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrolment required on the benefits page.",
+        "Spend at a US lululemon store or lululemon.com with the card.",
+        "Up to $75 per quarter."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "lululemon",
+      "enrolledAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0020",
+      "cardId": "card-0002",
+      "name": "Hotel Credit (FHR / THC)",
+      "category": "lodging",
+      "icon": "bed",
+      "valueCents": 30000,
+      "cadence": "semiannual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Book prepaid through the issuer travel portal — not direct with the hotel.",
+        "Fine Hotels + Resorts, or The Hotel Collection with a two-night minimum.",
+        "$300 per half-year. One booking cannot draw on two cards."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0021",
+      "cardId": "card-0002",
+      "name": "Airline Fee Credit",
+      "category": "airline",
+      "icon": "airplane-tilt",
+      "valueCents": 20000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Select one qualifying airline for the calendar year — the selection is per card.",
+        "Charge incidental fees: checked bags, seat selection, lounge day passes.",
+        "Airfare itself is not eligible."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "ben-0022",
+      "cardId": "card-0002",
+      "name": "CLEAR+ Credit",
+      "category": "travel",
+      "icon": "fingerprint",
+      "valueCents": 21900,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the CLEAR+ membership with the card.",
+        "Covers the membership in full."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "CLEAR"
+    },
+    {
+      "id": "ben-0023",
+      "cardId": "card-0002",
+      "name": "Uber One Membership Credit",
+      "category": "rideshare",
+      "icon": "moped",
+      "valueCents": 12000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Set the auto-renewing Uber One membership to bill this card.",
+        "Up to $120 a year, credited as it bills."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Uber"
+    },
+    {
+      "id": "ben-0024",
+      "cardId": "card-0002",
+      "name": "Oura Ring Credit",
+      "category": "wellness",
+      "icon": "heartbeat",
+      "valueCents": 20000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol on the benefits page first.",
+        "Buy the ring directly from Oura with the card."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Oura"
+    },
+    {
+      "id": "ben-0025",
+      "cardId": "card-0002",
+      "name": "Equinox Credit",
+      "category": "wellness",
+      "icon": "barbell",
+      "valueCents": 30000,
+      "cadence": "annual",
+      "anchor": "calendar",
+      "enrollmentRequired": true,
+      "redemptionSteps": [
+        "Enrol on the benefits page — this is the blocker, not the spend.",
+        "Charge an Equinox club membership or Equinox+ to the card."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "merchant": "Equinox"
+    },
+    {
+      "id": "ben-0026",
+      "cardId": "card-0002",
+      "name": "Global Entry / TSA PreCheck",
+      "category": "travel",
+      "icon": "identification-card",
+      "valueCents": 12000,
+      "cadence": "manual",
+      "anchor": "calendar",
+      "enrollmentRequired": false,
+      "redemptionSteps": [
+        "Pay the application fee with the card when you next become eligible.",
+        "Global Entry $120 every four years, or PreCheck up to $85 every four and a half."
+      ],
+      "muted": false,
+      "lastCallOnly": false,
+      "active": true,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "updatedAt": "2026-01-01T00:00:00.000Z",
+      "notes": "No cycle tracks this — review it by hand when the membership nears expiry."
+    }
+  ],
+  "claims": [
+    {
+      "id": "claim-0027",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-01-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-01-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0028",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-02-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-02-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0029",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-03-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-03-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0030",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-04-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-04-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0031",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-05-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-05-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0032",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-06-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-06-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0033",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-07-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-07-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0034",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-08-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-08-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0035",
+      "benefitId": "ben-0003",
+      "cycleKey": "2026-09-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-09-14T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0036",
+      "benefitId": "ben-0009",
+      "cycleKey": "2026-01-01",
+      "amountCents": 20000,
+      "claimedAt": "2026-02-20T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0037",
+      "benefitId": "ben-0010",
+      "cycleKey": "2026-01-01",
+      "amountCents": 21900,
+      "claimedAt": "2026-01-09T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0038",
+      "benefitId": "ben-0007",
+      "cycleKey": "2026-07-01",
+      "amountCents": 7500,
+      "claimedAt": "2026-08-11T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0039",
+      "benefitId": "ben-0006",
+      "cycleKey": "2026-07-01",
+      "amountCents": 10000,
+      "claimedAt": "2026-08-28T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0040",
+      "benefitId": "ben-0008",
+      "cycleKey": "2026-01-01",
+      "amountCents": 30000,
+      "claimedAt": "2026-05-02T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0041",
+      "benefitId": "ben-0011",
+      "cycleKey": "2026-01-01",
+      "amountCents": 12000,
+      "claimedAt": "2026-03-05T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0042",
+      "benefitId": "ben-0004",
+      "cycleKey": "2026-09-01",
+      "amountCents": 1200,
+      "claimedAt": "2026-09-08T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0043",
+      "benefitId": "ben-0022",
+      "cycleKey": "2026-01-01",
+      "amountCents": 21900,
+      "claimedAt": "2026-01-19T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0044",
+      "benefitId": "ben-0015",
+      "cycleKey": "2026-07-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-07-21T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0045",
+      "benefitId": "ben-0015",
+      "cycleKey": "2026-09-01",
+      "amountCents": 1500,
+      "claimedAt": "2026-09-03T12:00:00.000Z"
+    },
+    {
+      "id": "claim-0046",
+      "benefitId": "ben-0018",
+      "cycleKey": "2026-04-01",
+      "amountCents": 4000,
+      "claimedAt": "2026-04-17T12:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "notifications": {
+      "enabled": false,
+      "timeOfDay": "09:00",
+      "minValueCents": 100,
+      "annualFeeReminder": true,
+      "enrollmentReminder": true
+    },
+    "useSoonDays": 30,
+    "theme": "system",
+    "holderFilter": ""
+  }
+}
