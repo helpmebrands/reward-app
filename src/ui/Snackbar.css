@@ -1,0 +1,39 @@
+/* Snackbar. Sits above the tab bar so it never covers the destination the user
+ * would tap next. */
+
+.snackbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + var(--space-6));
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: calc(100% - var(--space-8));
+  max-width: calc(var(--app-max-width) - var(--space-8));
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-800);
+  box-shadow: var(--shadow-md);
+  animation: snack-in var(--duration-medium) var(--ease-emphasized) both;
+}
+
+.snackbar__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-neutral-200);
+  text-wrap: pretty;
+}
+
+.snackbar__action {
+  flex: none;
+  min-height: var(--touch-target);
+  padding: 0 var(--space-3);
+  margin: calc(var(--touch-target) / -2 + 14px) 0;
+  color: var(--color-accent-300);
+  font: 500 12px var(--font-body);
+}

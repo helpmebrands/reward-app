@@ -1,0 +1,16 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--screen-pad) var(--space-6);
+}
+
+.topbar__title {
+  font: 500 17px var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+.topbar__sub {
+  font-size: 10.5px;
+  color: var(--color-neutral-600);
+}

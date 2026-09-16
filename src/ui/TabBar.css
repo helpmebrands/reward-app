@@ -1,0 +1,44 @@
+.tabbar {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex: none;
+  border-top: 1px solid var(--color-neutral-900);
+  background: color-mix(in srgb, var(--color-bg) 95%, transparent);
+  backdrop-filter: blur(14px);
+  padding: var(--space-3) var(--space-2);
+  /* Clears the home indicator on gesture-navigation devices. */
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom));
+}
+
+.tabbar__tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  /* Material's minimum target, even though Nocturne's density is tighter. */
+  min-height: var(--touch-target);
+  padding: var(--space-2) 0;
+  color: var(--color-neutral-600);
+  transition: color var(--duration-short) var(--ease-standard);
+}
+
+.tabbar__tab--active {
+  color: var(--color-accent-300);
+}
+
+.tabbar__label {
+  font: 500 9.5px var(--font-body);
+  letter-spacing: 0.02em;
+}
+
+@media (hover: hover) {
+  .tabbar__tab:hover {
+    color: var(--color-neutral-300);
+  }
+
+  .tabbar__tab--active:hover {
+    color: var(--color-accent-200);
+  }
+}

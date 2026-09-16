@@ -1,0 +1,96 @@
+.today__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.today__wordmark {
+  font: 500 16px var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+.today__dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex: none;
+}
+
+.today__headline {
+  margin-top: var(--space-8);
+}
+
+/* The one place the app raises its voice: the number the user came to see. */
+.today__amount {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.today__amount-symbol {
+  font: 400 28px var(--font-heading);
+  color: var(--color-neutral-400);
+}
+
+.today__amount-digits {
+  font: 500 58px / 0.9 var(--font-heading);
+  letter-spacing: -0.04em;
+}
+
+.today__sub {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-neutral-400);
+  max-width: 295px;
+  margin-bottom: var(--space-6);
+  text-wrap: pretty;
+}
+
+.today__countdown {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+.today__overlap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  transition: border-color var(--duration-short) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .today__overlap:hover {
+    border-color: var(--color-section-ghost);
+  }
+}
+
+.today__overlap-title {
+  font: 500 13.5px / 1.35 var(--font-heading);
+  color: var(--color-text);
+}
+
+.today__overlap-body {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--color-neutral-300);
+  text-wrap: pretty;
+}
+
+.today__overlap-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font: 500 11px var(--font-body);
+  color: var(--color-accent-300);
+}
+
+.legend {
+  margin-top: var(--space-3);
+}

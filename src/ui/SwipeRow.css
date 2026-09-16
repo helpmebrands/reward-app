@@ -1,0 +1,71 @@
+/* Swipe-action row. The actions sit behind the content, which slides over them. */
+
+.swipe {
+  position: relative;
+  border-radius: 9px;
+  overflow: hidden;
+  /* Lets the browser own vertical scrolling while the handler owns horizontal
+   * movement — without this, the list stutters on every swipe. */
+  touch-action: pan-y;
+}
+
+.swipe__content {
+  position: relative;
+  z-index: 1;
+  transition: transform var(--duration-medium) var(--ease-emphasized);
+}
+
+/* No transition while a finger is down: the row must track it exactly.
+ * `will-change` is scoped to the drag — leaving it on promotes every row to its
+ * own layer, and a layer whose height is fractional rasterises a hairline short,
+ * exposing the action behind the row. */
+.swipe__content--dragging {
+  transition: none;
+  will-change: transform;
+}
+
+.swipe__action {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-3);
+  font: 500 10.5px var(--font-body);
+  border: 0;
+}
+
+.swipe__action i {
+  font-size: 18px;
+}
+
+.swipe__action--leading {
+  left: 0;
+  align-items: flex-start;
+  padding-left: var(--space-6);
+}
+
+.swipe__action--trailing {
+  right: 0;
+  align-items: flex-end;
+  padding-right: var(--space-6);
+}
+
+.swipe__action--accent {
+  background: var(--color-accent-800);
+  color: var(--color-accent-100);
+}
+
+.swipe__action--quiet {
+  background: var(--color-neutral-900);
+  color: var(--color-neutral-300);
+}
+
+.swipe__action--locked {
+  background: var(--tone-locked-bg);
+  color: var(--tone-locked-fg);
+}

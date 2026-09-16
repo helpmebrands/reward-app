@@ -1,0 +1,342 @@
+/*
+ * Reset, app shell and the primitives every screen reuses.
+ *
+ * Nocturne supplies the look; Material supplies the mobile ergonomics that
+ * Nocturne — a system drawn for pages — does not cover: 48px minimum touch
+ * targets, swipe actions, sheet behaviour and motion curves.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Stops iOS Safari inflating text in landscape. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+dl,
+dd {
+  margin: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  /* The app owns its scrolling regions; bouncing the whole page in a
+   * standalone PWA makes it feel like a web page rather than an app. */
+  overscroll-behavior-y: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  /* Removes the 300ms tap delay and the grey flash on Android Chrome. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+  text-underline-offset: 3px;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+/* Nocturne's rule: keyboard focus is a 2px accent ring, never the browser
+ * default. `:focus` itself is cleared so a mouse press does not leave one. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Every transition here is decorative; none carries meaning that is lost when
+ * a user asks for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- App shell ---------------------------------------------------------- */
+
+#root {
+  min-height: 100dvh;
+}
+
+.shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: var(--app-max-width);
+  margin-inline: auto;
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+/* The bloom behind the top of every screen — Nocturne's "accent as a glow". */
+.shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 300px;
+  background: radial-gradient(130% 100% at 16% 0%, var(--color-accent-900) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.screen {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  overflow-y: auto;
+  /* Momentum scrolling without the whole shell rubber-banding. */
+  overscroll-behavior-y: contain;
+  padding-top: max(var(--space-8), env(safe-area-inset-top));
+  padding-bottom: var(--space-12);
+}
+
+.screen__pad {
+  padding-inline: var(--screen-pad);
+}
+
+/* ---- Type helpers -------------------------------------------------------- */
+
+.screen-title {
+  font: 500 23px / 1.1 var(--font-heading);
+  letter-spacing: -0.03em;
+}
+
+.screen-sub {
+  font-size: 11.5px;
+  color: var(--color-neutral-600);
+}
+
+.kicker {
+  font-size: 9.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.kicker--quiet {
+  color: var(--color-neutral-600);
+  letter-spacing: 0.1em;
+}
+
+.section-title {
+  font: 500 13.5px / 1.3 var(--font-heading);
+  color: var(--color-text);
+}
+
+.section-note {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-neutral-600);
+  text-wrap: pretty;
+}
+
+.muted {
+  color: var(--color-neutral-600);
+}
+
+/* Money and countdowns use tabular figures so digits do not shift width as
+ * values tick down. */
+.numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Layout utilities ---------------------------------------------------- */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stack--tight {
+  gap: var(--space-2);
+}
+
+.stack--loose {
+  gap: var(--space-6);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.row--between {
+  justify-content: space-between;
+}
+
+.row--baseline {
+  align-items: baseline;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.section {
+  margin-top: var(--space-10);
+}
+
+/* A rule that fades out at its end, per Nocturne. */
+.rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--surface-line), transparent);
+}
+
+/* ---- Accessibility ------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  z-index: 100;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent-800);
+  color: var(--color-accent-100);
+  border-radius: var(--radius-md);
+  transform: translateY(-300%);
+  transition: transform var(--duration-short) var(--ease-standard);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* ---- Shared animations --------------------------------------------------- */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes notif-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes snack-in {
+  from {
+    opacity: 0;
+    transform: translateY(120%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

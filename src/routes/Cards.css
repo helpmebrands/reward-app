@@ -1,0 +1,61 @@
+.cardstat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.cardstat__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.cardstat__name {
+  font: 500 17px var(--font-heading);
+  letter-spacing: -0.02em;
+  margin-top: var(--space-2);
+}
+
+.cardstat__figures {
+  display: flex;
+  gap: var(--space-8);
+  margin: 0;
+}
+
+.cardstat__figures div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cardstat__figures dd {
+  margin: 0;
+}
+
+.cardstat__figure {
+  font: 500 15px var(--font-heading);
+  color: var(--color-neutral-300);
+}
+
+.cardstat__pct {
+  font-size: 10.5px;
+  color: var(--color-neutral-600);
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.cardstat__verdict {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-neutral-300);
+  text-wrap: pretty;
+}
+
+.cardstat__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.cardstat__edit {
+  margin-top: var(--space-2);
+}

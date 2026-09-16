@@ -1,0 +1,56 @@
+.catalog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-6) var(--space-10) var(--space-6) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface-raised);
+  border: 1px solid var(--color-neutral-800);
+  transition: border-color var(--duration-short) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .catalog:hover {
+    border-color: var(--color-accent);
+  }
+}
+
+.catalog__name {
+  display: block;
+  font: 500 16px var(--font-heading);
+  letter-spacing: -0.02em;
+  margin-top: var(--space-1);
+}
+
+.catalog__figures {
+  display: flex;
+  gap: var(--space-4);
+  font-size: 11.5px;
+  color: var(--color-neutral-500);
+}
+
+.catalog__value {
+  color: var(--color-accent-300);
+}
+
+.catalog__meta {
+  font-size: 10.5px;
+  color: var(--color-neutral-600);
+}
+
+.catalog__chevron {
+  position: absolute;
+  top: 50%;
+  right: var(--space-6);
+  transform: translateY(-50%);
+  color: var(--color-neutral-600);
+}
+
+.addcard__picked {
+  font: 500 17px var(--font-heading);
+  letter-spacing: -0.02em;
+  margin: var(--space-2) 0;
+}

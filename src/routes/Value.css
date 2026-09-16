@@ -1,0 +1,149 @@
+.value__totals {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.value__total {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  border-radius: 9px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--color-neutral-900);
+}
+
+.value__total--captured {
+  background: var(--surface-raised);
+  border-color: var(--color-accent-900);
+}
+
+.value__figure {
+  font: 500 22px var(--font-heading);
+  letter-spacing: -0.025em;
+}
+
+.value__lead {
+  font: 500 13px / 1.4 var(--font-heading);
+  margin-bottom: var(--space-2);
+}
+
+.value__lead-body {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-neutral-300);
+  text-wrap: pretty;
+}
+
+.value__chart {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  height: 118px;
+}
+
+.value__col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 100%;
+}
+
+.value__bar {
+  transition: height var(--duration-long) var(--ease-decelerate);
+  min-height: 0;
+}
+
+.value__bar--missed {
+  background: var(--color-neutral-800);
+  border-radius: 2px 2px 0 0;
+}
+
+.value__bar--captured {
+  background: var(--color-accent);
+  border-radius: 0 0 2px 2px;
+}
+
+.value__labels {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.value__labels span {
+  flex: 1;
+  text-align: center;
+  font-size: 9.5px;
+  color: var(--color-neutral-600);
+}
+
+.value__rank {
+  padding: var(--space-4);
+  border-radius: 9px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--color-neutral-900);
+}
+
+.value__track {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-line);
+  overflow: hidden;
+}
+
+.value__track-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-accent);
+  transition: width var(--duration-long) var(--ease-decelerate);
+}
+
+/* The break-even mark, at the right-hand end of the track. */
+.value__breakeven {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--color-accent-300);
+}
+
+.value__leak {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: 9px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--color-neutral-900);
+  color: var(--color-neutral-700);
+}
+
+.value__leak-title {
+  display: block;
+  font-size: 12.5px;
+  color: var(--color-neutral-400);
+}
+
+.value__leak-when {
+  display: block;
+  font-size: 10px;
+  color: var(--color-neutral-700);
+}
+
+.value__leak-amount {
+  flex: none;
+  font: 500 12.5px var(--font-body);
+  color: var(--color-neutral-500);
+}
+
+.value__scale {
+  font-size: 9.5px;
+  color: var(--color-neutral-700);
+  margin-bottom: var(--space-2);
+}

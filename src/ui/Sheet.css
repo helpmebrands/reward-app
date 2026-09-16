@@ -1,0 +1,79 @@
+/* Modal bottom sheet. */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 11, 18, 0.66);
+  border: 0;
+  animation: fade-in var(--duration-medium) both;
+}
+
+.sheet__panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: var(--app-max-width);
+  margin-inline: auto;
+  max-height: 92dvh;
+  display: flex;
+  flex-direction: column;
+  border-radius: 23px 23px 0 0;
+  background: var(--surface-sunken);
+  border-top: 1px solid var(--color-accent-800);
+  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.6);
+  animation: sheet-in var(--duration-long) var(--ease-emphasized) both;
+  will-change: transform;
+  transition: transform var(--duration-medium) var(--ease-emphasized);
+}
+
+/* While a finger is on the grip the panel must track it exactly. */
+.sheet__panel--dragging {
+  transition: none;
+  animation: none;
+}
+
+/* A generous grab area around a small visual handle — Material's 48px target
+ * without a 48px-tall bar. */
+.sheet__grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding-top: 10px;
+  flex: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.sheet__grip:active {
+  cursor: grabbing;
+}
+
+.sheet__handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-neutral-800);
+}
+
+.sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-6) var(--screen-pad);
+  /* Clears the home indicator on gesture-navigation devices. */
+  padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
+}
+
+.sheet__panel:focus-visible {
+  outline: none;
+}
