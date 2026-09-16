@@ -115,6 +115,30 @@ The service worker is disabled in `vite dev` unless `VITE_ENABLE_SW` is set —
 otherwise precaching fights hot reload. Use `npm run preview` to test offline
 behaviour, installation and notifications.
 
+## Deployment
+
+`develop` is the integration branch. A pull request into it runs lint,
+typecheck, tests, a production build and a container smoke test; merging builds
+an image, pushes it to Artifact Registry and deploys a new Cloud Run revision,
+then smoke-tests the live URL.
+
+Infrastructure is Pulumi (`infra/`), and GitHub authenticates to Google with
+Workload Identity Federation — there is no service-account key anywhere.
+
+**[docs/runbooks/](docs/runbooks/)** covers it end to end: first deployment,
+routine changes, infrastructure changes, rollback and troubleshooting.
+
+One rule worth knowing before touching either side: **Pulumi owns the shape of
+the service, CI owns which image runs.** `infra/index.ts` deliberately ignores
+changes to the container image, because otherwise `pulumi up` would reset the
+service to the image it last recorded — deploying old code as a side effect of
+an unrelated change.
+
+The container is nginx serving the static build. Its config is not boilerplate:
+`sw.js` and `index.html` must never be cached, or clients stay pinned to an old
+service worker and an old reminder schedule, which fails silently. CI asserts
+that header on every build.
+
 ## Layout
 
 ```
@@ -133,6 +157,9 @@ src/
   sw.ts        Service worker: precache, push, reminder replay
 samples/     An importable household, for trying the app with real history
 scripts/     Generates that sample using the app's own cycle functions
+deploy/      nginx config for the container — cache and security headers
+infra/       Pulumi: Artifact Registry, Cloud Run, keyless GitHub deploys
+docs/runbooks/   Deployment and operations, step by step
 ```
 
 `design-reference/` holds the Nocturne tokens and the original design canvas,

@@ -1,0 +1,27 @@
+name: cardvantage
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+description: Infrastructure for Cardvantage — Artifact Registry, Cloud Run, and keyless GitHub deploys.
+
+config:
+  gcp:project:
+    description: Target Google Cloud project id.
+  gcp:region:
+    description: Region for Cloud Run and Artifact Registry.
+    default: us-central1
+  cardvantage:githubRepo:
+    description: The repository allowed to deploy, as "owner/name". Pins the trust boundary.
+  cardvantage:serviceName:
+    description: Cloud Run service name.
+    default: cardvantage
+  cardvantage:minInstances:
+    description: Warm instances. 0 is cheapest and accepts a cold start.
+    default: "0"
+  cardvantage:maxInstances:
+    description: Ceiling on concurrent instances, and therefore on spend.
+    default: "4"
+  cardvantage:customDomain:
+    description: Optional custom domain. Requires prior domain verification — see runbook 03.
+    default: ""

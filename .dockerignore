@@ -1,0 +1,18 @@
+# Keep the build context small and the image free of anything that is not the
+# app. node_modules especially — `npm ci` reinstalls inside the image, and
+# copying a host tree in can smuggle platform-specific binaries across.
+node_modules
+dist
+dev-dist
+coverage
+.git
+.github
+infra
+docs
+design-reference
+samples
+scripts
+*.log
+.env
+.env.*
+!.env.example

@@ -1,0 +1,20 @@
+# Runs on every pull request. Branch protection on `develop` should require the
+# checks this produces, which is what makes the gate real rather than advisory.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+
+# A new push to a PR makes the previous run irrelevant, so cancel it. (Deploys
+# are the opposite — see cd.yml.)
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml

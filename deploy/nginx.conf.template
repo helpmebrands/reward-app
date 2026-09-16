@@ -1,0 +1,84 @@
+# Serving a PWA.
+#
+# The cache rules here are not a performance nicety — they are correctness. If
+# sw.js or index.html sit in a browser cache, a user stays pinned to an old
+# service worker and keeps running an old reminder schedule. For this app that
+# is a silent failure: notifications quietly stop matching the data.
+#
+# So: content-hashed assets are immutable forever, and the two files that decide
+# which build you are running are never cached.
+#
+# Every location includes security-headers.conf. That repetition is load-bearing
+# — see the comment in that file.
+
+server {
+    # Cloud Run injects PORT; envsubst fills it in at container start.
+    listen       ${PORT};
+    server_name  _;
+    root         /usr/share/nginx/html;
+
+    # Cloud Run terminates TLS but does not compress for you — that is the
+    # container's job.
+    gzip              on;
+    gzip_vary         on;
+    gzip_min_length   1024;
+    gzip_proxied      any;
+    gzip_types        text/plain text/css application/javascript application/json
+                      application/manifest+json image/svg+xml application/wasm;
+
+    # Cloud Run logs every request already; duplicating it doubles the bill.
+    access_log  off;
+    error_log   /var/log/nginx/error.log warn;
+
+    # Never cached: the browser must notice a new build immediately.
+    location = /sw.js {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        add_header  Cache-Control "no-cache, no-store, must-revalidate" always;
+        types { } default_type application/javascript;
+        try_files   $uri =404;
+    }
+
+    location = /index.html {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        add_header  Cache-Control "no-cache" always;
+        try_files   $uri =404;
+    }
+
+    # Changes rarely, but needs its own media type or the browser ignores it.
+    location = /manifest.webmanifest {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        add_header  Cache-Control "public, max-age=3600";
+        types { } default_type application/manifest+json;
+        try_files   $uri =404;
+    }
+
+    # Vite fingerprints everything here, so the URL changes whenever the bytes
+    # do and these can be cached permanently.
+    location /assets/ {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        # No `always`, so this never lands on a 404. A missing asset cached as
+        # immutable for a year is unrecoverable without a manual cache clear,
+        # and it happens exactly when a deploy is mid-rollout.
+        add_header  Cache-Control "public, max-age=31536000, immutable";
+        # A missing asset must 404, not fall through to index.html — HTML
+        # served under a .js URL is what breaks service-worker precaching, and
+        # it fails looking like a corrupt cache rather than a 404.
+        try_files   $uri =404;
+    }
+
+    # Icon filenames are fixed (the manifest names them), so they cannot be
+    # immutable. A day is long enough to be free, short enough to roll out.
+    location /icons/ {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        add_header  Cache-Control "public, max-age=86400";
+        try_files   $uri =404;
+    }
+
+    # Everything else is a client-side route (/credits, /cards/:id, …) and must
+    # resolve to the shell so a hard refresh or a shared link works.
+    location / {
+        include     /etc/nginx/conf.d/security-headers.conf;
+        add_header  Cache-Control "no-cache" always;
+        try_files   $uri /index.html;
+    }
+}

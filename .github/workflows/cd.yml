@@ -1,0 +1,123 @@
+# Deploys `develop` to Cloud Run.
+#
+# Authentication is Workload Identity Federation, so there is no service-account
+# JSON key anywhere: GitHub mints a short-lived OIDC token, Google exchanges it
+# for an access token, and the trust is pinned to this repository. A leaked
+# long-lived key is the usual way a pipeline like this becomes an incident.
+name: CD
+
+on:
+  push:
+    branches: [develop]
+  # Redeploying the current develop without an empty commit — for recovering a
+  # failed run, or re-rolling after an infrastructure change.
+  workflow_dispatch:
+
+# One deploy at a time, and never cancel one in flight: interrupting a Cloud Run
+# rollout leaves traffic split between revisions.
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # The deployed commit passes the gate itself, rather than inheriting a tick
+  # from a pre-merge run against a different tree.
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  deploy:
+    name: Build, push, deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: develop
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Tagged with the commit SHA, never `latest`. A deploy then names an exact
+      # immutable artifact, which is what makes a rollback a one-line command
+      # rather than a rebuild.
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/cardvantage:${{ github.sha }}
+          build-args: |
+            VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
+            VITE_PUSH_API=${{ vars.VITE_PUSH_API }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Deploy by digest rather than by tag. A tag can be moved; a digest is the
+      # bytes that were tested a step ago.
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ vars.CLOUD_RUN_SERVICE }}
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/cardvantage@${{ steps.build.outputs.digest }}
+          flags: --revision-suffix=sha-${{ github.sha }}
+
+      # The deploy reporting success only means Cloud Run accepted the revision.
+      # These are the assertions that say the app is actually being served.
+      - name: Smoke test the deployed revision
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          echo "Serving at $URL"
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/")
+          [ "$code" = "200" ] || { echo "index -> $code"; exit 1; }
+          echo "  / -> 200"
+
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/credits")
+          [ "$code" = "200" ] || { echo "client route -> $code"; exit 1; }
+          echo "  /credits -> 200"
+
+          # If this regresses, clients silently keep an old service worker and
+          # an old reminder schedule — the failure this pipeline most needs to
+          # catch, because nothing else would surface it.
+          cc=$(curl -sS -D - -o /dev/null "$URL/sw.js" | tr -d '\r' | grep -i '^cache-control:' || true)
+          case "$cc" in
+            *no-store*) echo "  sw.js -> $cc" ;;
+            *) echo "  sw.js cache-control was '$cc', expected no-store"; exit 1 ;;
+          esac
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Deploy"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Digest | \`${{ steps.build.outputs.digest }}\` |"
+            echo "| URL | ${{ steps.deploy.outputs.url }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

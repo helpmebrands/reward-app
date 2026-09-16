@@ -1,0 +1,139 @@
+# 03 — Infrastructure change
+
+Changing anything in `infra/`. Slower and more deliberate than a code change,
+because Pulumi will do exactly what you tell it.
+
+## The loop
+
+```sh
+$ cd infra
+$ pulumi stack select dev
+
+# ... edit index.ts ...
+
+$ npm run typecheck
+$ pulumi preview            # read every line
+$ pulumi up
+```
+
+**Read the preview properly.** The words that should stop you:
+
+| Preview says | Meaning |
+| --- | --- |
+| `+ create` | Fine. |
+| `~ update` | Usually fine — check *which* property. |
+| `+- replace` | **The resource is destroyed and recreated.** For the Cloud Run service that is downtime and a new URL. |
+| `- delete` | Something is going away. Be sure you meant it. |
+
+If a replace surprises you, stop. `pulumi preview --diff` shows the property
+forcing it; most replacements come from changing a name or a location, and
+there is usually a way to express the change without one.
+
+## The image is not yours to manage
+
+`infra/index.ts` sets `ignoreChanges` on the container image. **Do not remove
+it.** CI points the service at a new digest on every deploy; if Pulumi also
+owned that field, the next `pulumi up` would reset it to whatever it last
+recorded — deploying old code as a side effect of an unrelated change, with
+nothing in the preview that obviously says so.
+
+If you see `~ update` touching `template.containers[0].image`, the guard has
+been lost. Do not apply.
+
+## Changing the deploy permissions
+
+The deployer service account can push images and deploy revisions of one
+service. That is the entire blast radius of a compromised workflow, so widen it
+only with a reason you could defend later.
+
+To restrict deploys to the `develop` branch specifically, narrow the
+impersonation binding in `index.ts`:
+
+```ts
+member: pulumi.interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository_and_ref/${githubRepo}/refs/heads/develop`,
+```
+
+That also requires `attribute.repository_and_ref` in the provider's
+`attributeMapping`. The trade-off is that `workflow_dispatch` from another
+branch stops working, which is occasionally what you want during an incident.
+
+## Adding a custom domain
+
+Cloud Run will not map a domain you have not proved you own, and that proof is
+a manual step.
+
+1. **Verify the domain** in [Search Console](https://search.google.com/search-console),
+   using the same Google account that administers the project. Add the TXT
+   record it gives you and wait for verification to complete.
+
+2. **Configure and apply:**
+
+   ```sh
+   $ pulumi config set cardvantage:customDomain app.example.com
+   $ pulumi up
+   ```
+
+3. **Point DNS at Cloud Run** using the records the mapping returns:
+
+   ```sh
+   $ pulumi stack output customDomainStatus
+   ```
+
+4. **Wait.** Google issues a managed certificate once DNS resolves. Fifteen
+   minutes is normal, an hour is not alarming. The domain serves a certificate
+   error until it completes — expected, not a fault.
+
+**Verify:**
+
+```sh
+$ curl -sS -o /dev/null -w '%{http_code}\n' https://app.example.com/
+```
+
+Then update `VITE_PUSH_API` and the CSP `connect-src` in
+`deploy/security-headers.conf` if the push backend moves with it.
+
+## Adding a production environment
+
+The stack name is the environment, so production is a second stack rather than
+a second copy of the code:
+
+```sh
+$ pulumi stack init prod
+$ pulumi config set gcp:project <prod-project-id>
+$ pulumi config set gcp:region us-central1
+$ pulumi config set cardvantage:githubRepo oravecz/cardvantage
+$ pulumi config set cardvantage:minInstances 1
+$ pulumi up
+```
+
+Resource names already carry the stack, and `deletionProtection` turns itself
+on when the stack is called `prod`. A separate *project* is stronger isolation
+than a separate stack in the same project, and worth it for anything with real
+users.
+
+Then add a `main` → production workflow alongside `cd.yml`, pointed at the
+`prod` stack's outputs, and promote by merging `develop` into `main`.
+
+## Costs
+
+Static files on Cloud Run with `minInstances: 0` and `cpuIdle: true` cost close
+to nothing at low traffic — you pay per request-second, and an idle service
+bills nothing. The things that actually cost money:
+
+- `minInstances: 1` keeps an instance warm around the clock. It removes cold
+  starts (roughly a second on first load) for roughly $10/month.
+- Artifact Registry storage, bounded here to the 30 most recent images.
+- Egress, which for a ~600 KB precached app is negligible.
+
+Set a budget alert on the project anyway. `maxInstances` is the technical
+ceiling; a billing alert is the one that wakes someone up.
+
+## Tearing down
+
+```sh
+$ pulumi destroy
+```
+
+Refuses on `prod` until you clear `deletionProtection`, which is the point. It
+will not delete the Pulumi state or the GCS bucket holding it; remove those by
+hand if you really mean it.
