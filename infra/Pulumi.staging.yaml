@@ -1,0 +1,6 @@
+# Staging. Pulumi adds an `encryptionsalt` here the first time it encrypts a
+# secret; committing this file without one is fine and expected.
+config:
+  gcp:project: helpme-rewards-staging
+  gcp:region: us-central1
+  cardvantage:githubRepo: oravecz/cardvantage
