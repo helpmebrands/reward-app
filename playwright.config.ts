@@ -30,12 +30,21 @@ export default defineConfig<{ theme: Theme }>({
     serviceWorkers: 'block',
     trace: 'retain-on-failure',
   },
-  projects: VIEWPORTS.flatMap((viewport) =>
-    THEMES.map((theme) => ({
-      name: `${viewport.width}px-${theme}`,
-      use: { ...devices['Desktop Chrome'], viewport, theme },
-    })),
-  ),
+  projects: [
+    ...VIEWPORTS.flatMap((viewport) =>
+      THEMES.map((theme) => ({
+        name: `${viewport.width}px-${theme}`,
+        testMatch: /a11y\.spec\.ts/,
+        use: { ...devices['Desktop Chrome'], viewport, theme },
+      })),
+    ),
+    // A phone on its side; the shortest viewport the compact layout serves.
+    {
+      name: '667x375-landscape',
+      testMatch: /landscape\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 667, height: 375 }, theme: 'dark' },
+    },
+  ],
   webServer: {
     command: `npm run preview -- --port ${PORT} --strictPort`,
     url: `http://localhost:${PORT}`,
