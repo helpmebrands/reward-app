@@ -152,6 +152,14 @@ const service = new gcp.cloudrunv2.Service(
     description: `HelpMe Reward (${environment})`,
     labels: tags,
     ingress: 'INGRESS_TRAFFIC_ALL',
+    // The app is a public website, so anyone may invoke it. This is the one
+    // genuinely public setting in the stack and is worth seeing explicitly.
+    // It is a service setting rather than an `allUsers` invoker binding
+    // because the organisation enforces domain-restricted sharing, which
+    // rejects `allUsers` in any IAM policy; skipping the invoker check for
+    // this one service is narrower than carving a policy exception for the
+    // whole project.
+    invokerIamDisabled: true,
     // Guards against `pulumi destroy` taking production with it. Flip to false
     // deliberately when you actually mean to remove the service.
     deletionProtection: environment === 'prod',
@@ -196,22 +204,12 @@ const service = new gcp.cloudrunv2.Service(
     // `pulumi up` would roll the service back to whichever digest the last
     // `up` recorded, turning an unrelated infrastructure change into a silent
     // deployment of old code.
-    ignoreChanges: ['template.containers[0].image', 'client', 'clientVersion'],
+    // The API also reports back a service-level `scaling` block this program
+    // never sets (instance scaling lives in the template); without ignoring
+    // it, every preview proposes removing it.
+    ignoreChanges: ['template.containers[0].image', 'client', 'clientVersion', 'scaling'],
   },
 )
-
-/**
- * The app is a public website, so anyone may invoke it. This is the one
- * genuinely public grant in the stack and is worth seeing explicitly rather
- * than inheriting from a console checkbox.
- */
-new gcp.cloudrunv2.ServiceIamMember('public-invoker', {
-  project,
-  location: service.location,
-  name: service.name,
-  role: 'roles/run.invoker',
-  member: 'allUsers',
-})
 
 // ---------------------------------------------------------------------------
 // Keyless deploys from GitHub

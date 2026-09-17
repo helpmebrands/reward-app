@@ -65,16 +65,18 @@ True
 
 A new environment gets its own bucket, created the same way.
 
-## 3. Configure the stack
+## 3. Select the stack
+
+Stack configuration is committed: `infra/Pulumi.staging.yaml` carries the
+project, region and `githubRepo`. The stack holds no secrets, so the passphrase
+that would guard them is empty; export it or every command prompts for one.
 
 ```sh
 $ cd infra
-$ npm install
-
-$ pulumi stack init dev
-$ pulumi config set gcp:project "$PROJECT_ID"
-$ pulumi config set gcp:region "$REGION"
-$ pulumi config set reward-app:githubRepo helpmebrands/reward-app
+$ npm ci
+$ export PULUMI_CONFIG_PASSPHRASE=""
+$ pulumi stack select staging
+$ pulumi config get reward-app:githubRepo     # helpmebrands/reward-app
 ```
 
 `githubRepo` is a security control, not a label — it pins which repository is
@@ -82,7 +84,13 @@ allowed to mint credentials for this project. Get it wrong and deploys fail
 with a permission error; leave it too broad and other repositories could
 deploy.
 
-Optional:
+Before the first secret goes into a stack, move it to a real secrets provider
+(`pulumi stack change-secrets-provider "gcpkms://..."`). An empty passphrase
+protects nothing.
+
+A new environment is `pulumi stack init <env>` followed by
+`pulumi config set gcp:project <project-id>` and the `githubRepo` above; commit
+the resulting `Pulumi.<env>.yaml`. Optional:
 
 ```sh
 $ pulumi config set reward-app:minInstances 1   # avoid cold starts, ~$10/mo
@@ -95,9 +103,11 @@ $ pulumi config set reward-app:maxInstances 4   # spend ceiling
 $ pulumi up
 ```
 
-Read the preview before confirming. Expect roughly 15 resources: six API
-enablements, a registry, two service accounts, the Cloud Run service, the
-identity pool and provider, and four IAM bindings.
+Read the preview before confirming. Expect 16 resources: six API enablements,
+a registry, two service accounts, the Cloud Run service, the identity pool and
+provider, and four IAM bindings. There is no `allUsers` invoker binding: the
+organisation's domain-restricted sharing policy rejects one, so the service is
+public through its own `invokerIamDisabled` setting instead.
 
 The first run takes a few minutes because enabling APIs is slow. If it fails
 with `SERVICE_DISABLED` or a permission error on the very first attempt, wait a
