@@ -14,6 +14,7 @@ import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import './AddCard.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Add a card, in two steps: pick the product, then say whose it is and when the
@@ -24,6 +25,7 @@ import './AddCard.css'
  */
 export function AddCard() {
   const app = useApp()
+  useScreenTitle(() => 'Add a card')
   const navigate = useNavigate()
   const snackbar = useSnackbar()
 

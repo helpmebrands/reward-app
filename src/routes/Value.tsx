@@ -4,6 +4,7 @@ import { biggestLeaks, cardLabel, monthlyTotals } from '../domain/selectors.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import './Value.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Value: what the household actually got, and what leaked away.
@@ -15,6 +16,7 @@ import './Value.css'
  */
 export function Value() {
   const app = useApp()
+  useScreenTitle(() => 'Value')
   const [monthsBack, setMonthsBack] = createSignal(9)
 
   const missed = () => app.missed()
@@ -34,7 +36,9 @@ export function Value() {
   return (
     <div class="screen__pad">
       <header style={{ 'margin-bottom': 'var(--space-6)' }}>
-        <h1 class="screen-title">Value</h1>
+        <h1 class="screen-title" tabindex="-1">
+          Value
+        </h1>
         <p class="screen-sub" style={{ 'margin-top': 'var(--space-2)' }}>
           Last {monthsBack()} months &middot;{' '}
           <Show

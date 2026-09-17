@@ -16,7 +16,7 @@ const TITLES: ReadonlyArray<[path: string, title: string]> = [
   ['/credits', 'Credits · HelpMe Reward'],
   ['/cards', 'Cards · HelpMe Reward'],
   ['/cards/new', 'Add a card · HelpMe Reward'],
-  ['/cards/card-0001', "Jim's Platinum · HelpMe Reward"],
+  ['/cards/card-0001', 'American Express Platinum — Jim · HelpMe Reward'],
   ['/benefit/ben-0003', 'Uber Cash · HelpMe Reward'],
   ['/value', 'Value · HelpMe Reward'],
   ['/settings', 'Settings · HelpMe Reward'],
@@ -55,7 +55,7 @@ describe('focus on navigation', () => {
     const tab = await screen.findByRole('button', { name: 'Credits' })
     tab.focus()
     tab.click()
-    await screen.findByRole('heading', { level: 1, name: 'Credits' })
+    await screen.findByRole('heading', { level: 1, name: 'All credits' })
     // Give any focus move a chance to happen, then assert it did not.
     await new Promise((resolve) => setTimeout(resolve, 20))
     expect(document.activeElement).toBe(tab)

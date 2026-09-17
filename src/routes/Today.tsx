@@ -19,6 +19,7 @@ import { sampleReminder } from '../ui/NudgePreview.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useCreditActions } from '../ui/useCreditActions.ts'
 import './Today.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Today: one number, a countdown, and the rows behind them.
@@ -30,6 +31,7 @@ import './Today.css'
 
 export function Today() {
   const app = useApp()
+  useScreenTitle(() => 'Today')
   const ui = useUi()
   const actions = useCreditActions()
 
@@ -97,20 +99,24 @@ export function Today() {
   return (
     <div class="screen__pad">
       <header class="today__head">
+        {/* The heading carries the screen's name; the logotype is decoration. */}
+        <h1 class="visually-hidden" tabindex="-1">
+          Today
+        </h1>
         <div class="row row--baseline" style={{ gap: 'var(--space-3)' }}>
           {/* Two renders of the logotype, one per ground; the theme selector
               in Today.css shows whichever matches the current background. */}
           <img
             class="today__logotype today__logotype--dark"
             src="/brand/logotype-horz-dark.png"
-            alt="HelpMe Reward"
+            alt=""
             width="1024"
             height="178"
           />
           <img
             class="today__logotype today__logotype--light"
             src="/brand/logotype-horz-light.png"
-            alt="HelpMe Reward"
+            alt=""
             width="1024"
             height="178"
           />

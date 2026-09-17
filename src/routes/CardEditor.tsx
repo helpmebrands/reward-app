@@ -8,6 +8,7 @@ import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import './CardEditor.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /** Editing a card: its details, and the list of credits attached to it. */
 export function CardEditor() {
@@ -17,6 +18,10 @@ export function CardEditor() {
   const snackbar = useSnackbar()
 
   const card = createMemo(() => app.data.cards.find((c) => c.id === params.id))
+  useScreenTitle(() => {
+    const current = card()
+    return current ? cardLabel(current) : 'Card not found'
+  })
   const benefits = createMemo(() =>
     app.data.benefits
       .filter((b) => b.cardId === params.id)

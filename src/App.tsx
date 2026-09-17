@@ -1,5 +1,5 @@
-import { type RouteDefinition, Router, useNavigate } from '@solidjs/router'
-import { createEffect, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
+import { type RouteDefinition, Router, useLocation, useNavigate } from '@solidjs/router'
+import { createEffect, on, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
 import type { OverlapGroup } from './domain/selectors.ts'
 import { findOverlaps } from './domain/selectors.ts'
 import type { BenefitInstance } from './domain/types.ts'
@@ -20,6 +20,7 @@ import { NudgePreview } from './ui/NudgePreview.tsx'
 import { Ph } from './ui/Ph.tsx'
 import { SnackbarProvider } from './ui/Snackbar.tsx'
 import { TabBar } from './ui/TabBar.tsx'
+import { useScreenTitle } from './ui/useScreenTitle.ts'
 
 /**
  * The app shell, used as the router's root layout.
@@ -35,6 +36,7 @@ export function Shell(props: ParentProps) {
   const app = useApp()
   const ui = useUi()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const openInstance = (): BenefitInstance | null =>
     app.instances().find((i) => i.benefit.id === ui.openBenefitId()) ?? null
@@ -57,6 +59,23 @@ export function Shell(props: ParentProps) {
     if (theme === 'system') document.documentElement.removeAttribute('data-theme')
     else document.documentElement.setAttribute('data-theme', theme)
   })
+
+  // Moving between screens never reloads the document, so focus would stay
+  // wherever it was — often on a control that no longer exists — and a screen
+  // reader would say nothing. Each screen's <h1> carries tabindex="-1" and
+  // takes focus on arrival (WCAG 2.4.3). A tab press is the exception: the
+  // user is still on the tab they pressed, and stays there. The first render
+  // is skipped so the page loads with focus at the top, as pages do.
+  createEffect(
+    on(
+      () => location.pathname,
+      () => {
+        if (document.activeElement?.closest('.tabbar')) return
+        queueMicrotask(() => document.querySelector<HTMLElement>('#main h1')?.focus())
+      },
+      { defer: true },
+    ),
+  )
 
   // A tapped notification asks the worker to bring us to the right screen.
   onMount(() => {
@@ -113,12 +132,15 @@ export function Shell(props: ParentProps) {
 }
 
 function NotFound() {
+  useScreenTitle(() => 'Not found')
   return (
     <div class="screen__pad empty">
       <span class="empty__glyph">
         <Ph name="compass" />
       </span>
-      <p class="section-note">That screen does not exist.</p>
+      <h1 class="section-title" tabindex="-1">
+        That screen does not exist.
+      </h1>
       <a class="btn btn--primary" href="/">
         Back to Today
       </a>

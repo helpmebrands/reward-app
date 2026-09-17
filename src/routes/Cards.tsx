@@ -6,6 +6,7 @@ import { cardLabel } from '../domain/selectors.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import './Cards.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Cards: what each card is actually worth against its fee.
@@ -66,6 +67,7 @@ function verdict(summary: CardSummary): { headline: string; body: string; tone: 
 
 export function Cards() {
   const app = useApp()
+  useScreenTitle(() => 'Cards')
 
   const feeTotal = () => app.cardSummaries().reduce((sum, s) => sum + s.annualFeeCents, 0)
   const capturedTotal = () => app.cardSummaries().reduce((sum, s) => sum + s.capturedCents, 0)
@@ -73,7 +75,9 @@ export function Cards() {
   return (
     <div class="screen__pad">
       <header style={{ 'margin-bottom': 'var(--space-6)' }}>
-        <h1 class="screen-title">Cards</h1>
+        <h1 class="screen-title" tabindex="-1">
+          Cards
+        </h1>
         <Show when={app.cardSummaries().length > 0}>
           <p class="screen-sub" style={{ 'margin-top': 'var(--space-2)', 'max-width': '300px' }}>
             {formatMoney(feeTotal())} in fees this cardmember year. Value captured so far:{' '}

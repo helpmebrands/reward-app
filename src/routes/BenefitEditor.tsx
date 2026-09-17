@@ -10,6 +10,7 @@ import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { Switch } from '../ui/Switch.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'manual']
 const CATEGORIES: BenefitCategory[] = [
@@ -41,6 +42,7 @@ export function BenefitEditor() {
   const snackbar = useSnackbar()
 
   const benefit = createMemo(() => app.data.benefits.find((b) => b.id === params.id))
+  useScreenTitle(() => benefit()?.name ?? 'Credit not found')
   const card = createMemo(() => app.data.cards.find((c) => c.id === benefit()?.cardId))
 
   const preview = createMemo(() => {
