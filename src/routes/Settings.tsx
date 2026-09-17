@@ -19,11 +19,13 @@ import { useSnackbar } from '../ui/Snackbar.tsx'
 import { Switch } from '../ui/Switch.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import './Settings.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual']
 
 export function Settings() {
   const app = useApp()
+  useScreenTitle(() => 'Settings')
   const navigate = useNavigate()
   const snackbar = useSnackbar()
 

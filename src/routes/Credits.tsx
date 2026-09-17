@@ -19,6 +19,7 @@ import { HolderFilter } from '../ui/HolderFilter.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useCreditActions } from '../ui/useCreditActions.ts'
 import './Credits.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Credits: the ledger.
@@ -70,6 +71,7 @@ const STATUS_TONE: Record<BenefitStatus, string> = {
 
 export function Credits() {
   const app = useApp()
+  useScreenTitle(() => 'Credits')
   const ui = useUi()
   const actions = useCreditActions()
   const [grouping, setGrouping] = createSignal<Grouping>('card')
@@ -177,7 +179,9 @@ export function Credits() {
   return (
     <div class="screen__pad">
       <header style={{ 'margin-bottom': 'var(--space-6)' }}>
-        <h1 class="screen-title">All credits</h1>
+        <h1 class="screen-title" tabindex="-1">
+          All credits
+        </h1>
         <p class="screen-sub" style={{ 'margin-top': 'var(--space-2)' }}>
           {app.visibleInstances().filter(isClaimable).length} open &middot;{' '}
           {byStatus(app.visibleInstances(), 'locked').length} locked &middot; {app.missed().length}{' '}
