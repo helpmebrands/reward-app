@@ -88,7 +88,9 @@ for (const [name, path] of ROUTES) {
         const now = actual[i] ?? null
         if (was === undefined) return [`${selector}: no baseline`]
         if (was === null || now === null) return was === now ? [] : [`${selector}: ${was} → ${now}`]
-        return was.some((v, j) => Math.abs(v - (now[j] ?? 0)) > 1)
+        // Widths of shrink-to-fit text differ by a few pixels between the
+        // font rasterisers on macOS and Linux; positions and heights do not.
+        return was.some((v, j) => Math.abs(v - (now[j] ?? 0)) > (j === 2 ? 4 : 1))
           ? [`${selector}: ${was.join(',')} → ${now.join(',')}`]
           : []
       })

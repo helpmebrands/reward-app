@@ -175,7 +175,7 @@ At the same root size, the bounding boxes of the visible controls on Today and t
 
 ### The phone layout does not move
 
-`tests/e2e/shell.spec.ts` at 320 and 402px compares the boxes of the main column, tab bar, tabs, heading, first row and other landmarks on every route against `tests/e2e/layout-baseline.json`, with a pixel of tolerance.
+`tests/e2e/shell.spec.ts` at 320 and 402px compares the boxes of the main column, tab bar, tabs, heading, first row and other landmarks on every route against `tests/e2e/layout-baseline.json`, with a pixel of tolerance on positions and heights and four on widths.
 
 The baseline was taken from develop before the responsive work.
 
