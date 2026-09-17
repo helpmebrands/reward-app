@@ -155,6 +155,24 @@ Typing a holder removes the error and `aria-invalid`, and pressing Save again ad
 
 `tests/a11y/credit-sheet.test.tsx` logs the full balance from the sheet, reopens it, finds the claim under "Logged this period" and presses Remove; the balance returns to what it was and the row is gone.
 
+### Nothing scrolls sideways at 320px
+
+`tests/e2e/reflow.spec.ts`, on the 320px project, loads every route and asserts neither the document nor `#main` can scroll sideways, then repeats that on Today with the credit sheet and the compare sheet open (WCAG 1.4.10).
+
+### Text spacing overrides clip nothing
+
+The same spec injects WCAG 1.4.12's overrides and asserts no element with hidden overflow has content taller than itself, `.truncate` and `.visually-hidden` excepted, and that nothing scrolls sideways.
+
+The overrides are line height 1.5, paragraph spacing 2em, letter spacing 0.12em and word spacing 0.16em. A screenshot of each route is attached to the report for review.
+
+### Body text follows the browser font size
+
+`tests/e2e/large-type.spec.ts` sets the root font size to 24px, which is what the browser preference changes, and expects body text to measure 22.5px: the rem scale following the root (WCAG 1.4.4).
+
+### Controls keep clear of each other at 24px
+
+At the same root size, the bounding boxes of the visible controls on Today and the benefit editor do not overlap and the page does not scroll sideways.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
