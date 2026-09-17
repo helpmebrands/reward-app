@@ -22,6 +22,14 @@ Almost always one of three things:
 3. **The workflow lacks `id-token: write`.** Without it GitHub never mints an
    OIDC token and the exchange has nothing to present.
 
+## `pulumi up` fails: `One or more users named in the policy do not belong to a permitted customer`
+
+The organisation enforces domain-restricted sharing, which rejects `allUsers`
+(and any other external principal) in an IAM policy. The service is public
+through `invokerIamDisabled` on the service itself, not through an invoker
+binding, so this error means someone has reintroduced an `allUsers` member.
+Remove it rather than carving a project-wide policy exception.
+
 ## Deploy fails: `denied: Permission "artifactregistry.repositories.uploadArtifacts" denied`
 
 The deployer can authenticate but not push. Either `ARTIFACT_REPO` names a
