@@ -142,195 +142,197 @@ export function Today() {
       </header>
 
       <Show when={hasCards()} fallback={<FirstRun />}>
-        <HolderFilter />
+        <div class="today__body">
+          <HolderFilter />
 
-        <section class="today__headline" aria-labelledby="today-headline-label">
-          <div class="kicker" id="today-headline-label">
-            Unclaimed, open periods
-          </div>
-          <p class="today__amount numeric">
-            <span class="today__amount-symbol">{moneyParts(totals().claimableCents).symbol}</span>
-            <span class="today__amount-digits">{moneyParts(totals().claimableCents).digits}</span>
-          </p>
-          <p class="today__sub">{headlineSub()}</p>
-
-          <Show when={bands().total > 0}>
-            <div class="split" aria-hidden="true">
-              <Show when={bands().soonCents > 0}>
-                <div class="split__part split__part--soon" style={{ flex: bands().soonCents }}>
-                  <Show when={bands().showSoon}>{formatMoney(bands().soonCents)}</Show>
-                </div>
-              </Show>
-              <Show when={bands().availableCents > 0}>
-                <div
-                  class="split__part split__part--available"
-                  style={{ flex: bands().availableCents }}
-                >
-                  <Show when={bands().showAvailable}>{formatMoney(bands().availableCents)}</Show>
-                </div>
-              </Show>
-              <Show when={bands().capturedCents > 0}>
-                <div
-                  class="split__part split__part--captured"
-                  style={{ flex: bands().capturedCents }}
-                >
-                  <Show when={bands().showCaptured}>{formatMoney(bands().capturedCents)}</Show>
-                </div>
-              </Show>
+          <section class="today__headline" aria-labelledby="today-headline-label">
+            <div class="kicker" id="today-headline-label">
+              Unclaimed, open periods
             </div>
+            <p class="today__amount numeric">
+              <span class="today__amount-symbol">{moneyParts(totals().claimableCents).symbol}</span>
+              <span class="today__amount-digits">{moneyParts(totals().claimableCents).digits}</span>
+            </p>
+            <p class="today__sub">{headlineSub()}</p>
 
-            {/* The bar is decorative; this list is what a screen reader gets. */}
-            <ul class="legend">
-              <li class="legend__item">
-                <span
-                  class="legend__swatch"
-                  style={{ background: 'var(--color-accent)' }}
-                  aria-hidden="true"
-                />
-                Use soon {formatMoney(bands().soonCents)}
-              </li>
-              <li class="legend__item">
-                <span
-                  class="legend__swatch"
-                  style={{ background: 'var(--color-accent-800)' }}
-                  aria-hidden="true"
-                />
-                Available {formatMoney(bands().availableCents)}
-              </li>
-              <li class="legend__item">
-                <span
-                  class="legend__swatch"
-                  style={{ background: 'var(--color-neutral-800)' }}
-                  aria-hidden="true"
-                />
-                Captured {formatMoney(bands().capturedCents)}
-              </li>
-            </ul>
-          </Show>
-        </section>
-
-        <Show when={soon().length > 0}>
-          <section class="section">
-            <div
-              class="row row--baseline row--between"
-              style={{ 'margin-bottom': 'var(--space-4)' }}
-            >
-              <h2 class="section-title">
-                <Show when={reset()} fallback="Use soon">
-                  {(on) => `Use soon — resets ${formatResetDate(on())}`}
+            <Show when={bands().total > 0}>
+              <div class="split" aria-hidden="true">
+                <Show when={bands().soonCents > 0}>
+                  <div class="split__part split__part--soon" style={{ flex: bands().soonCents }}>
+                    <Show when={bands().showSoon}>{formatMoney(bands().soonCents)}</Show>
+                  </div>
                 </Show>
-              </h2>
-              <Show when={daysToReset() !== null}>
-                <span class="today__countdown numeric">
-                  {daysToReset() === 0 ? 'today' : `${daysToReset()} days`}
-                </span>
-              </Show>
-            </div>
-            <div class="list">
-              <For each={soon()}>
-                {(instance) => (
-                  <CreditRow
-                    instance={instance}
-                    showCard={app.data.cards.length > 1}
-                    onOpen={() => ui.openCredit(instance.benefit.id)}
-                    onLogAll={() => actions.logAll(instance)}
-                    onToggleMute={() => actions.toggleMute(instance)}
-                  />
-                )}
-              </For>
-            </div>
-          </section>
-        </Show>
-
-        <Show when={overlaps().length > 0}>
-          <section class="section">
-            <h2 class="section-title">Two cards, one benefit</h2>
-            <p class="section-note" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>
-              These credits exist twice in the household, and one purchase cannot draw on both.
-              <Show when={allOverlaps().length > overlaps().length}>
-                {' '}
-                Showing the {overlaps().length} largest of {allOverlaps().length}; the rest are on
-                Credits.
-              </Show>
-            </p>
-            <div class="stack">
-              <For each={overlaps()}>
-                {(overlap) => (
-                  <button
-                    type="button"
-                    class="feature today__overlap"
-                    onClick={() => ui.openOverlap(overlap.label)}
+                <Show when={bands().availableCents > 0}>
+                  <div
+                    class="split__part split__part--available"
+                    style={{ flex: bands().availableCents }}
                   >
-                    <span class="row" style={{ gap: 'var(--space-2)' }}>
-                      <Ph name="arrows-split" size={14} color="var(--color-accent-400)" />
-                      <span class="kicker" style={{ color: 'var(--color-accent-400)' }}>
-                        {overlap.sameProduct ? 'Same card, twice' : 'Same spend, two cards'}
+                    <Show when={bands().showAvailable}>{formatMoney(bands().availableCents)}</Show>
+                  </div>
+                </Show>
+                <Show when={bands().capturedCents > 0}>
+                  <div
+                    class="split__part split__part--captured"
+                    style={{ flex: bands().capturedCents }}
+                  >
+                    <Show when={bands().showCaptured}>{formatMoney(bands().capturedCents)}</Show>
+                  </div>
+                </Show>
+              </div>
+
+              {/* The bar is decorative; this list is what a screen reader gets. */}
+              <ul class="legend">
+                <li class="legend__item">
+                  <span
+                    class="legend__swatch"
+                    style={{ background: 'var(--color-accent)' }}
+                    aria-hidden="true"
+                  />
+                  Use soon {formatMoney(bands().soonCents)}
+                </li>
+                <li class="legend__item">
+                  <span
+                    class="legend__swatch"
+                    style={{ background: 'var(--color-accent-800)' }}
+                    aria-hidden="true"
+                  />
+                  Available {formatMoney(bands().availableCents)}
+                </li>
+                <li class="legend__item">
+                  <span
+                    class="legend__swatch"
+                    style={{ background: 'var(--color-neutral-800)' }}
+                    aria-hidden="true"
+                  />
+                  Captured {formatMoney(bands().capturedCents)}
+                </li>
+              </ul>
+            </Show>
+          </section>
+
+          <Show when={soon().length > 0}>
+            <section class="section today__soon">
+              <div
+                class="row row--baseline row--between"
+                style={{ 'margin-bottom': 'var(--space-4)' }}
+              >
+                <h2 class="section-title">
+                  <Show when={reset()} fallback="Use soon">
+                    {(on) => `Use soon — resets ${formatResetDate(on())}`}
+                  </Show>
+                </h2>
+                <Show when={daysToReset() !== null}>
+                  <span class="today__countdown numeric">
+                    {daysToReset() === 0 ? 'today' : `${daysToReset()} days`}
+                  </span>
+                </Show>
+              </div>
+              <div class="list">
+                <For each={soon()}>
+                  {(instance) => (
+                    <CreditRow
+                      instance={instance}
+                      showCard={app.data.cards.length > 1}
+                      onOpen={() => ui.openCredit(instance.benefit.id)}
+                      onLogAll={() => actions.logAll(instance)}
+                      onToggleMute={() => actions.toggleMute(instance)}
+                    />
+                  )}
+                </For>
+              </div>
+            </section>
+          </Show>
+
+          <Show when={overlaps().length > 0}>
+            <section class="section today__overlaps-section">
+              <h2 class="section-title">Two cards, one benefit</h2>
+              <p class="section-note" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>
+                These credits exist twice in the household, and one purchase cannot draw on both.
+                <Show when={allOverlaps().length > overlaps().length}>
+                  {' '}
+                  Showing the {overlaps().length} largest of {allOverlaps().length}; the rest are on
+                  Credits.
+                </Show>
+              </p>
+              <div class="stack today__overlaps">
+                <For each={overlaps()}>
+                  {(overlap) => (
+                    <button
+                      type="button"
+                      class="feature today__overlap"
+                      onClick={() => ui.openOverlap(overlap.label)}
+                    >
+                      <span class="row" style={{ gap: 'var(--space-2)' }}>
+                        <Ph name="arrows-split" size={14} color="var(--color-accent-400)" />
+                        <span class="kicker" style={{ color: 'var(--color-accent-400)' }}>
+                          {overlap.sameProduct ? 'Same card, twice' : 'Same spend, two cards'}
+                        </span>
                       </span>
-                    </span>
-                    <span class="today__overlap-title">
-                      {overlap.label} &times; {overlap.instances.length}
-                    </span>
-                    <span class="today__overlap-body">
-                      {formatMoney(overlap.remainingCents)} unclaimed across{' '}
-                      {overlap.instances
-                        .map((i) => i.card.holder || cardLabel(i.card))
-                        .join(' and ')}
-                      .
-                    </span>
-                    <span class="today__overlap-cta">
-                      Compare
-                      <Ph name="arrow-right" size={12} />
-                    </span>
-                  </button>
-                )}
-              </For>
-            </div>
-          </section>
-        </Show>
+                      <span class="today__overlap-title">
+                        {overlap.label} &times; {overlap.instances.length}
+                      </span>
+                      <span class="today__overlap-body">
+                        {formatMoney(overlap.remainingCents)} unclaimed across{' '}
+                        {overlap.instances
+                          .map((i) => i.card.holder || cardLabel(i.card))
+                          .join(' and ')}
+                        .
+                      </span>
+                      <span class="today__overlap-cta">
+                        Compare
+                        <Ph name="arrow-right" size={12} />
+                      </span>
+                    </button>
+                  )}
+                </For>
+              </div>
+            </section>
+          </Show>
 
-        <Show when={locked().length > 0}>
-          <section class="section">
-            <h2 class="section-title">Locked behind enrolment</h2>
-            <p class="section-note" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>
-              {formatMoney(totals().lockedCents)} you cannot touch until you tick a box on the
-              issuer&rsquo;s benefits page.
-            </p>
-            <div class="list">
-              <For each={locked()}>
-                {(instance) => (
-                  <CreditRow
-                    instance={instance}
-                    showCard={app.data.cards.length > 1}
-                    onOpen={() => ui.openCredit(instance.benefit.id)}
-                    onLogAll={() => actions.logAll(instance)}
-                    onToggleMute={() => actions.toggleMute(instance)}
-                  />
-                )}
-              </For>
-            </div>
-          </section>
-        </Show>
+          <Show when={locked().length > 0}>
+            <section class="section today__locked">
+              <h2 class="section-title">Locked behind enrolment</h2>
+              <p class="section-note" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>
+                {formatMoney(totals().lockedCents)} you cannot touch until you tick a box on the
+                issuer&rsquo;s benefits page.
+              </p>
+              <div class="list">
+                <For each={locked()}>
+                  {(instance) => (
+                    <CreditRow
+                      instance={instance}
+                      showCard={app.data.cards.length > 1}
+                      onOpen={() => ui.openCredit(instance.benefit.id)}
+                      onLogAll={() => actions.logAll(instance)}
+                      onToggleMute={() => actions.toggleMute(instance)}
+                    />
+                  )}
+                </For>
+              </div>
+            </section>
+          </Show>
 
-        <Show when={captured().length > 0}>
-          <section class="section">
-            <h2 class="section-title">
-              Captured this period &mdash; {formatMoney(totals().capturedCents)}
-            </h2>
-            <div class="list" style={{ 'margin-top': 'var(--space-4)' }}>
-              <For each={captured()}>
-                {(instance) => (
-                  <CreditRow
-                    instance={instance}
-                    showCard={app.data.cards.length > 1}
-                    onOpen={() => ui.openCredit(instance.benefit.id)}
-                    onLogAll={() => actions.logAll(instance)}
-                    onToggleMute={() => actions.toggleMute(instance)}
-                  />
-                )}
-              </For>
-            </div>
-          </section>
-        </Show>
+          <Show when={captured().length > 0}>
+            <section class="section today__captured">
+              <h2 class="section-title">
+                Captured this period &mdash; {formatMoney(totals().capturedCents)}
+              </h2>
+              <div class="list" style={{ 'margin-top': 'var(--space-4)' }}>
+                <For each={captured()}>
+                  {(instance) => (
+                    <CreditRow
+                      instance={instance}
+                      showCard={app.data.cards.length > 1}
+                      onOpen={() => ui.openCredit(instance.benefit.id)}
+                      onLogAll={() => actions.logAll(instance)}
+                      onToggleMute={() => actions.toggleMute(instance)}
+                    />
+                  )}
+                </For>
+              </div>
+            </section>
+          </Show>
+        </div>
       </Show>
     </div>
   )
