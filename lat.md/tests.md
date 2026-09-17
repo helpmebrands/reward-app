@@ -187,7 +187,9 @@ At 768 and 1280px the main navigation starts at the leading edge, is 80 or 200px
 
 ### The sheet is a dialog from 600px
 
-`tests/a11y/sheet.test.tsx` mocks the 600px media query: the open credit sheet then renders no grip and carries no drag transform, and focus moves inside; without the mock the grip and the transform are there. `tests/e2e/sheets.spec.ts` at 768px checks the panel is centred and at most 480px wide.
+`tests/a11y/sheet.test.tsx` mocks the 600px media query: the open credit sheet then renders no grip and carries no drag transform, and focus moves inside.
+
+Without the mock the grip and the transform are there. `tests/e2e/sheets.spec.ts` at 768px checks the panel is centred and at most 480px wide.
 
 ### The sheet still drags on a phone
 
