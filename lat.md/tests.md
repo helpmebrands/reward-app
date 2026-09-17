@@ -115,9 +115,30 @@ jsdom has no layout, so this catches names, roles, labels, landmarks, headings a
 
 Today with the credit sheet open, since the sheet is the app's one modal dialog and is portalled outside `<main>`, renders with no axe violation.
 
+### Landscape keeps the first row on screen
+
+At 667×375, the landscape project of `playwright.config.ts`, every route's first credit row (or heading) can be brought fully into view, nothing scrolls sideways, and the chrome leaves at least 80% of the height to content.
+
+Today's headline number is also visible without scrolling, which is what the short-viewport styles in `base.css`, `TabBar.css` and `Today.css` buy.
+
+### The credit sheet works in landscape
+
+At 667×375 the credit sheet opens no taller than 85% of the viewport, its body scrolls inside the panel, and Escape closes it.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
 
 An undecided check that nobody reviews is treated as a failure, which is what makes the contrast entry in the allowlist honest.
 
+## PWA manifest
+
+The manifest must not lock orientation ([[architecture#PWA manifest]], WCAG 1.3.4). Checked twice: on the source before a build exists, and on the built file.
+
+### Manifest sets no orientation
+
+`tests/manifest.test.ts` reads `vite.config.ts` and fails on any `orientation:` key in it, so the lock cannot quietly come back.
+
+### Built manifest has no orientation key
+
+The landscape Playwright project fetches `/manifest.webmanifest` from the preview server and asserts the key is absent from what the browser will actually read.

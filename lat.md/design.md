@@ -72,4 +72,6 @@ A custom dropdown would be worse in every way that matters: no keyboard accessor
 
 The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
 
+Orientation is never locked. Under 480px of height, a phone on its side, the shell drops the bloom and most of its top padding, the tab bar goes icon-only with the labels kept for screen readers, Today's number steps down to 40px, and sheets cap at 85dvh so a strip of the screen stays visible behind them ([[tests#Accessibility tests#Landscape keeps the first row on screen]]).
+
 Conformance is checked by axe at two levels ([[tests#Accessibility tests]]): in jsdom on every route as part of `npm test`, and in Chromium at four widths and both themes as the `a11y` job of the verify gate.
