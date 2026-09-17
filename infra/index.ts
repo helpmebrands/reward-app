@@ -1,5 +1,5 @@
 /**
- * Cardvantage infrastructure.
+ * HelpMe Reward infrastructure.
  *
  * Everything the app needs to be built by GitHub and served by Cloud Run:
  * an image registry, the service itself, and a keyless trust path from this
@@ -16,12 +16,12 @@
 import * as gcp from '@pulumi/gcp'
 import * as pulumi from '@pulumi/pulumi'
 
-const config = new pulumi.Config('cardvantage')
+const config = new pulumi.Config('reward-app')
 const gcpConfig = new pulumi.Config('gcp')
 
 const project = gcpConfig.require('project')
 const region = gcpConfig.get('region') ?? 'us-central1'
-const serviceName = config.get('serviceName') ?? 'cardvantage'
+const serviceName = config.get('serviceName') ?? 'reward-app'
 const minInstances = config.getNumber('minInstances') ?? 0
 const maxInstances = config.getNumber('maxInstances') ?? 4
 const customDomain = config.get('customDomain') ?? ''
@@ -35,12 +35,12 @@ const customDomain = config.get('customDomain') ?? ''
  */
 const githubRepo = config.require('githubRepo')
 if (!/^[\w.-]+\/[\w.-]+$/.test(githubRepo)) {
-  throw new Error(`cardvantage:githubRepo must look like "owner/name", got "${githubRepo}"`)
+  throw new Error(`reward-app:githubRepo must look like "owner/name", got "${githubRepo}"`)
 }
 
 /** The stack name doubles as the environment: `dev`, `prod`, … */
 const environment = pulumi.getStack()
-const tags = { app: 'cardvantage', environment, 'managed-by': 'pulumi' }
+const tags = { app: 'reward-app', environment, 'managed-by': 'pulumi' }
 
 // ---------------------------------------------------------------------------
 // APIs
@@ -83,7 +83,7 @@ const repository = new gcp.artifactregistry.Repository(
     location: region,
     repositoryId: `${serviceName}-${environment}`,
     format: 'DOCKER',
-    description: `Container images for Cardvantage (${environment})`,
+    description: `Container images for HelpMe Reward (${environment})`,
     labels: tags,
     // Every commit to develop pushes an image, so without a policy this grows
     // without bound and bills forever. Keeping recent images is what makes a
@@ -114,7 +114,7 @@ const repository = new gcp.artifactregistry.Repository(
 /**
  * The identity the container runs as.
  *
- * It is granted nothing. Cardvantage serves static files and holds all user
+ * It is granted nothing. HelpMe Reward serves static files and holds all user
  * data in the browser, so the container has no reason to reach any Google API —
  * and running as the default compute service account (which is broadly
  * privileged) would hand an attacker who achieved RCE a project-wide identity
@@ -125,8 +125,8 @@ const runtimeAccount = new gcp.serviceaccount.Account(
   {
     project,
     accountId: `${serviceName}-run-${environment}`.slice(0, 30),
-    displayName: `Cardvantage runtime (${environment})`,
-    description: 'Runs the Cardvantage container. Intentionally holds no roles.',
+    displayName: `HelpMe Reward runtime (${environment})`,
+    description: 'Runs the HelpMe Reward container. Intentionally holds no roles.',
   },
   dependsOnApis,
 )
@@ -149,7 +149,7 @@ const service = new gcp.cloudrunv2.Service(
     project,
     location: region,
     name: serviceName,
-    description: `Cardvantage (${environment})`,
+    description: `HelpMe Reward (${environment})`,
     labels: tags,
     ingress: 'INGRESS_TRAFFIC_ALL',
     // Guards against `pulumi destroy` taking production with it. Flip to false
@@ -265,7 +265,7 @@ const deployAccount = new gcp.serviceaccount.Account(
   {
     project,
     accountId: `${serviceName}-deploy-${environment}`.slice(0, 30),
-    displayName: `Cardvantage deployer (${environment})`,
+    displayName: `HelpMe Reward deployer (${environment})`,
     description: 'Assumed by GitHub Actions to push images and deploy revisions.',
   },
   dependsOnApis,

@@ -12,7 +12,7 @@ Seconds, and no build. Do this first, diagnose afterwards.
 
 ```sh
 $ REGION=us-central1
-$ SERVICE=cardvantage
+$ SERVICE=reward-app
 
 # What is running, and what ran before it
 $ gcloud run revisions list --service "$SERVICE" --region "$REGION" \
@@ -30,7 +30,7 @@ $ URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='val
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"
 ```
 
-Revisions are named `cardvantage-sha-<commit>`, so the revision list doubles as
+Revisions are named `reward-app-sha-<commit>`, so the revision list doubles as
 a map back to the commit that produced it.
 
 ## Then: get `develop` back to the truth
@@ -69,11 +69,11 @@ digest directly:
 
 ```sh
 $ gcloud artifacts docker images list \
-    "$REGION-docker.pkg.dev/$PROJECT_ID/<repo>/cardvantage" \
+    "$REGION-docker.pkg.dev/$PROJECT_ID/<repo>/reward-app" \
     --include-tags --limit 20
 
 $ gcloud run deploy "$SERVICE" --region "$REGION" \
-    --image "$REGION-docker.pkg.dev/$PROJECT_ID/<repo>/cardvantage@sha256:<digest>"
+    --image "$REGION-docker.pkg.dev/$PROJECT_ID/<repo>/reward-app@sha256:<digest>"
 ```
 
 ## Rolling back infrastructure

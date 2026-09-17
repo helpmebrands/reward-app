@@ -1,9 +1,9 @@
-name: cardvantage
+name: reward-app
 runtime:
   name: nodejs
   options:
     typescript: true
-description: Infrastructure for Cardvantage — Artifact Registry, Cloud Run, and keyless GitHub deploys.
+description: Infrastructure for HelpMe Reward — Artifact Registry, Cloud Run, and keyless GitHub deploys.
 
 # Only this project's own namespace is declared here. Provider settings
 # (gcp:project, gcp:region) are not — Pulumi requires a concrete `value` for a
@@ -15,7 +15,7 @@ config:
   serviceName:
     type: string
     description: Cloud Run service name.
-    default: cardvantage
+    default: reward-app
   minInstances:
     type: integer
     description: Warm instances. 0 is cheapest and accepts a cold start.

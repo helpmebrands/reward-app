@@ -1,8 +1,8 @@
 {
-  "name": "cardvantage-infra",
+  "name": "reward-app-infra",
   "version": "0.1.0",
   "private": true,
-  "description": "Pulumi program for Cardvantage's Google Cloud infrastructure.",
+  "description": "Pulumi program for HelpMe Reward's Google Cloud infrastructure.",
   "main": "index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit"

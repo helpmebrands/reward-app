@@ -3,5 +3,5 @@
 config:
   gcp:project: helpme-reward-staging
   gcp:region: us-central1
-  cardvantage:githubRepo: helpmebrands/reward-app
+  reward-app:githubRepo: helpmebrands/reward-app
 encryptionsalt: v1:af6Ceol1Zc0=:v1:ye4r5/sS1FNnwnm8:CtMgBhD70sta1KVkM8lyy0jMErnNAQ==
