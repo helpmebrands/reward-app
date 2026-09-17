@@ -63,7 +63,7 @@ $ npm install
 $ pulumi stack init dev
 $ pulumi config set gcp:project "$PROJECT_ID"
 $ pulumi config set gcp:region "$REGION"
-$ pulumi config set cardvantage:githubRepo oravecz/cardvantage
+$ pulumi config set cardvantage:githubRepo helpmebrands/reward-app
 ```
 
 `githubRepo` is a security control, not a label — it pins which repository is
