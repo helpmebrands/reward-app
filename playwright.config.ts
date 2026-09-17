@@ -53,7 +53,7 @@ export default defineConfig<{ theme: Theme }>({
     // The shell at each width: phone layout pinned below 600px, a rail above.
     ...[320, 402, 768, 1280].map((width) => ({
       name: `${width}px-shell`,
-      testMatch: /(shell|sheets)\.spec\.ts/,
+      testMatch: /(shell|sheets|screens)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width, height: width < 600 ? 800 : 900 },
