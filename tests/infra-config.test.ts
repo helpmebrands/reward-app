@@ -44,6 +44,15 @@ describe('staging stack config', () => {
   })
 })
 
+describe('runbook 01', () => {
+  // @lat: [[tests#Infrastructure config#Runbook names the real state backend]]
+  it('logs Pulumi into the versioned state bucket', () => {
+    expect(read('docs/runbooks/01-initial-deployment.md')).toContain(
+      'pulumi login gs://helpme-reward-staging-pulumi-state',
+    )
+  })
+})
+
 describe('infra, runbooks, workflows and container files', () => {
   const files = [...['infra', 'docs', '.github', 'deploy'].flatMap(filesUnder), 'Dockerfile']
 

@@ -81,3 +81,8 @@ Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `he
 ### No cardvantage in infrastructure names
 
 Nothing under `infra/`, `docs/`, `.github/`, `deploy/` or the `Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
+
+
+### Runbook names the real state backend
+
+Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather than offering a choice, so nobody initialises a second, competing copy of the state.
