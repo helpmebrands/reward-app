@@ -44,6 +44,21 @@ describe('staging stack config', () => {
   })
 })
 
+describe('runbook README', () => {
+  // @lat: [[tests#Infrastructure config#README records the staging environment]]
+  it('records the staging project, region, stack, backend and URL', () => {
+    const readme = read('docs/runbooks/README.md')
+    for (const fact of [
+      'helpme-reward-staging',
+      'us-central1',
+      'gs://helpme-reward-staging-pulumi-state',
+      'https://reward-app-bduraqeztq-uc.a.run.app',
+    ]) {
+      expect(readme).toContain(fact)
+    }
+  })
+})
+
 describe('runbook 01', () => {
   // @lat: [[tests#Infrastructure config#Runbook names the real state backend]]
   it('logs Pulumi into the versioned state bucket', () => {

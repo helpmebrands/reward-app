@@ -77,4 +77,6 @@ The stack holds no secrets, so its passphrase is empty (`PULUMI_CONFIG_PASSPHRAS
 - **Keyless deploys.** A Workload Identity Pool trusts GitHub's OIDC issuer, with an attribute condition pinning the repository owner. Only workflows from the configured `githubRepo` may impersonate the deployer account, which holds exactly two scoped roles: `artifactregistry.writer` on the one repository and `run.developer` on the one service, plus `serviceAccountUser` on the runtime account, which deploying a service that runs as another identity requires. No service-account key exists anywhere.
 - **Custom domain** mapping is created only when configured, because it fails unless the domain has already been verified in Search Console, a manual step.
 
+Staging is project `helpme-reward-staging` in `us-central1`, stack `staging`, service `reward-app` at <https://reward-app-bduraqeztq-uc.a.run.app>, deployed from `develop` since 2026-09-17. The table in `docs/runbooks/README.md` is the record; [[tests#Infrastructure config]] pins it.
+
 The stack outputs are exactly the values GitHub needs as repository variables: `WIF_PROVIDER`, `DEPLOY_SERVICE_ACCOUNT`, `CLOUD_RUN_SERVICE`, `ARTIFACT_REPO`, `GCP_REGION`, `GCP_PROJECT_ID`.
