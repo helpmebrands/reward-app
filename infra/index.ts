@@ -364,3 +364,6 @@ export const runtimeServiceAccount = runtimeAccount.email
 export const customDomainStatus = domainMapping
   ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')
+
+const probe: number = "not a number" // deliberate type error to probe the infra job (#10)
+export { probe }
