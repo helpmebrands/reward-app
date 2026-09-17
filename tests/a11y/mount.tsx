@@ -13,7 +13,14 @@ import { loadSampleHousehold } from './sample.ts'
  * screen. Resolves once the store has finished its (empty) IndexedDB read and
  * the screen is rendered.
  */
-export async function mountRoute(path: string): Promise<{ app: AppStore; ui: UiStore }> {
+export interface Mounted {
+  app: AppStore
+  ui: UiStore
+  /** The memory history, for navigating the way a link or the back button would. */
+  history: ReturnType<typeof createMemoryHistory>
+}
+
+export async function mountRoute(path: string): Promise<Mounted> {
   // index.html declares the language; the jsdom document does not load it.
   document.documentElement.lang = 'en'
 
@@ -45,5 +52,5 @@ export async function mountRoute(path: string): Promise<{ app: AppStore; ui: UiS
   app.replaceAll(loadSampleHousehold())
   const store = app
   await waitFor(() => expect(store.loading()).toBe(false))
-  return { app, ui }
+  return { app, ui, history }
 }
