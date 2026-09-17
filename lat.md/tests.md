@@ -52,6 +52,10 @@ Vitest runs in jsdom with `tests/factories.ts` supplying fixtures, so each test 
 - Enrolment unlocks a credit and can be revoked. Muting a credit or a card changes `muted` without moving status.
 - Deleting a card removes its credits and claims and leaves the other holder untouched.
 - Export and import round-trip the dataset; a file that is not an export is refused.
+
+### Removing one claim leaves the rest
+
+Two claims against the same cycle; removing the first by id leaves the second, so the sheet's Remove never takes more than the row it sits on.
 - Every catalogue template gives each credit an icon and a positive value.
 
 ## Infrastructure config
@@ -147,6 +151,10 @@ The error sentence appears, the input carries `aria-invalid="true"` and an `aria
 
 Typing a holder removes the error and `aria-invalid`, and pressing Save again adds the card with that holder.
 
+### The sheet lists claims with a Remove
+
+`tests/a11y/credit-sheet.test.tsx` logs the full balance from the sheet, reopens it, finds the claim under "Logged this period" and presses Remove; the balance returns to what it was and the row is gone.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
@@ -202,3 +210,19 @@ Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
 ### An enrolment page must be a web address
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
+
+## Snackbar timing
+
+`tests/snackbar.test.tsx` drives the provider with fake timers ([[design#Undo over confirmation]]).
+
+### An undo stays up for twenty seconds
+
+A snackbar with an action is still there at 19 seconds and gone at 21.
+
+### Focus pauses the timer and leaving restarts it
+
+Focusing the Undo button at 5 seconds holds the snackbar through 30; blurring then restarts the full 20, so it is still there at 49 seconds and gone at 51.
+
+### The undo button says what it undoes
+
+An action given an `ariaLabel` renders a button whose accessible name is that label while its visible text stays "Undo".

@@ -82,6 +82,11 @@ Logging a credit is the app's main destructive-feeling action and far more commo
 
 [[src/ui/useCreditActions.ts#useCreditActions]] is shared by every list that renders a row, so a swipe behaves identically to the same action taken from the sheet, and every logged claim and every mute toggle returns an Undo through [[src/ui/Snackbar.tsx#useSnackbar]].
 
+There are two ways back, so undo is never a race against a clock (WCAG 2.2.1):
+
+- **The snackbar.** An undo stays up for twenty seconds, not Material's six. The clock stops while the pointer or keyboard focus is on the snackbar and restarts in full when they leave. The Undo button's accessible name says what it undoes ("Undo logging Uber Cash"), since the visible word alone does not.
+- **The sheet.** The credit sheet lists everything logged this period under "Logged this period", newest first, each with a Remove that deletes that one claim ([[src/stores/app.tsx#AppProvider]]'s `removeClaim`). This is the path that needs no timer at all.
+
 ## Partial logging
 
 The credit sheet ([[src/ui/CreditSheet.tsx#CreditSheet]]) makes logging a partial amount as easy as logging the whole thing. Quick amounts are a quarter, a half and a round figure, all capped at what is actually left and rounded to whole dollars, because nobody logs $37.53.
