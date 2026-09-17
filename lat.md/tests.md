@@ -185,6 +185,18 @@ The baseline was taken from develop before the responsive work. Positions and he
 
 At 768 and 1280px the main navigation starts at the leading edge, is 80 or 200px wide and full height, the content column is 560 or 720px wide and centred beside the rail, and the four tabs are reached by Tab in order.
 
+### The sheet is a dialog from 600px
+
+`tests/a11y/sheet.test.tsx` mocks the 600px media query: the open credit sheet then renders no grip and carries no drag transform, and focus moves inside; without the mock the grip and the transform are there. `tests/e2e/sheets.spec.ts` at 768px checks the panel is centred and at most 480px wide.
+
+### The sheet still drags on a phone
+
+At 402px a slow 60px drag on the grip springs back and a slow 130px drag dismisses, so the distance threshold is unchanged.
+
+### The credit panel sits beside the list
+
+At 1280px opening a credit shows the panel on the trailing edge at full height with the list column ending where it starts; Escape closes it and focus returns to the row that opened it.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
