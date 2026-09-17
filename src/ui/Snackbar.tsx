@@ -22,6 +22,8 @@ import './Snackbar.css'
 
 export interface SnackbarAction {
   label: string
+  /** Accessible name when the label alone ("Undo") does not say what it undoes. */
+  ariaLabel?: string
   onAct: () => void
 }
 
@@ -31,7 +33,7 @@ interface SnackbarMessage {
   action?: SnackbarAction
 }
 
-interface SnackbarApi {
+export interface SnackbarApi {
   /** Shows a message. `action` is usually an undo. */
   show(text: string, action?: SnackbarAction): void
   current: Accessor<SnackbarMessage | null>
@@ -39,8 +41,13 @@ interface SnackbarApi {
 
 const SnackbarContext = createContext<SnackbarApi>()
 
-/** How long a snackbar with an action stays up, per Material's long duration. */
-const DURATION_WITH_ACTION = 6000
+/**
+ * How long a snackbar with an action stays up. Material says six seconds;
+ * WCAG 2.2.1 says a time limit the user cannot adjust must be generous, so
+ * an undo gets twenty, and the clock stops while the pointer or focus is on
+ * it and restarts in full when they leave.
+ */
+const DURATION_WITH_ACTION = 20_000
 const DURATION_PLAIN = 3500
 
 export function SnackbarProvider(props: ParentProps) {
@@ -53,13 +60,25 @@ export function SnackbarProvider(props: ParentProps) {
     setCurrent(null)
   }
 
+  function duration() {
+    return current()?.action ? DURATION_WITH_ACTION : DURATION_PLAIN
+  }
+
+  function pause() {
+    clearTimeout(timer)
+  }
+
+  function resume() {
+    clearTimeout(timer)
+    if (current()) timer = setTimeout(dismiss, duration())
+  }
+
   const api: SnackbarApi = {
     current,
     show(text, action) {
-      clearTimeout(timer)
       const message: SnackbarMessage = { id: nextId++, text, ...(action ? { action } : {}) }
       setCurrent(message)
-      timer = setTimeout(dismiss, action ? DURATION_WITH_ACTION : DURATION_PLAIN)
+      resume()
     },
   }
 
@@ -71,13 +90,22 @@ export function SnackbarProvider(props: ParentProps) {
       <Portal>
         <Show when={current()}>
           {(message) => (
-            <div class="snackbar" role="status" aria-live="polite">
+            <div
+              class="snackbar"
+              role="status"
+              aria-live="polite"
+              onMouseEnter={pause}
+              onMouseLeave={resume}
+              onFocusIn={pause}
+              onFocusOut={resume}
+            >
               <span class="snackbar__text">{message().text}</span>
               <Show when={message().action}>
                 {(action) => (
                   <button
                     type="button"
                     class="snackbar__action"
+                    aria-label={action().ariaLabel}
                     onClick={() => {
                       action().onAct()
                       dismiss()

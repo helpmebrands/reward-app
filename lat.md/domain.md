@@ -68,7 +68,7 @@ A claim records one use of a credit within one cycle. Partial claims are the nor
 Rules the store enforces ([[src/stores/app.tsx#AppProvider]]):
 
 - Claiming without an amount takes what is *left*, not the face value, so a second claim on a partly used credit cannot overshoot.
-- `unclaim` removes every claim against one cycle. That is what the snackbar's Undo calls.
+- `unclaim` removes every claim against one cycle; `removeClaim` removes one. The snackbar's Undo and the sheet's Remove both remove the one claim just made.
 - Deleting a benefit or card deletes its claims with it.
 
 Claims are indexed once per resolve ([[src/domain/selectors.ts#indexClaims]]) so resolving every credit stays linear.

@@ -8,7 +8,7 @@ import {
 } from '../domain/format.ts'
 import { currentRung, ladderFor } from '../domain/ladder.ts'
 import { cardLabel, statusLabel } from '../domain/selectors.ts'
-import type { BenefitInstance } from '../domain/types.ts'
+import type { BenefitInstance, Claim } from '../domain/types.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from './Ph.tsx'
 import { Sheet } from './Sheet.tsx'
@@ -52,15 +52,33 @@ export function CreditSheet(props: CreditSheetProps) {
     return [...new Set(candidates)]
   })
 
+  /** What has been logged against this cycle, newest first. */
+  const claims = createMemo(() => {
+    const current = instance()
+    if (!current) return []
+    return app.data.claims
+      .filter((c) => c.benefitId === current.benefit.id && c.cycleKey === current.cycle.key)
+      .sort((a, b) => b.claimedAt.localeCompare(a.claimedAt))
+  })
+
   function log(amountCents?: number) {
     const current = instance()
     if (!current) return
     const claim = app.claim(current, amountCents)
     snackbar.show(`Logged ${formatMoney(claim.amountCents)} on ${current.benefit.name}.`, {
       label: 'Undo',
-      onAct: () => app.unclaim(claim.benefitId, claim.cycleKey),
+      ariaLabel: `Undo logging ${current.benefit.name}`,
+      onAct: () => app.removeClaim(claim.id),
     })
     props.onClose()
+  }
+
+  function removeClaim(claim: Claim) {
+    const current = instance()
+    app.removeClaim(claim.id)
+    snackbar.show(
+      `Removed ${formatMoney(claim.amountCents)} from ${current?.benefit.name ?? 'the credit'}.`,
+    )
   }
 
   function logCustom() {
@@ -232,6 +250,40 @@ export function CreditSheet(props: CreditSheetProps) {
                 >
                   Mark the full {formatMoney(current().remainingCents)} used
                 </button>
+              </section>
+            </Show>
+
+            {/* Undo without a clock: every claim this period can be taken back
+                here, long after the snackbar has gone. */}
+            <Show when={claims().length > 0}>
+              <section class="sheet-section">
+                <h3 class="sheet-section__title">Logged this period</h3>
+                <ul class="sheet-claims">
+                  <For each={claims()}>
+                    {(claim) => (
+                      <li class="sheet-claims__item">
+                        <span class="grow">
+                          <span class="numeric">{formatMoney(claim.amountCents)}</span>
+                          <span class="muted">
+                            {' '}
+                            &middot; {formatDate(claim.claimedAt.slice(0, 10))}
+                          </span>
+                          <Show when={claim.note}>
+                            {(note) => <span class="muted"> &middot; {note()}</span>}
+                          </Show>
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn--small"
+                          aria-label={`Remove the ${formatMoney(claim.amountCents)} logged on ${formatDate(claim.claimedAt.slice(0, 10))}`}
+                          onClick={() => removeClaim(claim)}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </section>
             </Show>
 
