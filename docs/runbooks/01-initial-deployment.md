@@ -32,27 +32,38 @@ Region matters more than it looks: Artifact Registry and Cloud Run should share
 one, or every deploy pulls the image across regions and pays for it in both
 latency and egress.
 
-## 2. Choose where Pulumi keeps state
+## 2. Log in to the state backend
 
-Pulumi records what it has created. That state must outlive your laptop.
-
-**Pulumi Cloud** (simplest, free for individuals):
-
-```sh
-$ pulumi login
-```
-
-**Or a GCS bucket**, if you would rather self-host:
+Pulumi records what it has created. That state must outlive your laptop, so it
+lives in a versioned GCS bucket in the staging project:
 
 ```sh
-$ gcloud storage buckets create "gs://${PROJECT_ID}-pulumi-state" \
-    --location="$REGION" --uniform-bucket-level-access
-$ gcloud storage buckets update "gs://${PROJECT_ID}-pulumi-state" --versioning
-$ pulumi login "gs://${PROJECT_ID}-pulumi-state"
+$ pulumi login gs://helpme-reward-staging-pulumi-state
+$ pulumi whoami -v      # Backend URL must be the bucket, not file://~
 ```
 
-Turn on versioning either way. State corruption is rare and unrecoverable
-without it.
+Do not `pulumi stack init` against any other backend. A second copy of the
+state means two programs each believing they own the same resources.
+
+The bucket was created once, on 2026-09-17, with:
+
+```sh
+$ gcloud storage buckets create gs://helpme-reward-staging-pulumi-state \
+    --project=helpme-reward-staging --location=us-central1 \
+    --uniform-bucket-level-access
+$ gcloud storage buckets update gs://helpme-reward-staging-pulumi-state --versioning
+```
+
+**Verify** versioning is on. State corruption is rare and unrecoverable
+without it:
+
+```sh
+$ gcloud storage buckets describe gs://helpme-reward-staging-pulumi-state \
+    --format='value(versioning_enabled)'
+True
+```
+
+A new environment gets its own bucket, created the same way.
 
 ## 3. Configure the stack
 
