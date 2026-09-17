@@ -132,6 +132,9 @@
   --text-secondary: var(--color-neutral-500);
   --control-border: var(--color-neutral-600);
   --chart-missed: var(--color-neutral-600);
+  /* The bloom's peak: accent-900 at 60% over the page, dim enough that the
+   * accent itself still clears 4.5:1 on it. */
+  --color-bloom: #232136;
 
   /* ---- Status tones -------------------------------------------------------
    * The ladder from the spreadsheet this app was built from:
@@ -255,6 +258,7 @@
   --text-secondary: var(--color-neutral-600);
   --control-border: var(--color-neutral-700);
   --chart-missed: var(--color-neutral-700);
+  --color-bloom: #ecebfe;
 
   --color-section: #d2cefd;
   --color-section-glow: #b5abfc;

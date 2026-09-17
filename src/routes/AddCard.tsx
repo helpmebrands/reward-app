@@ -150,7 +150,7 @@ export function AddCard() {
           }
         >
           {(template) => (
-            <div class="stack stack--loose">
+            <div class="stack stack--loose form-grid">
               <Show when={!isBlank()}>
                 <div class="panel">
                   <span class="kicker kicker--quiet">{template().issuer}</span>

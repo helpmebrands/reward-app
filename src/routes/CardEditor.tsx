@@ -77,7 +77,7 @@ export function CardEditor() {
             action={{ icon: 'trash', label: 'Delete this card', onAct: removeCard }}
           />
 
-          <div class="screen__pad stack stack--loose">
+          <div class="screen__pad stack stack--loose form-grid">
             <p class="form-note">Fields marked * are required.</p>
 
             <Field id="card-holder" label="Cardholder" required error={errors.holder()}>

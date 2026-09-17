@@ -199,6 +199,16 @@ At 402px a slow 60px drag on the grip springs back and a slow 130px drag dismiss
 
 At 1280px opening a credit shows the panel on the trailing edge at full height with the list column ending where it starts; Escape closes it and focus returns to the row that opened it.
 
+### Wider screens use the column
+
+`tests/e2e/screens.spec.ts` on the 768 and 1280px shell projects asserts the layouts in [[design#Responsive layout#What each screen does with the width]]: paired overlap cards, the two-column card grid, the locked section and the verdict beside their rows, and paired editor fields with a full-width text area.
+
+It also screenshots each route and attaches it to the report; `UPDATE_SCREENSHOTS=1` writes them to `tests/e2e/screenshots/` for review in a pull request. They are review references, not a pixel gate: CI rasterises fonts differently from a Mac.
+
+### Reading order is the same at every width
+
+On the 1280px project the sequence of headings and row titles on Today is read, the viewport is resized to 402px, and the sequence is read again and must be identical.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.

@@ -146,12 +146,13 @@ svg {
 }
 
 /* The bloom behind the top of every screen — Nocturne's "accent as a glow".
- * A solid, blurred ellipse rather than a radial gradient on a pseudo element:
- * axe cannot judge text over a gradient or under a large pseudo element, but
- * it can judge text over a solid colour, so everything in the top of a screen
- * is measured against the bloom's peak, which `tests/contrast.test.ts` pins.
- * The glow box clips it to the content column, so it never sits under the
- * navigation rail and axe never sees a label half on it and half off. */
+ * Drawn as the box-shadow of a one-pixel element rather than as a gradient
+ * or a blurred shape. axe cannot judge text over a gradient, and any shape
+ * with a rectangle leaves text straddling its edge undecidable; a shadow has
+ * no rectangle at all, so text is measured against the page. The glow's
+ * peak is `--color-bloom`, and `tests/contrast.test.ts` checks every text
+ * colour that can sit in the top of a screen against it as well. The glow
+ * box clips it to the content column so it never runs under the rail. */
 .shell__glow {
   position: absolute;
   top: 0;
@@ -167,13 +168,12 @@ svg {
  * was; the column is centred in the glow box. */
 .shell__bloom {
   position: absolute;
-  top: -210px;
-  left: calc(50% - var(--content-max) * 1.25);
-  width: calc(var(--content-max) * 1.82);
-  height: 420px;
+  top: 0;
+  left: calc(50% - var(--content-max) * 0.64);
+  width: calc(var(--content-max) * 0.6);
+  height: 1px;
   border-radius: 50%;
-  background: var(--color-accent-900);
-  filter: blur(70px);
+  box-shadow: 0 0 220px 150px var(--color-bloom);
 }
 
 .screen {
@@ -308,6 +308,23 @@ svg {
 
 .section {
   margin-top: var(--space-10);
+}
+
+/* Editors at expanded width: short fields pair up two to a row, in DOM
+ * order; anything that is not a plain field, and a text area, keeps the
+ * whole row. */
+@media (min-width: 1024px) {
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6) var(--space-8);
+    align-items: start;
+  }
+
+  .form-grid > :not(.field),
+  .form-grid > .field:has(textarea) {
+    grid-column: 1 / -1;
+  }
 }
 
 /* A rule that fades out at its end, per Nocturne. */

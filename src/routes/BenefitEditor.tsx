@@ -109,7 +109,7 @@ export function BenefitEditor() {
             action={{ icon: 'trash', label: 'Delete this credit', onAct: remove }}
           />
 
-          <div class="screen__pad stack stack--loose">
+          <div class="screen__pad stack stack--loose form-grid">
             <p class="form-note">Fields marked * are required.</p>
 
             <Field id="benefit-name" label="Name" required error={errors.name()}>

@@ -77,8 +77,14 @@ describe('token contrast', () => {
     const pairs: [string, string][] = [
       // The alias screen-sub, section-note, .muted and the like resolve to.
       ...GROUNDS.map((g): [string, string] => ['--text-secondary', g]),
-      // The bloom's peak, behind the top of every screen.
-      ['--text-secondary', '--color-accent-900'],
+      // The bloom's peak, behind the top of every screen: every text colour
+      // that can sit there.
+      ['--text-secondary', '--color-bloom'],
+      ['--color-neutral-500', '--color-bloom'],
+      ['--color-neutral-400', '--color-bloom'],
+      ['--color-text', '--color-bloom'],
+      ['--color-accent', '--color-bloom'], // kickers
+      ['--color-accent-300', '--color-bloom'],
       // Field labels, segment text, the missed figure, the "of" line.
       ...GROUNDS.map((g): [string, string] => ['--color-neutral-500', g]),
       // Today's subtitle and the leak titles.

@@ -86,7 +86,7 @@ export function Cards() {
         </Show>
       </header>
 
-      <div class="stack stack--loose">
+      <div class="stack stack--loose cards__grid">
         <For each={app.cardSummaries()}>
           {(summary) => {
             const call = verdict(summary)

@@ -136,3 +136,50 @@
     margin-bottom: var(--space-3);
   }
 }
+
+/* ---- Wider columns ------------------------------------------------------- */
+
+/* Overlap cards pair up once the column can hold two. Compound with .stack
+ * because the route sheets are bundled before base.css. */
+@media (min-width: 600px) {
+  .stack.today__overlaps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* At expanded width the locked section stands beside the rows rather than
+ * under them. Grid areas, so the DOM (and the reading order) stays as it is
+ * on a phone; an absent section leaves an empty track. */
+@media (min-width: 1024px) {
+  .today__body {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    column-gap: var(--space-8);
+    align-items: start;
+  }
+
+  .today__headline,
+  .today__overlaps-section {
+    grid-column: 1 / -1;
+  }
+
+  .today__soon {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .today__locked {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .today__overlaps-section {
+    grid-row: 3;
+  }
+
+  .today__captured {
+    grid-column: 1;
+    grid-row: 4;
+  }
+}

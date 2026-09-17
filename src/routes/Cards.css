@@ -59,3 +59,69 @@
 .cardstat__edit {
   margin-top: var(--space-2);
 }
+
+/* ---- Wider columns ------------------------------------------------------- */
+
+/* Two cards across at a medium width; the catalogue button keeps a row. */
+@media (min-width: 600px) {
+  /* Compound with .stack: the route sheets are bundled before base.css. */
+  .stack.cards__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-4);
+    align-items: start;
+  }
+
+  .stack.cards__grid > .btn--dashed {
+    grid-column: 1 / -1;
+  }
+}
+
+/* One card per row at expanded width, with the verdict beside the figures
+ * instead of under them. Areas, so the markup and reading order hold. */
+@media (min-width: 1024px) {
+  .stack.cards__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cardstat {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas:
+      "head verdict"
+      "figures verdict"
+      "bar tags"
+      "pct edit";
+    column-gap: var(--space-10);
+    align-items: start;
+  }
+
+  .cardstat__head {
+    grid-area: head;
+  }
+
+  .cardstat__figures {
+    grid-area: figures;
+  }
+
+  .cardstat > .bar {
+    grid-area: bar;
+  }
+
+  .cardstat__pct {
+    grid-area: pct;
+  }
+
+  .cardstat__verdict {
+    grid-area: verdict;
+  }
+
+  .cardstat__tags {
+    grid-area: tags;
+  }
+
+  .cardstat__edit {
+    grid-area: edit;
+    margin-top: 0;
+  }
+}
