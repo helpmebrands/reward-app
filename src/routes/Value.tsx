@@ -148,7 +148,7 @@ export function Value() {
             Captured
           </li>
           <li class="legend__item">
-            <span class="legend__swatch" style={{ background: 'var(--color-neutral-800)' }} />
+            <span class="legend__swatch" style={{ background: 'var(--chart-missed)' }} />
             Missed
           </li>
         </ul>

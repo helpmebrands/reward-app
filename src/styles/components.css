@@ -16,7 +16,7 @@
   min-height: 44px;
   padding: 0 var(--space-6);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--color-neutral-300);
   font: 500 13px var(--font-body);
@@ -120,14 +120,14 @@
 }
 
 .icon-btn--muted {
-  color: var(--color-neutral-700);
+  color: var(--control-border);
 }
 
 .icon-btn--boxed {
   width: 33px;
   height: 33px;
   background: var(--surface-raised);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   color: var(--color-neutral-400);
 }
 
@@ -163,8 +163,8 @@
 
 .tag--off {
   background: transparent;
-  border: 1px solid var(--color-neutral-800);
-  color: var(--color-neutral-600);
+  border: 1px solid var(--control-border);
+  color: var(--text-secondary);
 }
 
 /* ---- Surfaces ------------------------------------------------------------ */
@@ -185,13 +185,23 @@
 
 /*
  * The one saturated ground Nocturne sanctions, used where the app has
- * something to say rather than something to list.
+ * something to say rather than something to list. The section colour comes
+ * in as an inset glow from the top-left rather than a gradient background,
+ * so axe can measure the text; the token test checks it against both the
+ * section colour and the raised surface it fades into.
  */
 .feature {
   padding: var(--space-6);
   border-radius: var(--radius-md);
-  background: linear-gradient(148deg, var(--color-section) 0%, var(--surface-raised) 72%);
+  background: var(--surface-raised);
+  box-shadow: inset 140px 90px 160px -80px var(--color-section);
   border: 1px solid var(--color-section-glow);
+}
+
+/* The accent itself is 4.1:1 on the section ground; a kicker in here steps
+ * up the ramp. */
+.feature .kicker {
+  color: var(--color-accent-300);
 }
 
 /* ---- Bars ---------------------------------------------------------------- */
@@ -254,7 +264,7 @@
   flex-wrap: wrap;
   gap: var(--space-4);
   font-size: 10.5px;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
 }
 
 .legend__item {
@@ -288,7 +298,7 @@
   min-height: var(--touch-target);
   padding: 0 var(--space-4);
   background: var(--surface-sunken);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
   font-size: 14px;
@@ -315,7 +325,7 @@ textarea.input {
   min-height: var(--touch-target);
   padding: 0 var(--space-4);
   background: var(--surface-sunken);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   transition: border-color var(--duration-short) var(--ease-standard);
 }
@@ -346,7 +356,7 @@ textarea.input {
   min-height: 36px;
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--color-neutral-500);
   font: 500 11.5px var(--font-body);
@@ -371,7 +381,7 @@ textarea.input {
   width: 44px;
   height: 26px;
   border-radius: 13px;
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: var(--surface-sunken);
   transition:
     background var(--duration-medium) var(--ease-emphasized),
@@ -467,7 +477,7 @@ textarea.input {
 
 .row-card__sub {
   font-size: 10.5px;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
 }
 
 .row-card__amounts {

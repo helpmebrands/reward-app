@@ -39,7 +39,7 @@
 
 .cardstat__pct {
   font-size: 10.5px;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
   margin-top: calc(var(--space-2) * -1);
 }
 

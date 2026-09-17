@@ -70,6 +70,7 @@ export function Shell(props: ParentProps) {
 
   return (
     <div class="shell">
+      <div class="shell__bloom" aria-hidden="true" />
       <a class="skip-link" href="#main">
         Skip to content
       </a>

@@ -91,7 +91,7 @@
 .credits__group-foot {
   margin-top: var(--space-3);
   font-size: 10.5px;
-  color: var(--color-neutral-700);
+  color: var(--text-secondary);
 }
 
 /* A fieldset is the semantic wrapper for a set of related controls; its default

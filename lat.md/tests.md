@@ -142,3 +142,21 @@ The manifest must not lock orientation ([[architecture#PWA manifest]], WCAG 1.3.
 ### Built manifest has no orientation key
 
 The landscape Playwright project fetches `/manifest.webmanifest` from the preview server and asserts the key is absent from what the browser will actually read.
+
+## Token contrast
+
+`tests/contrast.test.ts` parses `src/styles/tokens.css`, resolves `var()` chains for both themes and checks each role pair on every ground it sits on ([[design#Tokens and theming#Semantic aliases]]). It runs before any build and independently of axe.
+
+`--surface-line` dividers and neutral-900 hairlines are decorative and are not asserted; WCAG 1.4.11 exempts them.
+
+### Secondary text reaches 4.5:1 on every ground
+
+`--text-secondary`, neutral-400 and neutral-500 clear 4.5:1 on the page, the raised, sunken and quiet surfaces and the bloom's peak in both themes; captured rows clear it on their own ground.
+
+### Accent and status text hold in both themes
+
+Accent text on the page and on the accent grounds, the split bar and tag pairs, the locked, missed and soon tones on their grounds and on a raised surface, and the feature card's text at both ends of its glow all clear 4.5:1.
+
+### Control boundaries reach 3:1
+
+`--control-border` and `--chart-missed` clear 3:1 on the grounds controls sit on, as do the accent outline and the switch knob at rest.

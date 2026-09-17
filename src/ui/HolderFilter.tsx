@@ -32,7 +32,7 @@ export function HolderFilter() {
         <span class="muted numeric" style={{ 'font-size': '10.5px' }}>
           {count()} credits
         </span>
-        <Ph name="caret-down" size={13} color="var(--color-neutral-600)" />
+        <Ph name="caret-down" size={13} color="var(--text-secondary)" />
         <select
           class="select-row__native"
           aria-label="Filter by cardholder"

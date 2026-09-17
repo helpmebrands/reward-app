@@ -22,6 +22,24 @@ Material supplies: 48px minimum touch targets, swipe actions, bottom-sheet behav
 
 Theme is a setting (`system`, `light`, `dark`). The shell stamps `data-theme` on the document element ([[architecture#The shell and routing]]); the token sheet's `[data-theme]` selectors do the rest.
 
+### Semantic aliases
+
+Three aliases carry the roles a contrast fix has to reach, so each theme sets them once. Text aliases hold 4.5:1 and control aliases 3:1 on every ground they sit on, pinned by [[tests#Token contrast]].
+
+`--text-secondary` is screen subtitles, section notes, `.muted`, row sublines and legends. `--control-border` is inputs, buttons, segments and the switch track. `--chart-missed` is the Value chart's missed bar and its swatch. Dark points them at neutral-500 and neutral-600 and leaves Nocturne's ramp verbatim.
+
+### The light ramp
+
+Light has a neutral ramp of its own rather than the dark ramp read in reverse, because the inversion put a 1.85:1 grey on secondary text.
+
+The light steps are blended from the ink to the ground and spaced so 400 to 600 clear 4.5:1 on every surface and 700 clears 3:1 for boundaries. Light also overrides accent-100 and accent-200 to ink, since they are text on the accent grounds (selected segments, the split bar, the skip link).
+
+### Glows axe can measure
+
+The bloom behind each screen is a solid, blurred ellipse in accent-900, and the feature card's section colour is an inset glow rather than a gradient background.
+
+axe cannot judge text over a gradient or under a large pseudo element; over a solid colour it measures against the glow's peak, which the token test pins too.
+
 ## Screens
 
 Four tabs, each answering a different question, plus editors and Settings. The tab bar is `src/ui/TabBar.tsx`.
