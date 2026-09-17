@@ -106,7 +106,12 @@ export function CreditSheet(props: CreditSheetProps) {
   }
 
   return (
-    <Sheet open={instance() !== null} onClose={props.onClose} title={benefit()?.name ?? 'Credit'}>
+    <Sheet
+      open={instance() !== null}
+      onClose={props.onClose}
+      title={benefit()?.name ?? 'Credit'}
+      wide="panel"
+    >
       <Show when={instance()}>
         {(current) => (
           <>

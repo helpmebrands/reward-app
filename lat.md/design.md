@@ -92,9 +92,15 @@ Every credit row is reachable three ways: tap to open the sheet, swipe right to 
 
 ## Bottom sheets
 
-[[src/ui/Sheet.tsx#Sheet]] is a modal sheet with Material's behaviour on Nocturne's surfaces: a drag handle that actually drags, dismissal by distance (110px) or by downward flick (0.5 px/ms), a scrim that closes on tap, Escape to close, and a focus trap.
+[[src/ui/Sheet.tsx#Sheet]] is a modal sheet in the shape the width calls for: a bottom sheet on a phone, a centred dialog from 600px, and for the credit sheet a side panel from 1024px. All three keep `role="dialog"`, `aria-modal`, Escape, the focus trap and focus return.
 
-The drag listens on the handle only. Dragging from anywhere would fight the sheet's own scrolling, which matters because the credit sheet is taller than the screen. Body scroll is locked while open and focus is returned on close.
+The presentation comes from [[src/ui/useBreakpoint.ts#createBreakpoint]], which watches the two media queries the token sheet defines ([[design#Responsive layout]]).
+
+- **Bottom** (compact): Material's sheet on Nocturne's surfaces. A drag handle that actually drags, dismissal by distance (110px) or by downward flick (0.5 px/ms), a scrim that closes on tap. The drag listens on the handle only: dragging from anywhere would fight the sheet's own scrolling, which matters because the credit sheet is taller than the screen.
+- **Dialog** (medium, and the compare sheet at expanded): centred, at most 480px wide and 85% of the height, faded in. No handle, because there is nothing to drag.
+- **Panel** (the credit sheet at expanded, `wide="panel"`): docked on the trailing edge, 380px wide, full height, slid in. There is no scrim and the container lets pointer events through, so the list stays usable and another row can be opened without closing it first; the shell keeps a column free for it (`body.has-panel`) so the list is narrower rather than covered. Focus is still trapped and Escape still closes, returning focus to the row that opened it.
+
+Body scroll is locked while a sheet is open. Specified by [[tests#Accessibility tests#The sheet is a dialog from 600px]], [[tests#Accessibility tests#The sheet still drags on a phone]] and [[tests#Accessibility tests#The credit panel sits beside the list]].
 
 ## Undo over confirmation
 
