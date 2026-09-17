@@ -89,7 +89,9 @@ export function Shell(props: ParentProps) {
 
   return (
     <div class="shell">
-      <div class="shell__bloom" aria-hidden="true" />
+      <div class="shell__glow" aria-hidden="true">
+        <div class="shell__bloom" />
+      </div>
       <a class="skip-link" href="#main">
         Skip to content
       </a>

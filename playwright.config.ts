@@ -50,6 +50,16 @@ export default defineConfig<{ theme: Theme }>({
       testMatch: /reflow\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 568 }, theme: 'dark' },
     },
+    // The shell at each width: phone layout pinned below 600px, a rail above.
+    ...[320, 402, 768, 1280].map((width) => ({
+      name: `${width}px-shell`,
+      testMatch: /shell\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width, height: width < 600 ? 800 : 900 },
+        theme: 'dark' as Theme,
+      },
+    })),
     // The design's own width with the browser font size raised to 24px.
     {
       name: '402px-large-type',

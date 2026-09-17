@@ -173,6 +173,18 @@ The overrides are line height 1.5, paragraph spacing 2em, letter spacing 0.12em 
 
 At the same root size, the bounding boxes of the visible controls on Today and the benefit editor do not overlap and the page does not scroll sideways.
 
+### The phone layout does not move
+
+`tests/e2e/shell.spec.ts` at 320 and 402px compares the boxes of the main column, tab bar, tabs, heading, first row and other landmarks on every route against `tests/e2e/layout-baseline.json`.
+
+The baseline was taken from develop before the responsive work. Positions and heights may drift a pixel, widths four, since shrink-to-fit text rasterises slightly wider on Linux than on macOS.
+
+`UPDATE_LAYOUT_BASELINE=1` rewrites the file when a change to the phone layout is intended.
+
+### The rail and the centred column at wider widths
+
+At 768 and 1280px the main navigation starts at the leading edge, is 80 or 200px wide and full height, the content column is 560 or 720px wide and centred beside the rail, and the four tabs are reached by Tab in order.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.

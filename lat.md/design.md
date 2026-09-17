@@ -44,7 +44,7 @@ The scale keeps the sizes the screens were drawn at rather than rounding them to
 
 The bloom behind each screen is a solid, blurred ellipse in accent-900, and the feature card's section colour is an inset glow rather than a gradient background.
 
-axe cannot judge text over a gradient or under a large pseudo element; over a solid colour it measures against the glow's peak, which the token test pins too.
+axe cannot judge text over a gradient or under a large pseudo element; over a solid colour it measures against the glow's peak, which the token test pins too. A glow box clips the bloom to the content column, so it never runs under the navigation rail where a label half on it would leave axe undecided.
 
 ## Screens
 
@@ -63,6 +63,20 @@ Four tabs, each answering a different question, plus editors and Settings. The t
 Validation is inline and announced, never silent (WCAG 3.3.1 to 3.3.3). [[src/ui/Field.tsx#Field]] wraps a labelled control with a hint and an error slot; the control gets `aria-invalid` and `aria-describedby`, and the error text says what to enter.
 
 Errors show once a field has been left or the form submitted, never on the first keystroke. Save buttons are never disabled: pressing Save with an invalid form shows the errors and focuses the first invalid control. Required fields carry `required` and a `*` explained once above the form. The rules are pure functions in [[domain#Form rules]]; the live editors keep what was typed in a draft and only write valid values to the store.
+
+## Responsive layout
+
+Three breakpoints, each a set of layout token overrides in `src/styles/tokens.css`; components keep reading the same names. Compact is the phone design as drawn and is pinned by [[tests#Accessibility tests#The phone layout does not move]].
+
+| Breakpoint | Width | `--content-max` | `--rail-width` | `--screen-pad` | Navigation |
+| --- | --- | --- | --- | --- | --- |
+| Compact | under 600px | 402px | 0 | 20px | bottom tab bar |
+| Medium | 600 to 1023px | 560px | 80px | 24px | rail, icons over labels |
+| Expanded | 1024px and up | 720px | 200px | 28px | rail, labels beside icons |
+
+From 600px the shell is a two-column grid: the rail on the leading edge of the viewport, full height, and the content column centred in what is left at its cap, still the only thing that scrolls. The tab bar is the same `<nav aria-label="Main">` with the same four buttons in the same DOM order; only its geometry changes, per Material's rule for this width. The snackbar and the nudge preview centre on the content column, not the viewport ([[tests#Accessibility tests#The rail and the centred column at wider widths]]).
+
+Custom properties cannot drive a media query, so the two widths are repeated in the stylesheets that need them. A landscape phone under 600px keeps the compact layout with the short-viewport form in [[design#Accessibility]].
 
 ## Swipe rows
 

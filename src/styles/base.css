@@ -149,18 +149,31 @@ svg {
  * A solid, blurred ellipse rather than a radial gradient on a pseudo element:
  * axe cannot judge text over a gradient or under a large pseudo element, but
  * it can judge text over a solid colour, so everything in the top of a screen
- * is measured against the bloom's peak, which `tests/contrast.test.ts` pins. */
+ * is measured against the bloom's peak, which `tests/contrast.test.ts` pins.
+ * The glow box clips it to the content column, so it never sits under the
+ * navigation rail and axe never sees a label half on it and half off. */
+.shell__glow {
+  position: absolute;
+  top: 0;
+  left: var(--rail-width);
+  right: 0;
+  height: 300px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Centred 16% of the way across the column, as the original radial gradient
+ * was; the column is centred in the glow box. */
 .shell__bloom {
   position: absolute;
   top: -210px;
-  left: -75%;
-  width: 182%;
+  left: calc(50% - var(--content-max) * 1.25);
+  width: calc(var(--content-max) * 1.82);
   height: 420px;
   border-radius: 50%;
   background: var(--color-accent-900);
   filter: blur(70px);
-  pointer-events: none;
-  z-index: 0;
 }
 
 .screen {
@@ -176,6 +189,25 @@ svg {
 
 .screen__pad {
   padding-inline: var(--screen-pad);
+}
+
+/* From 600px the shell is two columns, rail and content. The rail sits on
+ * the leading edge of the viewport; the content column is centred in what is
+ * left, at its cap, and is still the only thing that scrolls. */
+@media (min-width: 600px) {
+  .shell {
+    display: grid;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    max-width: none;
+  }
+
+  .screen {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: var(--content-max);
+    margin-inline: auto;
+  }
 }
 
 /* ---- Type helpers -------------------------------------------------------- */
