@@ -39,7 +39,7 @@ export function NudgePreview(props: NudgePreviewProps) {
             </span>
             <span class="grow">
               <span class="nudge__meta">
-                <span>Cardvantage</span>
+                <span>HelpMe Reward</span>
                 <span class="muted">preview</span>
               </span>
               <span class="nudge__title">{reminder().title}</span>

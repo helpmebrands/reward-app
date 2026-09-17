@@ -1,6 +1,6 @@
 # Runbooks
 
-Operating Cardvantage: how it is deployed, how to change it, and what to do
+Operating HelpMe Reward: how it is deployed, how to change it, and what to do
 when a change goes wrong.
 
 | | |
@@ -39,7 +39,7 @@ GitHub (develop)
                  (short-lived OIDC token; no service-account key exists)
 ```
 
-There is no database and no backend. Cardvantage keeps everything in the
+There is no database and no backend. HelpMe Reward keeps everything in the
 browser's IndexedDB, so a deploy carries no migration and no data risk — the
 worst case of a bad deploy is that the app is wrong or unavailable, never that
 user data is lost. That is why the rollback runbook is short.

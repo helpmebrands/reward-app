@@ -51,7 +51,7 @@ revisions.
 
 ## Changing anything users are told
 
-Cardvantage's job is to notify people about money with a deadline. Two classes
+HelpMe Reward's job is to notify people about money with a deadline. Two classes
 of change deserve more care than their diff suggests:
 
 **The reminder ladder** (`src/domain/ladder.ts`) decides when someone is warned.

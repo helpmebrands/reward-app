@@ -302,7 +302,7 @@ export function AppProvider(props: ParentProps) {
     importJson(json) {
       const parsed = JSON.parse(json) as Partial<AppData>
       if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.cards)) {
-        throw new Error('That file does not look like a Cardvantage export.')
+        throw new Error('That file does not look like a HelpMe Reward export.')
       }
       store.replaceAll(migrate(parsed))
     },

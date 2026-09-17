@@ -1,4 +1,4 @@
-# Trying Cardvantage yourself
+# Trying HelpMe Reward yourself
 
 The app is a static PWA with no backend, so running it is `npm install` and a
 dev server. Two things need the *production* build rather than `npm run dev` —
@@ -9,8 +9,8 @@ the service worker and notifications — so both paths are below.
 Requires **Node 22 or newer** (`node -v`).
 
 ```sh
-git clone https://github.com/oravecz/cardvantage.git
-cd cardvantage
+git clone https://github.com/helpmebrands/reward-app.git
+cd reward-app
 git checkout claude/festive-franklin-ohfp5z
 npm install
 

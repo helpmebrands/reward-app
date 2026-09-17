@@ -100,7 +100,7 @@ $ curl -sS -o /dev/null -w '%{http_code}\n' "$(pulumi stack output serviceUrl)"
 200
 ```
 
-A `200` here is the placeholder, not Cardvantage. That is expected — Cloud Run
+A `200` here is the placeholder, not HelpMe Reward. That is expected — Cloud Run
 cannot create a service without an image, and the real one does not exist until
 CI builds it in step 7.
 

@@ -1,5 +1,5 @@
 /**
- * Core domain types for Cardvantage.
+ * Core domain types for HelpMe Reward.
  *
  * The shape follows the design's premise: this is a *household* deadline
  * manager. The hard case is not two different cards with clashing offers — it

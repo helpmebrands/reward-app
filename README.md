@@ -1,4 +1,4 @@
-# Cardvantage
+# HelpMe Reward
 
 A PWA for households that hold more premium credit cards than they can keep
 track of. It answers one question on opening — *what am I about to lose?* — and

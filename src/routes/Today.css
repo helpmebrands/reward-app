@@ -6,9 +6,25 @@
   margin-bottom: var(--space-6);
 }
 
-.today__wordmark {
-  font: 500 16px var(--font-heading);
-  letter-spacing: -0.02em;
+/* The logotype PNGs are 1024x178; height alone sets the size so the aspect
+   holds. 16px is the tallest that still leaves the header on one line at the
+   app's max width, next to the date and the "Preview nudge" button. */
+.today__logotype {
+  display: block;
+  height: 16px;
+  width: auto;
+}
+
+.today__logotype--light {
+  display: none;
+}
+
+:root[data-theme="light"] .today__logotype--dark {
+  display: none;
+}
+
+:root[data-theme="light"] .today__logotype--light {
+  display: block;
 }
 
 .today__dot {

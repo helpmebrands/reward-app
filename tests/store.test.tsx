@@ -185,7 +185,7 @@ describe('import and export', () => {
 
   it('refuses a file that is not an export', () => {
     const store = mountStore()
-    expect(() => store.importJson('{"hello":"world"}')).toThrow(/Cardvantage export/)
+    expect(() => store.importJson('{"hello":"world"}')).toThrow(/HelpMe Reward export/)
   })
 })
 
