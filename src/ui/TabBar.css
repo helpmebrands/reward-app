@@ -42,3 +42,26 @@
     color: var(--color-accent-200);
   }
 }
+
+/* Icons only when the viewport is short; the label stays for screen readers. */
+@media (max-height: 479px) {
+  .tabbar {
+    padding-top: var(--space-1);
+    padding-bottom: calc(var(--space-1) + env(safe-area-inset-bottom));
+  }
+
+  .tabbar__tab {
+    padding: var(--space-1) 0;
+  }
+
+  .tabbar__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

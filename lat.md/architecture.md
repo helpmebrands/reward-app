@@ -69,7 +69,9 @@ Other decisions in `vite.config.ts` and `src/sw.ts`:
 
 ## PWA manifest
 
-The app installs as a standalone, portrait-only app with two shortcuts: "Expiring soon" (`/?filter=expiring`) and "Add a card" (`/cards/new`). Icons include a maskable variant.
+The app installs as a standalone app with two shortcuts: "Expiring soon" (`/?filter=expiring`) and "Add a card" (`/cards/new`). Icons include a maskable variant.
+
+The manifest sets no `orientation`, so the OS decides and the app rotates (WCAG 1.3.4). The compact layout has a short-viewport form for a phone on its side ([[design#Accessibility]]).
 
 ### Brand assets
 
