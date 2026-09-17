@@ -1,25 +1,33 @@
 import { createEffect, createSignal, type JSX, onCleanup, Show } from 'solid-js'
 import { Portal } from 'solid-js/web'
+import { createBreakpoint } from './useBreakpoint.ts'
 import './Sheet.css'
 
 /**
- * A modal bottom sheet.
+ * A modal sheet, in the shape the width calls for.
  *
- * Material's sheet behaviour on Nocturne's surfaces: a drag handle that
- * actually drags, dismissal by flick or by distance, a scrim that closes on
- * tap, Escape to close, and a focus trap so a keyboard user cannot tab out into
- * the screen behind.
+ * On a phone it is Material's bottom sheet on Nocturne's surfaces: a drag
+ * handle that actually drags, dismissal by flick or by distance, a scrim that
+ * closes on tap. From 600px it is a centred dialog, and from 1024px it can be
+ * a panel docked on the trailing edge so the list beside it stays usable.
+ * All three keep role="dialog", aria-modal, Escape to close, a focus trap so
+ * a keyboard user cannot tab out into the screen behind, and focus returned
+ * on close; only the geometry and the drag handle change.
  *
  * The drag listens on the handle area only. Dragging from anywhere would fight
  * the sheet's own scrolling, which matters here because the credit sheet is
  * taller than the screen.
  */
 
+export type SheetPresentation = 'bottom' | 'dialog' | 'panel'
+
 interface SheetProps {
   open: boolean
   onClose: () => void
   /** Announced as the dialog's name. */
   title: string
+  /** What the sheet becomes at expanded width. A dialog unless said otherwise. */
+  wide?: 'dialog' | 'panel'
   children: JSX.Element
 }
 
@@ -29,6 +37,13 @@ const DISMISS_DISTANCE = 110
 const DISMISS_VELOCITY = 0.5
 
 export function Sheet(props: SheetProps) {
+  const breakpoint = createBreakpoint()
+  const presentation = (): SheetPresentation => {
+    const at = breakpoint()
+    if (at === 'compact') return 'bottom'
+    if (at === 'expanded') return props.wide ?? 'dialog'
+    return 'dialog'
+  }
   const [dragOffset, setDragOffset] = createSignal(0)
   const [dragging, setDragging] = createSignal(false)
   let panel: HTMLDivElement | undefined
@@ -106,11 +121,19 @@ export function Sheet(props: SheetProps) {
     })
   })
 
+  // A docked panel takes a column of the shell, so the list beside it is
+  // narrower rather than covered. The shell's grid reads this class.
+  createEffect(() => {
+    if (!(props.open && presentation() === 'panel')) return
+    document.body.classList.add('has-panel')
+    onCleanup(() => document.body.classList.remove('has-panel'))
+  })
+
   return (
     <Show when={props.open}>
       <Portal>
         <div
-          class="sheet"
+          class={`sheet sheet--${presentation()}`}
           role="dialog"
           aria-modal="true"
           aria-label={props.title}
@@ -126,18 +149,23 @@ export function Sheet(props: SheetProps) {
             ref={panel}
             class="sheet__panel"
             classList={{ 'sheet__panel--dragging': dragging() }}
-            style={{ transform: `translateY(${dragOffset()}px)` }}
+            style={
+              presentation() === 'bottom' ? { transform: `translateY(${dragOffset()}px)` } : {}
+            }
             tabindex={-1}
           >
-            <div
-              class="sheet__grip"
-              onPointerDown={onHandleDown}
-              onPointerMove={onHandleMove}
-              onPointerUp={onHandleUp}
-              onPointerCancel={onHandleUp}
-            >
-              <span class="sheet__handle" />
-            </div>
+            {/* Only a bottom sheet has anything to drag. */}
+            <Show when={presentation() === 'bottom'}>
+              <div
+                class="sheet__grip"
+                onPointerDown={onHandleDown}
+                onPointerMove={onHandleMove}
+                onPointerUp={onHandleUp}
+                onPointerCancel={onHandleUp}
+              >
+                <span class="sheet__handle" />
+              </div>
+            </Show>
             <div class="sheet__body">{props.children}</div>
           </div>
         </div>

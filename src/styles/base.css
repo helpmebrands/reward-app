@@ -210,6 +210,14 @@ svg {
   }
 }
 
+/* While a credit panel is docked, the shell keeps a column free for it so
+ * the list is narrower rather than covered (see Sheet.tsx). */
+@media (min-width: 1024px) {
+  body.has-panel .shell {
+    grid-template-columns: var(--rail-width) minmax(0, 1fr) var(--panel-width);
+  }
+}
+
 /* ---- Type helpers -------------------------------------------------------- */
 
 .screen-title {
@@ -348,6 +356,15 @@ svg {
   }
   to {
     opacity: 1;
+  }
+}
+
+@keyframes panel-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
   }
 }
 

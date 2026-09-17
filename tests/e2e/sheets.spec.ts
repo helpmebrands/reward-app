@@ -43,6 +43,10 @@ test('drags and dismisses past 110px on a phone', async ({ page, viewport }) => 
 
   await drag(60)
   await expect(dialog, 'short drag springs back').toBeVisible()
+  // Let it finish springing back, or the next press lands beside the grip.
+  await dialog
+    .locator('.sheet__panel')
+    .evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
   await drag(130)
   await expect(dialog, 'past 110px dismisses').toBeHidden()
 })

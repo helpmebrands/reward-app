@@ -181,6 +181,7 @@
   --content-max: 402px;
   --app-max-width: var(--content-max);
   --rail-width: 0px;
+  --panel-width: 380px;
   --tab-bar-height: 58px;
   --touch-target: 48px;
   --screen-pad: 20px;
