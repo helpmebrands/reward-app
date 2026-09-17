@@ -1,4 +1,4 @@
-import { Route, Router, useNavigate } from '@solidjs/router'
+import { type RouteDefinition, Router, useNavigate } from '@solidjs/router'
 import { createEffect, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
 import type { OverlapGroup } from './domain/selectors.ts'
 import { findOverlaps } from './domain/selectors.ts'
@@ -27,8 +27,11 @@ import { TabBar } from './ui/TabBar.tsx'
  * It has to sit inside `<Router>` — the tab bar and the notification handler
  * both use router primitives — and it renders the sheets so that a credit
  * opened from Today, from Credits or from a compare all share one instance.
+ *
+ * Exported, with `routes`, so the accessibility tests can mount the real
+ * shell on a memory router.
  */
-function Shell(props: ParentProps) {
+export function Shell(props: ParentProps) {
   const app = useApp()
   const ui = useUi()
   const navigate = useNavigate()
@@ -122,22 +125,24 @@ function NotFound() {
   )
 }
 
+export const routes: RouteDefinition[] = [
+  { path: '/', component: Today },
+  { path: '/credits', component: Credits },
+  { path: '/cards', component: Cards },
+  { path: '/cards/new', component: AddCard },
+  { path: '/cards/:id', component: CardEditor },
+  { path: '/benefit/:id', component: BenefitEditor },
+  { path: '/value', component: Value },
+  { path: '/settings', component: Settings },
+  { path: '*', component: NotFound },
+]
+
 export function App() {
   return (
     <AppProvider>
       <UiProvider>
         <SnackbarProvider>
-          <Router root={Shell}>
-            <Route path="/" component={Today} />
-            <Route path="/credits" component={Credits} />
-            <Route path="/cards" component={Cards} />
-            <Route path="/cards/new" component={AddCard} />
-            <Route path="/cards/:id" component={CardEditor} />
-            <Route path="/benefit/:id" component={BenefitEditor} />
-            <Route path="/value" component={Value} />
-            <Route path="/settings" component={Settings} />
-            <Route path="*" component={NotFound} />
-          </Router>
+          <Router root={Shell}>{routes}</Router>
         </SnackbarProvider>
       </UiProvider>
     </AppProvider>
