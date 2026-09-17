@@ -58,6 +58,10 @@ Vitest runs in jsdom with `tests/factories.ts` supplying fixtures, so each test 
 
 `tests/infra-config.test.ts` pins the committed Pulumi configuration and the runbooks that quote it ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
 
+### Project is named reward-app
+
+`infra/Pulumi.yaml` names the project `reward-app`, which is also the config namespace the program reads. The pre-rebrand name would recreate every resource once a stack exists.
+
 ### Project config declares no namespaced keys
 
 Pulumi rejects a namespaced key such as `gcp:project` declared at project level without a value, so `infra/Pulumi.yaml` declares only the project's own unprefixed keys.
@@ -73,3 +77,7 @@ Pulumi rejects a namespaced key such as `gcp:project` declared at project level 
 ### No stale repository or project names
 
 Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `helpme-rewards-`.
+
+### No cardvantage in infrastructure names
+
+Nothing under `infra/`, `docs/`, `.github/`, `deploy/` or the `Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
