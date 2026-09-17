@@ -53,13 +53,24 @@ export default defineConfig<{ theme: Theme }>({
     // The shell at each width: phone layout pinned below 600px, a rail above.
     ...[320, 402, 768, 1280].map((width) => ({
       name: `${width}px-shell`,
-      testMatch: /(shell|sheets|screens)\.spec\.ts/,
+      testMatch: /(shell|sheets|screens|keyboard)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width, height: width < 600 ? 800 : 900 },
         theme: 'dark' as Theme,
       },
     })),
+    // Windows High Contrast, as Chromium emulates it.
+    {
+      name: '402px-forced-colors',
+      testMatch: /forced-colors\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 402, height: 874 },
+        forcedColors: 'active',
+        theme: 'dark',
+      },
+    },
     // The design's own width with the browser font size raised to 24px.
     {
       name: '402px-large-type',

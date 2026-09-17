@@ -209,6 +209,20 @@ It also screenshots each route and attaches it to the report; `UPDATE_SCREENSHOT
 
 On the 1280px project the sequence of headings and row titles on Today is read, the viewport is resized to 402px, and the sequence is read again and must be identical.
 
+### Every control keeps a boundary in forced colours
+
+`tests/e2e/forced-colors.spec.ts` runs with Chromium's forced-colours emulation and, on every route and with the credit sheet open, lists any visible control whose border is zero on all four sides; the list must be empty.
+
+Controls are buttons, inputs, selects, text areas, switches and the switch knob.
+
+The off-screen file input, the sheet's scrim and a row's main button (which fills its bordered card) are excluded on purpose. A screenshot per route is attached to the report.
+
+### Tab and Enter alone complete the five actions
+
+`tests/e2e/keyboard.spec.ts` starts each flow at the skip link and uses only Tab and Enter.
+
+The flows: log a claim through the sheet with focus back on a row afterwards, silence a credit from its bell with focus still on it, add a catalogue card, toggle a benefit's tracking switch, and switch the theme to light.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.

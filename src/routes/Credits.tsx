@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Index, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
 import { formatMoney } from '../domain/format.ts'
 import {
@@ -272,17 +272,19 @@ export function Credits() {
                 </span>
               </div>
               <div class="list">
-                <For each={group.instances}>
+                {/* Index, not For: instances are rebuilt on every change, and For
+                    would rebuild the rows and drop keyboard focus with them. */}
+                <Index each={group.instances}>
                   {(instance) => (
                     <CreditRow
-                      instance={instance}
+                      instance={instance()}
                       showCard={grouping() !== 'card'}
-                      onOpen={() => ui.openCredit(instance.benefit.id)}
-                      onLogAll={() => actions.logAll(instance)}
-                      onToggleMute={() => actions.toggleMute(instance)}
+                      onOpen={() => ui.openCredit(instance().benefit.id)}
+                      onLogAll={() => actions.logAll(instance())}
+                      onToggleMute={() => actions.toggleMute(instance())}
                     />
                   )}
-                </For>
+                </Index>
               </div>
               <Show when={grouping() === 'card' && group.instances[0]}>
                 {(first) => (
