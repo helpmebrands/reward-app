@@ -86,3 +86,7 @@ Nothing under `infra/`, `docs/`, `.github/`, `deploy/` or the `Dockerfile` names
 ### Runbook names the real state backend
 
 Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather than offering a choice, so nobody initialises a second, competing copy of the state.
+
+### README records the staging environment
+
+`docs/runbooks/README.md` names the staging project, region, state bucket and `run.app` URL, so a new starter does not reverse-engineer which project is which from repository variables.
