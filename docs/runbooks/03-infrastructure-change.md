@@ -69,7 +69,7 @@ a manual step.
 2. **Configure and apply:**
 
    ```sh
-   $ pulumi config set cardvantage:customDomain app.example.com
+   $ pulumi config set reward-app:customDomain app.example.com
    $ pulumi up
    ```
 
@@ -101,8 +101,8 @@ a second copy of the code:
 $ pulumi stack init prod
 $ pulumi config set gcp:project <prod-project-id>
 $ pulumi config set gcp:region us-central1
-$ pulumi config set cardvantage:githubRepo helpmebrands/reward-app
-$ pulumi config set cardvantage:minInstances 1
+$ pulumi config set reward-app:githubRepo helpmebrands/reward-app
+$ pulumi config set reward-app:minInstances 1
 $ pulumi up
 ```
 

@@ -63,7 +63,7 @@ $ npm install
 $ pulumi stack init dev
 $ pulumi config set gcp:project "$PROJECT_ID"
 $ pulumi config set gcp:region "$REGION"
-$ pulumi config set cardvantage:githubRepo helpmebrands/reward-app
+$ pulumi config set reward-app:githubRepo helpmebrands/reward-app
 ```
 
 `githubRepo` is a security control, not a label — it pins which repository is
@@ -74,8 +74,8 @@ deploy.
 Optional:
 
 ```sh
-$ pulumi config set cardvantage:minInstances 1   # avoid cold starts, ~$10/mo
-$ pulumi config set cardvantage:maxInstances 4   # spend ceiling
+$ pulumi config set reward-app:minInstances 1   # avoid cold starts, ~$10/mo
+$ pulumi config set reward-app:maxInstances 4   # spend ceiling
 ```
 
 ## 4. Create the infrastructure

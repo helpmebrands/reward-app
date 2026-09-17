@@ -17,6 +17,11 @@ function filesUnder(dir: string): string[] {
 }
 
 describe('Pulumi project config', () => {
+  // @lat: [[tests#Infrastructure config#Project is named reward-app]]
+  it('is named reward-app', () => {
+    expect(read('infra/Pulumi.yaml')).toMatch(/^name: reward-app$/m)
+  })
+
   // @lat: [[tests#Infrastructure config#Project config declares no namespaced keys]]
   it('declares no namespaced keys at project level', () => {
     const configBlock = read('infra/Pulumi.yaml').split(/^config:\s*$/m)[1] ?? ''
@@ -39,12 +44,18 @@ describe('staging stack config', () => {
   })
 })
 
-describe('infra, runbooks and workflows', () => {
-  const files = ['infra', 'docs', '.github'].flatMap(filesUnder)
+describe('infra, runbooks, workflows and container files', () => {
+  const files = [...['infra', 'docs', '.github', 'deploy'].flatMap(filesUnder), 'Dockerfile']
 
   // @lat: [[tests#Infrastructure config#No stale repository or project names]]
   it('never name the old repository or the misspelt project', () => {
     const stale = files.filter((path) => /oravecz\/cardvantage|helpme-rewards-/.test(read(path)))
+    expect(stale).toEqual([])
+  })
+
+  // @lat: [[tests#Infrastructure config#No cardvantage in infrastructure names]]
+  it('never use the pre-rebrand name cardvantage', () => {
+    const stale = files.filter((path) => /cardvantage/i.test(read(path)))
     expect(stale).toEqual([])
   })
 })

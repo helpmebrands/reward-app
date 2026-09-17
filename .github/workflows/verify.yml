@@ -67,7 +67,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: cardvantage:pr-${{ github.sha }}
+          tags: reward-app:pr-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -77,12 +77,12 @@ jobs:
       - name: Smoke test the container
         run: |
           set -euo pipefail
-          docker run -d --name cardvantage-test -p 8080:8080 cardvantage:pr-${{ github.sha }}
+          docker run -d --name reward-app-test -p 8080:8080 reward-app:pr-${{ github.sha }}
 
           for i in $(seq 1 30); do
             if curl -fsS -o /dev/null http://localhost:8080/; then break; fi
             if [ "$i" = "30" ]; then
-              echo "container never became ready"; docker logs cardvantage-test; exit 1
+              echo "container never became ready"; docker logs reward-app-test; exit 1
             fi
             sleep 1
           done
@@ -107,4 +107,4 @@ jobs:
             *) echo "  sw.js cache-control was '$cc', expected no-store"; exit 1 ;;
           esac
 
-          docker rm -f cardvantage-test
+          docker rm -f reward-app-test

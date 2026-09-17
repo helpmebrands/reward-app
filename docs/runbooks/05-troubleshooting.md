@@ -11,10 +11,10 @@ failed to generate Google Cloud federated token ... Permission 'iam.serviceAccou
 
 Almost always one of three things:
 
-1. **`cardvantage:githubRepo` does not match the repository.** It is compared
+1. **`reward-app:githubRepo` does not match the repository.** It is compared
    exactly, including case and owner. Check:
    ```sh
-   $ cd infra && pulumi config get cardvantage:githubRepo
+   $ cd infra && pulumi config get reward-app:githubRepo
    ```
 2. **`WIF_PROVIDER` is not the full resource name.** It must look like
    `projects/123456789/locations/global/workloadIdentityPools/github-dev/providers/github`,
@@ -27,7 +27,7 @@ Almost always one of three things:
 The deployer can authenticate but not push. Either `ARTIFACT_REPO` names a
 repository that does not exist, or the region in the image tag disagrees with
 the registry's. The tag must be
-`<REGION>-docker.pkg.dev/<PROJECT>/<REPO>/cardvantage:<sha>` — a mismatched
+`<REGION>-docker.pkg.dev/<PROJECT>/<REPO>/reward-app:<sha>` — a mismatched
 region produces this exact error rather than a helpful one.
 
 ## Deploy succeeds, but the site shows Google's placeholder page
@@ -51,7 +51,7 @@ In order of likelihood:
 
 2. **Traffic is still split.** A rollback that was never reconciled:
    ```sh
-   $ gcloud run services describe cardvantage --region "$REGION" \
+   $ gcloud run services describe reward-app --region "$REGION" \
        --format='value(status.traffic)'
    ```
 
@@ -108,7 +108,7 @@ deploy whatever image Pulumi last recorded, which is old code. See
 ## Cold starts feel slow
 
 First request to an idle service pays container start — about a second for
-nginx. `pulumi config set cardvantage:minInstances 1` removes it for roughly
+nginx. `pulumi config set reward-app:minInstances 1` removes it for roughly
 $10/month. For a PWA that users install and open from the Home Screen this
 matters less than it looks: after the first visit, the service worker serves
 the shell locally and the network is not on the critical path at all.
