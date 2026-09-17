@@ -293,6 +293,32 @@
   color: var(--color-neutral-500);
 }
 
+.field__required {
+  color: var(--text-secondary);
+}
+
+/* The one place the missed tone appears outside a ledger: it is a loss
+ * avoided, not an alarm. Empty until there is something to say. */
+.field__error {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--tone-missed-fg);
+  text-wrap: pretty;
+}
+
+.field__error:empty {
+  display: none;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--tone-missed-fg);
+}
+
+.form-note {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .input {
   width: 100%;
   min-height: var(--touch-target);
