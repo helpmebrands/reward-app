@@ -209,9 +209,11 @@ Application → Service Workers should show one activated.
 
 ## 8. Record what you did
 
-Note the project id, region and stack name somewhere your team will find them —
-the repository variables are the operational source of truth, but a new starter
-should not have to reverse-engineer which GCP project is production.
+Add the environment to the table in [README.md](README.md#environments):
+project id, region, stack, state backend and URL. The repository variables are
+the operational source of truth, but a new starter should not have to
+reverse-engineer which GCP project is which. Staging was recorded there on
+2026-09-17.
 
 ## What you have now
 

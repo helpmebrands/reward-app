@@ -11,6 +11,22 @@ when a change goes wrong.
 | [04 — Rollback](04-rollback.md) | Getting off a bad revision. Read this **before** you need it. |
 | [05 — Troubleshooting](05-troubleshooting.md) | Specific failures and what they actually mean. |
 
+## Environments
+
+The repository variables are the operational source of truth; this table is
+the human-readable copy. Update it when an environment is added or moved.
+
+| | staging |
+| --- | --- |
+| GCP project | `helpme-reward-staging` |
+| Region | `us-central1` |
+| Pulumi stack | `staging` (backend `gs://helpme-reward-staging-pulumi-state`) |
+| Cloud Run service | `reward-app` |
+| URL | <https://reward-app-bduraqeztq-uc.a.run.app> |
+| Custom domain | `staging.helpmereward.com` (pending, #11) |
+| Deployed from | `develop`, by `cd.yml`, on every merge |
+| First deployed | 2026-09-17 |
+
 ## What owns what
 
 The single most important thing to internalise, because getting it wrong causes
