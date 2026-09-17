@@ -1,0 +1,44 @@
+import { defineConfig, devices } from '@playwright/test'
+import type { Theme } from './tests/e2e/fixtures.ts'
+
+/**
+ * One project per width and theme, so a violation names where it happens.
+ *
+ * 320 is the narrowest phone WCAG 1.4.10 asks for, 402 is the design's own
+ * column, 768 is a tablet or a landscape phone, 1280 is a desktop window.
+ * Heights are a real device at each width. The suite runs against
+ * `vite preview` of `dist/`, so build first.
+ */
+const VIEWPORTS: ReadonlyArray<{ width: number; height: number }> = [
+  { width: 320, height: 568 },
+  { width: 402, height: 874 },
+  { width: 768, height: 1024 },
+  { width: 1280, height: 800 },
+]
+const THEMES: readonly Theme[] = ['light', 'dark']
+
+const PORT = 4173
+
+export default defineConfig<{ theme: Theme }>({
+  testDir: 'tests/e2e',
+  fullyParallel: true,
+  forbidOnly: !!process.env.CI,
+  reporter: [['list'], ['html', { open: process.env.CI ? 'never' : 'on-failure' }]],
+  use: {
+    baseURL: `http://localhost:${PORT}`,
+    // The worker would otherwise serve a stale precache between runs.
+    serviceWorkers: 'block',
+    trace: 'retain-on-failure',
+  },
+  projects: VIEWPORTS.flatMap((viewport) =>
+    THEMES.map((theme) => ({
+      name: `${viewport.width}px-${theme}`,
+      use: { ...devices['Desktop Chrome'], viewport, theme },
+    })),
+  ),
+  webServer: {
+    command: `npm run preview -- --port ${PORT} --strictPort`,
+    url: `http://localhost:${PORT}`,
+    reuseExistingServer: !process.env.CI,
+  },
+})
