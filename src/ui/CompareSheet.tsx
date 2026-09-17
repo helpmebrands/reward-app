@@ -66,7 +66,7 @@ export function CompareSheet(props: CompareSheetProps) {
                   </span>
                 </div>
                 <h2 class="sheet-head__title">{overlap().label}</h2>
-                <p class="muted" style={{ 'font-size': '11.5px' }}>
+                <p class="muted" style={{ 'font-size': 'var(--type-note)' }}>
                   {formatMoney(overlap().remainingCents)} unclaimed across{' '}
                   {overlap().instances.length} cards
                 </p>

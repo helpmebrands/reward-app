@@ -118,7 +118,9 @@ export function Settings() {
 
           <div class="panel row row--between">
             <span class="grow">
-              <span style={{ display: 'block', 'font-size': '12px' }}>Send me reminders</span>
+              <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                Send me reminders
+              </span>
               <span class="section-note">
                 <Show
                   when={permission() !== 'unsupported'}
@@ -187,7 +189,7 @@ export function Settings() {
 
             <div class="panel row row--between">
               <span class="grow">
-                <span style={{ display: 'block', 'font-size': '12px' }}>
+                <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
                   Nudge me about locked credits
                 </span>
                 <span class="section-note">

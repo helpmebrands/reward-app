@@ -267,7 +267,7 @@ export function Credits() {
                 />
                 <h2 class="credits__group-label">{group.label}</h2>
                 <span class="rule" aria-hidden="true" />
-                <span class="muted numeric" style={{ 'font-size': '11px' }}>
+                <span class="muted numeric" style={{ 'font-size': 'var(--type-caption)' }}>
                   {group.figure}
                 </span>
               </div>

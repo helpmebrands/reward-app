@@ -228,7 +228,9 @@ export function BenefitEditor() {
 
             <div class="panel row row--between">
               <span class="grow">
-                <span style={{ display: 'block', 'font-size': '12px' }}>Needs enrolment</span>
+                <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                  Needs enrolment
+                </span>
                 <span class="section-note">
                   Until it is enrolled the credit is Locked, and never counted as money you are
                   failing to spend.
@@ -244,7 +246,9 @@ export function BenefitEditor() {
             <Show when={current().enrollmentRequired}>
               <div class="panel row row--between">
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Enrolled</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Enrolled
+                  </span>
                   <span class="section-note">
                     <Show when={current().enrolledAt} fallback="Not yet — the credit is locked.">
                       {(at) => `Confirmed ${formatDate(at().slice(0, 10))}.`}
@@ -300,7 +304,9 @@ export function BenefitEditor() {
 
             <div class="panel row row--between">
               <span class="grow">
-                <span style={{ display: 'block', 'font-size': '12px' }}>Track this credit</span>
+                <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                  Track this credit
+                </span>
                 <span class="section-note">
                   Turn off to keep its history without counting it or reminding you.
                 </span>

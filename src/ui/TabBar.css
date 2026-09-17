@@ -29,7 +29,7 @@
 }
 
 .tabbar__label {
-  font: 500 9.5px var(--font-body);
+  font: 500 var(--type-2xs) var(--font-body);
   letter-spacing: 0.02em;
 }
 

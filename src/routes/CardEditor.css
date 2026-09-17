@@ -19,12 +19,12 @@
 
 .benefit-link__name {
   display: block;
-  font: 500 12.5px var(--font-body);
+  font: 500 var(--type-body) var(--font-body);
   color: var(--color-text);
 }
 
 .benefit-link__meta {
   display: block;
-  font-size: 10.5px;
+  font-size: var(--type-sm);
   color: var(--text-secondary);
 }

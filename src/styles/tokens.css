@@ -66,6 +66,36 @@
   --font-heading-weight: 500;
   --font-body: "Inter", system-ui, sans-serif;
 
+  /* ---- Type scale ---------------------------------------------------------
+   * The sizes the screens were drawn at, in rem so a browser font-size
+   * preference reaches every one of them (WCAG 1.4.4). Named by role; the
+   * pixel value at the default 16px root is in the comment. Icon sizes stay
+   * in px: they are glyphs, not text.
+   */
+  --type-2xs: 0.59375rem; /* 9.5  kickers, chart labels */
+  --type-xs: 0.625rem; /* 10   "of" lines, ladder labels */
+  --type-sm: 0.65625rem; /* 10.5 tags, legends, row sublines */
+  --type-caption: 0.6875rem; /* 11   notes, field labels, countdowns */
+  --type-note: 0.71875rem; /* 11.5 screen subtitles, body of a card */
+  --type-body-sm: 0.75rem; /* 12   panel labels, sheet section titles */
+  --type-body: 0.78125rem; /* 12.5 Today's subtitle, snackbar text */
+  --type-ui: 0.8125rem; /* 13   buttons, row titles */
+  --type-section: 0.84375rem; /* 13.5 section titles */
+  --type-input: 0.875rem; /* 14   inputs, row amounts */
+  --type-base: 0.9375rem; /* 15   body */
+  --type-lead: 1rem; /* 16   the picked card's name */
+  --type-title: 1.0625rem; /* 17   top bar and card titles */
+  --type-h2: 1.1875rem; /* 19   the credits totals */
+  --type-h1-sm: 1.3125rem; /* 21   sheet titles */
+  --type-figure: 1.375rem; /* 22   Value figures */
+  --type-h1: 1.4375rem; /* 23   screen titles */
+  --type-figure-lg: 1.5rem; /* 24   the compare figure */
+  --type-amount: 1.6875rem; /* 27   the sheet's balance */
+  --type-symbol: 1.75rem; /* 28   Today's dollar sign */
+  /* Today's number: 58px at the design width, shrinking with the viewport so
+   * it never forces a sideways scroll at 320px (WCAG 1.4.10). */
+  --type-display: clamp(2.25rem, 14.5vw, 3.625rem);
+
   --space-1: 2.8px;
   --space-2: 5.6px;
   --space-3: 8.4px;
