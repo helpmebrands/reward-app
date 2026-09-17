@@ -94,3 +94,30 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 ### Verify gate typechecks the Pulumi program
 
 `verify.yml` has an `infra` job that runs `npm ci` and `npm run typecheck` in `infra/` with its own lockfile cache, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.
+
+## Accessibility tests
+
+Two axe gates for epic #21: `tests/a11y/` runs in jsdom as part of `npm test`, and `tests/e2e/` runs Playwright against the built app with `npm run test:e2e`. Both read one allowlist.
+
+Both suites render every route with the sample household from `samples/sample-household.json`, so what axe sees is a populated screen rather than an empty state. `tests/a11y/allowlist.ts` names each rule currently disabled and the sub-issue that removes it; a sub-issue is not done until its entries are gone. The rule set is WCAG 2.1 A and AA plus axe's best practices.
+
+`tests/a11y/mount.tsx` mounts the real shell ([[src/App.tsx#Shell]]) and route table ([[src/App.tsx#routes]]) on a memory router, so a screen is judged inside the same landmarks, sheets and tab bar it ships with.
+
+The Playwright suite (`playwright.config.ts`) is one project per width and theme: 320, 402, 768 and 1280px, light and dark, against `vite preview` of `dist/`, so build first. Its `theme` option seeds the sample household into IndexedDB with that theme in settings, because the shell owns the `data-theme` attribute and would overwrite a stamp. In CI the `a11y` job of `verify.yml` runs it on the bundle the verify job built, and uploads the HTML report when it fails.
+
+### Every route passes axe in jsdom
+
+Each of the nine routes, including the editors and the not-found screen, renders with no axe violation outside the annotated allowlist.
+
+jsdom has no layout, so this catches names, roles, labels, landmarks, headings and ARIA validity, and not contrast.
+
+### The credit sheet passes axe
+
+Today with the credit sheet open, since the sheet is the app's one modal dialog and is portalled outside `<main>`, renders with no axe violation.
+
+### Every route passes axe in a real browser
+
+Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
+
+An undecided check that nobody reviews is treated as a failure, which is what makes the contrast entry in the allowlist honest.
+

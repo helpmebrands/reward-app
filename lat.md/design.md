@@ -71,3 +71,5 @@ A custom dropdown would be worse in every way that matters: no keyboard accessor
 ## Accessibility
 
 The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
+
+Conformance is checked by axe at two levels ([[tests#Accessibility tests]]): in jsdom on every route as part of `npm test`, and in Chromium at four widths and both themes as the `a11y` job of the verify gate.
