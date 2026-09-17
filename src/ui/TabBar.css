@@ -43,8 +43,47 @@
   }
 }
 
+/* From 600px the bar is a navigation rail on the leading edge: full height,
+ * icons over labels, Material's rail width. From 1024px it widens and the
+ * labels sit beside the icons. Same four buttons, same DOM order. */
+@media (min-width: 600px) {
+  .tabbar {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--space-2);
+    width: var(--rail-width);
+    height: 100dvh;
+    border-top: 0;
+    border-right: 1px solid var(--color-neutral-900);
+    padding: calc(var(--space-8) + env(safe-area-inset-top)) var(--space-2) var(--space-3);
+  }
+
+  .tabbar__tab {
+    flex: none;
+    width: 100%;
+    min-height: 56px;
+    border-radius: var(--radius-md);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tabbar__tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--space-4);
+    min-height: var(--touch-target);
+    padding: 0 var(--space-6);
+  }
+
+  .tabbar__label {
+    font-size: var(--type-ui);
+  }
+}
+
 /* Icons only when the viewport is short; the label stays for screen readers. */
-@media (max-height: 479px) {
+@media (max-height: 479px) and (max-width: 599px) {
   .tabbar {
     padding-top: var(--space-1);
     padding-bottom: calc(var(--space-1) + env(safe-area-inset-bottom));

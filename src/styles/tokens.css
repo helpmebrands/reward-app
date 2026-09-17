@@ -178,10 +178,36 @@
    * The 48px touch target is Material's minimum and is honoured even where
    * Nocturne's density would allow a smaller control.
    */
-  --app-max-width: 402px;
+  --content-max: 402px;
+  --app-max-width: var(--content-max);
+  --rail-width: 0px;
   --tab-bar-height: 58px;
   --touch-target: 48px;
   --screen-pad: 20px;
+}
+
+/*
+ * Breakpoints. Compact is the phone layout as drawn. Medium (600px and up:
+ * a tablet, a landscape phone, half a desktop) moves the tab bar to a rail
+ * and widens the column. Expanded (1024px and up) gives the rail labels and
+ * widens the column again. Only layout tokens change here; components keep
+ * reading the same names. Custom properties cannot drive a media query, so
+ * the two widths are repeated where a stylesheet needs them.
+ */
+@media (min-width: 600px) {
+  :root {
+    --content-max: 560px;
+    --rail-width: 80px;
+    --screen-pad: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --content-max: 720px;
+    --rail-width: 200px;
+    --screen-pad: 28px;
+  }
 }
 
 /*

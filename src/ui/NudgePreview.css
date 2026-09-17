@@ -17,6 +17,16 @@
   animation: notif-in var(--duration-long) var(--ease-emphasized) both;
 }
 
+/* Over the content column once there is a rail. */
+@media (min-width: 600px) {
+  .nudge {
+    left: calc(var(--rail-width) + var(--space-4));
+    right: var(--space-4);
+    max-width: calc(var(--content-max) - var(--space-8));
+    margin-inline: auto;
+  }
+}
+
 .nudge__body {
   display: flex;
   gap: var(--space-4);

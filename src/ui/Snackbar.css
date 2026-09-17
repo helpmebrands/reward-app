@@ -3,7 +3,8 @@
 
 .snackbar {
   position: fixed;
-  left: 50%;
+  /* Centred on the content column, which the rail pushes right of centre. */
+  left: calc(50% + var(--rail-width) / 2);
   transform: translateX(-50%);
   bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + var(--space-6));
   z-index: 90;
