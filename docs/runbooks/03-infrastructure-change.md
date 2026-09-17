@@ -60,37 +60,75 @@ branch stops working, which is occasionally what you want during an incident.
 ## Adding a custom domain
 
 Cloud Run will not map a domain you have not proved you own, and that proof is
-a manual step.
+a manual step. DNS for `helpmereward.com` lives in Cloudflare; the steps below
+assume that. Staging is `staging.helpmereward.com`; the apex is reserved for
+`prod`.
 
-1. **Verify the domain** in [Search Console](https://search.google.com/search-console),
-   using the same Google account that administers the project. Add the TXT
-   record it gives you and wait for verification to complete.
+1. **Make sure Cloudflare is authoritative.** The registrar (Porkbun) must
+   point the domain at the two nameservers Cloudflare assigned to the zone.
+   Until `dig NS helpmereward.com +short` returns `*.ns.cloudflare.com`,
+   records added in Cloudflare do nothing.
 
-2. **Configure and apply:**
+2. **Verify the domain** in [Search Console](https://search.google.com/search-console)
+   as a *Domain* property, signed in as the same Google account that runs
+   `pulumi up`. It gives you a TXT record; add it in Cloudflare on the apex
+   (name `@`) and wait for verification to complete. Cloud Run checks the
+   verifying account, not the project, so a colleague's verification does
+   not count.
 
    ```sh
-   $ pulumi config set reward-app:customDomain app.example.com
+   $ gcloud domains list-user-verified      # must list helpmereward.com
+   ```
+
+3. **Configure and apply:**
+
+   ```sh
+   $ pulumi config set reward-app:customDomain staging.helpmereward.com
    $ pulumi up
    ```
 
-3. **Point DNS at Cloud Run** using the records the mapping returns:
+4. **Add the record in Cloudflare — DNS only.** The mapping tells you what it
+   needs; for a subdomain it is one CNAME:
 
    ```sh
    $ pulumi stack output customDomainStatus
    ```
 
-4. **Wait.** Google issues a managed certificate once DNS resolves. Fifteen
+   | Type | Name | Target | Proxy status |
+   | --- | --- | --- | --- |
+   | CNAME | `staging` | `ghs.googlehosted.com` | **DNS only** (grey cloud) |
+
+   The proxy status is the part people get wrong. With the orange cloud on,
+   Cloudflare answers the ACME challenge instead of Google, the managed
+   certificate never issues, and the mapping sits in a certificate-pending
+   state indefinitely. Turn the proxy on later if you want Cloudflare in front
+   of the site, and only after the certificate exists; then set the zone's
+   SSL/TLS mode to **Full (strict)**, or Cloudflare will connect to Cloud Run
+   over plain HTTP and Google redirects it into a loop.
+
+5. **Wait.** Google issues a managed certificate once DNS resolves. Fifteen
    minutes is normal, an hour is not alarming. The domain serves a certificate
    error until it completes — expected, not a fault.
+
+   ```sh
+   $ gcloud beta run domain-mappings describe --domain staging.helpmereward.com \
+       --region us-central1 --format='value(status.conditions)'
+   ```
+
+   `CertificateProvisioned` flips to `True` when it is done.
 
 **Verify:**
 
 ```sh
-$ curl -sS -o /dev/null -w '%{http_code}\n' https://app.example.com/
+$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/          # 200
+$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/credits   # 200
+$ curl -sSI https://staging.helpmereward.com/sw.js | grep -i cache-control            # no-store
+$ pulumi preview                                                                       # no changes
 ```
 
-Then update `VITE_PUSH_API` and the CSP `connect-src` in
-`deploy/security-headers.conf` if the push backend moves with it.
+Then record the hostname in [README.md](README.md#environments), and update
+`VITE_PUSH_API` and the CSP `connect-src` in `deploy/security-headers.conf` if
+the push backend moves with it.
 
 ## Adding a production environment
 
