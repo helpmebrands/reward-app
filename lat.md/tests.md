@@ -125,6 +125,18 @@ Today's headline number is also visible without scrolling, which is what the sho
 
 At 667×375 the credit sheet opens no taller than 85% of the viewport, its body scrolls inside the panel, and Escape closes it.
 
+### Every route sets a document title
+
+`tests/a11y/navigation.test.tsx` renders each of the nine routes and expects `document.title` to be the screen's name followed by ` · HelpMe Reward`; the editors use the card label and the credit name.
+
+### Navigation moves focus to the new heading
+
+Moving the memory history from Cards to Add a card places `document.activeElement` on the Add a card `<h1>`, and going back places it on the Cards `<h1>`.
+
+### A tab press keeps focus on the tab
+
+Pressing the Credits tab with focus on it renders Credits and leaves focus on the tab, since the user is still on the control they pressed.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
