@@ -142,6 +142,23 @@ The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus
 
 Every screen has exactly one `<h1>` and a document title of its own ([[architecture#The shell and routing#Titles and focus]]). Today's heading is visually hidden behind the logotype, which is decoration with an empty `alt`.
 
+### Pointer accelerators and their keyboard routes
+
+Every gesture is an accelerator with a keyboard route, proved by [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]. Rows are rendered with `Index` rather than `For`, so a data change updates a row in place instead of rebuilding it and dropping keyboard focus.
+
+| Pointer only | Keyboard route |
+| --- | --- |
+| Swipe a row right to log the whole credit | Enter on the row opens the sheet; "Mark the full … used" logs it |
+| Swipe a row left to silence it | The bell button on every row, or "Silence this credit" in the sheet |
+| Drag the sheet's handle to dismiss | Escape, or the Close button |
+| Tap the scrim to close a sheet | Escape |
+
+### Forced colours
+
+Under Windows High Contrast every background becomes the system Canvas, so `@media (forced-colors: active)` gives a border to every control that was drawn as a fill or a tonal step. Checked by [[tests#Accessibility tests#Every control keeps a boundary in forced colours]].
+
+That is icon buttons, segments, tabs, swipe actions, the switch knob, catalogue entries, benefit links and overlap cards. Where a colour carries meaning, the status tags, the split bar, the chart bars and swatches, the current ladder rung and inline errors, `forced-color-adjust: none` keeps it. A pressed segment takes the system Highlight colours, since its tonal step is gone too.
+
 Text is truncated with `.truncate` only where the full text is one tap away: a credit row's title opens the sheet that shows the whole name, a benefit link opens its editor, and the household filter's label sits over a native select. Subtitles, leak labels and screen titles wrap instead, so WCAG 1.4.12's spacing overrides lose nothing ([[tests#Accessibility tests#Text spacing overrides clip nothing]]).
 
 Orientation is never locked. Under 480px of height, a phone on its side, the shell drops the bloom and most of its top padding, the tab bar goes icon-only with the labels kept for screen readers, Today's number steps down to 40px, and sheets cap at 85dvh so a strip of the screen stays visible behind them ([[tests#Accessibility tests#Landscape keeps the first row on screen]]).
