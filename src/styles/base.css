@@ -340,3 +340,22 @@ svg {
     transform: none;
   }
 }
+
+/* ---- Short viewports ----------------------------------------------------- */
+
+/* A phone on its side. The bloom and the deep top padding are the first
+ * things to go: with 375px of height and a tab bar, the screen's first row
+ * has to be visible without scrolling. */
+@media (max-height: 479px) {
+  .shell::before {
+    display: none;
+  }
+
+  .screen {
+    padding-top: max(var(--space-4), env(safe-area-inset-top));
+  }
+
+  .section {
+    margin-top: var(--space-6);
+  }
+}

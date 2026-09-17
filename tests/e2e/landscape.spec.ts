@@ -24,7 +24,8 @@ const ROUTES: ReadonlyArray<[name: string, path: string]> = [
 
 for (const [name, path] of ROUTES) {
   // @lat: [[tests#Accessibility tests#Landscape keeps the first row on screen]]
-  test(`${name} fits a landscape phone`, async ({ page }) => {
+  test(`${name} fits a landscape phone`, async ({ page, viewport }) => {
+    if (!viewport) throw new Error('no viewport')
     await page.goto(path)
     await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
 
@@ -34,11 +35,18 @@ for (const [name, path] of ROUTES) {
       const first = main.querySelector('.row-card') ?? main.querySelector('h1, p')
       if (!first) throw new Error('no first row or heading')
       const m = main.getBoundingClientRect()
+      const amount = main.querySelector('.today__amount')?.getBoundingClientRect()
+      // Not "above the fold": a list scrolls. Clipped means the row cannot be
+      // brought fully into view because chrome or overflow hides part of it.
+      // Scrolling is whole pixels, so the assertions allow one.
+      first.scrollIntoView({ block: 'nearest', behavior: 'instant' })
       const f = first.getBoundingClientRect()
       return {
         pageScrollsSideways:
           document.documentElement.scrollWidth > document.documentElement.clientWidth,
         mainScrollsSideways: main.scrollWidth > main.clientWidth,
+        mainHeight: m.height,
+        amountVisible: amount ? amount.top >= m.top && amount.bottom <= m.bottom : null,
         firstRow: { top: f.top, bottom: f.bottom, text: first.textContent?.trim().slice(0, 40) },
         main: { top: m.top, bottom: m.bottom },
       }
@@ -46,14 +54,21 @@ for (const [name, path] of ROUTES) {
 
     expect(layout.pageScrollsSideways, 'page scrolls horizontally').toBe(false)
     expect(layout.mainScrollsSideways, 'main scrolls horizontally').toBe(false)
+    // The tab bar and safe areas may take a fifth of the height, no more.
+    expect(layout.mainHeight, 'chrome leaves room for content').toBeGreaterThanOrEqual(
+      viewport.height * 0.8,
+    )
     expect(
       layout.firstRow.top,
       `first row "${layout.firstRow.text}" clipped at top`,
-    ).toBeGreaterThanOrEqual(layout.main.top)
+    ).toBeGreaterThanOrEqual(layout.main.top - 1)
     expect(
       layout.firstRow.bottom,
       `first row "${layout.firstRow.text}" clipped at bottom`,
-    ).toBeLessThanOrEqual(layout.main.bottom)
+    ).toBeLessThanOrEqual(layout.main.bottom + 1)
+    if (path === '/') {
+      expect(layout.amountVisible, 'the headline number shows without scrolling').toBe(true)
+    }
   })
 }
 
@@ -66,6 +81,10 @@ test('the credit sheet opens, scrolls and closes', async ({ page, viewport }) =>
   const dialog = page.getByRole('dialog')
   await expect(dialog).toBeVisible()
 
+  // The sheet slides in; measure it once it has arrived.
+  await dialog
+    .locator('.sheet__panel')
+    .evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
   const panel = await dialog.locator('.sheet__panel').boundingBox()
   if (!panel || !viewport) throw new Error('no panel or viewport')
   expect(panel.height, 'sheet leaves the screen behind visible').toBeLessThanOrEqual(

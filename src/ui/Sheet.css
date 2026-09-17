@@ -77,3 +77,11 @@
 .sheet__panel:focus-visible {
   outline: none;
 }
+
+/* In landscape the sheet leaves a strip of the screen behind visible and
+ * scrolls inside, rather than becoming a second full screen. */
+@media (max-height: 479px) {
+  .sheet__panel {
+    max-height: 85dvh;
+  }
+}
