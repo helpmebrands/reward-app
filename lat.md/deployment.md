@@ -66,6 +66,8 @@ The Content Security Policy is same-origin apart from the Inter webfont. `script
 
 The stack name doubles as the environment (`staging`, `prod`).
 
+Provider settings (`gcp:project`, `gcp:region`) and `githubRepo` live per stack in `infra/Pulumi.<stack>.yaml`. `Pulumi.yaml` declares only the project's own unprefixed keys, because Pulumi rejects a namespaced key declared at project level without a value. `Pulumi.staging.yaml` targets `helpme-reward-staging` and trusts `helpmebrands/reward-app`; the test in [[tests#Infrastructure config]] pins both.
+
 - **APIs** are enabled explicitly and everything depends on them, because enabling is slow and eventually consistent. `disableOnDestroy: false` so tearing down the stack does not switch APIs off underneath anything else.
 - **Artifact Registry** keeps the 30 most recent images (rollbacks need them) and deletes untagged images after seven days, so the registry does not grow and bill forever.
 - **The runtime service account holds no roles.** The container serves static files and all user data is in the browser, so it has no reason to reach any Google API. Running as the default compute account would hand an attacker who achieved code execution a project-wide identity for nothing.

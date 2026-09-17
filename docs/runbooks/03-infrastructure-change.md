@@ -101,7 +101,7 @@ a second copy of the code:
 $ pulumi stack init prod
 $ pulumi config set gcp:project <prod-project-id>
 $ pulumi config set gcp:region us-central1
-$ pulumi config set cardvantage:githubRepo oravecz/cardvantage
+$ pulumi config set cardvantage:githubRepo helpmebrands/reward-app
 $ pulumi config set cardvantage:minInstances 1
 $ pulumi up
 ```

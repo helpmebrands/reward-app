@@ -5,23 +5,26 @@ runtime:
     typescript: true
 description: Infrastructure for Cardvantage — Artifact Registry, Cloud Run, and keyless GitHub deploys.
 
+# Only this project's own namespace is declared here. Provider settings
+# (gcp:project, gcp:region) are not — Pulumi requires a concrete `value` for a
+# namespaced key declared at project level, and those belong per-stack.
 config:
-  gcp:project:
-    description: Target Google Cloud project id.
-  gcp:region:
-    description: Region for Cloud Run and Artifact Registry.
-    default: us-central1
-  cardvantage:githubRepo:
+  githubRepo:
+    type: string
     description: The repository allowed to deploy, as "owner/name". Pins the trust boundary.
-  cardvantage:serviceName:
+  serviceName:
+    type: string
     description: Cloud Run service name.
     default: cardvantage
-  cardvantage:minInstances:
+  minInstances:
+    type: integer
     description: Warm instances. 0 is cheapest and accepts a cold start.
-    default: "0"
-  cardvantage:maxInstances:
+    default: 0
+  maxInstances:
+    type: integer
     description: Ceiling on concurrent instances, and therefore on spend.
-    default: "4"
-  cardvantage:customDomain:
+    default: 4
+  customDomain:
+    type: string
     description: Optional custom domain. Requires prior domain verification — see runbook 03.
     default: ""

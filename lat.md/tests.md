@@ -53,3 +53,23 @@ Vitest runs in jsdom with `tests/factories.ts` supplying fixtures, so each test 
 - Deleting a card removes its credits and claims and leaves the other holder untouched.
 - Export and import round-trip the dataset; a file that is not an export is refused.
 - Every catalogue template gives each credit an icon and a positive value.
+
+## Infrastructure config
+
+`tests/infra-config.test.ts` pins the committed Pulumi configuration and the runbooks that quote it ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
+
+### Project config declares no namespaced keys
+
+Pulumi rejects a namespaced key such as `gcp:project` declared at project level without a value, so `infra/Pulumi.yaml` declares only the project's own unprefixed keys.
+
+### Staging targets the decided project
+
+`infra/Pulumi.staging.yaml` sets `gcp:project` to `helpme-reward-staging`, the project decided on epic #3, not the misspelt `helpme-rewards-staging`.
+
+### Staging trusts this repository
+
+`githubRepo` is `helpmebrands/reward-app`. The WIF attribute condition and the impersonation binding are built from it, so a wrong value rejects every deploy.
+
+### No stale repository or project names
+
+Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `helpme-rewards-`.
