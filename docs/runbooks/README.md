@@ -22,8 +22,8 @@ the human-readable copy. Update it when an environment is added or moved.
 | Region | `us-central1` |
 | Pulumi stack | `staging` (backend `gs://helpme-reward-staging-pulumi-state`) |
 | Cloud Run service | `reward-app` |
-| URL | <https://reward-app-bduraqeztq-uc.a.run.app> |
-| Custom domain | `staging.helpmereward.com` (pending, #11) |
+| URL | <https://staging.helpmereward.com> (also <https://reward-app-bduraqeztq-uc.a.run.app>) |
+| DNS | Cloudflare zone `helpmereward.com`; CNAME `staging` → `ghs.googlehosted.com`, DNS only |
 | Deployed from | `develop`, by `cd.yml`, on every merge |
 | First deployed | 2026-09-17 |
 
