@@ -19,6 +19,7 @@ export async function axeViolations(): Promise<string[]> {
     rules: Object.fromEntries(COMPONENT_ALLOWLIST.map((id) => [id, { enabled: false }])),
   })
   return results.violations.map(
-    (v) => `${v.id} (${v.impact}): ${v.help} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`,
+    (v) =>
+      `${v.id} (${v.impact}): ${v.help} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`,
   )
 }

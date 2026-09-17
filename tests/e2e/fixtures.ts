@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { expect, test as base } from '@playwright/test'
+import { test as base, expect } from '@playwright/test'
 
 export type Theme = 'light' | 'dark'
 
 const sample = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../../samples/sample-household.json', import.meta.url)), 'utf8'),
+  readFileSync(
+    fileURLToPath(new URL('../../samples/sample-household.json', import.meta.url)),
+    'utf8',
+  ),
 ) as { settings: Record<string, unknown> }
 
 /**
@@ -40,14 +43,14 @@ function seedDatabase(data: unknown): Promise<void> {
  * snapshot once its initial read resolves, and a seed written before that
  * would be overwritten by the empty default.
  */
-export const test = base.extend<{ theme: Theme; seeded: void }>({
+export const test = base.extend<{ theme: Theme; seeded: undefined }>({
   theme: ['dark', { option: true }],
   seeded: [
     async ({ page, theme }, use) => {
       await page.goto('/')
       await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
       await page.evaluate(seedDatabase, { ...sample, settings: { ...sample.settings, theme } })
-      await use()
+      await use(undefined)
     },
     { auto: true },
   ],

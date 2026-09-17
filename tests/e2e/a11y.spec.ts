@@ -38,10 +38,12 @@ for (const [name, path] of ROUTES) {
       .disableRules([...E2E_ALLOWLIST])
       .analyze()
 
-    const violations = results.violations.map(
+    // "Incomplete" is axe saying it could not decide. Nobody reviews those by
+    // hand on every PR, so an undecided check counts as a failure here.
+    const findings = [...results.violations, ...results.incomplete].map(
       (v) =>
         `${v.id} (${v.impact}): ${v.help} — ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`,
     )
-    expect(violations).toEqual([])
+    expect(findings).toEqual([])
   })
 }
