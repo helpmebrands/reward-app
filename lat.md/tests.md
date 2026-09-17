@@ -70,6 +70,10 @@ Pulumi rejects a namespaced key such as `gcp:project` declared at project level 
 
 `infra/Pulumi.staging.yaml` sets `gcp:project` to `helpme-reward-staging`, the project decided on epic #3, not the misspelt `helpme-rewards-staging`.
 
+### Staging maps its custom domain
+
+`infra/Pulumi.staging.yaml` sets `customDomain` to `staging.helpmereward.com`, so a clean checkout previews no diff against the live mapping. The apex is reserved for `prod`.
+
 ### Staging trusts this repository
 
 `githubRepo` is `helpmebrands/reward-app`. The WIF attribute condition and the impersonation binding are built from it, so a wrong value rejects every deploy.
@@ -89,7 +93,7 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 
 ### README records the staging environment
 
-`docs/runbooks/README.md` names the staging project, region, state bucket and `run.app` URL, so a new starter does not reverse-engineer which project is which from repository variables.
+`docs/runbooks/README.md` names the staging project, region, state bucket, `run.app` URL and custom hostname, so a new starter does not reverse-engineer which project is which from repository variables.
 
 ### Verify gate typechecks the Pulumi program
 
