@@ -137,6 +137,16 @@ Moving the memory history from Cards to Add a card places `document.activeElemen
 
 Pressing the Credits tab with focus on it renders Credits and leaves focus on the tab, since the user is still on the control they pressed.
 
+### Submitting with a blank holder shows a linked error
+
+`tests/a11y/forms.test.tsx` picks a catalogue card, clears the holder and presses Save, which is not disabled.
+
+The error sentence appears, the input carries `aria-invalid="true"` and an `aria-describedby` naming the error, and focus lands on the input.
+
+### Correcting the field clears the error and saves
+
+Typing a holder removes the error and `aria-invalid`, and pressing Save again adds the card with that holder.
+
 ### Every route passes axe in a real browser
 
 Each route at each of the four widths and two themes has no axe violation and, unlike the jsdom suite, no *incomplete* result either.
@@ -172,3 +182,23 @@ Accent text on the page and on the accent grounds, the split bar and tag pairs, 
 ### Control boundaries reach 3:1
 
 `--control-border` and `--chart-missed` clear 3:1 on the grounds controls sit on, as do the accent outline and the switch knob at rest.
+
+## Form rules
+
+`tests/validation.test.ts` covers each rule in [[domain#Form rules]] without the DOM.
+
+### A required field must not be blank
+
+Blank and whitespace-only values return the caller's sentence; any text returns null.
+
+### Money must be a number, and a value must be above zero
+
+Empty, non-numeric and negative amounts fail the money rule; zero passes it. The positive rule also fails zero and passes a cent.
+
+### An anniversary must be a calendar date
+
+Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
+
+### An enrolment page must be a web address
+
+Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
