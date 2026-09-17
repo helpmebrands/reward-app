@@ -1,4 +1,4 @@
-# Cardvantage is a static PWA, so the image is a build stage plus a web server.
+# HelpMe Reward is a static PWA, so the image is a build stage plus a web server.
 # Cloud Run was chosen over object hosting because the roadmap has a Web Push
 # backend on it (see README) — this container can grow an /api route without a
 # second piece of infrastructure and a second deploy path.

@@ -146,7 +146,7 @@ export async function registerSubscription(subscription: PushSubscription): Prom
 /** Fires a notification immediately, for the "send a test" affordance. */
 export async function showTestNotification(): Promise<void> {
   const registration = await navigator.serviceWorker.ready
-  await registration.showNotification('Cardvantage reminders are on', {
+  await registration.showNotification('HelpMe Reward reminders are on', {
     body: 'This is what an expiring-credit alert will look like.',
     tag: 'cardvantage-test',
     icon: '/icons/icon-192.png',

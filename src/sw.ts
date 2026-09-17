@@ -13,7 +13,7 @@ declare const self: ServiceWorkerGlobalScope & {
 }
 
 /**
- * Cardvantage service worker.
+ * HelpMe Reward service worker.
  *
  * Beyond the usual precache, this worker owns reminder delivery. The app writes
  * a computed schedule to IndexedDB; the worker replays anything that has come
@@ -172,7 +172,7 @@ self.addEventListener('push', (event) => {
         payload = { body: event.data.text() }
       }
 
-      await self.registration.showNotification(payload.title ?? 'Cardvantage', {
+      await self.registration.showNotification(payload.title ?? 'HelpMe Reward', {
         body: payload.body ?? 'You have credits expiring soon.',
         tag: payload.tag ?? 'cardvantage-push',
         icon: ICON,

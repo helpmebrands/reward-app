@@ -28,8 +28,8 @@ export default defineConfig({
       },
       manifest: {
         id: '/',
-        name: 'Cardvantage',
-        short_name: 'Cardvantage',
+        name: 'HelpMe Reward',
+        short_name: 'HelpMe Reward',
         description: 'Never leave a credit card benefit unclaimed.',
         start_url: '/',
         scope: '/',

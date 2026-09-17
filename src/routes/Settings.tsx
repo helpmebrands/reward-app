@@ -42,7 +42,7 @@ export function Settings() {
   async function enableNotifications() {
     if (requiresInstallFirst()) {
       snackbar.show(
-        'On iOS, add Cardvantage to your Home Screen first — then reminders can arrive.',
+        'On iOS, add HelpMe Reward to your Home Screen first — then reminders can arrive.',
       )
       return
     }
@@ -136,7 +136,7 @@ export function Settings() {
               <Ph name="device-mobile" size={15} color="var(--tone-locked-fg)" />
               <p class="grow section-note">
                 iOS only delivers notifications to apps on the Home Screen. Tap Share, then{' '}
-                <strong>Add to Home Screen</strong>, and open Cardvantage from there.
+                <strong>Add to Home Screen</strong>, and open HelpMe Reward from there.
               </p>
             </div>
           </Show>

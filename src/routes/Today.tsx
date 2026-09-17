@@ -98,9 +98,24 @@ export function Today() {
     <div class="screen__pad">
       <header class="today__head">
         <div class="row row--baseline" style={{ gap: 'var(--space-3)' }}>
-          <span class="today__wordmark">Cardvantage</span>
+          {/* Two renders of the logotype, one per ground; the theme selector
+              in Today.css shows whichever matches the current background. */}
+          <img
+            class="today__logotype today__logotype--dark"
+            src="/brand/logotype-horz-dark.png"
+            alt="HelpMe Reward"
+            width="1024"
+            height="178"
+          />
+          <img
+            class="today__logotype today__logotype--light"
+            src="/brand/logotype-horz-light.png"
+            alt="HelpMe Reward"
+            width="1024"
+            height="178"
+          />
           <span class="today__dot" />
-          <span class="muted" style={{ 'font-size': '11px' }}>
+          <span class="muted" style={{ 'font-size': '11px', 'white-space': 'nowrap' }}>
             {formatHeaderDate(app.today())}
           </span>
         </div>
@@ -322,8 +337,8 @@ function FirstRun() {
       <h2 class="section-title">Start with one card</h2>
       <p class="section-note">
         Pick it from the catalogue and its credits arrive pre-filled — monthly, quarterly and annual
-        windows, and which ones are stuck behind an enrolment box. Cardvantage then warns you before
-        each window shuts, and shows what the card is really worth against its fee.
+        windows, and which ones are stuck behind an enrolment box. HelpMe Reward then warns you
+        before each window shuts, and shows what the card is really worth against its fee.
       </p>
       <a class="btn btn--primary" href="/cards/new">
         <Ph name="plus" size={14} />
