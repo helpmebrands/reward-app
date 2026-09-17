@@ -52,6 +52,12 @@ Four tabs, each answering a different question, plus editors and Settings. The t
 - **Card and benefit editors**: the benefit editor shows the window a cadence and anchor produce, live, because those two fields decide whether a reminder arrives in time and are the ones users most often get wrong.
 - **Settings**: reminders, the ladder table, theme, and import/export.
 
+### Forms and errors
+
+Validation is inline and announced, never silent (WCAG 3.3.1 to 3.3.3). [[src/ui/Field.tsx#Field]] wraps a labelled control with a hint and an error slot; the control gets `aria-invalid` and `aria-describedby`, and the error text says what to enter.
+
+Errors show once a field has been left or the form submitted, never on the first keystroke. Save buttons are never disabled: pressing Save with an invalid form shows the errors and focuses the first invalid control. Required fields carry `required` and a `*` explained once above the form. The rules are pure functions in [[domain#Form rules]]; the live editors keep what was typed in a draft and only write valid values to the store.
+
 ## Swipe rows
 
 Every credit row is reachable three ways: tap to open the sheet, swipe right to log the whole credit, swipe left to silence it. The swipe is an accelerator, never the only route, because a gesture nobody discovers is not a feature.

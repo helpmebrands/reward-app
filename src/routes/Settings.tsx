@@ -3,6 +3,7 @@ import { createResource, createSignal, For, Show } from 'solid-js'
 import { formatMoney } from '../domain/format.ts'
 import { defaultLadder } from '../domain/ladder.ts'
 import type { Cadence } from '../domain/types.ts'
+import { moneyError, parseMoney } from '../domain/validation.ts'
 import {
   notificationSupport,
   publishSchedule,
@@ -14,6 +15,7 @@ import {
   subscribeToPush,
 } from '../services/notifications.ts'
 import { useApp } from '../stores/app.tsx'
+import { Field } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { Switch } from '../ui/Switch.tsx'
@@ -34,6 +36,9 @@ export function Settings() {
   let fileInput: HTMLInputElement | undefined
 
   const notifications = () => app.data.settings.notifications
+  const [minValueDraft, setMinValueDraft] = createSignal<string | null>(null)
+  const minValueText = () => minValueDraft() ?? (notifications().minValueCents / 100).toString()
+  const errors = { minValue: () => moneyError(minValueText()) }
 
   /**
    * Turning reminders on is a three-step negotiation with the browser: ask for
@@ -160,24 +165,25 @@ export function Settings() {
               />
             </div>
 
-            <div class="field">
-              <label class="field__label" for="min-value">
-                Ignore anything under
-              </label>
-              <input
-                id="min-value"
-                class="input numeric"
-                type="number"
-                min="0"
-                step="1"
-                value={(notifications().minValueCents / 100).toString()}
-                onInput={(e) =>
-                  app.updateNotificationSettings({
-                    minValueCents: Math.round(Number(e.currentTarget.value || 0) * 100),
-                  })
-                }
-              />
-            </div>
+            <Field id="min-value" label="Ignore anything under" error={errors.minValue()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input numeric"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={minValueText()}
+                  onInput={(e) => {
+                    setMinValueDraft(e.currentTarget.value)
+                    const cents = parseMoney(e.currentTarget.value)
+                    if (cents !== null && cents >= 0) {
+                      app.updateNotificationSettings({ minValueCents: cents })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
             <div class="panel row row--between">
               <span class="grow">
@@ -291,6 +297,7 @@ export function Settings() {
             ref={fileInput}
             type="file"
             accept="application/json"
+            aria-label="Backup file to import"
             class="visually-hidden"
             onChange={(e) => {
               const file = e.currentTarget.files?.[0]

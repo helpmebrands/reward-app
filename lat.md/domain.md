@@ -140,6 +140,15 @@ A card is judged against its own annual fee, over its own cardmember year. Six c
 
 This is why the Value tab and the Cards tab can disagree: Value covers the last nine calendar months, while each card's figure covers only its own fee period. A credit only pays for the fee it was issued against.
 
+## Form rules
+
+`src/domain/validation.ts` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
+
+- [[src/domain/validation.ts#requiredError]]: a text field must not be blank; the caller supplies the sentence.
+- [[src/domain/validation.ts#moneyError]] and [[src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
+- [[src/domain/validation.ts#anniversaryError]]: the cardmember year start is a real calendar date.
+- [[src/domain/validation.ts#enrollmentUrlError]]: an enrolment page, if given, is an http or https URL.
+
 ## Card catalogue
 
 `src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.

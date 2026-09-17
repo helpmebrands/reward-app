@@ -105,6 +105,9 @@ describe('token contrast', () => {
       ['--tone-locked-fg', '--surface-raised'],
       ['--tone-missed-fg', '--tone-missed-bg'],
       ['--tone-missed-fg', '--surface-raised'],
+      // Inline form errors sit on the page and on sunken inputs' borders.
+      ['--tone-missed-fg', '--color-bg'],
+      ['--tone-missed-fg', '--surface-sunken'],
       ['--tone-soon-fg', '--tone-soon-bg'],
       // The feature card: an inset section glow over the raised surface, so
       // its text sits on both ends of that fade.

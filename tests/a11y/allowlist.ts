@@ -10,13 +10,7 @@
  */
 
 /** Rules disabled in the jsdom component suite (`tests/a11y`). */
-export const COMPONENT_ALLOWLIST: readonly string[] = [
-  // #25: the hidden file input behind "Import a backup" has no label (WCAG 1.3.1).
-  'label',
-]
+export const COMPONENT_ALLOWLIST: readonly string[] = []
 
 /** Rules disabled in the Playwright suite (`tests/e2e`) against the built app. */
-export const E2E_ALLOWLIST: readonly string[] = [
-  // #25: as above, the hidden file input in Settings.
-  'label',
-]
+export const E2E_ALLOWLIST: readonly string[] = []
