@@ -44,6 +44,18 @@ export default defineConfig<{ theme: Theme }>({
       testMatch: /landscape\.spec\.ts/,
       use: { ...devices['Desktop Chrome'], viewport: { width: 667, height: 375 }, theme: 'dark' },
     },
+    // The narrowest width WCAG 1.4.10 names: a desktop window at 400% zoom.
+    {
+      name: '320px-reflow',
+      testMatch: /reflow\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 568 }, theme: 'dark' },
+    },
+    // The design's own width with the browser font size raised to 24px.
+    {
+      name: '402px-large-type',
+      testMatch: /large-type\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 402, height: 874 }, theme: 'dark' },
+    },
   ],
   webServer: {
     command: `npm run preview -- --port ${PORT} --strictPort`,
