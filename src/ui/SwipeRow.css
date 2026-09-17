@@ -39,6 +39,12 @@
   border: 0;
 }
 
+/* Closed rows keep their actions out of the accessibility tree and out of
+ * contrast checks: the content covers them completely until a swipe starts. */
+.swipe[data-swipe-open="false"] .swipe__action {
+  visibility: hidden;
+}
+
 .swipe__action i {
   font-size: 18px;
 }

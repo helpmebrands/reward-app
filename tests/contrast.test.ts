@@ -106,6 +106,14 @@ describe('token contrast', () => {
       ['--tone-missed-fg', '--tone-missed-bg'],
       ['--tone-missed-fg', '--surface-raised'],
       ['--tone-soon-fg', '--tone-soon-bg'],
+      // The feature card: an inset section glow over the raised surface, so
+      // its text sits on both ends of that fade.
+      ...['--color-section', '--surface-raised'].flatMap((g): [string, string][] => [
+        ['--color-text', g],
+        ['--color-accent-300', g], // kicker, stepped up from the accent
+        ['--color-neutral-300', g], // body
+        ['--color-accent-300', g], // call to action
+      ]),
     ]
     expect(failures(pairs, 4.5)).toEqual([])
   })

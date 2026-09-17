@@ -20,7 +20,7 @@
   /* Material's minimum target, even though Nocturne's density is tighter. */
   min-height: var(--touch-target);
   padding: var(--space-2) 0;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
   transition: color var(--duration-short) var(--ease-standard);
 }
 

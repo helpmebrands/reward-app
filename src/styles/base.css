@@ -143,13 +143,20 @@ svg {
   background: var(--color-bg);
 }
 
-/* The bloom behind the top of every screen — Nocturne's "accent as a glow". */
-.shell::before {
-  content: "";
+/* The bloom behind the top of every screen — Nocturne's "accent as a glow".
+ * A solid, blurred ellipse rather than a radial gradient on a pseudo element:
+ * axe cannot judge text over a gradient or under a large pseudo element, but
+ * it can judge text over a solid colour, so everything in the top of a screen
+ * is measured against the bloom's peak, which `tests/contrast.test.ts` pins. */
+.shell__bloom {
   position: absolute;
-  inset: 0 0 auto;
-  height: 300px;
-  background: radial-gradient(130% 100% at 16% 0%, var(--color-accent-900) 0%, transparent 70%);
+  top: -210px;
+  left: -75%;
+  width: 182%;
+  height: 420px;
+  border-radius: 50%;
+  background: var(--color-accent-900);
+  filter: blur(70px);
   pointer-events: none;
   z-index: 0;
 }
@@ -178,7 +185,7 @@ svg {
 
 .screen-sub {
   font-size: 11.5px;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
 }
 
 .kicker {
@@ -189,7 +196,7 @@ svg {
 }
 
 .kicker--quiet {
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
   letter-spacing: 0.1em;
 }
 
@@ -201,12 +208,12 @@ svg {
 .section-note {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
   text-wrap: pretty;
 }
 
 .muted {
-  color: var(--color-neutral-600);
+  color: var(--text-secondary);
 }
 
 /* Money and countdowns use tabular figures so digits do not shift width as
@@ -347,7 +354,7 @@ svg {
  * things to go: with 375px of height and a tab bar, the screen's first row
  * has to be visible without scrolling. */
 @media (max-height: 479px) {
-  .shell::before {
+  .shell__bloom {
     display: none;
   }
 
