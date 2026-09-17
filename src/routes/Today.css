@@ -1,8 +1,10 @@
 .today__head {
   display: flex;
+  /* At 320px the actions drop under the logotype rather than over the date. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3) var(--space-4);
   margin-bottom: var(--space-6);
 }
 
@@ -48,17 +50,17 @@
 }
 
 .today__amount-symbol {
-  font: 400 28px var(--font-heading);
+  font: 400 var(--type-symbol) var(--font-heading);
   color: var(--color-neutral-400);
 }
 
 .today__amount-digits {
-  font: 500 58px / 0.9 var(--font-heading);
+  font: 500 var(--type-display) / 0.9 var(--font-heading);
   letter-spacing: -0.04em;
 }
 
 .today__sub {
-  font-size: 12.5px;
+  font-size: var(--type-body);
   line-height: 1.55;
   color: var(--color-neutral-400);
   max-width: 295px;
@@ -67,7 +69,7 @@
 }
 
 .today__countdown {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--color-accent);
 }
 
@@ -87,12 +89,12 @@
 }
 
 .today__overlap-title {
-  font: 500 13.5px / 1.35 var(--font-heading);
+  font: 500 var(--type-section) / 1.35 var(--font-heading);
   color: var(--color-text);
 }
 
 .today__overlap-body {
-  font-size: 11.5px;
+  font-size: var(--type-note);
   line-height: 1.55;
   color: var(--color-neutral-300);
   text-wrap: pretty;
@@ -103,7 +105,7 @@
   align-items: center;
   gap: var(--space-2);
   margin-top: var(--space-1);
-  font: 500 11px var(--font-body);
+  font: 500 var(--type-caption) var(--font-body);
   color: var(--color-accent-300);
 }
 
@@ -127,7 +129,7 @@
   }
 
   .today__amount-digits {
-    font-size: 40px;
+    font-size: 2.5rem;
   }
 
   .today__sub {

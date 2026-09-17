@@ -34,6 +34,12 @@ Light has a neutral ramp of its own rather than the dark ramp read in reverse, b
 
 The light steps are blended from the ink to the ground and spaced so 400 to 600 clear 4.5:1 on every surface and 700 clears 3:1 for boundaries. Light also overrides accent-100 and accent-200 to ink, since they are text on the accent grounds (selected segments, the split bar, the skip link).
 
+### Type scale
+
+Every text size is a `--type-*` token in `rem`, so a browser font-size preference reaches all of them (WCAG 1.4.4). The root is the browser's own size; `body` is `--type-base`, 0.9375rem, the 15px the screens were drawn at.
+
+The scale keeps the sizes the screens were drawn at rather than rounding them to a shorter ramp, named by role from `--type-2xs` (9.5px kickers) through `--type-base` to `--type-symbol` (28px). Today's number is `--type-display`, `clamp(2.25rem, 14.5vw, 3.625rem)`, so it is 58px at the design width and shrinks with the viewport instead of forcing a sideways scroll at 320px (WCAG 1.4.10). Icon glyph sizes stay in px. Checked by [[tests#Accessibility tests#Body text follows the browser font size]].
+
 ### Glows axe can measure
 
 The bloom behind each screen is a solid, blurred ellipse in accent-900, and the feature card's section colour is an inset glow rather than a gradient background.
@@ -102,6 +108,8 @@ A custom dropdown would be worse in every way that matters: no keyboard accessor
 The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
 
 Every screen has exactly one `<h1>` and a document title of its own ([[architecture#The shell and routing#Titles and focus]]). Today's heading is visually hidden behind the logotype, which is decoration with an empty `alt`.
+
+Text is truncated with `.truncate` only where the full text is one tap away: a credit row's title opens the sheet that shows the whole name, a benefit link opens its editor, and the household filter's label sits over a native select. Subtitles, leak labels and screen titles wrap instead, so WCAG 1.4.12's spacing overrides lose nothing ([[tests#Accessibility tests#Text spacing overrides clip nothing]]).
 
 Orientation is never locked. Under 480px of height, a phone on its side, the shell drops the bloom and most of its top padding, the tab bar goes icon-only with the labels kept for screen readers, Today's number steps down to 40px, and sheets cap at 85dvh so a strip of the screen stays visible behind them ([[tests#Accessibility tests#Landscape keeps the first row on screen]]).
 

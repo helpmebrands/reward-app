@@ -121,7 +121,10 @@ export function Today() {
             height="178"
           />
           <span class="today__dot" />
-          <span class="muted" style={{ 'font-size': '11px', 'white-space': 'nowrap' }}>
+          <span
+            class="muted"
+            style={{ 'font-size': 'var(--type-caption)', 'white-space': 'nowrap' }}
+          >
             {formatHeaderDate(app.today())}
           </span>
         </div>

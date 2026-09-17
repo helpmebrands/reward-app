@@ -123,7 +123,7 @@ export function CreditSheet(props: CreditSheetProps) {
                   </span>
                 </div>
                 <h2 class="sheet-head__title">{current().benefit.name}</h2>
-                <p class="muted" style={{ 'font-size': '11.5px' }}>
+                <p class="muted" style={{ 'font-size': 'var(--type-note)' }}>
                   {cadenceLabel(current().benefit.cadence)} &middot; {current().cycle.label}
                   <Show when={current().benefit.cadence !== 'manual'}>
                     {' '}
@@ -147,7 +147,7 @@ export function CreditSheet(props: CreditSheetProps) {
                 <span class="sheet-meter__amount numeric">
                   {formatMoney(current().remainingCents)}
                 </span>
-                <span class="muted" style={{ 'font-size': '11px' }}>
+                <span class="muted" style={{ 'font-size': 'var(--type-caption)' }}>
                   left of {formatMoney(current().benefit.valueCents)}
                 </span>
               </div>
@@ -169,7 +169,7 @@ export function CreditSheet(props: CreditSheetProps) {
               </div>
               <div class="row" style={{ gap: 'var(--space-2)' }}>
                 <Ph name="clock-countdown" size={13} color="var(--color-accent-300)" />
-                <span style={{ 'font-size': '11.5px', color: 'var(--color-accent-300)' }}>
+                <span style={{ 'font-size': 'var(--type-note)', color: 'var(--color-accent-300)' }}>
                   <Show
                     when={current().benefit.cadence !== 'manual'}
                     fallback="Tracked by hand — no deadline"
@@ -290,7 +290,7 @@ export function CreditSheet(props: CreditSheetProps) {
             <Show when={status() === 'captured'}>
               <section class="sheet-done">
                 <Ph name="check-circle" fill size={19} color="var(--color-accent)" />
-                <p class="grow" style={{ 'font-size': '11.5px', 'line-height': 1.5 }}>
+                <p class="grow" style={{ 'font-size': 'var(--type-note)', 'line-height': 1.5 }}>
                   Fully captured. Reminders stay off until it resets.
                 </p>
                 <button type="button" class="btn btn--small" onClick={undoAll}>
@@ -302,7 +302,7 @@ export function CreditSheet(props: CreditSheetProps) {
             <Show when={status() === 'missed'}>
               <section class="sheet-missed">
                 <Ph name="hourglass-low" size={17} color="var(--tone-missed-fg)" />
-                <p class="grow" style={{ 'font-size': '11.5px', 'line-height': 1.5 }}>
+                <p class="grow" style={{ 'font-size': 'var(--type-note)', 'line-height': 1.5 }}>
                   This window closed on {formatDate(current().cycle.end)} with{' '}
                   {formatMoney(current().remainingCents)} unused. It does not roll over.
                 </p>
@@ -377,7 +377,9 @@ export function CreditSheet(props: CreditSheetProps) {
 
               <div class="panel row row--between" style={{ 'margin-top': 'var(--space-3)' }}>
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Last call only</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Last call only
+                  </span>
                   <span class="section-note">
                     Skip the earlier rungs and warn once, at the end.
                   </span>
@@ -393,7 +395,9 @@ export function CreditSheet(props: CreditSheetProps) {
 
               <div class="panel row row--between" style={{ 'margin-top': 'var(--space-2)' }}>
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Silence this credit</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Silence this credit
+                  </span>
                   <span class="section-note">
                     Keeps tracking it, sends nothing. Status stays{' '}
                     {statusLabel(status() ?? 'available').toLowerCase()}.

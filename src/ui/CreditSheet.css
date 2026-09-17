@@ -6,7 +6,7 @@
 }
 
 .sheet-head__title {
-  font: 500 21px / 1.15 var(--font-heading);
+  font: 500 var(--type-h1-sm) / 1.15 var(--font-heading);
   letter-spacing: -0.025em;
   margin: var(--space-3) 0 var(--space-2);
 }
@@ -20,7 +20,7 @@
 }
 
 .sheet-meter__amount {
-  font: 500 27px var(--font-heading);
+  font: 500 var(--type-amount) var(--font-heading);
   letter-spacing: -0.025em;
 }
 
@@ -29,7 +29,7 @@
 }
 
 .sheet-section__title {
-  font: 500 12px var(--font-heading);
+  font: 500 var(--type-body-sm) var(--font-heading);
   margin-bottom: var(--space-1);
 }
 
@@ -43,7 +43,7 @@
   flex: 1;
   min-height: 42px;
   padding: 0 var(--space-2);
-  font-size: 12.5px;
+  font-size: var(--type-body);
 }
 
 .sheet-claims {
@@ -58,7 +58,7 @@
   gap: var(--space-4);
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--surface-raised);
-  font-size: 12px;
+  font-size: var(--type-body-sm);
 }
 
 .sheet-claims__item:last-child {
@@ -74,7 +74,7 @@
 }
 
 .sheet-locked__note {
-  font-size: 11.5px;
+  font-size: var(--type-note);
   line-height: 1.55;
   color: var(--color-neutral-300);
   text-wrap: pretty;
@@ -120,12 +120,12 @@
   flex: none;
   width: 12px;
   padding-top: 3px;
-  font: 500 10px var(--font-body);
+  font: 500 var(--type-xs) var(--font-body);
   color: var(--color-accent);
 }
 
 .sheet-steps__text {
-  font-size: 11.5px;
+  font-size: var(--type-note);
   line-height: 1.6;
   color: var(--color-neutral-300);
   text-wrap: pretty;
@@ -146,7 +146,7 @@
   border-radius: var(--radius-md);
   background: var(--surface-quiet);
   border: 1px solid var(--surface-line);
-  font-size: 11.5px;
+  font-size: var(--type-note);
   color: var(--color-neutral-300);
 }
 
@@ -158,7 +158,7 @@
 }
 
 .sheet-ladder__label {
-  font-size: 10px;
+  font-size: var(--type-xs);
   color: var(--color-neutral-500);
 }
 
@@ -171,6 +171,6 @@
   align-items: center;
   gap: var(--space-3);
   min-height: var(--touch-target);
-  font: 500 12px var(--font-body);
+  font: 500 var(--type-body-sm) var(--font-body);
   color: var(--color-neutral-400);
 }

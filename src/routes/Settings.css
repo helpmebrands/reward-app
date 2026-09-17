@@ -10,7 +10,7 @@
 
 .ladder-preset__name {
   flex: 1;
-  font-size: 12px;
+  font-size: var(--type-body-sm);
   text-transform: capitalize;
 }
 
@@ -22,7 +22,7 @@
 .ladder-preset__rung {
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  font: 500 10px var(--font-body);
+  font: 500 var(--type-xs) var(--font-body);
   background: var(--color-neutral-900);
   color: var(--color-neutral-500);
 }
