@@ -1,15 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
 import { test as base, expect } from '@playwright/test'
+import { loadSampleHousehold } from '../a11y/sample.ts'
 
 export type Theme = 'light' | 'dark'
 
-const sample = JSON.parse(
-  readFileSync(
-    fileURLToPath(new URL('../../samples/sample-household.json', import.meta.url)),
-    'utf8',
-  ),
-) as { settings: Record<string, unknown> }
+const sample = loadSampleHousehold()
 
 /**
  * Writes the sample household straight into the app's IndexedDB record.

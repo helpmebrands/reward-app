@@ -1,12 +1,11 @@
 import { createMemoryHistory, MemoryRouter } from '@solidjs/router'
 import { render, waitFor } from '@solidjs/testing-library'
 import { expect } from 'vitest'
-import sample from '../../samples/sample-household.json'
 import { routes, Shell } from '../../src/App.tsx'
-import type { AppData } from '../../src/domain/types.ts'
 import { AppProvider, type AppStore, useApp } from '../../src/stores/app.tsx'
 import { UiProvider, type UiStore, useUi } from '../../src/stores/ui.tsx'
 import { SnackbarProvider } from '../../src/ui/Snackbar.tsx'
+import { loadSampleHousehold } from './sample.ts'
 
 /**
  * Mounts the real shell at one route with the sample household loaded, the
@@ -43,7 +42,7 @@ export async function mountRoute(path: string): Promise<{ app: AppStore; ui: UiS
   ))
   if (!app || !ui) throw new Error('shell did not mount')
 
-  app.replaceAll(sample as AppData)
+  app.replaceAll(loadSampleHousehold())
   const store = app
   await waitFor(() => expect(store.loading()).toBe(false))
   return { app, ui }
