@@ -90,3 +90,7 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 ### README records the staging environment
 
 `docs/runbooks/README.md` names the staging project, region, state bucket and `run.app` URL, so a new starter does not reverse-engineer which project is which from repository variables.
+
+### Verify gate typechecks the Pulumi program
+
+`verify.yml` has an `infra` job that runs `npm ci` and `npm run typecheck` in `infra/` with its own lockfile cache, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.

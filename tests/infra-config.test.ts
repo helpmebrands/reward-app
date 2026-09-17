@@ -44,6 +44,19 @@ describe('staging stack config', () => {
   })
 })
 
+describe('verify workflow', () => {
+  // @lat: [[tests#Infrastructure config#Verify gate typechecks the Pulumi program]]
+  it('typechecks the Pulumi program in its own job', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const infraJob = verify.split(/^ {2}infra:\s*$/m)[1]
+    expect(infraJob).toBeDefined()
+    expect(infraJob).toContain('working-directory: infra')
+    expect(infraJob).toContain('cache-dependency-path: infra/package-lock.json')
+    expect(infraJob).toContain('npm ci')
+    expect(infraJob).toContain('npm run typecheck')
+  })
+})
+
 describe('runbook README', () => {
   // @lat: [[tests#Infrastructure config#README records the staging environment]]
   it('records the staging project, region, stack, backend and URL', () => {
