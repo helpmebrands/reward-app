@@ -86,6 +86,23 @@ describe('claiming', () => {
     expect(afterSecond?.status).toBe('captured')
   })
 
+  // @lat: [[tests#The store#Removing one claim leaves the rest]]
+  it('removes one claim and leaves the rest of the cycle alone', () => {
+    const store = mountStore()
+    addPlatinum(store, 'Jim')
+    const instance = store.instances().find((i) => i.status !== 'locked')
+    if (!instance) throw new Error('no open instance')
+    const first = store.claim(instance, 1000)
+    const again = store.instances().find((i) => i.benefit.id === instance.benefit.id)
+    if (!again) throw new Error('instance vanished')
+    store.claim(again, 500)
+
+    store.removeClaim(first.id)
+
+    const left = store.data.claims.filter((c) => c.benefitId === instance.benefit.id)
+    expect(left.map((c) => c.amountCents)).toEqual([500])
+  })
+
   it('undoes the whole cycle when unclaimed', () => {
     const instance = store.instances().find((i) => i.benefit.cadence === 'monthly')
     if (!instance) throw new Error('no monthly credit')

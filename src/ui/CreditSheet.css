@@ -46,6 +46,25 @@
   font-size: 12.5px;
 }
 
+.sheet-claims {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-3);
+}
+
+.sheet-claims__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--surface-raised);
+  font-size: 12px;
+}
+
+.sheet-claims__item:last-child {
+  border-bottom: 0;
+}
+
 .sheet-locked {
   padding: var(--space-6);
   border-radius: var(--radius-md);
