@@ -449,6 +449,61 @@ textarea.input {
   background: var(--color-accent-200);
 }
 
+/* ---- Forced colours ------------------------------------------------------ */
+
+/* Windows High Contrast replaces every background with the system Canvas, so
+ * a control drawn as a fill or a tonal step vanishes unless it has a border.
+ * Where a colour carries meaning (status tones, the bars), the colour is kept
+ * rather than boxed, since a box says "here" but not "which". */
+@media (forced-colors: active) {
+  .icon-btn,
+  .seg__opt,
+  .tabbar__tab,
+  .swipe__action,
+  .switch__knob,
+  .catalog,
+  .benefit-link,
+  .today__overlap {
+    border: 1px solid ButtonText;
+  }
+
+  .switch__knob {
+    background: ButtonText;
+  }
+
+  .switch[aria-checked="true"] .switch__knob {
+    background: Highlight;
+  }
+
+  /* A pressed segment (the current filter or theme) was a tonal step. */
+  .seg__opt[aria-pressed="true"],
+  .seg__opt[aria-selected="true"] {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .bar,
+  .value__track {
+    border: 1px solid CanvasText;
+  }
+
+  .bar__fill,
+  .value__track-fill,
+  .value__breakeven,
+  .value__bar--captured,
+  .value__bar--missed,
+  .split__part,
+  .legend__swatch,
+  .tag--accent,
+  .tag--locked,
+  .tag--missed,
+  .row-card--soon,
+  .sheet-ladder__rung.is-now,
+  .field__error {
+    forced-color-adjust: none;
+  }
+}
+
 /* ---- Rows ---------------------------------------------------------------- */
 
 .list {

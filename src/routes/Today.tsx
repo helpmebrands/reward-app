@@ -1,4 +1,4 @@
-import { createMemo, For, Show } from 'solid-js'
+import { createMemo, For, Index, Show } from 'solid-js'
 import { formatHeaderDate, formatMoney, formatResetDate, moneyParts } from '../domain/format.ts'
 import {
   byStatus,
@@ -228,17 +228,19 @@ export function Today() {
                 </Show>
               </div>
               <div class="list">
-                <For each={soon()}>
+                {/* Index, not For: instances are rebuilt on every change, and For
+                    would rebuild the rows and drop keyboard focus with them. */}
+                <Index each={soon()}>
                   {(instance) => (
                     <CreditRow
-                      instance={instance}
+                      instance={instance()}
                       showCard={app.data.cards.length > 1}
-                      onOpen={() => ui.openCredit(instance.benefit.id)}
-                      onLogAll={() => actions.logAll(instance)}
-                      onToggleMute={() => actions.toggleMute(instance)}
+                      onOpen={() => ui.openCredit(instance().benefit.id)}
+                      onLogAll={() => actions.logAll(instance())}
+                      onToggleMute={() => actions.toggleMute(instance())}
                     />
                   )}
-                </For>
+                </Index>
               </div>
             </section>
           </Show>
@@ -297,17 +299,17 @@ export function Today() {
                 issuer&rsquo;s benefits page.
               </p>
               <div class="list">
-                <For each={locked()}>
+                <Index each={locked()}>
                   {(instance) => (
                     <CreditRow
-                      instance={instance}
+                      instance={instance()}
                       showCard={app.data.cards.length > 1}
-                      onOpen={() => ui.openCredit(instance.benefit.id)}
-                      onLogAll={() => actions.logAll(instance)}
-                      onToggleMute={() => actions.toggleMute(instance)}
+                      onOpen={() => ui.openCredit(instance().benefit.id)}
+                      onLogAll={() => actions.logAll(instance())}
+                      onToggleMute={() => actions.toggleMute(instance())}
                     />
                   )}
-                </For>
+                </Index>
               </div>
             </section>
           </Show>
@@ -318,17 +320,17 @@ export function Today() {
                 Captured this period &mdash; {formatMoney(totals().capturedCents)}
               </h2>
               <div class="list" style={{ 'margin-top': 'var(--space-4)' }}>
-                <For each={captured()}>
+                <Index each={captured()}>
                   {(instance) => (
                     <CreditRow
-                      instance={instance}
+                      instance={instance()}
                       showCard={app.data.cards.length > 1}
-                      onOpen={() => ui.openCredit(instance.benefit.id)}
-                      onLogAll={() => actions.logAll(instance)}
-                      onToggleMute={() => actions.toggleMute(instance)}
+                      onOpen={() => ui.openCredit(instance().benefit.id)}
+                      onLogAll={() => actions.logAll(instance())}
+                      onToggleMute={() => actions.toggleMute(instance())}
                     />
                   )}
-                </For>
+                </Index>
               </div>
             </section>
           </Show>
