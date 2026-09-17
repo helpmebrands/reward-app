@@ -42,9 +42,9 @@ The scale keeps the sizes the screens were drawn at rather than rounding them to
 
 ### Glows axe can measure
 
-The bloom behind each screen is a solid, blurred ellipse in accent-900, and the feature card's section colour is an inset glow rather than a gradient background.
+The bloom behind each screen is the box-shadow of a one-pixel element in `--color-bloom`, and the feature card's section colour is an inset glow rather than a gradient background.
 
-axe cannot judge text over a gradient or under a large pseudo element; over a solid colour it measures against the glow's peak, which the token test pins too. A glow box clips the bloom to the content column, so it never runs under the navigation rail where a label half on it would leave axe undecided.
+axe cannot judge text over a gradient or under a large pseudo element, and any glow drawn as a shape leaves text straddling its rectangle's edge undecidable, wherever a layout puts it. A shadow has no rectangle, so text is measured against the page, and the token test checks every text colour that can sit in the top of a screen against the bloom's peak instead. The peak is accent-900 at 60% over the page, dim enough that the accent itself clears 4.5:1 on it. A glow box clips the bloom to the content column so it never runs under the navigation rail.
 
 ## Screens
 
@@ -77,6 +77,19 @@ Three breakpoints, each a set of layout token overrides in `src/styles/tokens.cs
 From 600px the shell is a two-column grid: the rail on the leading edge of the viewport, full height, and the content column centred in what is left at its cap, still the only thing that scrolls. The tab bar is the same `<nav aria-label="Main">` with the same four buttons in the same DOM order; only its geometry changes, per Material's rule for this width. The snackbar and the nudge preview centre on the content column, not the viewport ([[tests#Accessibility tests#The rail and the centred column at wider widths]]).
 
 Custom properties cannot drive a media query, so the two widths are repeated in the stylesheets that need them. A landscape phone under 600px keeps the compact layout with the short-viewport form in [[design#Accessibility]].
+
+### What each screen does with the width
+
+All of it is CSS grid on the phone markup, so the DOM and the reading order are the same at every width ([[tests#Accessibility tests#Reading order is the same at every width]]).
+
+Route stylesheets are bundled before `base.css`, so a route rule that overrides a base utility such as `.stack` is written as a compound selector.
+
+- **Today**: from 600px the overlap cards pair up. From 1024px the body is a two-column grid with the headline across both, the use-soon rows and captured rows in the first column and "Locked behind enrolment" beside them in the second.
+- **Cards**: two cards across from 600px; from 1024px one per row with the verdict and tags beside the figures instead of under them.
+- **Value**: the two totals were already side by side; the chart and the ranks grow with the column, and the visually-hidden table stays the accessible source.
+- **Editors** (`.form-grid`): from 1024px short fields pair up two to a row in DOM order; panels, sections, buttons and text areas keep the whole row. Settings keeps one column, since its ladder table needs the width.
+
+Screenshots at 768 and 1280px for review live in `tests/e2e/screenshots/` ([[tests#Accessibility tests#Wider screens use the column]]).
 
 ## Swipe rows
 
