@@ -4,4 +4,6 @@
 /// implementation is the PWA's `apps/pwa/src/domain/`.
 library;
 
+export 'src/cycles.dart';
+export 'src/dates.dart';
 export 'src/types.dart';

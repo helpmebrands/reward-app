@@ -46,6 +46,14 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 
 `verify.yml` has an `infra` job that runs `npm ci --workspace infra` and `npm run typecheck --workspace infra` against the root lockfile, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.
 
+### Root pubspec declares the pub workspace
+
+The root `pubspec.yaml` lists `packages/domain` under `workspace:` and the package resolves with `resolution: workspace`, so one `dart pub get` at the root resolves every Dart package and the Flutter app and the service tier join the same list.
+
+### Verify gate analyses and tests the Dart workspace
+
+`verify.yml` has a `dart` job that runs `dart pub get`, `dart analyze --fatal-infos` at the root and `dart test` in `packages/domain`, so the port is held to the same gate as the PWA.
+
 ### Root package declares the workspaces
 
 The root `package.json` lists exactly `apps/pwa` and `infra` as npm workspaces, so one lockfile covers both and `npm test`, `lint`, `typecheck` and `build` delegate from the root ([[pwa#Source layout]]).

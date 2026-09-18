@@ -84,7 +84,10 @@ void main() {
 
   group('cycleFor, anniversary anchored', () {
     final card = makeCard(anniversaryOn: '2020-03-14');
-    final benefit = makeBenefit(Cadence.annual, anchor: CycleAnchor.anniversary);
+    final benefit = makeBenefit(
+      Cadence.annual,
+      anchor: CycleAnchor.anniversary,
+    );
 
     test('runs a cardmember year from the account open date', () {
       final cycle = expectCycle(cycleFor(benefit, card, '2026-09-16'));
@@ -107,11 +110,18 @@ void main() {
       // count must be corrected by comparison rather than derived from a
       // month count.
       final shortMonthCard = makeCard(anniversaryOn: '2021-01-31');
-      final monthly = makeBenefit(Cadence.monthly, anchor: CycleAnchor.anniversary);
-      final before = expectCycle(cycleFor(monthly, shortMonthCard, '2026-02-27'));
+      final monthly = makeBenefit(
+        Cadence.monthly,
+        anchor: CycleAnchor.anniversary,
+      );
+      final before = expectCycle(
+        cycleFor(monthly, shortMonthCard, '2026-02-27'),
+      );
       expect(before.start, '2026-01-31');
       expect(before.end, '2026-02-27');
-      final after = expectCycle(cycleFor(monthly, shortMonthCard, '2026-02-28'));
+      final after = expectCycle(
+        cycleFor(monthly, shortMonthCard, '2026-02-28'),
+      );
       expect(after.start, '2026-02-28');
       expect(after.end, '2026-03-30');
     });
@@ -119,8 +129,16 @@ void main() {
     test('produces windows with no gaps and no overlaps', () {
       // The invariant that matters: every day belongs to exactly one cycle.
       final shortMonthCard = makeCard(anniversaryOn: '2021-01-31');
-      final monthly = makeBenefit(Cadence.monthly, anchor: CycleAnchor.anniversary);
-      final cycles = cyclesBetween(monthly, shortMonthCard, '2026-01-01', '2027-01-01');
+      final monthly = makeBenefit(
+        Cadence.monthly,
+        anchor: CycleAnchor.anniversary,
+      );
+      final cycles = cyclesBetween(
+        monthly,
+        shortMonthCard,
+        '2026-01-01',
+        '2027-01-01',
+      );
       expect(cycles.length, greaterThan(10));
       for (var index = 0; index < cycles.length; index++) {
         final cycle = cycles[index];
@@ -153,10 +171,12 @@ void main() {
         '2026-09-16',
         '2026-12-01',
       );
-      expect(
-        cycles.map((c) => c.start).toList(),
-        ['2026-09-01', '2026-10-01', '2026-11-01', '2026-12-01'],
-      );
+      expect(cycles.map((c) => c.start).toList(), [
+        '2026-09-01',
+        '2026-10-01',
+        '2026-11-01',
+        '2026-12-01',
+      ]);
     });
 
     test('is bounded by maxCycles', () {
@@ -179,7 +199,11 @@ void main() {
         '2026-09-16',
         3,
       );
-      expect(cycles.map((c) => c.label).toList(), ['Q2 2026', 'Q1 2026', 'Q4 2025']);
+      expect(cycles.map((c) => c.label).toList(), [
+        'Q2 2026',
+        'Q1 2026',
+        'Q4 2025',
+      ]);
     });
 
     test('never includes the open window', () {
@@ -204,7 +228,9 @@ void main() {
 
   group('daysRemainingIn', () {
     test('counts the final day as zero days remaining', () {
-      final cycle = expectCycle(cycleFor(makeBenefit(Cadence.monthly), makeCard(), '2026-09-16'));
+      final cycle = expectCycle(
+        cycleFor(makeBenefit(Cadence.monthly), makeCard(), '2026-09-16'),
+      );
       expect(daysRemainingIn(cycle, '2026-09-30'), 0);
       expect(daysRemainingIn(cycle, '2026-09-16'), 14);
       expect(daysRemainingIn(cycle, '2026-10-01'), -1);
@@ -227,16 +253,31 @@ void main() {
 
   group('annualValueCents', () {
     test('scales each cadence to a yearly figure', () {
-      expect(annualValueCents(makeBenefit(Cadence.monthly, valueCents: 1500)), 18000);
-      expect(annualValueCents(makeBenefit(Cadence.quarterly, valueCents: 5000)), 20000);
-      expect(annualValueCents(makeBenefit(Cadence.semiannual, valueCents: 5000)), 10000);
-      expect(annualValueCents(makeBenefit(Cadence.annual, valueCents: 30000)), 30000);
+      expect(
+        annualValueCents(makeBenefit(Cadence.monthly, valueCents: 1500)),
+        18000,
+      );
+      expect(
+        annualValueCents(makeBenefit(Cadence.quarterly, valueCents: 5000)),
+        20000,
+      );
+      expect(
+        annualValueCents(makeBenefit(Cadence.semiannual, valueCents: 5000)),
+        10000,
+      );
+      expect(
+        annualValueCents(makeBenefit(Cadence.annual, valueCents: 30000)),
+        30000,
+      );
     });
 
     test('counts an untracked credit once, not once per notional year', () {
       // Global Entry is $120 every four years; calling it $120 a year would
       // overstate what the card is worth.
-      expect(annualValueCents(makeBenefit(Cadence.manual, valueCents: 12000)), 12000);
+      expect(
+        annualValueCents(makeBenefit(Cadence.manual, valueCents: 12000)),
+        12000,
+      );
     });
   });
 }
