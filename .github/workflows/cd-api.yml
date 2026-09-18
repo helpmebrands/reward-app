@@ -96,7 +96,8 @@ jobs:
           image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
           flags: --revision-suffix=sha-${{ github.sha }}
 
-      # Liveness, then one request that has to reach the database: a zone
+      # Liveness on /health (Google's edge answers the conventional z-suffixed
+      # path itself), then one request that has to reach the database: a zone
       # shaped like an IANA name that Postgres does not know is refused with a
       # 400 only after `pg_timezone_names` answered, and nothing is stored.
       - name: Smoke test the deployed revision
@@ -106,10 +107,10 @@ jobs:
           set -euo pipefail
           echo "Serving at $URL"
 
-          body=$(curl -fsS "$URL/healthz")
+          body=$(curl -fsS "$URL/health")
           case "$body" in
-            *'"status":"ok"'*) echo "  /healthz -> $body" ;;
-            *) echo "  /healthz -> $body"; exit 1 ;;
+            *'"status":"ok"'*) echo "  /health -> $body" ;;
+            *) echo "  /health -> $body"; exit 1 ;;
           esac
 
           code=$(curl -sS -o /tmp/devices.json -w '%{http_code}' \

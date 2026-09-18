@@ -78,7 +78,9 @@ The Dart SDK comes from the Flutter SDK, because the workspace includes the Flut
 
 ### Verify gate builds and smoke-tests the api
 
-`verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/healthz` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).
+`verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/health` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).
+
+The job must not mention `/healthz` at all: Google's edge reserves that path on Cloud Run, so a smoke test on it would pass in CI and fail on staging ([[api-architecture#Handler]]).
 
 ### Api job tests against a Postgres service container
 
@@ -90,11 +92,17 @@ The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isread
 
 ### Api CD builds, migrates, deploys and smoke-tests
 
-`cd-api.yml` builds `services/api/Dockerfile`, updates and executes `API_MIGRATION_JOB`, deploys `API_CLOUD_RUN_SERVICE` by the built digest, reads `/healthz` and posts a device with the zone `Mars/Olympus_Mons` expecting the database-backed 400.
+`cd-api.yml` builds `services/api/Dockerfile`, updates and executes `API_MIGRATION_JOB`, deploys `API_CLOUD_RUN_SERVICE` by the built digest, then smoke-tests the live URL.
+
+The smoke test reads `/health` (never `/healthz`) and posts a device with the zone `Mars/Olympus_Mons`, expecting the database-backed 400.
 
 ### Api image carries the migrator and the migrations
 
 `services/api/Dockerfile` compiles `bin/migrate.dart` to `/app/migrate` and the runtime stage copies it to `/migrate` with `migrations/` at `/migrations`, where the binary resolves them ([[api-architecture#Container]]).
+
+### Api service runs on the gen2 execution environment
+
+`infra/index.ts` sets `EXECUTION_ENVIRONMENT_GEN2` on both the api service and the migration job templates, because on the first-generation sandbox a Dart connect to the Cloud SQL unix socket never completes ([[deployment#Infrastructure]]).
 
 ### Stack outputs name the api service and job
 
