@@ -255,14 +255,14 @@ jobs:
           set -euo pipefail
           docker run -d --name reward-api-test -p 8081:8080 reward-api:pr-${{ github.sha }}
           for i in $(seq 1 30); do
-            if curl -fsS -o /dev/null http://localhost:8081/healthz; then break; fi
+            if curl -fsS -o /dev/null http://localhost:8081/health; then break; fi
             if [ "$i" = "30" ]; then
               echo "container never became ready"; docker logs reward-api-test; exit 1
             fi
             sleep 1
           done
-          echo "--- healthz"
-          body=$(curl -fsS http://localhost:8081/healthz)
+          echo "--- health"
+          body=$(curl -fsS http://localhost:8081/health)
           echo "  $body"
           case "$body" in
             *'"status":"ok"'*) ;;

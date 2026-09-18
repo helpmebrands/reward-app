@@ -146,6 +146,23 @@ const runtimeAccount = new gcp.serviceaccount.Account(
 // ---------------------------------------------------------------------------
 
 /**
+ * What CI writes on a Cloud Run service at each deploy: the image, the
+ * deploy labels and the revision name. Pulumi must not touch any of them.
+ * Apply template changes with `pulumi up --refresh`, so the image input in
+ * state is the live digest and not the bootstrap image below.
+ */
+const ciOwnedServiceFields = [
+  'template.containers[0].image',
+  'template.labels',
+  'template.revision',
+  'labels["managed-by"]',
+  'labels["commit-sha"]',
+  'client',
+  'clientVersion',
+  'scaling',
+]
+
+/**
  * A public image that serves a placeholder page, used only for the first
  * `pulumi up`. Cloud Run cannot create a service without an image, but the real
  * one does not exist until CI has built it. The first deploy replaces this
@@ -216,8 +233,10 @@ const service = new gcp.cloudrunv2.Service(
     // deployment of old code.
     // The API also reports back a service-level `scaling` block this program
     // never sets (instance scaling lives in the template); without ignoring
-    // it, every preview proposes removing it.
-    ignoreChanges: ['template.containers[0].image', 'client', 'clientVersion', 'scaling'],
+    // it, every preview proposes removing it. The deploy action also stamps
+    // `managed-by` and `commit-sha` labels and names the revision; those are
+    // CI's too, or every refreshed `up` rolls a new revision to strip them.
+    ignoreChanges: ciOwnedServiceFields,
   },
 )
 
@@ -377,6 +396,11 @@ const apiService = new gcp.cloudrunv2.Service(
     deletionProtection: environment === 'prod',
     template: {
       serviceAccount: apiRuntimeAccount.email,
+      // Gen2, explicitly: on the first-generation sandbox a Dart connect to
+      // the Cloud SQL unix socket never completes, and the request dies at
+      // the timeout with nothing in the log. The job below gets gen2 by
+      // default; the service does not.
+      executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2',
       scaling: { minInstanceCount: minInstances, maxInstanceCount: maxInstances },
       maxInstanceRequestConcurrency: 80,
       timeout: '30s',
@@ -405,7 +429,7 @@ const apiService = new gcp.cloudrunv2.Service(
   },
   {
     dependsOn: [...services, apiRuntimeReadsDatabaseUrl],
-    ignoreChanges: ['template.containers[0].image', 'client', 'clientVersion', 'scaling'],
+    ignoreChanges: ciOwnedServiceFields,
   },
 )
 
@@ -427,6 +451,7 @@ const migrateJob = new gcp.cloudrunv2.Job(
     template: {
       template: {
         serviceAccount: apiRuntimeAccount.email,
+        executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2',
         maxRetries: 0,
         timeout: '600s',
         volumes: [cloudSqlVolume],
