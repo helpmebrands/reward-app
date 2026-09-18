@@ -16,7 +16,7 @@ Every deploy points Cloud Run at a new image digest. If Pulumi also managed the 
 
 Three workflows in `.github/workflows/`, with the quality gate defined once and called twice.
 
-- **`verify.yml`** is the gate: `npm ci`, lint, typecheck, test, build, upload `dist/`; an `infra` job that runs `npm ci` and `tsc --noEmit` in `infra/` so a type error in the Pulumi program fails review rather than the next hand-run `pulumi up` (`pulumi preview` needs credentials and stays out); and a container job that builds the image without pushing and smoke-tests it.
+- **`verify.yml`** is the gate: `npm ci` at the root, then lint, typecheck, test and build through the workspace scripts, uploading `apps/pwa/dist/`; an `infra` job that runs `npm ci --workspace infra` and `tsc --noEmit` so a type error in the Pulumi program fails review rather than the next hand-run `pulumi up` (`pulumi preview` needs credentials and stays out); and a container job that builds the image from `apps/pwa/Dockerfile` without pushing and smoke-tests it.
 - **`ci.yml`** calls it on every pull request into `develop` or `main`. A new push cancels the previous run.
 - **`cd.yml`** runs on push to `develop` and on manual dispatch. It calls the gate *again* rather than trusting the PR's tick, because the merge commit is not the commit CI tested. Deploys never cancel in flight; interrupting a Cloud Run rollout leaves traffic split between revisions.
 
@@ -30,7 +30,9 @@ They check that `/` and a client route return 200, that a missing asset 404s rat
 
 ## Container
 
-A two-stage `Dockerfile`: `node:22-alpine` runs `npm ci` and `npm run build` (which typechecks first, so a type error fails the image), then `nginx-unprivileged` serves `dist/` as uid 101 on port 8080.
+A two-stage `apps/pwa/Dockerfile`, built with the repository root as its context because the npm workspace keeps its one lockfile there.
+
+`node:22-alpine` copies the root and workspace manifests, runs `npm ci --workspace apps/pwa` and `npm run build --workspace apps/pwa` (which typechecks first, so a type error fails the image), then `nginx-unprivileged` serves `apps/pwa/dist/` as uid 101 on port 8080. The root `.dockerignore` keeps everything but the manifests and `apps/pwa` out of the context.
 
 Cloud Run was chosen over object hosting because the roadmap has a Web Push backend; this container can grow an `/api` route without a second piece of infrastructure. Cloud Run injects `PORT`, and the stock nginx entrypoint runs `envsubst` over the config template, filtered to `PORT` so nginx's own `$uri` and `$host` survive. There is no `HEALTHCHECK`: Cloud Run runs its own probes.
 

@@ -8,12 +8,16 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy manifests first so the dependency layer is cached independently of the
-# source; `npm ci` then reruns only when the lockfile actually changes.
+# The build context is the repository root, because the npm workspace keeps a
+# single lockfile there. Copy the manifests first so the dependency layer is
+# cached independently of the source; `npm ci` then reruns only when the
+# lockfile actually changes. Only the PWA workspace is installed.
 COPY package.json package-lock.json ./
-RUN npm ci
+COPY apps/pwa/package.json apps/pwa/
+COPY infra/package.json infra/
+RUN npm ci --workspace apps/pwa
 
-COPY . .
+COPY apps/pwa apps/pwa
 
 # Vite inlines `import.meta.env.*` at BUILD time, so these have to be present
 # here — setting them on the Cloud Run service later would have no effect. The
@@ -25,7 +29,7 @@ ENV VITE_PUSH_API=$VITE_PUSH_API
 
 # `npm run build` typechecks before bundling, so a type error fails the image
 # rather than shipping.
-RUN npm run build
+RUN npm run build --workspace apps/pwa
 
 # ---- runtime --------------------------------------------------------------
 # The unprivileged variant runs as uid 101 and binds 8080 without root, which
@@ -38,9 +42,9 @@ FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
 ENV NGINX_ENVSUBST_FILTER=PORT
 ENV PORT=8080
 
-COPY deploy/nginx.conf.template /etc/nginx/templates/default.conf.template
-COPY deploy/security-headers.conf /etc/nginx/conf.d/security-headers.conf
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY apps/pwa/deploy/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY apps/pwa/deploy/security-headers.conf /etc/nginx/conf.d/security-headers.conf
+COPY --from=build /app/apps/pwa/dist /usr/share/nginx/html
 
 EXPOSE 8080
 

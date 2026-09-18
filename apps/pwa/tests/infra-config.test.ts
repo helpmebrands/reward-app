@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest'
 // target (which project it deploys to); a drift is only noticed when a deploy
 // is rejected at the auth step.
 
-const root = join(import.meta.dirname, '..')
+// The repository root: this suite lives in apps/pwa/tests.
+const root = join(import.meta.dirname, '..', '..', '..')
 const read = (path: string) => readFileSync(join(root, path), 'utf8')
 
 function filesUnder(dir: string): string[] {
@@ -55,10 +56,8 @@ describe('verify workflow', () => {
     const verify = read('.github/workflows/verify.yml')
     const infraJob = verify.split(/^ {2}infra:\s*$/m)[1]
     expect(infraJob).toBeDefined()
-    expect(infraJob).toContain('working-directory: infra')
-    expect(infraJob).toContain('cache-dependency-path: infra/package-lock.json')
-    expect(infraJob).toContain('npm ci')
-    expect(infraJob).toContain('npm run typecheck')
+    expect(infraJob).toContain('npm ci --workspace infra')
+    expect(infraJob).toContain('npm run typecheck --workspace infra')
   })
 })
 
@@ -88,7 +87,10 @@ describe('runbook 01', () => {
 })
 
 describe('infra, runbooks, workflows and container files', () => {
-  const files = [...['infra', 'docs', '.github', 'deploy'].flatMap(filesUnder), 'Dockerfile']
+  const files = [
+    ...['infra', 'docs', '.github', 'apps/pwa/deploy'].flatMap(filesUnder),
+    'apps/pwa/Dockerfile',
+  ]
 
   // @lat: [[tests#Infrastructure config#No stale repository or project names]]
   it('never name the old repository or the misspelt project', () => {
@@ -100,5 +102,29 @@ describe('infra, runbooks, workflows and container files', () => {
   it('never use the pre-rebrand name cardvantage', () => {
     const stale = files.filter((path) => /cardvantage/i.test(read(path)))
     expect(stale).toEqual([])
+  })
+})
+
+describe('monorepo layout', () => {
+  // @lat: [[tests#Infrastructure config#Root package declares the workspaces]]
+  it('declares apps/pwa and infra as npm workspaces at the root', () => {
+    const pkg = JSON.parse(read('package.json')) as { workspaces?: string[] }
+    expect(pkg.workspaces).toEqual(['apps/pwa', 'infra'])
+  })
+
+  // @lat: [[tests#Infrastructure config#The PWA lives in apps/pwa]]
+  it('keeps the PWA package, Dockerfile and nginx config under apps/pwa', () => {
+    const pwa = JSON.parse(read('apps/pwa/package.json')) as { name: string }
+    expect(pwa.name).toBe('@helpmebrands/reward-app')
+    expect(statSync(join(root, 'apps/pwa/Dockerfile')).isFile()).toBe(true)
+    expect(statSync(join(root, 'apps/pwa/deploy/nginx.conf.template')).isFile()).toBe(true)
+  })
+
+  // @lat: [[tests#Infrastructure config#Workflows build the PWA image from its Dockerfile]]
+  it('builds the image from apps/pwa/Dockerfile in verify and cd', () => {
+    for (const workflow of ['verify.yml', 'cd.yml']) {
+      const text = read(`.github/workflows/${workflow}`)
+      expect(text, workflow).toContain('file: apps/pwa/Dockerfile')
+    }
   })
 })

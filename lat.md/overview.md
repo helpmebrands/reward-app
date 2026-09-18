@@ -26,19 +26,22 @@ State is a single Solid store snapshotted to IndexedDB ([[architecture#Persisten
 
 ## Source layout
 
-Each directory maps to a layer described in [[architecture#Layers]].
+The repository is an npm workspace: the PWA lives in `apps/pwa`, the Pulumi program in `infra`, and root scripts delegate to both. Each PWA directory maps to a layer described in [[architecture#Layers]].
 
 | Path | What lives there |
 | --- | --- |
-| `src/domain/` | Pure logic with no framework imports: dates, cycles, ladder, selectors, reminders, catalogue |
-| `src/services/` | IndexedDB persistence, notification plumbing, service-worker registration |
-| `src/stores/` | Solid contexts: app data and transient UI state |
-| `src/ui/` | Components: rows, sheets, swipe, tab bar, snackbar |
-| `src/routes/` | Screens: Today, Credits, Cards, Value, editors, Settings |
-| `src/sw.ts` | Service worker: precache, push, reminder replay |
-| `samples/`, `scripts/` | An importable sample household and the script that generates it |
-| `deploy/`, `infra/`, `.github/` | nginx config, Pulumi, CI/CD ([[deployment]]) |
-| `design-reference/` | Vendored Nocturne tokens and the original design canvas |
+| `package.json` | Root workspace (`apps/pwa`, `infra`) and the single lockfile; `npm test`, `lint`, `typecheck`, `build` run every workspace |
+| `apps/pwa/src/domain/` | Pure logic with no framework imports: dates, cycles, ladder, selectors, reminders, catalogue |
+| `apps/pwa/src/services/` | IndexedDB persistence, notification plumbing, service-worker registration |
+| `apps/pwa/src/stores/` | Solid contexts: app data and transient UI state |
+| `apps/pwa/src/ui/` | Components: rows, sheets, swipe, tab bar, snackbar |
+| `apps/pwa/src/routes/` | Screens: Today, Credits, Cards, Value, editors, Settings |
+| `apps/pwa/src/sw.ts` | Service worker: precache, push, reminder replay |
+| `apps/pwa/tests/` | The Vitest and Playwright suites ([[tests]]) |
+| `apps/pwa/samples/`, `apps/pwa/scripts/` | An importable sample household and the script that generates it |
+| `apps/pwa/deploy/`, `apps/pwa/Dockerfile` | nginx config and the container ([[deployment#Container]]) |
+| `apps/pwa/design-reference/` | Vendored Nocturne tokens and the original design canvas |
+| `infra/`, `.github/`, `docs/runbooks/` | Pulumi, CI/CD and the operations runbooks ([[deployment]]) |
 
 ## Known caveats
 
