@@ -28,3 +28,17 @@ config:
     type: string
     description: Optional custom domain. Requires prior domain verification — see runbook 03.
     default: ""
+  apiServiceName:
+    type: string
+    description: Cloud Run service name for the api; also prefixes its runtime identity and secret.
+    default: reward-api
+  dbTier:
+    type: string
+    description: Cloud SQL machine tier. db-f1-micro is the smallest and cheapest; raise it with load.
+    default: db-f1-micro
+  stateBucket:
+    type: string
+    description: The GCS bucket holding this stack's state (runbook 01 step 2). The deployer may lock it to preview.
+  secretsKey:
+    type: string
+    description: The KMS key encrypting this stack's secrets, as projects/…/cryptoKeys/…. The deployer may decrypt with it to preview.

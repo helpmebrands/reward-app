@@ -91,12 +91,18 @@ jobs:
 
   # The Pulumi program is its own npm workspace with its own compiler settings.
   # A type error there is otherwise found by whoever next runs `pulumi up` by
-  # hand. `pulumi preview` needs cloud credentials and stays out of the gate; a
-  # typecheck does not.
+  # hand. After the typecheck, `pulumi preview` shows the planned diff against
+  # the staging state, so a review can see exactly what an infrastructure
+  # change would do. It authenticates keylessly as the deployer, which holds
+  # read roles on the project, the state bucket and the secrets key for this
+  # purpose and nothing that could apply the change.
   infra:
-    name: Infra typechecks
+    name: Infra typechecks and previews
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -111,6 +117,24 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck --workspace infra
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: pulumi/setup-pulumi@v2
+        with:
+          pulumi-version: 3.248.0
+
+      - name: Preview against staging
+        working-directory: infra
+        run: |
+          pulumi login gs://helpme-reward-staging-pulumi-state
+          pulumi stack select staging
+          pulumi preview --non-interactive --diff
 
   # The Dart pub workspace: packages/domain and the Flutter app, the service
   # tier as it lands. The workspace includes a Flutter package, so the Dart

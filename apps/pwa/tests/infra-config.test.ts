@@ -53,10 +53,10 @@ describe('staging stack config', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Staging uses the KMS secrets provider]]
   it('encrypts its secrets with the staging KMS key, not a passphrase', () => {
-    expect(staging).toMatch(
+    expect(staging()).toMatch(
       /^secretsprovider: gcpkms:\/\/projects\/helpme-reward-staging\/locations\/us-central1\/keyRings\/pulumi\/cryptoKeys\/staging$/m,
     )
-    expect(staging).toMatch(/^encryptedkey: /m)
+    expect(staging()).toMatch(/^encryptedkey: /m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Staging trusts this repository]]

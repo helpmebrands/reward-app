@@ -12,8 +12,11 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# `id-token` lets the infra job mint an OIDC token for a keyless `pulumi
+# preview` against the staging state (see verify.yml).
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   verify:

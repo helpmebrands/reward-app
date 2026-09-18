@@ -15,6 +15,7 @@
 
 import * as gcp from '@pulumi/gcp'
 import * as pulumi from '@pulumi/pulumi'
+import * as random from '@pulumi/random'
 
 const config = new pulumi.Config('reward-app')
 const gcpConfig = new pulumi.Config('gcp')
@@ -25,6 +26,12 @@ const serviceName = config.get('serviceName') ?? 'reward-app'
 const minInstances = config.getNumber('minInstances') ?? 0
 const maxInstances = config.getNumber('maxInstances') ?? 4
 const customDomain = config.get('customDomain') ?? ''
+const apiServiceName = config.get('apiServiceName') ?? 'reward-api'
+const dbTier = config.get('dbTier') ?? 'db-f1-micro'
+/** Bootstrapped by hand before the stack exists (runbook 01); the deployer is
+ * granted read and lock access to them so CI can preview. */
+const stateBucket = config.require('stateBucket')
+const secretsKey = config.require('secretsKey')
 
 /**
  * The repository permitted to deploy, as `owner/name`.
@@ -61,6 +68,9 @@ const services = [
   'iamcredentials.googleapis.com',
   'sts.googleapis.com',
   'cloudresourcemanager.googleapis.com',
+  'sqladmin.googleapis.com',
+  'secretmanager.googleapis.com',
+  'cloudkms.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -212,6 +222,120 @@ const service = new gcp.cloudrunv2.Service(
 )
 
 // ---------------------------------------------------------------------------
+// The database
+// ---------------------------------------------------------------------------
+
+/**
+ * One PostgreSQL 16 instance for the api, at the smallest tier by default.
+ *
+ * Public IP with no authorised networks: nothing connects directly. Cloud Run
+ * reaches it through the Cloud SQL connector (a unix socket the platform
+ * mounts), which authenticates as the runtime identity and encrypts on the
+ * wire, so `ENCRYPTED_ONLY` costs nothing and refuses any plaintext client.
+ * Backups are on because the retention is small and a database without them
+ * is a footgun waiting for prod.
+ */
+const dbInstance = new gcp.sql.DatabaseInstance(
+  'db',
+  {
+    project,
+    region,
+    name: `${apiServiceName}-db-${environment}`,
+    databaseVersion: 'POSTGRES_16',
+    deletionProtection: environment === 'prod',
+    settings: {
+      tier: dbTier,
+      edition: 'ENTERPRISE',
+      availabilityType: 'ZONAL',
+      diskSize: 10,
+      diskAutoresize: true,
+      deletionProtectionEnabled: environment === 'prod',
+      ipConfiguration: { ipv4Enabled: true, sslMode: 'ENCRYPTED_ONLY' },
+      backupConfiguration: { enabled: true, startTime: '03:00' },
+      userLabels: tags,
+    },
+  },
+  dependsOnApis,
+)
+
+const database = new gcp.sql.Database('db-reward', {
+  project,
+  instance: dbInstance.name,
+  name: 'reward',
+})
+
+/**
+ * The api's database user. Its password is generated here and never seen by
+ * a human: it lives encrypted in the stack state (which is why the stack had
+ * to move to the KMS secrets provider first) and in Secret Manager below.
+ * Alphanumeric only so it can sit inside a URL unencoded.
+ */
+const dbPassword = new random.RandomPassword('db-password', { length: 32, special: false })
+
+const dbUser = new gcp.sql.User('db-api', {
+  project,
+  instance: dbInstance.name,
+  name: 'api',
+  password: dbPassword.result,
+})
+
+/**
+ * The whole connection URL as one secret, so the api reads a single
+ * `DATABASE_URL` whether it runs locally against docker compose or on Cloud
+ * Run. The empty authority plus `host=/cloudsql/…` is the libpq form for a
+ * unix socket; the Dart driver connects to that path verbatim rather than
+ * appending the socket file name as libpq does, so the URL names the file.
+ * `sslmode=disable` because the connector already encrypts and the socket
+ * has no TLS to offer.
+ */
+const databaseUrlSecret = new gcp.secretmanager.Secret(
+  'database-url',
+  {
+    project,
+    secretId: `${apiServiceName}-database-url-${environment}`,
+    labels: tags,
+    replication: { auto: {} },
+  },
+  dependsOnApis,
+)
+
+new gcp.secretmanager.SecretVersion('database-url-version', {
+  secret: databaseUrlSecret.id,
+  secretData: pulumi.secret(
+    pulumi.interpolate`postgres://${dbUser.name}:${dbPassword.result}@/${database.name}?host=/cloudsql/${dbInstance.connectionName}/.s.PGSQL.5432&sslmode=disable`,
+  ),
+})
+
+/**
+ * The identity the api container runs as. Unlike the PWA's runtime account it
+ * needs exactly two things: to open the Cloud SQL connector (`cloudsql.client`
+ * is only grantable project-wide) and to read the one secret above.
+ */
+const apiRuntimeAccount = new gcp.serviceaccount.Account(
+  'api-runtime',
+  {
+    project,
+    accountId: `${apiServiceName}-run-${environment}`.slice(0, 30),
+    displayName: `HelpMe Reward api runtime (${environment})`,
+    description: 'Runs the api container. Cloud SQL client and reader of its own database secret.',
+  },
+  dependsOnApis,
+)
+
+new gcp.projects.IAMMember('api-runtime-cloudsql-client', {
+  project,
+  role: 'roles/cloudsql.client',
+  member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
+})
+
+new gcp.secretmanager.SecretIamMember('api-runtime-reads-database-url', {
+  project,
+  secretId: databaseUrlSecret.secretId,
+  role: 'roles/secretmanager.secretAccessor',
+  member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
+})
+
+// ---------------------------------------------------------------------------
 // Keyless deploys from GitHub
 // ---------------------------------------------------------------------------
 
@@ -316,6 +440,32 @@ new gcp.serviceaccount.IAMMember('deployer-can-act-as-runtime', {
   member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
 })
 
+/**
+ * `pulumi preview` from CI. A preview reads the state, decrypts its secrets
+ * with the stack's KMS key, takes the state lock, and asks Google to describe
+ * what exists; it applies nothing. `viewer` on the project is read-only
+ * everywhere and does not include reading secret payloads; `objectUser` on
+ * the state bucket is what the lock file needs; `cryptoKeyDecrypter` on the
+ * one key, not the key ring. The deployer still cannot `pulumi up`.
+ */
+new gcp.projects.IAMMember('deployer-can-read-project', {
+  project,
+  role: 'roles/viewer',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
+new gcp.storage.BucketIAMMember('deployer-can-lock-state', {
+  bucket: stateBucket,
+  role: 'roles/storage.objectUser',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
+new gcp.kms.CryptoKeyIAMMember('deployer-can-decrypt-secrets', {
+  cryptoKeyId: secretsKey,
+  role: 'roles/cloudkms.cryptoKeyDecrypter',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
 // ---------------------------------------------------------------------------
 // Optional custom domain
 // ---------------------------------------------------------------------------
@@ -361,6 +511,11 @@ export const gcpRegion = region
 export const gcpProject = project
 
 export const runtimeServiceAccount = runtimeAccount.email
+
+/** The api's identity, database and secret, for #77's service and runbook 06. */
+export const apiRuntimeServiceAccount = apiRuntimeAccount.email
+export const databaseInstanceConnectionName = dbInstance.connectionName
+export const databaseUrlSecretId = databaseUrlSecret.secretId
 export const customDomainStatus = domainMapping
   ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')

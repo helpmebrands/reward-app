@@ -1,8 +1,12 @@
-# Staging. Pulumi adds an `encryptionsalt` here the first time it encrypts a
-# secret; committing this file without one is fine and expected.
+# Staging. Secrets are encrypted with the KMS key named in `secretsprovider`
+# below (bootstrapped by hand, runbook 01 step 3); `encryptedkey` is the
+# stack's data key wrapped by that KMS key and is safe to commit.
 config:
   gcp:project: helpme-reward-staging
   gcp:region: us-central1
   reward-app:githubRepo: helpmebrands/reward-app
   reward-app:customDomain: staging.helpmereward.com
-encryptionsalt: v1:af6Ceol1Zc0=:v1:ye4r5/sS1FNnwnm8:CtMgBhD70sta1KVkM8lyy0jMErnNAQ==
+  reward-app:stateBucket: helpme-reward-staging-pulumi-state
+  reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+secretsprovider: gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+encryptedkey: CiQAuVK5vIbBdYmWPlWeUwibzQo8Xj01h0bNWV+xaLUueimdwTkSSAAvEBIWtpaw7vHAOE9O6Gp/pN8m+K4ckDsjOalooRE+WoYHm9IeMZ2mJDEvnMqR8z53doPeH22wxqkhvH3He2XMt8x7e5asfg==
