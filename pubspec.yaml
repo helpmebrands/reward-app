@@ -8,3 +8,4 @@ environment:
 workspace:
   - packages/domain
   - apps/mobile
+  - services/api

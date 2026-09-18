@@ -1,0 +1,15 @@
+name: api
+description: The HelpMe Reward service tier, an HTTP service on shelf over the shared domain package.
+publish_to: none
+resolution: workspace
+version: 0.1.0
+environment:
+  sdk: ^3.12.0
+dependencies:
+  domain:
+    path: ../../packages/domain
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0

@@ -2,8 +2,11 @@
 # app. node_modules especially — `npm ci` reinstalls inside the image, and
 # copying a host tree in can smuggle platform-specific binaries across.
 # The context is the repository root so the workspace lockfile is available;
-# only the manifests and apps/pwa reach the image (see apps/pwa/Dockerfile).
+# only the manifests and apps/pwa reach the PWA image (apps/pwa/Dockerfile);
+# the api image copies packages/domain and services/api (services/api/Dockerfile).
 **/node_modules
+**/.dart_tool
+**/build
 **/dist
 **/dev-dist
 **/coverage

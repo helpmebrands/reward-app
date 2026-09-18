@@ -48,7 +48,7 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 
 ### Root pubspec declares the pub workspace
 
-The root `pubspec.yaml` lists `packages/domain` and `apps/mobile` under `workspace:` and the domain package resolves with `resolution: workspace`, so one `dart pub get` at the root resolves every Dart package and the service tier joins the same list.
+The root `pubspec.yaml` lists `packages/domain`, `apps/mobile` and `services/api` under `workspace:` and each resolves with `resolution: workspace`, so one `dart pub get` at the root resolves every Dart package.
 
 ### Verify gate analyses and tests the Dart workspace
 
@@ -59,6 +59,10 @@ The Dart SDK comes from the Flutter SDK, because the workspace includes the Flut
 ### Verify gate analyses and tests the Flutter app
 
 `verify.yml` has a `flutter` job with `working-directory: apps/mobile` that runs `flutter analyze --fatal-infos` and `flutter test`, so a widget failure names itself rather than hiding in the Dart job ([[mobile-tests]]).
+
+### Verify gate builds and smoke-tests the api
+
+`verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/healthz` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).
 
 ### Root package declares the workspaces
 
