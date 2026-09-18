@@ -20,7 +20,8 @@ RUN sed -i '/apps\/mobile/d' pubspec.yaml && dart pub get
 COPY packages/domain packages/domain
 COPY services/api services/api
 RUN dart pub get --offline \
-  && dart compile exe services/api/bin/server.dart -o /app/server
+  && dart compile exe services/api/bin/server.dart -o /app/server \
+  && dart compile exe services/api/bin/migrate.dart -o /app/migrate
 
 # ---- runtime --------------------------------------------------------------
 # The minimal runtime image the Dart team publishes for AOT binaries: the
@@ -29,6 +30,10 @@ FROM scratch AS runtime
 
 COPY --from=build /runtime/ /
 COPY --from=build /app/server /server
+# The migrator and its files, run by the Cloud Run job before each deploy
+# (`/migrate` resolves `../migrations/` beside itself, hence the root).
+COPY --from=build /app/migrate /migrate
+COPY --from=build /app/services/api/migrations /migrations
 
 ENV PORT=8080
 EXPOSE 8080

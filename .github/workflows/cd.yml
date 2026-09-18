@@ -9,6 +9,13 @@ name: CD
 on:
   push:
     branches: [develop]
+    # The api deploys through cd-api.yml; a merge confined to it, the shared
+    # domain package or the Flutter app does not redeploy the PWA.
+    paths-ignore:
+      - 'services/api/**'
+      - 'packages/domain/**'
+      - 'apps/mobile/**'
+      - '.github/workflows/cd-api.yml'
   # Redeploying the current develop without an empty commit — for recovering a
   # failed run, or re-rolling after an infrastructure change.
   workflow_dispatch:

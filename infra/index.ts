@@ -328,12 +328,125 @@ new gcp.projects.IAMMember('api-runtime-cloudsql-client', {
   member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
 })
 
-new gcp.secretmanager.SecretIamMember('api-runtime-reads-database-url', {
-  project,
-  secretId: databaseUrlSecret.secretId,
-  role: 'roles/secretmanager.secretAccessor',
-  member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
-})
+const apiRuntimeReadsDatabaseUrl = new gcp.secretmanager.SecretIamMember(
+  'api-runtime-reads-database-url',
+  {
+    project,
+    secretId: databaseUrlSecret.secretId,
+    role: 'roles/secretmanager.secretAccessor',
+    member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
+  },
+)
+
+// ---------------------------------------------------------------------------
+// The api service and its migration job
+// ---------------------------------------------------------------------------
+
+/** Shared by the service and the job: the database socket and the URL. */
+const cloudSqlVolume = {
+  name: 'cloudsql',
+  cloudSqlInstance: { instances: [dbInstance.connectionName] },
+}
+const cloudSqlMount = { name: 'cloudsql', mountPath: '/cloudsql' }
+const databaseUrlEnv = {
+  name: 'DATABASE_URL',
+  valueSource: {
+    secretKeyRef: { secret: databaseUrlSecret.secretId, version: 'latest' },
+  },
+}
+
+/**
+ * The api. Same ownership rule as the PWA service: Pulumi owns the shape, CI
+ * owns the image, so the image is ignored after the bootstrap. Public like
+ * the PWA (there are no accounts; a device registers its own token), running
+ * as the api identity with the Cloud SQL connector mounted and the whole
+ * connection URL injected from Secret Manager. Depends on the secret binding
+ * because Cloud Run checks at revision creation that the identity can read
+ * every secret it references.
+ */
+const apiService = new gcp.cloudrunv2.Service(
+  'api',
+  {
+    project,
+    location: region,
+    name: apiServiceName,
+    description: `HelpMe Reward api (${environment})`,
+    labels: tags,
+    ingress: 'INGRESS_TRAFFIC_ALL',
+    invokerIamDisabled: true,
+    deletionProtection: environment === 'prod',
+    template: {
+      serviceAccount: apiRuntimeAccount.email,
+      scaling: { minInstanceCount: minInstances, maxInstanceCount: maxInstances },
+      maxInstanceRequestConcurrency: 80,
+      timeout: '30s',
+      volumes: [cloudSqlVolume],
+      containers: [
+        {
+          image: BOOTSTRAP_IMAGE,
+          ports: { name: 'http1', containerPort: 8080 },
+          resources: {
+            limits: { cpu: '1', memory: '512Mi' },
+            cpuIdle: true,
+            startupCpuBoost: true,
+          },
+          envs: [databaseUrlEnv],
+          volumeMounts: [cloudSqlMount],
+          startupProbe: {
+            tcpSocket: { port: 8080 },
+            initialDelaySeconds: 0,
+            periodSeconds: 3,
+            failureThreshold: 10,
+            timeoutSeconds: 3,
+          },
+        },
+      ],
+    },
+  },
+  {
+    dependsOn: [...services, apiRuntimeReadsDatabaseUrl],
+    ignoreChanges: ['template.containers[0].image', 'client', 'clientVersion', 'scaling'],
+  },
+)
+
+/**
+ * The migration job: the same image as the service with `/migrate` as its
+ * command, run once by CD before each deploy (`cd-api.yml`), so a broken
+ * migration fails the deploy rather than every replica at startup. No
+ * retries: a migration that failed once should be read, not rerun blindly.
+ * CI owns its image too.
+ */
+const migrateJob = new gcp.cloudrunv2.Job(
+  'api-migrate',
+  {
+    project,
+    location: region,
+    name: `${apiServiceName}-migrate`,
+    labels: tags,
+    deletionProtection: environment === 'prod',
+    template: {
+      template: {
+        serviceAccount: apiRuntimeAccount.email,
+        maxRetries: 0,
+        timeout: '600s',
+        volumes: [cloudSqlVolume],
+        containers: [
+          {
+            image: BOOTSTRAP_IMAGE,
+            commands: ['/migrate'],
+            resources: { limits: { cpu: '1', memory: '512Mi' } },
+            envs: [databaseUrlEnv],
+            volumeMounts: [cloudSqlMount],
+          },
+        ],
+      },
+    },
+  },
+  {
+    dependsOn: [...services, apiRuntimeReadsDatabaseUrl],
+    ignoreChanges: ['template.template.containers[0].image', 'client', 'clientVersion'],
+  },
+)
 
 // ---------------------------------------------------------------------------
 // Keyless deploys from GitHub
@@ -440,6 +553,30 @@ new gcp.serviceaccount.IAMMember('deployer-can-act-as-runtime', {
   member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
 })
 
+/** The same three grants for the api: deploy its service, run its job, act
+ * as its identity. Still `run.developer` per resource, never project-wide. */
+new gcp.cloudrunv2.ServiceIamMember('deployer-can-deploy-api', {
+  project,
+  location: apiService.location,
+  name: apiService.name,
+  role: 'roles/run.developer',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
+new gcp.cloudrunv2.JobIamMember('deployer-can-run-migrations', {
+  project,
+  location: migrateJob.location,
+  name: migrateJob.name,
+  role: 'roles/run.developer',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
+new gcp.serviceaccount.IAMMember('deployer-can-act-as-api-runtime', {
+  serviceAccountId: apiRuntimeAccount.name,
+  role: 'roles/iam.serviceAccountUser',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
 /**
  * `pulumi preview` from CI. A preview reads the state, decrypts its secrets
  * with the stack's KMS key, takes the state lock, and asks Google to describe
@@ -512,7 +649,12 @@ export const gcpProject = project
 
 export const runtimeServiceAccount = runtimeAccount.email
 
-/** The api's identity, database and secret, for #77's service and runbook 06. */
+/** `API_CLOUD_RUN_SERVICE` / `API_MIGRATION_JOB` in GitHub, for cd-api.yml. */
+export const apiCloudRunService = apiService.name
+export const apiMigrationJob = migrateJob.name
+export const apiServiceUrl = apiService.uri
+
+/** The api's identity, database and secret, for runbook 06. */
 export const apiRuntimeServiceAccount = apiRuntimeAccount.email
 export const databaseInstanceConnectionName = dbInstance.connectionName
 export const databaseUrlSecretId = databaseUrlSecret.secretId
