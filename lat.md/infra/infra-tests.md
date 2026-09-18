@@ -48,6 +48,20 @@ Nothing under `infra/`, `docs/`, `.github/`, `apps/pwa/deploy/` or `apps/pwa/Doc
 
 Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather than offering a choice, so nobody initialises a second, competing copy of the state.
 
+### README records both services and the database
+
+`docs/runbooks/README.md` names `reward-app`, `reward-api`, `reward-api-migrate`, `reward-api-db-staging`, `reward-api-database-url-staging`, the api URL and the 06 and 07 rows, and no longer claims there is no database ([[infra#Runbooks]]).
+
+### Runbook 01 bootstraps the KMS secrets provider
+
+`01-initial-deployment.md` creates the key ring with `gcloud kms keyrings create` and moves an existing stack with `pulumi stack change-secrets-provider` ([[deployment#Infrastructure]]).
+
+It also sets `API_CLOUD_RUN_SERVICE` and `API_MIGRATION_JOB`, and never sets an empty `PULUMI_CONFIG_PASSPHRASE`.
+
+### Runbooks 06 and 07 exist with their rehearsed commands
+
+`06-database.md` quotes `gcloud run jobs execute`, `gcloud sql backups create` and `restore`, `cloud-sql-proxy` and `schema_migrations`; `07-mobile-release.md` covers `flutter build`, TestFlight and the Play internal track.
+
 ### README records the staging environment
 
 `docs/runbooks/README.md` names the staging project, region, state bucket, `run.app` URL and custom hostname, so a new starter does not reverse-engineer which project is which from repository variables.

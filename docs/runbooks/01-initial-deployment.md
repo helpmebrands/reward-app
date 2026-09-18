@@ -1,7 +1,8 @@
 # 01 — Initial deployment
 
-From an empty Google Cloud project to a live URL. You do this once per
-environment. Budget about 45 minutes, most of it waiting on API enablement.
+From an empty Google Cloud project to two live URLs: the PWA and the api, with
+its database. You do this once per environment. Budget about an hour, most of
+it waiting on API enablement and Cloud SQL.
 
 ## Before you start
 
@@ -11,7 +12,8 @@ environment. Budget about 45 minutes, most of it waiting on API enablement.
 | Pulumi CLI | `pulumi version` — [install](https://www.pulumi.com/docs/install/) |
 | gcloud CLI | `gcloud version` — [install](https://cloud.google.com/sdk/docs/install) |
 | A Google Cloud project **with billing enabled** | `gcloud billing projects describe <PROJECT_ID>` |
-| `roles/owner` (or equivalent) on that project | Needed to enable APIs and create IAM bindings |
+| `roles/owner` (or equivalent) on that project | Needed to enable APIs, create the KMS key and IAM bindings |
+| Docker | `docker version` — the api runbooks use the `postgres:16` image for `psql` |
 | Admin on the GitHub repository | Needed to set variables and branch protection |
 
 Billing genuinely must be on. Cloud Run and Artifact Registry both refuse to
@@ -65,16 +67,36 @@ True
 
 A new environment gets its own bucket, created the same way.
 
-## 3. Select the stack
+## 3. Create the secrets key and select the stack
+
+The stack holds a secret — the api's database password — so its state and
+config are encrypted with a Cloud KMS key. That key cannot live in the stack
+it guards, so it is made by hand, once per environment, before the stack is
+touched:
+
+```sh
+$ gcloud services enable cloudkms.googleapis.com --project "$PROJECT_ID"
+$ gcloud kms keyrings create pulumi --location "$REGION" --project "$PROJECT_ID"
+$ gcloud kms keys create <env> --keyring pulumi --location "$REGION" \
+    --purpose encryption --project "$PROJECT_ID"
+```
+
+**Verify:**
+
+```sh
+$ gcloud kms keys list --keyring pulumi --location "$REGION" --project "$PROJECT_ID" \
+    --format='value(name,purpose)'
+projects/<project>/locations/us-central1/keyRings/pulumi/cryptoKeys/<env>   ENCRYPT_DECRYPT
+```
 
 Stack configuration is committed: `infra/Pulumi.staging.yaml` carries the
-project, region and `githubRepo`. The stack holds no secrets, so the passphrase
-that would guard them is empty; export it or every command prompts for one.
+project, region, `githubRepo`, the state bucket and the key, and names the key
+as its `secretsprovider`. Whoever runs Pulumi needs `cloudkms.cryptoKeyEncrypterDecrypter`
+on the key; an owner has it.
 
 ```sh
 $ cd infra
 $ npm ci
-$ export PULUMI_CONFIG_PASSPHRASE=""
 $ pulumi stack select staging
 $ pulumi config get reward-app:githubRepo     # helpmebrands/reward-app
 ```
@@ -84,17 +106,28 @@ allowed to mint credentials for this project. Get it wrong and deploys fail
 with a permission error; leave it too broad and other repositories could
 deploy.
 
-Before the first secret goes into a stack, move it to a real secrets provider
-(`pulumi stack change-secrets-provider "gcpkms://..."`). An empty passphrase
-protects nothing.
+A new environment is a new stack on the new key:
 
-A new environment is `pulumi stack init <env>` followed by
-`pulumi config set gcp:project <project-id>` and the `githubRepo` above; commit
-the resulting `Pulumi.<env>.yaml`. Optional:
+```sh
+$ pulumi stack init <env> \
+    --secrets-provider "gcpkms://projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/<env>"
+$ pulumi config set gcp:project "$PROJECT_ID"
+$ pulumi config set gcp:region "$REGION"
+$ pulumi config set reward-app:githubRepo helpmebrands/reward-app
+$ pulumi config set reward-app:stateBucket <the bucket from step 2>
+$ pulumi config set reward-app:secretsKey projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/<env>
+```
+
+Commit the resulting `Pulumi.<env>.yaml`; the `encryptedkey` line in it is the
+stack's data key wrapped by KMS and is safe to commit. Staging was moved from
+its original empty passphrase with
+`pulumi stack change-secrets-provider "gcpkms://…/cryptoKeys/staging"` on
+2026-09-18, which is the command for an existing stack. Optional:
 
 ```sh
 $ pulumi config set reward-app:minInstances 1   # avoid cold starts, ~$10/mo
 $ pulumi config set reward-app:maxInstances 4   # spend ceiling
+$ pulumi config set reward-app:dbTier db-custom-1-3840   # more database; db-f1-micro by default
 ```
 
 ## 4. Create the infrastructure
@@ -103,27 +136,34 @@ $ pulumi config set reward-app:maxInstances 4   # spend ceiling
 $ pulumi up
 ```
 
-Read the preview before confirming. Expect 16 resources: six API enablements,
-a registry, two service accounts, the Cloud Run service, the identity pool and
-provider, and four IAM bindings. There is no `allUsers` invoker binding: the
-organisation's domain-restricted sharing policy rejects one, so the service is
-public through its own `invokerIamDisabled` setting instead.
+Read the preview before confirming. Expect 37 resources: nine API enablements,
+a registry, three service accounts, two Cloud Run services and the migration
+job, the Cloud SQL instance with its database and user, a generated password,
+a Secret Manager secret and its version, the identity pool and provider, twelve
+IAM bindings, and the domain mapping if one is configured. There is no
+`allUsers` invoker binding: the organisation's domain-restricted sharing policy
+rejects one, so both services are public through their own `invokerIamDisabled`
+setting instead.
 
-The first run takes a few minutes because enabling APIs is slow. If it fails
-with `SERVICE_DISABLED` or a permission error on the very first attempt, wait a
-minute and run it again — API enablement is eventually consistent, and the
-second run almost always succeeds.
+The first run takes six to ten minutes: enabling APIs is slow and Cloud SQL
+takes about six minutes on its own. If it fails with `SERVICE_DISABLED` or a
+permission error on the very first attempt, wait a minute and run it again —
+API enablement is eventually consistent, and the second run almost always
+succeeds.
 
-**Verify.** The service exists and serves Google's placeholder page:
+**Verify.** Both services exist and serve Google's placeholder page:
 
 ```sh
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$(pulumi stack output serviceUrl)"
 200
+$ curl -sS -o /dev/null -w '%{http_code}\n' "$(pulumi stack output apiServiceUrl)"
+200
 ```
 
 A `200` here is the placeholder, not HelpMe Reward. That is expected — Cloud Run
-cannot create a service without an image, and the real one does not exist until
-CI builds it in step 7.
+cannot create a service without an image, and the real ones do not exist until
+CI builds them in step 7. The database exists and is empty; the first api
+deploy creates its tables.
 
 ## 5. Give GitHub the values it needs
 
@@ -142,6 +182,8 @@ Actions → *Variables*), not secrets:
 | `CLOUD_RUN_SERVICE` | `cloudRunService` |
 | `WIF_PROVIDER` | `workloadIdentityProvider` |
 | `DEPLOY_SERVICE_ACCOUNT` | `deployServiceAccount` |
+| `API_CLOUD_RUN_SERVICE` | `apiCloudRunService` |
+| `API_MIGRATION_JOB` | `apiMigrationJob` |
 
 None of these are secret. They are identifiers, and the actual trust is
 enforced by Google against the repository name — a variable is the honest
@@ -157,7 +199,13 @@ $ gh variable set ARTIFACT_REPO         --body "$(pulumi stack output artifactRe
 $ gh variable set CLOUD_RUN_SERVICE     --body "$(pulumi stack output cloudRunService)"
 $ gh variable set WIF_PROVIDER          --body "$(pulumi stack output workloadIdentityProvider)"
 $ gh variable set DEPLOY_SERVICE_ACCOUNT --body "$(pulumi stack output deployServiceAccount)"
+$ gh variable set API_CLOUD_RUN_SERVICE  --body "$(pulumi stack output apiCloudRunService)"
+$ gh variable set API_MIGRATION_JOB      --body "$(pulumi stack output apiMigrationJob)"
 ```
+
+The `infra` job of every pull request also runs `pulumi preview` with these
+same variables, so a wrong one shows up on the next pull request rather than
+the next deploy.
 
 ### If you have Web Push keys
 
@@ -181,46 +229,69 @@ Settings → Branches → Add rule for `develop`:
 Without the second one, CI is advisory: a red pull request stays mergeable and
 the deploy pipeline is the first thing to notice.
 
-## 7. First real deploy
+## 7. First real deploys
 
-Merge anything into `develop`, or trigger one by hand:
+Each deployable has its own workflow, filtered to the paths that reach its
+image. Trigger both by hand the first time:
 
 ```sh
-$ gh workflow run cd.yml --ref develop
+$ gh workflow run cd.yml --ref develop       # the PWA
+$ gh workflow run cd-api.yml --ref develop   # the api
 $ gh run watch
 ```
 
-The workflow re-runs the full verify suite, builds the image, pushes it, points
-Cloud Run at the digest, and smoke-tests the result.
+Each re-runs the full verify suite, builds its image, pushes it, points Cloud
+Run at the digest, and smoke-tests the result. The api workflow runs the
+migration job on the new image before the service moves to it, so the first
+run also creates the tables.
 
-**Verify** — the smoke test in the workflow already checks these, but confirm
+**Verify** — the smoke tests in the workflows already check these, but confirm
 by hand once so you know what good looks like:
 
 ```sh
 $ URL=$(cd infra && pulumi stack output serviceUrl)
+$ API=$(cd infra && pulumi stack output apiServiceUrl)
 
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"          # 200
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/credits"   # 200 — SPA fallback
 $ curl -sSI "$URL/sw.js" | grep -i cache-control             # must say no-store
+
+$ curl -sS "$API/health"                                     # {"status":"ok","version":"…"}
+$ curl -sS -X POST "$API/v1/devices" -H 'content-type: application/json' \
+    -d '{"token":"t","installationId":"i","platform":"ios","timezone":"Mars/Olympus_Mons"}'
+{"error":"invalid","field":"timezone"}                       # a 400 that came through the database
 ```
 
-Then open the URL in a browser: the app should load, and DevTools →
+The last request is the one that proves the database path: the zone is shaped
+correctly, so only Postgres can refuse it. Do not use `/healthz` for anything
+on Cloud Run; Google's edge answers that exact path itself and the container
+never sees it.
+
+Then open the PWA URL in a browser: the app should load, and DevTools →
 Application → Service Workers should show one activated.
 
 ## 8. Record what you did
 
 Add the environment to the table in [README.md](README.md#environments):
-project id, region, stack, state backend and URL. The repository variables are
-the operational source of truth, but a new starter should not have to
-reverse-engineer which GCP project is which. Staging was recorded there on
-2026-09-17.
+project id, region, stack, state backend, services, job, database, secret,
+key and URLs. The repository variables are the operational source of truth,
+but a new starter should not have to reverse-engineer which GCP project is
+which. Staging was recorded there on 2026-09-17 and extended for the api on
+2026-09-18.
 
 ## What you have now
 
-- A Cloud Run service on a `run.app` URL, publicly readable
+- Two Cloud Run services on `run.app` URLs, publicly readable: the PWA and the api
+- A Cloud SQL PostgreSQL 16 instance the api reaches over the Cloud SQL
+  connector, with nightly backups, and a migration job that runs before each
+  api deploy
+- The api's connection URL in Secret Manager, readable by exactly one identity
 - Images in Artifact Registry, tagged by commit SHA, pruned after 30 releases
-- Keyless deploys from `develop` only
-- A runtime identity with no permissions at all
+- Keyless deploys from `develop` only, and keyless previews from pull requests
+- A PWA runtime identity with no permissions at all, and an api runtime
+  identity with exactly two
+- Stack secrets encrypted with a KMS key, never a passphrase
 
 Next: [02 — Routine change](02-routine-change.md), and read
-[04 — Rollback](04-rollback.md) before you need it.
+[04 — Rollback](04-rollback.md) and [06 — Database](06-database.md) before you
+need them.

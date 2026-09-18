@@ -199,6 +199,50 @@ describe('runbook README', () => {
   })
 })
 
+describe('runbooks for two services', () => {
+  // @lat: [[infra-tests#Infrastructure config#README records both services and the database]]
+  it('records the api service, its job, the database and the secret in the README table', () => {
+    const readme = read('docs/runbooks/README.md')
+    for (const fact of [
+      '`reward-app`',
+      '`reward-api`',
+      '`reward-api-migrate`',
+      '`reward-api-db-staging`',
+      '`reward-api-database-url-staging`',
+      'https://reward-api-bduraqeztq-uc.a.run.app',
+      '06 — Database',
+      '07 — Mobile release',
+    ]) {
+      expect(readme).toContain(fact)
+    }
+    expect(readme).not.toContain('There is no database and no backend')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 bootstraps the KMS secrets provider]]
+  it('has runbook 01 create the KMS key and move the stack to it, not an empty passphrase', () => {
+    const rb = read('docs/runbooks/01-initial-deployment.md')
+    expect(rb).toContain('gcloud kms keyrings create')
+    expect(rb).toContain('pulumi stack change-secrets-provider')
+    expect(rb).toContain('API_CLOUD_RUN_SERVICE')
+    expect(rb).toContain('API_MIGRATION_JOB')
+    expect(rb).not.toContain('PULUMI_CONFIG_PASSPHRASE=""')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbooks 06 and 07 exist with their rehearsed commands]]
+  it('has a database runbook with migrations, backups, restore and local access, and a mobile release runbook', () => {
+    const db = read('docs/runbooks/06-database.md')
+    expect(db).toContain('gcloud run jobs execute')
+    expect(db).toContain('gcloud sql backups create')
+    expect(db).toContain('gcloud sql backups restore')
+    expect(db).toContain('cloud-sql-proxy')
+    expect(db).toContain('schema_migrations')
+    const mobile = read('docs/runbooks/07-mobile-release.md')
+    expect(mobile).toContain('flutter build')
+    expect(mobile).toContain('TestFlight')
+    expect(mobile).toContain('internal')
+  })
+})
+
 describe('runbook 01', () => {
   // @lat: [[infra-tests#Infrastructure config#Runbook names the real state backend]]
   it('logs Pulumi into the versioned state bucket', () => {
