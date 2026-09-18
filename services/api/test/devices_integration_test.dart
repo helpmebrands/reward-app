@@ -28,7 +28,7 @@ void main() {
 
       setUp(() => db.execute('TRUNCATE devices'));
 
-      Future<Response> post(Map<String, Object?> body) => handler(
+      Future<Response> post(Map<String, Object?> body) async => await handler(
         Request(
           'POST',
           Uri.parse('http://localhost/v1/devices'),
