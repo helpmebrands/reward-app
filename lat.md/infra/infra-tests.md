@@ -84,6 +84,22 @@ The Dart SDK comes from the Flutter SDK, because the workspace includes the Flut
 
 The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isready` health check and runs `dart test` with a `DATABASE_URL` carrying `sslmode=disable`, so the migration integration tests run in review instead of skipping ([[api-architecture#Migrations]]).
 
+### Api CD workflow is path-filtered to the api and the domain
+
+`cd-api.yml` triggers on `services/api/**` and `packages/domain/**` and never mentions `apps/pwa`; `cd.yml` carries a `paths-ignore` naming `services/api/**`, so a merge to one deployable does not roll the other ([[deployment#Pipeline]]).
+
+### Api CD builds, migrates, deploys and smoke-tests
+
+`cd-api.yml` builds `services/api/Dockerfile`, updates and executes `API_MIGRATION_JOB`, deploys `API_CLOUD_RUN_SERVICE` by the built digest, reads `/healthz` and posts a device with the zone `Mars/Olympus_Mons` expecting the database-backed 400.
+
+### Api image carries the migrator and the migrations
+
+`services/api/Dockerfile` compiles `bin/migrate.dart` to `/app/migrate` and the runtime stage copies it to `/migrate` with `migrations/` at `/migrations`, where the binary resolves them ([[api-architecture#Container]]).
+
+### Stack outputs name the api service and job
+
+`infra/index.ts` exports `apiCloudRunService`, `apiServiceUrl` and `apiMigrationJob`, the values `cd-api.yml` reads as repository variables ([[deployment#Infrastructure]]).
+
 ### Root package declares the workspaces
 
 The root `package.json` lists exactly `apps/pwa` and `infra` as npm workspaces, so one lockfile covers both and `npm test`, `lint`, `typecheck` and `build` delegate from the root ([[pwa#Source layout]]).
