@@ -10,6 +10,8 @@ when a change goes wrong.
 | [03 — Infrastructure change](03-infrastructure-change.md) | Changing Pulumi safely, including custom domains. |
 | [04 — Rollback](04-rollback.md) | Getting off a bad revision. Read this **before** you need it. |
 | [05 — Troubleshooting](05-troubleshooting.md) | Specific failures and what they actually mean. |
+| [06 — Database](06-database.md) | Migrations, backups, restore, and connecting to Cloud SQL from a laptop. |
+| [07 — Mobile release](07-mobile-release.md) | Versioning and signing the Flutter app; TestFlight and the Play internal track. |
 
 ## Environments
 
@@ -21,44 +23,63 @@ the human-readable copy. Update it when an environment is added or moved.
 | GCP project | `helpme-reward-staging` |
 | Region | `us-central1` |
 | Pulumi stack | `staging` (backend `gs://helpme-reward-staging-pulumi-state`) |
-| Cloud Run service | `reward-app` |
-| URL | <https://staging.helpmereward.com> (also <https://reward-app-bduraqeztq-uc.a.run.app>) |
+| Cloud Run services | `reward-app` (the PWA), `reward-api` (the service tier) |
+| Migration job | `reward-api-migrate`, run by `cd-api.yml` before each api deploy |
+| Database | Cloud SQL `reward-api-db-staging`, PostgreSQL 16, `db-f1-micro`; database `reward`, user `api` |
+| Secret | `reward-api-database-url-staging` in Secret Manager: the api's whole `DATABASE_URL` |
+| Secrets key | KMS `projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging`, the stack's secrets provider |
+| URLs | PWA <https://staging.helpmereward.com> (also <https://reward-app-bduraqeztq-uc.a.run.app>); api <https://reward-api-bduraqeztq-uc.a.run.app> |
 | DNS | Cloudflare zone `helpmereward.com`; CNAME `staging` → `ghs.googlehosted.com`, DNS only |
-| Deployed from | `develop`, by `cd.yml`, on every merge |
-| First deployed | 2026-09-17 |
+| Deployed from | `develop`: the PWA by `cd.yml`, the api by `cd-api.yml`, each on merges that touch it |
+| First deployed | PWA 2026-09-17; api 2026-09-18 |
 
 ## What owns what
 
 The single most important thing to internalise, because getting it wrong causes
 a silent rollback of production:
 
-- **Pulumi owns the shape of the infrastructure** — the service, its scaling,
-  its identity, the registry, who may deploy.
-- **CI owns which image is running.** Every push to `develop` builds an image
-  and points Cloud Run at that exact digest.
+- **Pulumi owns the shape of the infrastructure** — the two services and the
+  migration job, their scaling, their identities, the database, the secret,
+  the registry, who may deploy.
+- **CI owns which image is running.** A push to `develop` builds the image of
+  whichever deployable it touched and points Cloud Run at that exact digest,
+  for the api after running the migration job on it.
 
-`infra/index.ts` therefore declares `ignoreChanges` on the container image. If
-that were removed, the next `pulumi up` would reset the service to whichever
-image Pulumi last recorded — deploying old code as a side effect of an
-unrelated infrastructure change.
+`infra/index.ts` therefore declares `ignoreChanges` on the container image, the
+deploy labels and the revision name of both services. If that were removed,
+the next `pulumi up` would reset the service to whichever image Pulumi last
+recorded — deploying old code as a side effect of an unrelated infrastructure
+change. Template changes are applied with `pulumi up --refresh` for the same
+reason; [03](03-infrastructure-change.md#the-image-is-not-yours-to-manage) explains.
 
 ## The pieces
 
 ```
 GitHub (develop)
   │
-  ├─ CI: lint · typecheck · test · build · container smoke test
+  ├─ CI (verify.yml): PWA lint · typecheck · test · build · a11y
+  │                   Dart analyze · domain tests · Flutter tests · api tests
+  │                   api tests against a Postgres container · both images built
+  │                   infra typecheck · pulumi preview against staging
   │
-  └─ CD: build image ──► Artifact Registry ──► Cloud Run revision ──► smoke test
-             │                                        │
-             └── authenticated by Workload Identity Federation ──┘
-                 (short-lived OIDC token; no service-account key exists)
+  ├─ CD (cd.yml, apps/pwa): build image ──► Artifact Registry ──► reward-app revision ──► smoke test
+  │
+  └─ CD api (cd-api.yml, services/api + packages/domain):
+         build image ──► Artifact Registry ──► reward-api-migrate job ──► reward-api revision ──► smoke test
+                                                       │                        │
+                                                       └── Cloud SQL reward-api-db ─┘
+                                                          (unix socket; DATABASE_URL from Secret Manager)
+
+       every job authenticated by Workload Identity Federation
+       (short-lived OIDC token; no service-account key exists)
 ```
 
-There is no database and no backend. HelpMe Reward keeps everything in the
-browser's IndexedDB, so a deploy carries no migration and no data risk — the
-worst case of a bad deploy is that the app is wrong or unavailable, never that
-user data is lost. That is why the rollback runbook is short.
+The PWA keeps its data in the browser's IndexedDB, so its deploy carries no
+migration and no data risk. The api has a database: a deploy runs the
+migrations first and stops if they fail, and the data at risk is device
+registrations, not a household's cards. [06 — Database](06-database.md) has
+the backup and restore procedure; [04 — Rollback](04-rollback.md) says why a
+service rollback never rolls the schema back with it.
 
 ## Conventions used here
 
