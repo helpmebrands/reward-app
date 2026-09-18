@@ -102,3 +102,27 @@ describe('infra, runbooks, workflows and container files', () => {
     expect(stale).toEqual([])
   })
 })
+
+describe('monorepo layout', () => {
+  // @lat: [[tests#Infrastructure config#Root package declares the workspaces]]
+  it('declares apps/pwa and infra as npm workspaces at the root', () => {
+    const pkg = JSON.parse(read('package.json')) as { workspaces?: string[] }
+    expect(pkg.workspaces).toEqual(['apps/pwa', 'infra'])
+  })
+
+  // @lat: [[tests#Infrastructure config#The PWA lives in apps/pwa]]
+  it('keeps the PWA package, Dockerfile and nginx config under apps/pwa', () => {
+    const pwa = JSON.parse(read('apps/pwa/package.json')) as { name: string }
+    expect(pwa.name).toBe('@helpmebrands/reward-app')
+    expect(statSync(join(root, 'apps/pwa/Dockerfile')).isFile()).toBe(true)
+    expect(statSync(join(root, 'apps/pwa/deploy/nginx.conf.template')).isFile()).toBe(true)
+  })
+
+  // @lat: [[tests#Infrastructure config#Workflows build the PWA image from its Dockerfile]]
+  it('builds the image from apps/pwa/Dockerfile in verify and cd', () => {
+    for (const workflow of ['verify.yml', 'cd.yml']) {
+      const text = read(`.github/workflows/${workflow}`)
+      expect(text, workflow).toContain('file: apps/pwa/Dockerfile')
+    }
+  })
+})
