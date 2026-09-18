@@ -396,7 +396,7 @@ void main() {
         final months = monthlyTotals(
           data,
           missedCycles(data, today),
-          today,
+          on: today,
           months: 9,
         );
         expect(months, hasLength(9));
