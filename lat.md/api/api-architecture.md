@@ -6,13 +6,29 @@ A shelf handler behind a small entrypoint, compiled ahead of time into a single 
 
 ## Handler
 
-`buildHandler` in `lib/api.dart` returns the api as one shelf `Handler`: a `shelf_router` router behind middleware that turns any uncaught error into a JSON 500, so a client never sees a stack trace. Routes are added to the router as they land.
+`buildHandler` in `lib/api.dart` returns the api as one shelf `Handler`: a `shelf_router` router behind middleware that turns any uncaught error into a JSON 500, so a client never sees a stack trace.
+
+It takes an optional Postgres `Session` for the storage-backed routes: a `Connection` in tests, a `Pool` in the server, and none at all when only liveness is wanted, in which case those routes answer 503 `{"error":"no database"}` rather than pretending ([[api-tests#Devices#Without a database the device routes answer 503]]).
 
 `GET /healthz` is liveness for Cloud Run and the smoke tests: 200 with `{"status":"ok","version":…}` while the process serves, the version carried so a deploy can be told apart from the last one. Pinned by [[api-tests#Health]].
 
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
+
+With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped connection is replaced rather than poisoning every later request; without one it serves health only and says so on its startup line, which is what the container smoke test runs against.
+
+## Devices
+
+Push-device registration in `lib/devices.dart`: the first real endpoint, replacing the `VITE_PUSH_API` backend the PWA never had ([[delivery#Delivery paths]]). There are no accounts ([[overview]]), so the FCM token is the only identity the service holds.
+
+Sending reminders is not in this epic.
+
+`POST /v1/devices` takes `{token, installationId, platform, timezone}`: the FCM token, an id the app generated for its own installation, `ios` or `android`, and an IANA zone name. `Device.parse` names the first field that is missing, blank or malformed as a 400 `{"error":"invalid","field":…}`; a body that is not a JSON object is field `body`. The zone's shape is checked in Dart and its existence by asking `pg_timezone_names`, so the api ships no zone list of its own. The row is upserted by token: a repeat registration replaces installation, platform and zone and bumps `updated_at`. The response is 200 with the stored fields.
+
+`DELETE /v1/devices/{token}` removes the row: 204, or 404 when nothing was registered under that token, so a client can tell the two apart.
+
+`0002_devices.sql` creates `devices (token PRIMARY KEY, installation_id, platform CHECK ios|android, timezone, registered_at, updated_at)`. A token reissued by FCM leaves the old row behind under the same installation id; reconciling those is a later concern, once something sends. Pinned by [[api-tests#Devices]].
 
 ## Migrations
 
@@ -26,7 +42,7 @@ A file is `NNNN_name.sql`. `listMigrations` sorts the `.sql` files by numeric ve
 
 `services/api/docker-compose.yml` starts `postgres:16` locally as `reward:reward@localhost:5432/reward`; the container speaks plain TCP, so the URL carries `sslmode=disable` where the driver would otherwise insist on TLS. The `api` CI job runs the same image as a service container ([[infra-tests#Infrastructure config#Api job tests against a Postgres service container]]).
 
-`0001_init.sql` is the first migration and sets only a comment on the schema: nothing product-shaped lives in the database until the device registration endpoint brings its table.
+`0001_init.sql` is the first migration and sets only a comment on the schema; `0002_devices.sql` brings the first table ([[api-architecture#Devices]]).
 
 ## Container
 
