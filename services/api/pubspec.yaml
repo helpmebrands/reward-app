@@ -9,6 +9,7 @@ dependencies:
   domain:
     path: ../../packages/domain
   shelf: ^1.4.2
+  postgres: ^3.5.14
   shelf_router: ^1.1.4
 dev_dependencies:
   lints: ^6.0.0

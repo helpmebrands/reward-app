@@ -64,6 +64,10 @@ The Dart SDK comes from the Flutter SDK, because the workspace includes the Flut
 
 `verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/healthz` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).
 
+### Api job tests against a Postgres service container
+
+The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isready` health check and runs `dart test` with a `DATABASE_URL` carrying `sslmode=disable`, so the migration integration tests run in review instead of skipping ([[api-architecture#Migrations]]).
+
 ### Root package declares the workspaces
 
 The root `package.json` lists exactly `apps/pwa` and `infra` as npm workspaces, so one lockfile covers both and `npm test`, `lint`, `typecheck` and `build` delegate from the root ([[pwa#Source layout]]).

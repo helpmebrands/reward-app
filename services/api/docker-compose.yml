@@ -1,0 +1,21 @@
+# Local PostgreSQL for the api, matching the service container the `api` CI
+# job runs the integration tests against.
+#
+#   docker compose up -d
+#   export DATABASE_URL=postgres://reward:reward@localhost:5432/reward?sslmode=disable
+#   dart run bin/migrate.dart
+#   dart test
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: reward
+      POSTGRES_PASSWORD: reward
+      POSTGRES_DB: reward
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reward -d reward"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

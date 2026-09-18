@@ -90,6 +90,16 @@ describe('verify workflow', () => {
     expect(apiJob).toContain('file: services/api/Dockerfile')
     expect(apiJob).toContain('/healthz')
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Api job tests against a Postgres service container]]
+  it('gives the api job a Postgres service container and DATABASE_URL', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const apiJob = verify.split(/^ {2}api:\s*$/m)[1]
+    expect(apiJob).toContain('image: postgres:16')
+    expect(apiJob).toContain('pg_isready')
+    expect(apiJob).toContain('DATABASE_URL: postgres://')
+    expect(apiJob).toContain('sslmode=disable')
+  })
 })
 
 describe('runbook README', () => {

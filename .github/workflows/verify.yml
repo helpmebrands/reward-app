@@ -174,6 +174,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # The integration tests run the migrations against a real PostgreSQL,
+    # the same image as services/api/docker-compose.yml. `sslmode=disable`
+    # because the container speaks plain TCP and the driver defaults to TLS.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: reward
+          POSTGRES_PASSWORD: reward
+          POSTGRES_DB: reward
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U reward -d reward"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -192,6 +210,8 @@ jobs:
       - name: Test
         run: dart test
         working-directory: services/api
+        env:
+          DATABASE_URL: postgres://reward:reward@localhost:5432/reward?sslmode=disable
 
       - uses: docker/setup-buildx-action@v3
 
