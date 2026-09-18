@@ -112,9 +112,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck --workspace infra
 
-  # The Dart pub workspace: packages/domain today, the Flutter app and the
-  # service tier as they land. Analysed at the root so every package is
-  # covered; tested per package because `dart test` runs in one package.
+  # The Dart pub workspace: packages/domain and the Flutter app, the service
+  # tier as it lands. The workspace includes a Flutter package, so the Dart
+  # SDK comes from the Flutter SDK; a standalone Dart cannot resolve it.
+  # Analysed at the root so every package is covered; tested per package
+  # because `dart test` runs in one package.
   dart:
     name: Dart analyze and test
     runs-on: ubuntu-latest
@@ -123,9 +125,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: 3.12.2
+          flutter-version: 3.44.8
+          cache: true
 
       - name: Resolve the workspace
         run: dart pub get
@@ -136,6 +139,32 @@ jobs:
       - name: Test packages/domain
         run: dart test
         working-directory: packages/domain
+
+  # The Flutter app, in its own job so a widget failure names itself.
+  flutter:
+    name: Flutter analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          cache: true
+
+      - name: Resolve the workspace
+        run: dart pub get
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        run: flutter test
 
   container:
     name: Container builds

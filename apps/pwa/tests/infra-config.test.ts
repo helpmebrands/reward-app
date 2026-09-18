@@ -69,6 +69,16 @@ describe('verify workflow', () => {
     expect(dartJob).toContain('dart analyze')
     expect(dartJob).toContain('dart test')
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Verify gate analyses and tests the Flutter app]]
+  it('analyses and tests the Flutter app in its own job', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const flutterJob = verify.split(/^ {2}flutter:\s*$/m)[1]
+    expect(flutterJob).toBeDefined()
+    expect(flutterJob).toContain('flutter analyze')
+    expect(flutterJob).toContain('flutter test')
+    expect(flutterJob).toContain('working-directory: apps/mobile')
+  })
 })
 
 describe('runbook README', () => {
@@ -127,6 +137,7 @@ describe('monorepo layout', () => {
     const pubspec = read('pubspec.yaml')
     const workspace = pubspec.split(/^workspace:\s*$/m)[1] ?? ''
     expect(workspace).toMatch(/^\s+- packages\/domain\s*$/m)
+    expect(workspace).toMatch(/^\s+- apps\/mobile\s*$/m)
     expect(read('packages/domain/pubspec.yaml')).toMatch(/^resolution: workspace$/m)
   })
 
