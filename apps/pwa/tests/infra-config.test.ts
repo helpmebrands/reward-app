@@ -24,6 +24,13 @@ describe('Pulumi project config', () => {
   })
 
   // @lat: [[infra-tests#Infrastructure config#Project config declares no namespaced keys]]
+  // @lat: [[infra-tests#Infrastructure config#Project config declares the database tier]]
+  it('declares the Cloud SQL tier with the smallest default', () => {
+    const configBlock = read('infra/Pulumi.yaml').split(/^config:\s*$/m)[1] ?? ''
+    expect(configBlock).toMatch(/^ {2}dbTier:\s*$/m)
+    expect(configBlock).toContain('default: db-f1-micro')
+  })
+
   it('declares no namespaced keys at project level', () => {
     const configBlock = read('infra/Pulumi.yaml').split(/^config:\s*$/m)[1] ?? ''
     const namespaced = configBlock.match(/^ {2}[\w-]+:[\w-]+:/gm) ?? []
@@ -44,6 +51,14 @@ describe('staging stack config', () => {
     expect(staging()).toMatch(/^\s+reward-app:customDomain:\s*staging\.helpmereward\.com\s*$/m)
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Staging uses the KMS secrets provider]]
+  it('encrypts its secrets with the staging KMS key, not a passphrase', () => {
+    expect(staging).toMatch(
+      /^secretsprovider: gcpkms:\/\/projects\/helpme-reward-staging\/locations\/us-central1\/keyRings\/pulumi\/cryptoKeys\/staging$/m,
+    )
+    expect(staging).toMatch(/^encryptedkey: /m)
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Staging trusts this repository]]
   it('trusts helpmebrands/reward-app to deploy', () => {
     expect(staging()).toMatch(/^\s+[\w-]+:githubRepo:\s*helpmebrands\/reward-app\s*$/m)
@@ -61,6 +76,18 @@ describe('verify workflow', () => {
   })
 
   // @lat: [[infra-tests#Infrastructure config#Verify gate analyses and tests the Dart workspace]]
+  // @lat: [[infra-tests#Infrastructure config#Verify gate previews the Pulumi program with keyless credentials]]
+  it('previews the Pulumi program against the state bucket in the infra job', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const infraJob = verify.split(/^ {2}infra:\s*$/m)[1]
+    expect(infraJob).toContain('google-github-actions/auth@v2')
+    expect(infraJob).toContain('pulumi login gs://helpme-reward-staging-pulumi-state')
+    expect(infraJob).toContain('pulumi preview')
+    // WIF needs an OIDC token; the calling workflow must grant it.
+    expect(read('.github/workflows/ci.yml')).toMatch(/^ {2}id-token: write$/m)
+    expect(read('.github/workflows/cd.yml')).toMatch(/^ {2}id-token: write$/m)
+  })
+
   it('analyses and tests the Dart workspace in its own job', () => {
     const verify = read('.github/workflows/verify.yml')
     const dartJob = verify.split(/^ {2}dart:\s*$/m)[1]
