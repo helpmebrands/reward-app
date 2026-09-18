@@ -23,7 +23,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Statuses, totals and ledgers
 
-`apps/pwa/tests/selectors.test.ts` pins the status ladder and the derived views ([[domain#Status ladder]], [[domain#Missed ledger]]).
+`apps/pwa/tests/selectors.test.ts` and its port `packages/domain/test/selectors_test.dart` pin the status ladder and the derived views ([[domain#Status ladder]], [[domain#Missed ledger]]).
 
 - Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrolment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
 - Ordering puts what closes soonest first and locked below open.

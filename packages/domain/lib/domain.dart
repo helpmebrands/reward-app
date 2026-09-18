@@ -6,4 +6,5 @@ library;
 
 export 'src/cycles.dart';
 export 'src/dates.dart';
+export 'src/selectors.dart';
 export 'src/types.dart';

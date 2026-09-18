@@ -3,9 +3,27 @@ import 'package:domain/domain.dart';
 /// Test fixtures, so each test states only what it is actually about. The
 /// values mirror the PWA's `apps/pwa/tests/factories.ts`.
 
+/// The PWA's default settings: reminders off at 09:00, a $1 floor, a 30-day
+/// use-soon horizon.
+const Settings defaultSettings = Settings(
+  notifications: NotificationSettings(
+    enabled: false,
+    timeOfDay: '09:00',
+    minValueCents: 100,
+    annualFeeReminder: true,
+    enrollmentReminder: true,
+  ),
+  useSoonDays: 30,
+  theme: ThemeSetting.system,
+  holderFilter: '',
+);
+
 Card makeCard({
   String id = 'card-1',
+  String issuer = 'American Express',
+  String product = 'Platinum',
   String holder = 'Jim',
+  String? nickname,
   int annualFeeCents = 89500,
   IsoDate anniversaryOn = '2020-03-14',
   bool muted = false,
@@ -14,9 +32,10 @@ Card makeCard({
 }) {
   return Card(
     id: id,
-    issuer: 'American Express',
-    product: 'Platinum',
+    issuer: issuer,
+    product: product,
     holder: holder,
+    nickname: nickname,
     network: CardNetwork.amex,
     annualFeeCents: annualFeeCents,
     anniversaryOn: anniversaryOn,
@@ -58,5 +77,36 @@ Benefit makeBenefit(
     active: active,
     createdAt: '2020-03-14T00:00:00.000Z',
     updatedAt: '2020-03-14T00:00:00.000Z',
+  );
+}
+
+Claim makeClaim({
+  String id = 'claim-1',
+  String benefitId = 'benefit-1',
+  IsoDate cycleKey = '2026-09-01',
+  int amountCents = 2500,
+  IsoInstant claimedAt = '2026-09-10T12:00:00.000Z',
+}) {
+  return Claim(
+    id: id,
+    benefitId: benefitId,
+    cycleKey: cycleKey,
+    amountCents: amountCents,
+    claimedAt: claimedAt,
+  );
+}
+
+AppData makeData({
+  List<Card>? cards,
+  List<Benefit>? benefits,
+  List<Claim> claims = const [],
+  Settings settings = defaultSettings,
+}) {
+  return AppData(
+    version: 1,
+    cards: cards ?? [makeCard()],
+    benefits: benefits ?? [makeBenefit(Cadence.monthly)],
+    claims: claims,
+    settings: settings,
   );
 }
