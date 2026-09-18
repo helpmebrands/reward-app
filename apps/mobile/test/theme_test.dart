@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reward/data/snapshot_store.dart';
+import 'package:reward/logic/app_store.dart';
 import 'package:reward/main.dart';
 import 'package:reward/theme/nocturne_tokens.dart';
 import 'package:reward/theme/theme.dart';
@@ -30,8 +32,14 @@ void main() {
   ) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    await tester.pumpWidget(const RewardApp());
-    final context = tester.element(find.text('Today'));
+    final store = AppStore(
+      store: MemorySnapshotStore(),
+      clock: () => '2026-09-16',
+    );
+    await store.load();
+    await tester.pumpWidget(RewardApp(store: store));
+    await tester.pumpAndSettle();
+    final context = tester.element(find.text('Start with one card'));
     expect(Theme.of(context).colorScheme.primary, NocturneTokens.dark.accent);
     expect(
       Theme.of(context).extension<NocturneTokens>()!.soon.ground,
