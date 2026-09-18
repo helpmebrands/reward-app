@@ -95,6 +95,8 @@ export interface AppStore {
   claim(instance: BenefitInstance, amountCents?: number, note?: string): Claim
   /** Removes every claim recorded against one cycle. */
   unclaim(benefitId: string, cycleKey: IsoDate): void
+  /** Removes one claim, leaving the rest of the cycle's history alone. */
+  removeClaim(id: string): void
 
   updateSettings(patch: Partial<Settings>): void
   updateNotificationSettings(patch: Partial<NotificationSettings>): void
@@ -279,6 +281,14 @@ export function AppProvider(props: ParentProps) {
           draft.claims = draft.claims.filter(
             (c) => !(c.benefitId === benefitId && c.cycleKey === cycleKey),
           )
+        }),
+      )
+    },
+
+    removeClaim(id) {
+      write(
+        produce((draft) => {
+          draft.claims = draft.claims.filter((c) => c.id !== id)
         }),
       )
     },

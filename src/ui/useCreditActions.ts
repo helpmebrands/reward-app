@@ -21,7 +21,8 @@ export function useCreditActions() {
       const claim = app.claim(instance)
       snackbar.show(`Logged ${formatMoney(claim.amountCents)} on ${instance.benefit.name}.`, {
         label: 'Undo',
-        onAct: () => app.unclaim(claim.benefitId, claim.cycleKey),
+        ariaLabel: `Undo logging ${instance.benefit.name}`,
+        onAct: () => app.removeClaim(claim.id),
       })
     },
 
@@ -33,7 +34,13 @@ export function useCreditActions() {
         wasMuted
           ? `Reminders back on for ${instance.benefit.name}.`
           : `Silenced ${instance.benefit.name}. It is still tracked.`,
-        { label: 'Undo', onAct: () => app.toggleBenefitMute(instance.benefit.id) },
+        {
+          label: 'Undo',
+          ariaLabel: wasMuted
+            ? `Undo reminders back on for ${instance.benefit.name}`
+            : `Undo silencing ${instance.benefit.name}`,
+          onAct: () => app.toggleBenefitMute(instance.benefit.id),
+        },
       )
     },
   }

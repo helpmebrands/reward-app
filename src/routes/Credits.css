@@ -16,7 +16,7 @@
 }
 
 .totals__figure {
-  font: 500 19px var(--font-heading);
+  font: 500 var(--type-h2) var(--font-heading);
   letter-spacing: -0.025em;
 }
 
@@ -84,14 +84,14 @@
 }
 
 .credits__group-label {
-  font: 500 12px var(--font-heading);
+  font: 500 var(--type-body-sm) var(--font-heading);
   letter-spacing: 0.01em;
 }
 
 .credits__group-foot {
   margin-top: var(--space-3);
-  font-size: 10.5px;
-  color: var(--color-neutral-700);
+  font-size: var(--type-sm);
+  color: var(--text-secondary);
 }
 
 /* A fieldset is the semantic wrapper for a set of related controls; its default

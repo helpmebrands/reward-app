@@ -85,9 +85,7 @@ export function CreditRow(props: CreditRowProps) {
 
           <span class="row-card__text">
             <span class="row-card__title truncate">{props.instance.benefit.name}</span>
-            <span class="row-card__sub truncate">
-              {subtitle(props.instance, props.showCard ?? false)}
-            </span>
+            <span class="row-card__sub">{subtitle(props.instance, props.showCard ?? false)}</span>
           </span>
 
           <span class="row-card__amounts">

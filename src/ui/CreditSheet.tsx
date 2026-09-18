@@ -8,7 +8,7 @@ import {
 } from '../domain/format.ts'
 import { currentRung, ladderFor } from '../domain/ladder.ts'
 import { cardLabel, statusLabel } from '../domain/selectors.ts'
-import type { BenefitInstance } from '../domain/types.ts'
+import type { BenefitInstance, Claim } from '../domain/types.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from './Ph.tsx'
 import { Sheet } from './Sheet.tsx'
@@ -52,15 +52,33 @@ export function CreditSheet(props: CreditSheetProps) {
     return [...new Set(candidates)]
   })
 
+  /** What has been logged against this cycle, newest first. */
+  const claims = createMemo(() => {
+    const current = instance()
+    if (!current) return []
+    return app.data.claims
+      .filter((c) => c.benefitId === current.benefit.id && c.cycleKey === current.cycle.key)
+      .sort((a, b) => b.claimedAt.localeCompare(a.claimedAt))
+  })
+
   function log(amountCents?: number) {
     const current = instance()
     if (!current) return
     const claim = app.claim(current, amountCents)
     snackbar.show(`Logged ${formatMoney(claim.amountCents)} on ${current.benefit.name}.`, {
       label: 'Undo',
-      onAct: () => app.unclaim(claim.benefitId, claim.cycleKey),
+      ariaLabel: `Undo logging ${current.benefit.name}`,
+      onAct: () => app.removeClaim(claim.id),
     })
     props.onClose()
+  }
+
+  function removeClaim(claim: Claim) {
+    const current = instance()
+    app.removeClaim(claim.id)
+    snackbar.show(
+      `Removed ${formatMoney(claim.amountCents)} from ${current?.benefit.name ?? 'the credit'}.`,
+    )
   }
 
   function logCustom() {
@@ -88,7 +106,12 @@ export function CreditSheet(props: CreditSheetProps) {
   }
 
   return (
-    <Sheet open={instance() !== null} onClose={props.onClose} title={benefit()?.name ?? 'Credit'}>
+    <Sheet
+      open={instance() !== null}
+      onClose={props.onClose}
+      title={benefit()?.name ?? 'Credit'}
+      wide="panel"
+    >
       <Show when={instance()}>
         {(current) => (
           <>
@@ -105,7 +128,7 @@ export function CreditSheet(props: CreditSheetProps) {
                   </span>
                 </div>
                 <h2 class="sheet-head__title">{current().benefit.name}</h2>
-                <p class="muted" style={{ 'font-size': '11.5px' }}>
+                <p class="muted" style={{ 'font-size': 'var(--type-note)' }}>
                   {cadenceLabel(current().benefit.cadence)} &middot; {current().cycle.label}
                   <Show when={current().benefit.cadence !== 'manual'}>
                     {' '}
@@ -129,7 +152,7 @@ export function CreditSheet(props: CreditSheetProps) {
                 <span class="sheet-meter__amount numeric">
                   {formatMoney(current().remainingCents)}
                 </span>
-                <span class="muted" style={{ 'font-size': '11px' }}>
+                <span class="muted" style={{ 'font-size': 'var(--type-caption)' }}>
                   left of {formatMoney(current().benefit.valueCents)}
                 </span>
               </div>
@@ -151,7 +174,7 @@ export function CreditSheet(props: CreditSheetProps) {
               </div>
               <div class="row" style={{ gap: 'var(--space-2)' }}>
                 <Ph name="clock-countdown" size={13} color="var(--color-accent-300)" />
-                <span style={{ 'font-size': '11.5px', color: 'var(--color-accent-300)' }}>
+                <span style={{ 'font-size': 'var(--type-note)', color: 'var(--color-accent-300)' }}>
                   <Show
                     when={current().benefit.cadence !== 'manual'}
                     fallback="Tracked by hand — no deadline"
@@ -235,10 +258,44 @@ export function CreditSheet(props: CreditSheetProps) {
               </section>
             </Show>
 
+            {/* Undo without a clock: every claim this period can be taken back
+                here, long after the snackbar has gone. */}
+            <Show when={claims().length > 0}>
+              <section class="sheet-section">
+                <h3 class="sheet-section__title">Logged this period</h3>
+                <ul class="sheet-claims">
+                  <For each={claims()}>
+                    {(claim) => (
+                      <li class="sheet-claims__item">
+                        <span class="grow">
+                          <span class="numeric">{formatMoney(claim.amountCents)}</span>
+                          <span class="muted">
+                            {' '}
+                            &middot; {formatDate(claim.claimedAt.slice(0, 10))}
+                          </span>
+                          <Show when={claim.note}>
+                            {(note) => <span class="muted"> &middot; {note()}</span>}
+                          </Show>
+                        </span>
+                        <button
+                          type="button"
+                          class="btn btn--small"
+                          aria-label={`Remove the ${formatMoney(claim.amountCents)} logged on ${formatDate(claim.claimedAt.slice(0, 10))}`}
+                          onClick={() => removeClaim(claim)}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </section>
+            </Show>
+
             <Show when={status() === 'captured'}>
               <section class="sheet-done">
                 <Ph name="check-circle" fill size={19} color="var(--color-accent)" />
-                <p class="grow" style={{ 'font-size': '11.5px', 'line-height': 1.5 }}>
+                <p class="grow" style={{ 'font-size': 'var(--type-note)', 'line-height': 1.5 }}>
                   Fully captured. Reminders stay off until it resets.
                 </p>
                 <button type="button" class="btn btn--small" onClick={undoAll}>
@@ -250,7 +307,7 @@ export function CreditSheet(props: CreditSheetProps) {
             <Show when={status() === 'missed'}>
               <section class="sheet-missed">
                 <Ph name="hourglass-low" size={17} color="var(--tone-missed-fg)" />
-                <p class="grow" style={{ 'font-size': '11.5px', 'line-height': 1.5 }}>
+                <p class="grow" style={{ 'font-size': 'var(--type-note)', 'line-height': 1.5 }}>
                   This window closed on {formatDate(current().cycle.end)} with{' '}
                   {formatMoney(current().remainingCents)} unused. It does not roll over.
                 </p>
@@ -325,7 +382,9 @@ export function CreditSheet(props: CreditSheetProps) {
 
               <div class="panel row row--between" style={{ 'margin-top': 'var(--space-3)' }}>
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Last call only</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Last call only
+                  </span>
                   <span class="section-note">
                     Skip the earlier rungs and warn once, at the end.
                   </span>
@@ -341,7 +400,9 @@ export function CreditSheet(props: CreditSheetProps) {
 
               <div class="panel row row--between" style={{ 'margin-top': 'var(--space-2)' }}>
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Silence this credit</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Silence this credit
+                  </span>
                   <span class="section-note">
                     Keeps tracking it, sends nothing. Status stays{' '}
                     {statusLabel(status() ?? 'available').toLowerCase()}.

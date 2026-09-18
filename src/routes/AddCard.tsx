@@ -9,11 +9,14 @@ import {
 import { todayIso } from '../domain/dates.ts'
 import { formatMoney } from '../domain/format.ts'
 import { holders } from '../domain/selectors.ts'
+import { anniversaryError, requiredError } from '../domain/validation.ts'
 import { useApp } from '../stores/app.tsx'
+import { Field, focusFirstInvalid } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import './AddCard.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Add a card, in two steps: pick the product, then say whose it is and when the
@@ -24,6 +27,7 @@ import './AddCard.css'
  */
 export function AddCard() {
   const app = useApp()
+  useScreenTitle(() => 'Add a card')
   const navigate = useNavigate()
   const snackbar = useSnackbar()
 
@@ -38,12 +42,26 @@ export function AddCard() {
   const blank = () => CARD_TEMPLATES.find((t) => t.id === 'blank')
 
   const isBlank = () => picked()?.id === 'blank'
-  const canSave = () =>
-    holder().trim().length > 0 && (!isBlank() || (issuer().trim() && product().trim()))
+  const [submitted, setSubmitted] = createSignal(false)
+
+  const errors = {
+    issuer: () => (isBlank() ? requiredError(issuer(), 'Enter who issues the card.') : null),
+    product: () => (isBlank() ? requiredError(product(), 'Enter the name of the card.') : null),
+    holder: () => requiredError(holder(), 'Enter whose card this is.'),
+    anniversary: () => anniversaryError(anniversary()),
+  }
+  const hasErrors = () => Object.values(errors).some((rule) => rule() !== null)
 
   function save() {
     const template = picked()
-    if (!template || !canSave()) return
+    if (!template) return
+    // Pressing Save with an invalid form shows the errors rather than doing
+    // nothing: a disabled button never says why.
+    setSubmitted(true)
+    if (hasErrors()) {
+      focusFirstInvalid()
+      return
+    }
 
     const card = app.addCardFromTemplate(template, {
       holder: holder().trim(),
@@ -132,7 +150,7 @@ export function AddCard() {
           }
         >
           {(template) => (
-            <div class="stack stack--loose">
+            <div class="stack stack--loose form-grid">
               <Show when={!isBlank()}>
                 <div class="panel">
                   <span class="kicker kicker--quiet">{template().issuer}</span>
@@ -145,70 +163,88 @@ export function AddCard() {
                 </div>
               </Show>
 
+              <p class="form-note">Fields marked * are required.</p>
+
               <Show when={isBlank()}>
-                <div class="field">
-                  <label class="field__label" for="issuer">
-                    Issuer
-                  </label>
-                  <input
-                    id="issuer"
-                    class="input"
-                    value={issuer()}
-                    placeholder="American Express"
-                    onInput={(e) => setIssuer(e.currentTarget.value)}
-                  />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="product">
-                    Card
-                  </label>
-                  <input
-                    id="product"
-                    class="input"
-                    value={product()}
-                    placeholder="Platinum"
-                    onInput={(e) => setProduct(e.currentTarget.value)}
-                  />
-                </div>
+                <Field
+                  id="issuer"
+                  label="Issuer"
+                  required
+                  error={errors.issuer()}
+                  submitted={submitted()}
+                >
+                  {(control) => (
+                    <input
+                      {...control}
+                      class="input"
+                      value={issuer()}
+                      placeholder="American Express"
+                      onInput={(e) => setIssuer(e.currentTarget.value)}
+                    />
+                  )}
+                </Field>
+                <Field
+                  id="product"
+                  label="Card"
+                  required
+                  error={errors.product()}
+                  submitted={submitted()}
+                >
+                  {(control) => (
+                    <input
+                      {...control}
+                      class="input"
+                      value={product()}
+                      placeholder="Platinum"
+                      onInput={(e) => setProduct(e.currentTarget.value)}
+                    />
+                  )}
+                </Field>
               </Show>
 
-              <div class="field">
-                <label class="field__label" for="holder">
-                  Whose card is it?
-                </label>
-                <input
-                  id="holder"
-                  class="input"
-                  value={holder()}
-                  placeholder="Jim"
-                  list="known-holders"
-                  onInput={(e) => setHolder(e.currentTarget.value)}
-                />
-                <datalist id="known-holders">
-                  <For each={holders(app.data)}>{(name) => <option value={name} />}</For>
-                </datalist>
-                <p class="section-note">
-                  Two people holding the same product is the case this app exists for — the name is
-                  how their credits stay apart.
-                </p>
-              </div>
+              <Field
+                id="holder"
+                label="Whose card is it?"
+                required
+                error={errors.holder()}
+                submitted={submitted()}
+                hint="Two people holding the same product is the case this app exists for — the name is how their credits stay apart."
+              >
+                {(control) => (
+                  <>
+                    <input
+                      {...control}
+                      class="input"
+                      value={holder()}
+                      placeholder="Jim"
+                      list="known-holders"
+                      onInput={(e) => setHolder(e.currentTarget.value)}
+                    />
+                    <datalist id="known-holders">
+                      <For each={holders(app.data)}>{(name) => <option value={name} />}</For>
+                    </datalist>
+                  </>
+                )}
+              </Field>
 
-              <div class="field">
-                <label class="field__label" for="anniversary">
-                  Account opened / renews on
-                </label>
-                <input
-                  id="anniversary"
-                  class="input"
-                  type="date"
-                  value={anniversary()}
-                  onInput={(e) => setAnniversary(e.currentTarget.value)}
-                />
-                <p class="section-note">
-                  Anniversary-based credits run from this date, not from 1 January. Getting it wrong
-                  is the commonest way a credit is lost.
-                </p>
-              </div>
+              <Field
+                id="anniversary"
+                label="Account opened / renews on"
+                required
+                error={errors.anniversary()}
+                submitted={submitted()}
+                hint="Anniversary-based credits run from this date, not from 1 January. Getting it wrong is the commonest way a credit is lost."
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    class="input"
+                    type="date"
+                    value={anniversary()}
+                    onInput={(e) => setAnniversary(e.currentTarget.value)}
+                  />
+                )}
+              </Field>
 
               <div class="field">
                 <label class="field__label" for="nickname">
@@ -223,12 +259,7 @@ export function AddCard() {
                 />
               </div>
 
-              <button
-                type="button"
-                class="btn btn--primary btn--block"
-                disabled={!canSave()}
-                onClick={save}
-              >
+              <button type="button" class="btn btn--primary btn--block" onClick={save}>
                 <Ph name="check" size={14} />
                 Add this card
               </button>

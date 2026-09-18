@@ -1,15 +1,23 @@
 import { useNavigate, useParams } from '@solidjs/router'
-import { createMemo, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Show } from 'solid-js'
 import { cadenceLabel, cycleFor } from '../domain/cycles.ts'
 import { formatDate } from '../domain/format.ts'
 import { ladderSummary } from '../domain/ladder.ts'
 import { categoryLabel } from '../domain/selectors.ts'
 import type { Benefit, BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
+import {
+  enrollmentUrlError,
+  parseMoney,
+  positiveMoneyError,
+  requiredError,
+} from '../domain/validation.ts'
 import { useApp } from '../stores/app.tsx'
+import { Field } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { Switch } from '../ui/Switch.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'manual']
 const CATEGORIES: BenefitCategory[] = [
@@ -41,6 +49,7 @@ export function BenefitEditor() {
   const snackbar = useSnackbar()
 
   const benefit = createMemo(() => app.data.benefits.find((b) => b.id === params.id))
+  useScreenTitle(() => benefit()?.name ?? 'Credit not found')
   const card = createMemo(() => app.data.cards.find((c) => c.id === benefit()?.cardId))
 
   const preview = createMemo(() => {
@@ -49,6 +58,20 @@ export function BenefitEditor() {
     if (!current || !owner) return null
     return cycleFor(current, owner, app.today())
   })
+
+  // What has been typed, kept apart from the store so an invalid value can
+  // show its error without being written or snapped back.
+  const [nameDraft, setNameDraft] = createSignal<string | null>(null)
+  const [valueDraft, setValueDraft] = createSignal<string | null>(null)
+  const [urlDraft, setUrlDraft] = createSignal<string | null>(null)
+  const nameText = () => nameDraft() ?? benefit()?.name ?? ''
+  const valueText = () => valueDraft() ?? ((benefit()?.valueCents ?? 0) / 100).toString()
+  const urlText = () => urlDraft() ?? benefit()?.enrollmentUrl ?? ''
+  const errors = {
+    name: () => requiredError(nameText(), 'Enter what the credit is called.'),
+    value: () => positiveMoneyError(valueText()),
+    url: () => enrollmentUrlError(urlText()),
+  }
 
   function patch(changes: Partial<Benefit>) {
     const current = benefit()
@@ -86,36 +109,41 @@ export function BenefitEditor() {
             action={{ icon: 'trash', label: 'Delete this credit', onAct: remove }}
           />
 
-          <div class="screen__pad stack stack--loose">
-            <div class="field">
-              <label class="field__label" for="benefit-name">
-                Name
-              </label>
-              <input
-                id="benefit-name"
-                class="input"
-                value={current().name}
-                onInput={(e) => patch({ name: e.currentTarget.value })}
-              />
-            </div>
+          <div class="screen__pad stack stack--loose form-grid">
+            <p class="form-note">Fields marked * are required.</p>
 
-            <div class="field">
-              <label class="field__label" for="benefit-value">
-                Value each period
-              </label>
-              <input
-                id="benefit-value"
-                class="input numeric"
-                type="number"
-                inputmode="decimal"
-                min="0"
-                step="0.01"
-                value={(current().valueCents / 100).toString()}
-                onInput={(e) =>
-                  patch({ valueCents: Math.round(Number(e.currentTarget.value || 0) * 100) })
-                }
-              />
-            </div>
+            <Field id="benefit-name" label="Name" required error={errors.name()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input"
+                  value={nameText()}
+                  onInput={(e) => {
+                    setNameDraft(e.currentTarget.value)
+                    if (!errors.name()) patch({ name: e.currentTarget.value.trim() })
+                  }}
+                />
+              )}
+            </Field>
+
+            <Field id="benefit-value" label="Value each period" required error={errors.value()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input numeric"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={valueText()}
+                  onInput={(e) => {
+                    setValueDraft(e.currentTarget.value)
+                    const cents = parseMoney(e.currentTarget.value)
+                    if (cents !== null && cents > 0) patch({ valueCents: cents })
+                  }}
+                />
+              )}
+            </Field>
 
             <div class="field">
               <label class="field__label" for="benefit-cadence">
@@ -200,7 +228,9 @@ export function BenefitEditor() {
 
             <div class="panel row row--between">
               <span class="grow">
-                <span style={{ display: 'block', 'font-size': '12px' }}>Needs enrolment</span>
+                <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                  Needs enrolment
+                </span>
                 <span class="section-note">
                   Until it is enrolled the credit is Locked, and never counted as money you are
                   failing to spend.
@@ -216,7 +246,9 @@ export function BenefitEditor() {
             <Show when={current().enrollmentRequired}>
               <div class="panel row row--between">
                 <span class="grow">
-                  <span style={{ display: 'block', 'font-size': '12px' }}>Enrolled</span>
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Enrolled
+                  </span>
                   <span class="section-note">
                     <Show when={current().enrolledAt} fallback="Not yet — the credit is locked.">
                       {(at) => `Confirmed ${formatDate(at().slice(0, 10))}.`}
@@ -232,20 +264,22 @@ export function BenefitEditor() {
                 />
               </div>
 
-              <div class="field">
-                <label class="field__label" for="benefit-enrol-url">
-                  Enrolment page (optional)
-                </label>
-                <input
-                  id="benefit-enrol-url"
-                  class="input"
-                  type="url"
-                  inputmode="url"
-                  value={current().enrollmentUrl ?? ''}
-                  placeholder="https://"
-                  onInput={(e) => patch({ enrollmentUrl: e.currentTarget.value })}
-                />
-              </div>
+              <Field id="benefit-enrol-url" label="Enrolment page (optional)" error={errors.url()}>
+                {(control) => (
+                  <input
+                    {...control}
+                    class="input"
+                    type="url"
+                    inputmode="url"
+                    value={urlText()}
+                    placeholder="https://"
+                    onInput={(e) => {
+                      setUrlDraft(e.currentTarget.value)
+                      if (!errors.url()) patch({ enrollmentUrl: e.currentTarget.value.trim() })
+                    }}
+                  />
+                )}
+              </Field>
             </Show>
 
             <div class="field">
@@ -270,7 +304,9 @@ export function BenefitEditor() {
 
             <div class="panel row row--between">
               <span class="grow">
-                <span style={{ display: 'block', 'font-size': '12px' }}>Track this credit</span>
+                <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                  Track this credit
+                </span>
                 <span class="section-note">
                   Turn off to keep its history without counting it or reminding you.
                 </span>

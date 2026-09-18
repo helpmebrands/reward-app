@@ -68,7 +68,7 @@ A claim records one use of a credit within one cycle. Partial claims are the nor
 Rules the store enforces ([[src/stores/app.tsx#AppProvider]]):
 
 - Claiming without an amount takes what is *left*, not the face value, so a second claim on a partly used credit cannot overshoot.
-- `unclaim` removes every claim against one cycle. That is what the snackbar's Undo calls.
+- `unclaim` removes every claim against one cycle; `removeClaim` removes one. The snackbar's Undo and the sheet's Remove both remove the one claim just made.
 - Deleting a benefit or card deletes its claims with it.
 
 Claims are indexed once per resolve ([[src/domain/selectors.ts#indexClaims]]) so resolving every credit stays linear.
@@ -139,6 +139,15 @@ A card is judged against its own annual fee, over its own cardmember year. Six c
 [[src/domain/selectors.ts#summarizeCard]] builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit ([[src/domain/selectors.ts#cardYearStart]]), and `capturedCents` is the sum of claims logged since that date ([[src/domain/selectors.ts#claimedThisCardYear]]). `netCents` is captured minus fee; `feeProgress` is the break-even bar.
 
 This is why the Value tab and the Cards tab can disagree: Value covers the last nine calendar months, while each card's figure covers only its own fee period. A credit only pays for the fee it was issued against.
+
+## Form rules
+
+`src/domain/validation.ts` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
+
+- [[src/domain/validation.ts#requiredError]]: a text field must not be blank; the caller supplies the sentence.
+- [[src/domain/validation.ts#moneyError]] and [[src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
+- [[src/domain/validation.ts#anniversaryError]]: the cardmember year start is a real calendar date.
+- [[src/domain/validation.ts#enrollmentUrlError]]: an enrolment page, if given, is an http or https URL.
 
 ## Card catalogue
 

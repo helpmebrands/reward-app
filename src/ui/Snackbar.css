@@ -3,7 +3,8 @@
 
 .snackbar {
   position: fixed;
-  left: 50%;
+  /* Centred on the content column, which the rail pushes right of centre. */
+  left: calc(50% + var(--rail-width) / 2);
   transform: translateX(-50%);
   bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + var(--space-6));
   z-index: 90;
@@ -23,7 +24,7 @@
 .snackbar__text {
   flex: 1;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: var(--type-body);
   line-height: 1.45;
   color: var(--color-neutral-200);
   text-wrap: pretty;
@@ -35,5 +36,5 @@
   padding: 0 var(--space-3);
   margin: calc(var(--touch-target) / -2 + 14px) 0;
   color: var(--color-accent-300);
-  font: 500 12px var(--font-body);
+  font: 500 var(--type-body-sm) var(--font-body);
 }

@@ -1,4 +1,4 @@
-import { createMemo, createSignal, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Index, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
 import { formatMoney } from '../domain/format.ts'
 import {
@@ -19,6 +19,7 @@ import { HolderFilter } from '../ui/HolderFilter.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useCreditActions } from '../ui/useCreditActions.ts'
 import './Credits.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Credits: the ledger.
@@ -70,6 +71,7 @@ const STATUS_TONE: Record<BenefitStatus, string> = {
 
 export function Credits() {
   const app = useApp()
+  useScreenTitle(() => 'Credits')
   const ui = useUi()
   const actions = useCreditActions()
   const [grouping, setGrouping] = createSignal<Grouping>('card')
@@ -177,7 +179,9 @@ export function Credits() {
   return (
     <div class="screen__pad">
       <header style={{ 'margin-bottom': 'var(--space-6)' }}>
-        <h1 class="screen-title">All credits</h1>
+        <h1 class="screen-title" tabindex="-1">
+          All credits
+        </h1>
         <p class="screen-sub" style={{ 'margin-top': 'var(--space-2)' }}>
           {app.visibleInstances().filter(isClaimable).length} open &middot;{' '}
           {byStatus(app.visibleInstances(), 'locked').length} locked &middot; {app.missed().length}{' '}
@@ -263,22 +267,24 @@ export function Credits() {
                 />
                 <h2 class="credits__group-label">{group.label}</h2>
                 <span class="rule" aria-hidden="true" />
-                <span class="muted numeric" style={{ 'font-size': '11px' }}>
+                <span class="muted numeric" style={{ 'font-size': 'var(--type-caption)' }}>
                   {group.figure}
                 </span>
               </div>
               <div class="list">
-                <For each={group.instances}>
+                {/* Index, not For: instances are rebuilt on every change, and For
+                    would rebuild the rows and drop keyboard focus with them. */}
+                <Index each={group.instances}>
                   {(instance) => (
                     <CreditRow
-                      instance={instance}
+                      instance={instance()}
                       showCard={grouping() !== 'card'}
-                      onOpen={() => ui.openCredit(instance.benefit.id)}
-                      onLogAll={() => actions.logAll(instance)}
-                      onToggleMute={() => actions.toggleMute(instance)}
+                      onOpen={() => ui.openCredit(instance().benefit.id)}
+                      onLogAll={() => actions.logAll(instance())}
+                      onToggleMute={() => actions.toggleMute(instance())}
                     />
                   )}
-                </For>
+                </Index>
               </div>
               <Show when={grouping() === 'card' && group.instances[0]}>
                 {(first) => (

@@ -53,7 +53,13 @@ It is a context rather than props because the shell renders the sheets while the
 
 Routes: `/` Today, `/credits`, `/cards`, `/cards/new`, `/cards/:id`, `/benefit/:id`, `/value`, `/settings`, and a not-found fallback.
 
-The shell also owns three effects: republishing the reminder schedule on every data change (cheap, and a stale schedule is a missed reminder), stamping `data-theme` on the document element where the token sheet can see it, and listening for the worker's `navigate` message when a notification is tapped.
+The shell also owns four effects: republishing the reminder schedule on every data change (cheap, and a stale schedule is a missed reminder), stamping `data-theme` on the document element where the token sheet can see it, listening for the worker's `navigate` message when a notification is tapped, and moving focus on navigation.
+
+### Titles and focus
+
+Every screen calls [[src/ui/useScreenTitle.ts#useScreenTitle]], which sets `document.title` to `<Screen> · HelpMe Reward`; editors use the card or credit name (WCAG 2.4.2).
+
+On every route change after the first render, the shell focuses the new screen's `<h1>`, each of which carries `tabindex="-1"` (WCAG 2.4.3). The one exception is a press on the tab bar, where focus stays on the tab the user pressed. The skip link keeps targeting `#main`. Specified by [[tests#Accessibility tests#Navigation moves focus to the new heading]].
 
 ## Service worker lifecycle
 
@@ -69,7 +75,9 @@ Other decisions in `vite.config.ts` and `src/sw.ts`:
 
 ## PWA manifest
 
-The app installs as a standalone, portrait-only app with two shortcuts: "Expiring soon" (`/?filter=expiring`) and "Add a card" (`/cards/new`). Icons include a maskable variant.
+The app installs as a standalone app with two shortcuts: "Expiring soon" (`/?filter=expiring`) and "Add a card" (`/cards/new`). Icons include a maskable variant.
+
+The manifest sets no `orientation`, so the OS decides and the app rotates (WCAG 1.3.4). The compact layout has a short-viewport form for a phone on its side ([[design#Accessibility]]).
 
 ### Brand assets
 

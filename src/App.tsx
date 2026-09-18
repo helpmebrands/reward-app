@@ -1,5 +1,5 @@
-import { Route, Router, useNavigate } from '@solidjs/router'
-import { createEffect, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
+import { type RouteDefinition, Router, useLocation, useNavigate } from '@solidjs/router'
+import { createEffect, on, onCleanup, onMount, type ParentProps, Show } from 'solid-js'
 import type { OverlapGroup } from './domain/selectors.ts'
 import { findOverlaps } from './domain/selectors.ts'
 import type { BenefitInstance } from './domain/types.ts'
@@ -20,6 +20,7 @@ import { NudgePreview } from './ui/NudgePreview.tsx'
 import { Ph } from './ui/Ph.tsx'
 import { SnackbarProvider } from './ui/Snackbar.tsx'
 import { TabBar } from './ui/TabBar.tsx'
+import { useScreenTitle } from './ui/useScreenTitle.ts'
 
 /**
  * The app shell, used as the router's root layout.
@@ -27,11 +28,15 @@ import { TabBar } from './ui/TabBar.tsx'
  * It has to sit inside `<Router>` — the tab bar and the notification handler
  * both use router primitives — and it renders the sheets so that a credit
  * opened from Today, from Credits or from a compare all share one instance.
+ *
+ * Exported, with `routes`, so the accessibility tests can mount the real
+ * shell on a memory router.
  */
-function Shell(props: ParentProps) {
+export function Shell(props: ParentProps) {
   const app = useApp()
   const ui = useUi()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const openInstance = (): BenefitInstance | null =>
     app.instances().find((i) => i.benefit.id === ui.openBenefitId()) ?? null
@@ -55,6 +60,23 @@ function Shell(props: ParentProps) {
     else document.documentElement.setAttribute('data-theme', theme)
   })
 
+  // Moving between screens never reloads the document, so focus would stay
+  // wherever it was — often on a control that no longer exists — and a screen
+  // reader would say nothing. Each screen's <h1> carries tabindex="-1" and
+  // takes focus on arrival (WCAG 2.4.3). A tab press is the exception: the
+  // user is still on the tab they pressed, and stays there. The first render
+  // is skipped so the page loads with focus at the top, as pages do.
+  createEffect(
+    on(
+      () => location.pathname,
+      () => {
+        if (document.activeElement?.closest('.tabbar')) return
+        queueMicrotask(() => document.querySelector<HTMLElement>('#main h1')?.focus())
+      },
+      { defer: true },
+    ),
+  )
+
   // A tapped notification asks the worker to bring us to the right screen.
   onMount(() => {
     const onMessage = (event: MessageEvent) => {
@@ -67,6 +89,9 @@ function Shell(props: ParentProps) {
 
   return (
     <div class="shell">
+      <div class="shell__glow" aria-hidden="true">
+        <div class="shell__bloom" />
+      </div>
       <a class="skip-link" href="#main">
         Skip to content
       </a>
@@ -109,12 +134,15 @@ function Shell(props: ParentProps) {
 }
 
 function NotFound() {
+  useScreenTitle(() => 'Not found')
   return (
     <div class="screen__pad empty">
       <span class="empty__glyph">
         <Ph name="compass" />
       </span>
-      <p class="section-note">That screen does not exist.</p>
+      <h1 class="section-title" tabindex="-1">
+        That screen does not exist.
+      </h1>
       <a class="btn btn--primary" href="/">
         Back to Today
       </a>
@@ -122,22 +150,24 @@ function NotFound() {
   )
 }
 
+export const routes: RouteDefinition[] = [
+  { path: '/', component: Today },
+  { path: '/credits', component: Credits },
+  { path: '/cards', component: Cards },
+  { path: '/cards/new', component: AddCard },
+  { path: '/cards/:id', component: CardEditor },
+  { path: '/benefit/:id', component: BenefitEditor },
+  { path: '/value', component: Value },
+  { path: '/settings', component: Settings },
+  { path: '*', component: NotFound },
+]
+
 export function App() {
   return (
     <AppProvider>
       <UiProvider>
         <SnackbarProvider>
-          <Router root={Shell}>
-            <Route path="/" component={Today} />
-            <Route path="/credits" component={Credits} />
-            <Route path="/cards" component={Cards} />
-            <Route path="/cards/new" component={AddCard} />
-            <Route path="/cards/:id" component={CardEditor} />
-            <Route path="/benefit/:id" component={BenefitEditor} />
-            <Route path="/value" component={Value} />
-            <Route path="/settings" component={Settings} />
-            <Route path="*" component={NotFound} />
-          </Router>
+          <Router root={Shell}>{routes}</Router>
         </SnackbarProvider>
       </UiProvider>
     </AppProvider>

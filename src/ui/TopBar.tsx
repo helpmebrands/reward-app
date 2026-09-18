@@ -23,7 +23,9 @@ export function TopBar(props: TopBarProps) {
         <Ph name="arrow-left" size={15} />
       </button>
       <div class="grow">
-        <h1 class="topbar__title truncate">{props.title}</h1>
+        <h1 class="topbar__title" tabindex="-1">
+          {props.title}
+        </h1>
         <Show when={props.subtitle}>
           <p class="topbar__sub">{props.subtitle}</p>
         </Show>

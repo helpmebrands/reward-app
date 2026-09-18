@@ -4,6 +4,7 @@ import { biggestLeaks, cardLabel, monthlyTotals } from '../domain/selectors.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import './Value.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /**
  * Value: what the household actually got, and what leaked away.
@@ -15,6 +16,7 @@ import './Value.css'
  */
 export function Value() {
   const app = useApp()
+  useScreenTitle(() => 'Value')
   const [monthsBack, setMonthsBack] = createSignal(9)
 
   const missed = () => app.missed()
@@ -34,7 +36,9 @@ export function Value() {
   return (
     <div class="screen__pad">
       <header style={{ 'margin-bottom': 'var(--space-6)' }}>
-        <h1 class="screen-title">Value</h1>
+        <h1 class="screen-title" tabindex="-1">
+          Value
+        </h1>
         <p class="screen-sub" style={{ 'margin-top': 'var(--space-2)' }}>
           Last {monthsBack()} months &middot;{' '}
           <Show
@@ -120,27 +124,29 @@ export function Value() {
           <For each={months()}>{(month) => <span>{month.label}</span>}</For>
         </div>
 
-        <table class="visually-hidden">
-          <caption>Captured against missed, by month</caption>
-          <thead>
-            <tr>
-              <th scope="col">Month</th>
-              <th scope="col">Captured</th>
-              <th scope="col">Missed</th>
-            </tr>
-          </thead>
-          <tbody>
-            <For each={months()}>
-              {(month) => (
-                <tr>
-                  <th scope="row">{month.label}</th>
-                  <td>{formatMoney(month.capturedCents)}</td>
-                  <td>{formatMoney(month.missedCents)}</td>
-                </tr>
-              )}
-            </For>
-          </tbody>
-        </table>
+        <div class="visually-hidden">
+          <table>
+            <caption>Captured against missed, by month</caption>
+            <thead>
+              <tr>
+                <th scope="col">Month</th>
+                <th scope="col">Captured</th>
+                <th scope="col">Missed</th>
+              </tr>
+            </thead>
+            <tbody>
+              <For each={months()}>
+                {(month) => (
+                  <tr>
+                    <th scope="row">{month.label}</th>
+                    <td>{formatMoney(month.capturedCents)}</td>
+                    <td>{formatMoney(month.missedCents)}</td>
+                  </tr>
+                )}
+              </For>
+            </tbody>
+          </table>
+        </div>
 
         <ul class="legend" style={{ 'margin-top': 'var(--space-4)' }}>
           <li class="legend__item">
@@ -148,7 +154,7 @@ export function Value() {
             Captured
           </li>
           <li class="legend__item">
-            <span class="legend__swatch" style={{ background: 'var(--color-neutral-800)' }} />
+            <span class="legend__swatch" style={{ background: 'var(--chart-missed)' }} />
             Missed
           </li>
         </ul>
@@ -166,13 +172,13 @@ export function Value() {
               {(summary) => (
                 <div class="value__rank">
                   <div class="row row--between" style={{ 'margin-bottom': 'var(--space-2)' }}>
-                    <span class="truncate" style={{ 'font-size': '12px' }}>
+                    <span class="grow" style={{ 'font-size': 'var(--type-body-sm)' }}>
                       {cardLabel(summary.card)}
                     </span>
                     <span
                       class="numeric"
                       style={{
-                        'font-size': '12px',
+                        'font-size': 'var(--type-body-sm)',
                         color:
                           summary.feeProgress >= 1
                             ? 'var(--color-accent-300)'
@@ -208,7 +214,7 @@ export function Value() {
                 <li class="value__leak">
                   <Ph name={leak.icon ?? 'hourglass-low'} size={14} />
                   <span class="grow">
-                    <span class="value__leak-title truncate">{leak.label}</span>
+                    <span class="value__leak-title">{leak.label}</span>
                     <span class="value__leak-when">{leak.when}</span>
                   </span>
                   <span class="value__leak-amount numeric">{formatMoney(leak.missedCents)}</span>

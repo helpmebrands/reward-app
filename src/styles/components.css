@@ -16,10 +16,12 @@
   min-height: 44px;
   padding: 0 var(--space-6);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--color-neutral-300);
-  font: 500 13px var(--font-body);
+  font: 500 var(--type-ui) var(--font-body);
+  /* A label broken over two lines reads as two buttons. */
+  white-space: nowrap;
   transition:
     background var(--duration-short) var(--ease-standard),
     border-color var(--duration-short) var(--ease-standard),
@@ -39,7 +41,7 @@
 .btn--small {
   min-height: 32px;
   padding: 0 var(--space-4);
-  font-size: 11px;
+  font-size: var(--type-caption);
 }
 
 .btn--dashed {
@@ -120,14 +122,14 @@
 }
 
 .icon-btn--muted {
-  color: var(--color-neutral-700);
+  color: var(--control-border);
 }
 
 .icon-btn--boxed {
   width: 33px;
   height: 33px;
   background: var(--surface-raised);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   color: var(--color-neutral-400);
 }
 
@@ -139,7 +141,7 @@
   gap: var(--space-2);
   padding: 3px var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: 10.5px;
+  font-size: var(--type-sm);
   line-height: 1.5;
   background: var(--color-neutral-900);
   color: var(--color-neutral-400);
@@ -163,8 +165,8 @@
 
 .tag--off {
   background: transparent;
-  border: 1px solid var(--color-neutral-800);
-  color: var(--color-neutral-600);
+  border: 1px solid var(--control-border);
+  color: var(--text-secondary);
 }
 
 /* ---- Surfaces ------------------------------------------------------------ */
@@ -185,13 +187,23 @@
 
 /*
  * The one saturated ground Nocturne sanctions, used where the app has
- * something to say rather than something to list.
+ * something to say rather than something to list. The section colour comes
+ * in as an inset glow from the top-left rather than a gradient background,
+ * so axe can measure the text; the token test checks it against both the
+ * section colour and the raised surface it fades into.
  */
 .feature {
   padding: var(--space-6);
   border-radius: var(--radius-md);
-  background: linear-gradient(148deg, var(--color-section) 0%, var(--surface-raised) 72%);
+  background: var(--surface-raised);
+  box-shadow: inset 140px 90px 160px -80px var(--color-section);
   border: 1px solid var(--color-section-glow);
+}
+
+/* The accent itself is 4.1:1 on the section ground; a kicker in here steps
+ * up the ramp. */
+.feature .kicker {
+  color: var(--color-accent-300);
 }
 
 /* ---- Bars ---------------------------------------------------------------- */
@@ -228,7 +240,7 @@
   min-width: 0;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
-  font: 500 11px var(--font-body);
+  font: 500 var(--type-caption) var(--font-body);
   overflow: hidden;
   white-space: nowrap;
   transition: flex-grow var(--duration-long) var(--ease-decelerate);
@@ -253,8 +265,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-4);
-  font-size: 10.5px;
-  color: var(--color-neutral-600);
+  font-size: var(--type-sm);
+  color: var(--text-secondary);
 }
 
 .legend__item {
@@ -279,8 +291,34 @@
 }
 
 .field__label {
-  font-size: 11px;
+  font-size: var(--type-caption);
   color: var(--color-neutral-500);
+}
+
+.field__required {
+  color: var(--text-secondary);
+}
+
+/* The one place the missed tone appears outside a ledger: it is a loss
+ * avoided, not an alarm. Empty until there is something to say. */
+.field__error {
+  font-size: var(--type-caption);
+  line-height: 1.5;
+  color: var(--tone-missed-fg);
+  text-wrap: pretty;
+}
+
+.field__error:empty {
+  display: none;
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--tone-missed-fg);
+}
+
+.form-note {
+  font-size: var(--type-caption);
+  color: var(--text-secondary);
 }
 
 .input {
@@ -288,10 +326,10 @@
   min-height: var(--touch-target);
   padding: 0 var(--space-4);
   background: var(--surface-sunken);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   color: var(--color-text);
-  font-size: 14px;
+  font-size: var(--type-input);
   transition: border-color var(--duration-short) var(--ease-standard);
 }
 
@@ -315,7 +353,7 @@ textarea.input {
   min-height: var(--touch-target);
   padding: 0 var(--space-4);
   background: var(--surface-sunken);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   transition: border-color var(--duration-short) var(--ease-standard);
 }
@@ -346,10 +384,10 @@ textarea.input {
   min-height: 36px;
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: transparent;
   color: var(--color-neutral-500);
-  font: 500 11.5px var(--font-body);
+  font: 500 var(--type-note) var(--font-body);
   white-space: nowrap;
   transition:
     background var(--duration-short) var(--ease-standard),
@@ -371,7 +409,7 @@ textarea.input {
   width: 44px;
   height: 26px;
   border-radius: 13px;
-  border: 1px solid var(--color-neutral-800);
+  border: 1px solid var(--control-border);
   background: var(--surface-sunken);
   transition:
     background var(--duration-medium) var(--ease-emphasized),
@@ -409,6 +447,61 @@ textarea.input {
 .switch[aria-checked="true"] .switch__knob {
   left: 20px;
   background: var(--color-accent-200);
+}
+
+/* ---- Forced colours ------------------------------------------------------ */
+
+/* Windows High Contrast replaces every background with the system Canvas, so
+ * a control drawn as a fill or a tonal step vanishes unless it has a border.
+ * Where a colour carries meaning (status tones, the bars), the colour is kept
+ * rather than boxed, since a box says "here" but not "which". */
+@media (forced-colors: active) {
+  .icon-btn,
+  .seg__opt,
+  .tabbar__tab,
+  .swipe__action,
+  .switch__knob,
+  .catalog,
+  .benefit-link,
+  .today__overlap {
+    border: 1px solid ButtonText;
+  }
+
+  .switch__knob {
+    background: ButtonText;
+  }
+
+  .switch[aria-checked="true"] .switch__knob {
+    background: Highlight;
+  }
+
+  /* A pressed segment (the current filter or theme) was a tonal step. */
+  .seg__opt[aria-pressed="true"],
+  .seg__opt[aria-selected="true"] {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .bar,
+  .value__track {
+    border: 1px solid CanvasText;
+  }
+
+  .bar__fill,
+  .value__track-fill,
+  .value__breakeven,
+  .value__bar--captured,
+  .value__bar--missed,
+  .split__part,
+  .legend__swatch,
+  .tag--accent,
+  .tag--locked,
+  .tag--missed,
+  .row-card--soon,
+  .sheet-ladder__rung.is-now,
+  .field__error {
+    forced-color-adjust: none;
+  }
 }
 
 /* ---- Rows ---------------------------------------------------------------- */
@@ -461,13 +554,13 @@ textarea.input {
 }
 
 .row-card__title {
-  font: 500 13px var(--font-body);
+  font: 500 var(--type-ui) var(--font-body);
   color: var(--color-text);
 }
 
 .row-card__sub {
-  font-size: 10.5px;
-  color: var(--color-neutral-600);
+  font-size: var(--type-sm);
+  color: var(--text-secondary);
 }
 
 .row-card__amounts {
@@ -479,12 +572,12 @@ textarea.input {
 }
 
 .row-card__amount {
-  font: 500 14px var(--font-body);
+  font: 500 var(--type-input) var(--font-body);
   color: var(--color-accent-300);
 }
 
 .row-card__of {
-  font-size: 10px;
+  font-size: var(--type-xs);
   color: var(--color-neutral-500);
 }
 

@@ -77,3 +77,67 @@
 .sheet__panel:focus-visible {
   outline: none;
 }
+
+/* ---- Wider presentations ------------------------------------------------ */
+
+/* A centred dialog: nothing to drag, so it fades in rather than slides. */
+.sheet--dialog {
+  align-items: center;
+}
+
+.sheet--dialog .sheet__panel {
+  position: relative;
+  bottom: auto;
+  width: min(480px, calc(100% - var(--space-8) * 2));
+  max-width: none;
+  max-height: 85dvh;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-accent-800);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: fade-in var(--duration-medium) both;
+  transition: none;
+}
+
+.sheet--dialog .sheet__body {
+  padding-top: var(--space-8);
+}
+
+/* A panel docked on the trailing edge. The scrim is gone and the container
+ * lets pointer events through, so the list beside it stays usable; keyboard
+ * focus is still trapped and Escape still closes. */
+.sheet--panel {
+  pointer-events: none;
+}
+
+.sheet--panel .sheet__scrim {
+  display: none;
+}
+
+.sheet--panel .sheet__panel {
+  pointer-events: auto;
+  top: 0;
+  left: auto;
+  bottom: 0;
+  width: var(--panel-width);
+  max-width: 100%;
+  max-height: none;
+  margin: 0;
+  border-radius: 0;
+  border-top: 0;
+  border-left: 1px solid var(--color-accent-800);
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+  animation: panel-in var(--duration-long) var(--ease-emphasized) both;
+  transition: none;
+}
+
+.sheet--panel .sheet__body {
+  padding-top: calc(var(--space-8) + env(safe-area-inset-top));
+}
+
+/* In landscape the sheet leaves a strip of the screen behind visible and
+ * scrolls inside, rather than becoming a second full screen. */
+@media (max-height: 479px) {
+  .sheet__panel {
+    max-height: 85dvh;
+  }
+}

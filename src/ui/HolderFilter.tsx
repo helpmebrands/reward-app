@@ -26,13 +26,13 @@ export function HolderFilter() {
     <Show when={people().length > 1}>
       <div class="select-row" style={{ 'margin-bottom': 'var(--space-6)' }}>
         <Ph name="cards-three" size={15} color="var(--color-accent)" />
-        <span class="grow truncate" style={{ font: '500 12.5px var(--font-body)' }}>
+        <span class="grow truncate" style={{ font: '500 var(--type-body) var(--font-body)' }}>
           {app.data.settings.holderFilter || 'Everyone in the household'}
         </span>
-        <span class="muted numeric" style={{ 'font-size': '10.5px' }}>
+        <span class="muted numeric" style={{ 'font-size': 'var(--type-sm)' }}>
           {count()} credits
         </span>
-        <Ph name="caret-down" size={13} color="var(--color-neutral-600)" />
+        <Ph name="caret-down" size={13} color="var(--text-secondary)" />
         <select
           class="select-row__native"
           aria-label="Filter by cardholder"

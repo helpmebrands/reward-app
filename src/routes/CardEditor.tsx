@@ -1,13 +1,16 @@
 import { useNavigate, useParams } from '@solidjs/router'
-import { createMemo, For, Show } from 'solid-js'
+import { createMemo, createSignal, For, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
 import { formatMoney } from '../domain/format.ts'
 import { cardLabel, isLocked } from '../domain/selectors.ts'
+import { anniversaryError, moneyError, parseMoney, requiredError } from '../domain/validation.ts'
 import { useApp } from '../stores/app.tsx'
+import { Field } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import './CardEditor.css'
+import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
 /** Editing a card: its details, and the list of credits attached to it. */
 export function CardEditor() {
@@ -17,6 +20,24 @@ export function CardEditor() {
   const snackbar = useSnackbar()
 
   const card = createMemo(() => app.data.cards.find((c) => c.id === params.id))
+  useScreenTitle(() => {
+    const current = card()
+    return current ? cardLabel(current) : 'Card not found'
+  })
+  // What has been typed, kept apart from the store so an invalid value can
+  // show its error without being written or snapped back.
+  const [holderDraft, setHolderDraft] = createSignal<string | null>(null)
+  const [feeDraft, setFeeDraft] = createSignal<string | null>(null)
+  const [anniversaryDraft, setAnniversaryDraft] = createSignal<string | null>(null)
+  const holderText = () => holderDraft() ?? card()?.holder ?? ''
+  const feeText = () => feeDraft() ?? ((card()?.annualFeeCents ?? 0) / 100).toString()
+  const anniversaryText = () => anniversaryDraft() ?? card()?.anniversaryOn ?? ''
+  const errors = {
+    holder: () => requiredError(holderText(), 'Enter whose card this is.'),
+    fee: () => moneyError(feeText()),
+    anniversary: () => anniversaryError(anniversaryText()),
+  }
+
   const benefits = createMemo(() =>
     app.data.benefits
       .filter((b) => b.cardId === params.id)
@@ -56,18 +77,24 @@ export function CardEditor() {
             action={{ icon: 'trash', label: 'Delete this card', onAct: removeCard }}
           />
 
-          <div class="screen__pad stack stack--loose">
-            <div class="field">
-              <label class="field__label" for="card-holder">
-                Cardholder
-              </label>
-              <input
-                id="card-holder"
-                class="input"
-                value={current().holder}
-                onInput={(e) => app.updateCard(current().id, { holder: e.currentTarget.value })}
-              />
-            </div>
+          <div class="screen__pad stack stack--loose form-grid">
+            <p class="form-note">Fields marked * are required.</p>
+
+            <Field id="card-holder" label="Cardholder" required error={errors.holder()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input"
+                  value={holderText()}
+                  onInput={(e) => {
+                    setHolderDraft(e.currentTarget.value)
+                    if (!errors.holder()) {
+                      app.updateCard(current().id, { holder: e.currentTarget.value.trim() })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
             <div class="field">
               <label class="field__label" for="card-nickname">
@@ -82,40 +109,43 @@ export function CardEditor() {
               />
             </div>
 
-            <div class="field">
-              <label class="field__label" for="card-fee">
-                Annual fee
-              </label>
-              <input
-                id="card-fee"
-                class="input numeric"
-                type="number"
-                inputmode="decimal"
-                min="0"
-                step="1"
-                value={(current().annualFeeCents / 100).toString()}
-                onInput={(e) =>
-                  app.updateCard(current().id, {
-                    annualFeeCents: Math.round(Number(e.currentTarget.value || 0) * 100),
-                  })
-                }
-              />
-            </div>
+            <Field id="card-fee" label="Annual fee" required error={errors.fee()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input numeric"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="1"
+                  value={feeText()}
+                  onInput={(e) => {
+                    setFeeDraft(e.currentTarget.value)
+                    const cents = parseMoney(e.currentTarget.value)
+                    if (cents !== null && cents >= 0) {
+                      app.updateCard(current().id, { annualFeeCents: cents })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
-            <div class="field">
-              <label class="field__label" for="card-anniversary">
-                Renews on
-              </label>
-              <input
-                id="card-anniversary"
-                class="input"
-                type="date"
-                value={current().anniversaryOn}
-                onInput={(e) =>
-                  app.updateCard(current().id, { anniversaryOn: e.currentTarget.value })
-                }
-              />
-            </div>
+            <Field id="card-anniversary" label="Renews on" required error={errors.anniversary()}>
+              {(control) => (
+                <input
+                  {...control}
+                  class="input"
+                  type="date"
+                  value={anniversaryText()}
+                  onInput={(e) => {
+                    setAnniversaryDraft(e.currentTarget.value)
+                    if (!anniversaryError(e.currentTarget.value)) {
+                      app.updateCard(current().id, { anniversaryOn: e.currentTarget.value })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
             <section>
               <div class="row row--between" style={{ 'margin-bottom': 'var(--space-4)' }}>

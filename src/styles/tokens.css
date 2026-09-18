@@ -66,6 +66,36 @@
   --font-heading-weight: 500;
   --font-body: "Inter", system-ui, sans-serif;
 
+  /* ---- Type scale ---------------------------------------------------------
+   * The sizes the screens were drawn at, in rem so a browser font-size
+   * preference reaches every one of them (WCAG 1.4.4). Named by role; the
+   * pixel value at the default 16px root is in the comment. Icon sizes stay
+   * in px: they are glyphs, not text.
+   */
+  --type-2xs: 0.59375rem; /* 9.5  kickers, chart labels */
+  --type-xs: 0.625rem; /* 10   "of" lines, ladder labels */
+  --type-sm: 0.65625rem; /* 10.5 tags, legends, row sublines */
+  --type-caption: 0.6875rem; /* 11   notes, field labels, countdowns */
+  --type-note: 0.71875rem; /* 11.5 screen subtitles, body of a card */
+  --type-body-sm: 0.75rem; /* 12   panel labels, sheet section titles */
+  --type-body: 0.78125rem; /* 12.5 Today's subtitle, snackbar text */
+  --type-ui: 0.8125rem; /* 13   buttons, row titles */
+  --type-section: 0.84375rem; /* 13.5 section titles */
+  --type-input: 0.875rem; /* 14   inputs, row amounts */
+  --type-base: 0.9375rem; /* 15   body */
+  --type-lead: 1rem; /* 16   the picked card's name */
+  --type-title: 1.0625rem; /* 17   top bar and card titles */
+  --type-h2: 1.1875rem; /* 19   the credits totals */
+  --type-h1-sm: 1.3125rem; /* 21   sheet titles */
+  --type-figure: 1.375rem; /* 22   Value figures */
+  --type-h1: 1.4375rem; /* 23   screen titles */
+  --type-figure-lg: 1.5rem; /* 24   the compare figure */
+  --type-amount: 1.6875rem; /* 27   the sheet's balance */
+  --type-symbol: 1.75rem; /* 28   Today's dollar sign */
+  /* Today's number: 58px at the design width, shrinking with the viewport so
+   * it never forces a sideways scroll at 320px (WCAG 1.4.10). */
+  --type-display: clamp(2.25rem, 14.5vw, 3.625rem);
+
   --space-1: 2.8px;
   --space-2: 5.6px;
   --space-3: 8.4px;
@@ -93,6 +123,18 @@
   --surface-raised: #232532;
   --surface-quiet: #20222f;
   --surface-line: #2b2d3a;
+
+  /* ---- Semantic aliases ---------------------------------------------------
+   * The roles the components use, so a contrast fix is one line per theme.
+   * Text is 4.5:1 and control boundaries 3:1 on every ground they sit on;
+   * `tests/contrast.test.ts` pins the pairs. The ramps above stay verbatim.
+   */
+  --text-secondary: var(--color-neutral-500);
+  --control-border: var(--color-neutral-600);
+  --chart-missed: var(--color-neutral-600);
+  /* The bloom's peak: accent-900 at 60% over the page, dim enough that the
+   * accent itself still clears 4.5:1 on it. */
+  --color-bloom: #232136;
 
   /* ---- Status tones -------------------------------------------------------
    * The ladder from the spreadsheet this app was built from:
@@ -139,16 +181,46 @@
    * The 48px touch target is Material's minimum and is honoured even where
    * Nocturne's density would allow a smaller control.
    */
-  --app-max-width: 402px;
+  --content-max: 402px;
+  --app-max-width: var(--content-max);
+  --rail-width: 0px;
+  --panel-width: 380px;
   --tab-bar-height: 58px;
   --touch-target: 48px;
   --screen-pad: 20px;
 }
 
 /*
- * Nocturne is a dark system and defines no light theme. Rather than invent
- * one, a user asking for light gets a lifted ground and darker ink on the same
- * ramps, keeping the accent and every status tone unchanged.
+ * Breakpoints. Compact is the phone layout as drawn. Medium (600px and up:
+ * a tablet, a landscape phone, half a desktop) moves the tab bar to a rail
+ * and widens the column. Expanded (1024px and up) gives the rail labels and
+ * widens the column again. Only layout tokens change here; components keep
+ * reading the same names. Custom properties cannot drive a media query, so
+ * the two widths are repeated where a stylesheet needs them.
+ */
+@media (min-width: 600px) {
+  :root {
+    --content-max: 560px;
+    --rail-width: 80px;
+    --screen-pad: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --content-max: 720px;
+    --rail-width: 200px;
+    --screen-pad: 28px;
+  }
+}
+
+/*
+ * Nocturne is a dark system and defines no light theme. A user asking for
+ * light gets a lifted ground, the accent and status tones unchanged, and a
+ * neutral ramp of its own: the dark ramp read in reverse put a 2:1 grey on
+ * secondary text, so the light steps are blended from the ink (#232532) to
+ * the ground and spaced so 400 to 600 all clear 4.5:1 on every surface and
+ * 700 clears 3:1 for control boundaries. 800 and 900 are decorative lines.
  */
 :root[data-theme="light"] {
   color-scheme: light;
@@ -163,21 +235,30 @@
   --surface-quiet: #f0f2fb;
   --surface-line: #d8dcee;
 
-  --color-neutral-100: #292b31;
-  --color-neutral-200: #3f424d;
-  --color-neutral-300: #595d6c;
-  --color-neutral-400: #75798c;
-  --color-neutral-500: #9397ab;
-  --color-neutral-600: #b2b6ca;
-  --color-neutral-700: #cfd3e5;
-  --color-neutral-800: #e4e7f5;
-  --color-neutral-900: #f3f5fe;
+  --color-neutral-100: #232532;
+  --color-neutral-200: #383a46;
+  --color-neutral-300: #444653;
+  --color-neutral-400: #51535f;
+  --color-neutral-500: #5b5d69;
+  --color-neutral-600: #636571;
+  --color-neutral-700: #81838e;
+  --color-neutral-800: #b9bbc5;
+  --color-neutral-900: #dee0ea;
 
   --color-accent: #5d5294;
+  /* Accent ink for text on the accent grounds below: selected segments,
+   * the split's "available" part, the skip link. */
+  --color-accent-100: #2b2741;
+  --color-accent-200: #423a6a;
   --color-accent-300: #423a6a;
   --color-accent-400: #5d5294;
   --color-accent-900: #e7e5fe;
   --color-accent-800: #d2cefd;
+
+  --text-secondary: var(--color-neutral-600);
+  --control-border: var(--color-neutral-700);
+  --chart-missed: var(--color-neutral-700);
+  --color-bloom: #ecebfe;
 
   --color-section: #d2cefd;
   --color-section-glow: #b5abfc;
@@ -187,7 +268,7 @@
   --tone-locked: #8a7742;
   --tone-locked-fg: #5a4c22;
   --tone-locked-bg: #f7f0dd;
-  --tone-captured-fg: #75798c;
+  --tone-captured-fg: var(--color-neutral-500);
   --tone-captured-bg: #e9ebf7;
   --tone-missed: #a06280;
   --tone-missed-fg: #7a2f4d;
