@@ -38,6 +38,11 @@ describe('staging stack config', () => {
     expect(staging()).toMatch(/^\s+gcp:project:\s*helpme-reward-staging\s*$/m)
   })
 
+  // @lat: [[tests#Infrastructure config#Staging maps its custom domain]]
+  it('maps staging.helpmereward.com', () => {
+    expect(staging()).toMatch(/^\s+reward-app:customDomain:\s*staging\.helpmereward\.com\s*$/m)
+  })
+
   // @lat: [[tests#Infrastructure config#Staging trusts this repository]]
   it('trusts helpmebrands/reward-app to deploy', () => {
     expect(staging()).toMatch(/^\s+[\w-]+:githubRepo:\s*helpmebrands\/reward-app\s*$/m)
@@ -66,6 +71,7 @@ describe('runbook README', () => {
       'us-central1',
       'gs://helpme-reward-staging-pulumi-state',
       'https://reward-app-bduraqeztq-uc.a.run.app',
+      'https://staging.helpmereward.com',
     ]) {
       expect(readme).toContain(fact)
     }
