@@ -129,6 +129,49 @@ describe('verify workflow', () => {
   })
 })
 
+describe('api deploy workflow', () => {
+  // @lat: [[infra-tests#Infrastructure config#Api CD workflow is path-filtered to the api and the domain]]
+  it('runs cd-api.yml only for the api, the domain and itself, never for the PWA', () => {
+    const cdApi = read('.github/workflows/cd-api.yml')
+    const trigger = cdApi.split(/^jobs:\s*$/m)[0]
+    expect(trigger).toMatch(/^\s+- ['"]?services\/api\/\*\*['"]?\s*$/m)
+    expect(trigger).toMatch(/^\s+- ['"]?packages\/domain\/\*\*['"]?\s*$/m)
+    expect(trigger).not.toContain('apps/pwa')
+    const cd = read('.github/workflows/cd.yml')
+    const pwaTrigger = cd.split(/^jobs:\s*$/m)[0]
+    expect(pwaTrigger).toMatch(/^\s+paths-ignore:\s*$/m)
+    expect(pwaTrigger).toMatch(/^\s+- ['"]?services\/api\/\*\*['"]?\s*$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Api CD builds, migrates, deploys and smoke-tests]]
+  it('builds the api image, runs the migration job, deploys by digest and smoke-tests', () => {
+    const cdApi = read('.github/workflows/cd-api.yml')
+    expect(cdApi).toContain('file: services/api/Dockerfile')
+    expect(cdApi).toContain('gcloud run jobs update ${{ vars.API_MIGRATION_JOB }}')
+    expect(cdApi).toContain('gcloud run jobs execute ${{ vars.API_MIGRATION_JOB }}')
+    expect(cdApi).toContain('service: ${{ vars.API_CLOUD_RUN_SERVICE }}')
+    expect(cdApi).toMatch(/reward-api@\$\{\{ steps\.build\.outputs\.digest \}\}/)
+    expect(cdApi).toContain('/healthz')
+    expect(cdApi).toContain('Mars/Olympus_Mons')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Api image carries the migrator and the migrations]]
+  it('compiles the migrator into the api image beside the migrations', () => {
+    const dockerfile = read('services/api/Dockerfile')
+    expect(dockerfile).toContain('dart compile exe services/api/bin/migrate.dart -o /app/migrate')
+    expect(dockerfile).toMatch(/^COPY --from=build \/app\/migrate \/migrate$/m)
+    expect(dockerfile).toMatch(/^COPY --from=build \/app\/services\/api\/migrations \/migrations$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Stack outputs name the api service and job]]
+  it('exports the api service, its URL and the migration job from the stack', () => {
+    const program = read('infra/index.ts')
+    expect(program).toMatch(/^export const apiCloudRunService = /m)
+    expect(program).toMatch(/^export const apiServiceUrl = /m)
+    expect(program).toMatch(/^export const apiMigrationJob = /m)
+  })
+})
+
 describe('runbook README', () => {
   // @lat: [[infra-tests#Infrastructure config#README records the staging environment]]
   it('records the staging project, region, stack, backend and URL', () => {

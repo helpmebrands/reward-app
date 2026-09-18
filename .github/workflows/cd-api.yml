@@ -1,0 +1,133 @@
+# Deploys the api from `develop` to Cloud Run.
+#
+# The same keyless trust as cd.yml (Workload Identity Federation, no key
+# anywhere), the same verify-again-then-deploy-by-digest shape, plus one step
+# the PWA never needed: the migration job runs on the new image before the
+# service moves to it, so a broken migration fails the deploy rather than
+# every replica at startup.
+name: CD api
+
+on:
+  push:
+    branches: [develop]
+    # Only what reaches the api image: the service, the domain package it
+    # depends on, the workspace manifests and this pipeline.
+    paths:
+      - 'services/api/**'
+      - 'packages/domain/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/cd-api.yml'
+      - '.github/workflows/verify.yml'
+  workflow_dispatch:
+
+# One api deploy at a time, never cancelled: an interrupted migration or
+# rollout is worse than a slow one.
+concurrency:
+  group: deploy-api-develop
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  deploy:
+    name: Build, push, migrate, deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: develop
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Tagged with the commit SHA, never `latest`; the build context is the
+      # repository root because the pub workspace keeps its lockfile there.
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/api/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api:${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      # The job runs `/migrate` from the very image about to serve, against
+      # the same DATABASE_URL, and `--wait` makes its exit code this step's.
+      - name: Run the migrations
+        env:
+          IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          gcloud run jobs update ${{ vars.API_MIGRATION_JOB }} \
+            --region ${{ vars.GCP_REGION }} --image "$IMAGE" --quiet
+          gcloud run jobs execute ${{ vars.API_MIGRATION_JOB }} \
+            --region ${{ vars.GCP_REGION }} --wait --quiet
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ vars.API_CLOUD_RUN_SERVICE }}
+          region: ${{ vars.GCP_REGION }}
+          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
+          flags: --revision-suffix=sha-${{ github.sha }}
+
+      # Liveness, then one request that has to reach the database: a zone
+      # shaped like an IANA name that Postgres does not know is refused with a
+      # 400 only after `pg_timezone_names` answered, and nothing is stored.
+      - name: Smoke test the deployed revision
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          echo "Serving at $URL"
+
+          body=$(curl -fsS "$URL/healthz")
+          case "$body" in
+            *'"status":"ok"'*) echo "  /healthz -> $body" ;;
+            *) echo "  /healthz -> $body"; exit 1 ;;
+          esac
+
+          code=$(curl -sS -o /tmp/devices.json -w '%{http_code}' \
+            -X POST "$URL/v1/devices" -H 'content-type: application/json' \
+            -d '{"token":"smoke","installationId":"smoke","platform":"ios","timezone":"Mars/Olympus_Mons"}')
+          [ "$code" = "400" ] || { echo "  POST /v1/devices -> $code, expected 400: $(cat /tmp/devices.json)"; exit 1; }
+          grep -q '"field":"timezone"' /tmp/devices.json || { echo "  unexpected body: $(cat /tmp/devices.json)"; exit 1; }
+          echo "  POST /v1/devices (unknown zone) -> 400 timezone, via the database"
+
+      - name: Summarise
+        if: always()
+        run: |
+          {
+            echo "### Deploy api"
+            echo ""
+            echo "| | |"
+            echo "| --- | --- |"
+            echo "| Commit | \`${{ github.sha }}\` |"
+            echo "| Digest | \`${{ steps.build.outputs.digest }}\` |"
+            echo "| URL | ${{ steps.deploy.outputs.url }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
