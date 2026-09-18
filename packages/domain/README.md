@@ -58,6 +58,10 @@ named parameters as noted.
 
 `formatMoney`, `formatMoneyExact`, `parseMoneyToCents`, `formatDate`, `formatRange`, `formatDaysRemaining`, `describeDeadline`, `formatRelativeFromToday`, `initials`, `formatHeaderDate`, `formatResetDate`, `moneyParts` (a record `({String symbol, String digits})`). Money is US dollars and dates use the forms the screens were drawn with, hand-rolled rather than read from a locale table.
 
+### The snapshot JSON (`json.dart`, Dart only)
+
+`appDataFromJson`, `appDataToJson` and the per-type `cardFromJson`, `cardToJson`, `benefitFromJson`, `benefitToJson`, `claimFromJson`, `claimToJson`, `settingsFromJson`, `settingsToJson`, plus `statusFromJson` and `statusToJson`. The PWA's snapshot is plain JSON of its TypeScript objects, so it needs no codec; this one reads and writes that exact shape, `snake_case` enum spellings and omitted optionals included, so a household moves between the apps unchanged.
+
 ### `validation.ts` → `validation.dart`
 
 `requiredError`, `moneyError`, `positiveMoneyError`, `anniversaryError`, `enrollmentUrlError`, `parseMoney`.

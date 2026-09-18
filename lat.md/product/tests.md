@@ -69,6 +69,18 @@ Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
+## Snapshot JSON
+
+`packages/domain/test/json_test.dart` pins the codec for the persisted snapshot, which the Flutter store and any export share with the PWA's stored record and export file.
+
+### The sample household round-trips unchanged
+
+The PWA's sample household decodes to two cards, twenty-four benefits and twenty claims, and encodes back to JSON equal to the file, so nothing is dropped or renamed in either direction.
+
+### Enums use the PWA's spellings
+
+`fee_credit` and `use_soon` decode to `BenefitCategory.feeCredit` and `BenefitStatus.useSoon` and encode back to the same strings; absent optionals decode to null and are omitted on encode, and a missing `redemptionSteps` reads as empty.
+
 ## Card catalogue
 
 `packages/domain/test/catalog_test.dart` pins the starting templates in [[domain#Card catalogue]]. The PWA covers the first case from its store suite; the rest are Dart-only, since the PWA exercised them through the add-card screen.
