@@ -50,7 +50,7 @@ function borderless() {
 }
 
 for (const [name, path] of ROUTES) {
-  // @lat: [[tests#Accessibility tests#Every control keeps a boundary in forced colours]]
+  // @lat: [[pwa-tests#Accessibility tests#Every control keeps a boundary in forced colours]]
   test(`${name} keeps a boundary on every control in forced colours`, async ({
     page,
   }, testInfo) => {
@@ -64,7 +64,7 @@ for (const [name, path] of ROUTES) {
   })
 }
 
-// @lat: [[tests#Accessibility tests#Every control keeps a boundary in forced colours]]
+// @lat: [[pwa-tests#Accessibility tests#Every control keeps a boundary in forced colours]]
 test('the credit sheet keeps its boundaries in forced colours', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()

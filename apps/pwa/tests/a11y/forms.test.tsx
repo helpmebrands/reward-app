@@ -17,7 +17,7 @@ async function reachCardDetails() {
 }
 
 describe('inline errors', () => {
-  // @lat: [[tests#Accessibility tests#Submitting with a blank holder shows a linked error]]
+  // @lat: [[pwa-tests#Accessibility tests#Submitting with a blank holder shows a linked error]]
   it('submitting with a blank holder names the error and focuses the field', async () => {
     const { holder } = await reachCardDetails()
     fireEvent.input(holder, { target: { value: '' } })
@@ -32,7 +32,7 @@ describe('inline errors', () => {
     await waitFor(() => expect(document.activeElement).toBe(holder))
   })
 
-  // @lat: [[tests#Accessibility tests#Correcting the field clears the error and saves]]
+  // @lat: [[pwa-tests#Accessibility tests#Correcting the field clears the error and saves]]
   it('correcting the field clears the error and the save goes through', async () => {
     const { app, holder } = await reachCardDetails()
     fireEvent.input(holder, { target: { value: '' } })

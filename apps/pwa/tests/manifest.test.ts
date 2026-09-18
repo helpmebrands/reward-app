@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 const config = readFileSync(join(import.meta.dirname, '..', 'vite.config.ts'), 'utf8')
 
 describe('PWA manifest', () => {
-  // @lat: [[tests#PWA manifest#Manifest sets no orientation]]
+  // @lat: [[pwa-tests#PWA manifest#Manifest sets no orientation]]
   it('sets no orientation, so the OS decides', () => {
     expect(config).not.toMatch(/^\s*orientation:/m)
   })

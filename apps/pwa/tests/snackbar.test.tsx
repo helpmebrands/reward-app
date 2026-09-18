@@ -27,7 +27,7 @@ describe('undo snackbar timing', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
-  // @lat: [[tests#Snackbar timing#An undo stays up for twenty seconds]]
+  // @lat: [[pwa-tests#Snackbar timing#An undo stays up for twenty seconds]]
   it('stays up for 20 seconds when it carries an action', () => {
     const api = mountSnackbar()
     api.show('Logged $10 on Uber Cash.', { label: 'Undo', onAct: () => undefined })
@@ -37,7 +37,7 @@ describe('undo snackbar timing', () => {
     expect(visible()).toBe(false)
   })
 
-  // @lat: [[tests#Snackbar timing#Focus pauses the timer and leaving restarts it]]
+  // @lat: [[pwa-tests#Snackbar timing#Focus pauses the timer and leaving restarts it]]
   it('pauses while the button has focus and restarts the full time on leave', () => {
     const api = mountSnackbar()
     api.show('Logged $10 on Uber Cash.', { label: 'Undo', onAct: () => undefined })
@@ -52,7 +52,7 @@ describe('undo snackbar timing', () => {
     expect(visible()).toBe(false)
   })
 
-  // @lat: [[tests#Snackbar timing#The undo button says what it undoes]]
+  // @lat: [[pwa-tests#Snackbar timing#The undo button says what it undoes]]
   it('names what the undo undoes', () => {
     const api = mountSnackbar()
     api.show('Logged $10 on Uber Cash.', {

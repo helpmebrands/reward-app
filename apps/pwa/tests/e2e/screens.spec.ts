@@ -33,7 +33,7 @@ async function load(page: import('@playwright/test').Page, path: string) {
   await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
 }
 
-// @lat: [[tests#Accessibility tests#Wider screens use the column]]
+// @lat: [[pwa-tests#Accessibility tests#Wider screens use the column]]
 test('Today puts overlap cards side by side from 600px', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 600, 'wider widths only')
@@ -46,7 +46,7 @@ test('Today puts overlap cards side by side from 600px', async ({ page, viewport
   expect(t.b.x).toBeGreaterThan(t.a.x)
 })
 
-// @lat: [[tests#Accessibility tests#Wider screens use the column]]
+// @lat: [[pwa-tests#Accessibility tests#Wider screens use the column]]
 test('Cards is a two-column grid at a medium width', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 600 || viewport.width >= 1024, 'medium width only')
@@ -56,7 +56,7 @@ test('Cards is a two-column grid at a medium width', async ({ page, viewport }) 
   expect(t.b.x).toBeGreaterThan(t.a.x)
 })
 
-// @lat: [[tests#Accessibility tests#Wider screens use the column]]
+// @lat: [[pwa-tests#Accessibility tests#Wider screens use the column]]
 test('the expanded width sets sections and fields side by side', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 1024, 'expanded width only')
@@ -87,7 +87,7 @@ test('the expanded width sets sections and fields side by side', async ({ page, 
   expect(steps.areaWidth, 'the text area spans the column').toBeGreaterThan(steps.nameWidth * 1.8)
 })
 
-// @lat: [[tests#Accessibility tests#Reading order is the same at every width]]
+// @lat: [[pwa-tests#Accessibility tests#Reading order is the same at every width]]
 test('Today reads in the same order at 1280 and 402px', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 1024, 'expanded project only')
@@ -106,7 +106,7 @@ test('Today reads in the same order at 1280 and 402px', async ({ page, viewport 
 })
 
 for (const [name, path] of ROUTES) {
-  // @lat: [[tests#Accessibility tests#Wider screens use the column]]
+  // @lat: [[pwa-tests#Accessibility tests#Wider screens use the column]]
   test(`${name} screenshot for review`, async ({ page, viewport }, testInfo) => {
     if (!viewport) throw new Error('no viewport')
     test.skip(viewport.width < 600, 'wider widths only')

@@ -26,7 +26,7 @@ const ROUTES: ReadonlyArray<[name: string, path: string]> = [
 ]
 
 for (const [name, path] of ROUTES) {
-  // @lat: [[tests#Accessibility tests#Every route passes axe in a real browser]]
+  // @lat: [[pwa-tests#Accessibility tests#Every route passes axe in a real browser]]
   test(`${name} has no axe violations`, async ({ page, theme }) => {
     await page.goto(path)
     await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()

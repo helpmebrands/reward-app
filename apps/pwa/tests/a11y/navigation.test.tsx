@@ -25,7 +25,7 @@ const TITLES: ReadonlyArray<[path: string, title: string]> = [
 
 describe('document titles', () => {
   for (const [path, title] of TITLES) {
-    // @lat: [[tests#Accessibility tests#Every route sets a document title]]
+    // @lat: [[pwa-tests#Accessibility tests#Every route sets a document title]]
     it(`${path} is titled "${title}"`, async () => {
       document.title = ''
       await mountRoute(path)
@@ -35,7 +35,7 @@ describe('document titles', () => {
 })
 
 describe('focus on navigation', () => {
-  // @lat: [[tests#Accessibility tests#Navigation moves focus to the new heading]]
+  // @lat: [[pwa-tests#Accessibility tests#Navigation moves focus to the new heading]]
   it('lands on the new screen heading, and on the old one going back', async () => {
     const { history } = await mountRoute('/cards')
     await screen.findByRole('heading', { level: 1, name: 'Cards' })
@@ -49,7 +49,7 @@ describe('focus on navigation', () => {
     await waitFor(() => expect(document.activeElement).toBe(cards))
   })
 
-  // @lat: [[tests#Accessibility tests#A tab press keeps focus on the tab]]
+  // @lat: [[pwa-tests#Accessibility tests#A tab press keeps focus on the tab]]
   it('leaves focus on a tab the user pressed', async () => {
     await mountRoute('/')
     const tab = await screen.findByRole('button', { name: 'Credits' })

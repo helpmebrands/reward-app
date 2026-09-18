@@ -72,7 +72,7 @@ function failures(pairs: ReadonlyArray<[fg: string, bg: string]>, minimum: numbe
 }
 
 describe('token contrast', () => {
-  // @lat: [[tests#Token contrast#Secondary text reaches 4.5:1 on every ground]]
+  // @lat: [[pwa-tests#Token contrast#Secondary text reaches 4.5:1 on every ground]]
   it('secondary text reaches 4.5:1 on every ground it sits on', () => {
     const pairs: [string, string][] = [
       // The alias screen-sub, section-note, .muted and the like resolve to.
@@ -96,7 +96,7 @@ describe('token contrast', () => {
     expect(failures(pairs, 4.5)).toEqual([])
   })
 
-  // @lat: [[tests#Token contrast#Accent and status text hold in both themes]]
+  // @lat: [[pwa-tests#Token contrast#Accent and status text hold in both themes]]
   it('accent and status text hold in both themes', () => {
     const pairs: [string, string][] = [
       ['--color-accent', '--color-bg'], // kickers, countdowns
@@ -127,7 +127,7 @@ describe('token contrast', () => {
     expect(failures(pairs, 4.5)).toEqual([])
   })
 
-  // @lat: [[tests#Token contrast#Control boundaries reach 3:1]]
+  // @lat: [[pwa-tests#Token contrast#Control boundaries reach 3:1]]
   it('control boundaries and the missed bar reach 3:1', () => {
     const pairs: [string, string][] = [
       // Inputs, buttons, segments and the switch track sit on all of these.

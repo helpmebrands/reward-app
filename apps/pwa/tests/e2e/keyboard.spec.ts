@@ -41,7 +41,7 @@ test.beforeEach(async ({ viewport }) => {
   test.skip(viewport?.width !== 402, 'one width is enough for a keyboard sweep')
 })
 
-// @lat: [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]
+// @lat: [[pwa-tests#Accessibility tests#Tab and Enter alone complete the five actions]]
 test('logs a claim from a row through the sheet', async ({ page }) => {
   await start(page, '/')
   await tabTo(page, (el) => el.classList.contains('row-card__main'))
@@ -55,7 +55,7 @@ test('logs a claim from a row through the sheet', async ({ page }) => {
   expect(await page.evaluate(() => document.activeElement?.className ?? '')).toContain('row-card')
 })
 
-// @lat: [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]
+// @lat: [[pwa-tests#Accessibility tests#Tab and Enter alone complete the five actions]]
 test('silences a credit from its row', async ({ page }) => {
   await start(page, '/')
   await tabTo(page, (el) => /^silence reminders/i.test(el.getAttribute('aria-label') ?? ''))
@@ -64,7 +64,7 @@ test('silences a credit from its row', async ({ page }) => {
   expect(await focusedText(page)).toMatch(/^unsilence/i)
 })
 
-// @lat: [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]
+// @lat: [[pwa-tests#Accessibility tests#Tab and Enter alone complete the five actions]]
 test('adds a card from the catalogue', async ({ page }) => {
   await start(page, '/cards')
   await tabTo(page, (el) => /add a card from the catalogue/i.test(el.textContent ?? ''))
@@ -79,7 +79,7 @@ test('adds a card from the catalogue', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText(/added/i)
 })
 
-// @lat: [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]
+// @lat: [[pwa-tests#Accessibility tests#Tab and Enter alone complete the five actions]]
 test('edits a benefit from the card editor', async ({ page }) => {
   await start(page, '/cards/card-0001')
   await tabTo(page, (el) => el.classList.contains('benefit-link'))
@@ -92,7 +92,7 @@ test('edits a benefit from the card editor', async ({ page }) => {
   await expect(toggle).toHaveAttribute('aria-checked', before === 'true' ? 'false' : 'true')
 })
 
-// @lat: [[tests#Accessibility tests#Tab and Enter alone complete the five actions]]
+// @lat: [[pwa-tests#Accessibility tests#Tab and Enter alone complete the five actions]]
 test('changes the theme in Settings', async ({ page }) => {
   await start(page, '/settings')
   await tabTo(page, (el) => el.classList.contains('seg__opt') && el.textContent?.trim() === 'Light')

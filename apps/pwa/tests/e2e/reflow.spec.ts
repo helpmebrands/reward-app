@@ -53,14 +53,14 @@ function clippedElements() {
 }
 
 for (const [name, path] of ROUTES) {
-  // @lat: [[tests#Accessibility tests#Nothing scrolls sideways at 320px]]
+  // @lat: [[pwa-tests#Accessibility tests#Nothing scrolls sideways at 320px]]
   test(`${name} does not scroll sideways at 320px`, async ({ page }) => {
     await page.goto(path)
     await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
     expect(await page.evaluate(sidewaysScroll)).toEqual({ page: 0, main: 0 })
   })
 
-  // @lat: [[tests#Accessibility tests#Text spacing overrides clip nothing]]
+  // @lat: [[pwa-tests#Accessibility tests#Text spacing overrides clip nothing]]
   test(`${name} survives the text-spacing overrides`, async ({ page }, testInfo) => {
     await page.goto(path)
     await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
@@ -74,7 +74,7 @@ for (const [name, path] of ROUTES) {
   })
 }
 
-// @lat: [[tests#Accessibility tests#Nothing scrolls sideways at 320px]]
+// @lat: [[pwa-tests#Accessibility tests#Nothing scrolls sideways at 320px]]
 test('the credit and compare sheets fit 320px', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
