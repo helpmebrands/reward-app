@@ -115,7 +115,10 @@ describe('verify workflow', () => {
     expect(apiJob).toContain('working-directory: services/api')
     expect(apiJob).toContain('dart test')
     expect(apiJob).toContain('file: services/api/Dockerfile')
-    expect(apiJob).toContain('/healthz')
+    expect(apiJob).toContain('/health')
+    // Google's edge answers /healthz itself on run.app hosts; the route must
+    // not use that path anywhere.
+    expect(apiJob).not.toContain('/healthz')
   })
 
   // @lat: [[infra-tests#Infrastructure config#Api job tests against a Postgres service container]]
@@ -151,7 +154,8 @@ describe('api deploy workflow', () => {
     expect(cdApi).toContain('gcloud run jobs execute ${{ vars.API_MIGRATION_JOB }}')
     expect(cdApi).toContain('service: ${{ vars.API_CLOUD_RUN_SERVICE }}')
     expect(cdApi).toMatch(/reward-api@\$\{\{ steps\.build\.outputs\.digest \}\}/)
-    expect(cdApi).toContain('/healthz')
+    expect(cdApi).toContain('/health')
+    expect(cdApi).not.toContain('/healthz')
     expect(cdApi).toContain('Mars/Olympus_Mons')
   })
 
@@ -161,6 +165,13 @@ describe('api deploy workflow', () => {
     expect(dockerfile).toContain('dart compile exe services/api/bin/migrate.dart -o /app/migrate')
     expect(dockerfile).toMatch(/^COPY --from=build \/app\/migrate \/migrate$/m)
     expect(dockerfile).toMatch(/^COPY --from=build \/app\/services\/api\/migrations \/migrations$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Api service runs on the gen2 execution environment]]
+  it('runs the api service and job on the second-generation execution environment', () => {
+    const program = read('infra/index.ts')
+    const api = program.split('// The api service and its migration job')[1] ?? ''
+    expect(api.match(/executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2'/g)).toHaveLength(2)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Stack outputs name the api service and job]]

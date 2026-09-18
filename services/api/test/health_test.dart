@@ -5,13 +5,13 @@ import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 void main() {
-  // @lat: [[api-tests#Health#GET healthz answers 200 with the version]]
+  // @lat: [[api-tests#Health#GET health answers 200 with the version]]
   test(
-    'GET /healthz answers 200 with a JSON body carrying the version',
+    'GET /health answers 200 with a JSON body carrying the version',
     () async {
       final handler = buildHandler();
       final response = await handler(
-        Request('GET', Uri.parse('http://localhost/healthz')),
+        Request('GET', Uri.parse('http://localhost/health')),
       );
       expect(response.statusCode, 200);
       expect(response.headers['content-type'], startsWith('application/json'));
