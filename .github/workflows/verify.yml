@@ -166,6 +166,66 @@ jobs:
       - name: Test
         run: flutter test
 
+  # The service tier: analysed and tested in the workspace, then built as a
+  # container and smoke-tested, so a broken Dockerfile fails review rather
+  # than the deploy.
+  api:
+    name: Api analyze, test and container
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          cache: true
+
+      - name: Resolve the workspace
+        run: dart pub get
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+        working-directory: services/api
+
+      - name: Test
+        run: dart test
+        working-directory: services/api
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: services/api/Dockerfile
+          push: false
+          load: true
+          tags: reward-api:pr-${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Smoke test the container
+        run: |
+          set -euo pipefail
+          docker run -d --name reward-api-test -p 8081:8080 reward-api:pr-${{ github.sha }}
+          for i in $(seq 1 30); do
+            if curl -fsS -o /dev/null http://localhost:8081/healthz; then break; fi
+            if [ "$i" = "30" ]; then
+              echo "container never became ready"; docker logs reward-api-test; exit 1
+            fi
+            sleep 1
+          done
+          echo "--- healthz"
+          body=$(curl -fsS http://localhost:8081/healthz)
+          echo "  $body"
+          case "$body" in
+            *'"status":"ok"'*) ;;
+            *) echo "unexpected body"; exit 1 ;;
+          esac
+          docker rm -f reward-api-test
+
   container:
     name: Container builds
     runs-on: ubuntu-latest
