@@ -6,9 +6,9 @@ What the api's `dart test` suite in `services/api/test/` guards, run by the `api
 
 `health_test.dart` drives the handler directly with shelf requests, no socket, so the route is tested as a function ([[api-architecture#Handler]]).
 
-### GET healthz answers 200 with the version
+### GET health answers 200 with the version
 
-`GET /healthz` returns 200, a JSON content type, `status` of `ok` and the `version` the package declares.
+`GET /health` returns 200, a JSON content type, `status` of `ok` and the `version` the package declares.
 
 ### Unknown routes answer 404
 
@@ -54,7 +54,7 @@ A platform other than `ios` or `android`, or a zone not shaped like an IANA name
 
 ### Without a database the device routes answer 503
 
-With `buildHandler()` given no session, `POST /v1/devices` and `DELETE /v1/devices/{token}` answer 503 `{"error":"no database"}` while `/healthz` is unaffected.
+With `buildHandler()` given no session, `POST /v1/devices` and `DELETE /v1/devices/{token}` answer 503 `{"error":"no database"}` while `/health` is unaffected.
 
 ### The devices migration creates the table
 
