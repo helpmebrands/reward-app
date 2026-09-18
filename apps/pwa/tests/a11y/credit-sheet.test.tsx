@@ -8,7 +8,7 @@ import { mountRoute } from './mount.tsx'
  * not only in the seconds after logging it.
  */
 describe('claims in the credit sheet', () => {
-  // @lat: [[tests#Accessibility tests#The sheet lists claims with a Remove]]
+  // @lat: [[pwa-tests#Accessibility tests#The sheet lists claims with a Remove]]
   it('lists a logged claim and Remove restores the balance', async () => {
     const { app, ui } = await mountRoute('/')
     const open = app.instances().find((i) => i.status === 'available' || i.status === 'use_soon')

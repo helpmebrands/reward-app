@@ -31,7 +31,7 @@ const TIMEOUT = 30_000
 
 describe('axe on every route', () => {
   for (const [name, path] of ROUTES) {
-    // @lat: [[tests#Accessibility tests#Every route passes axe in jsdom]]
+    // @lat: [[pwa-tests#Accessibility tests#Every route passes axe in jsdom]]
     it(
       `${name} has no violations`,
       async () => {
@@ -42,7 +42,7 @@ describe('axe on every route', () => {
     )
   }
 
-  // @lat: [[tests#Accessibility tests#The credit sheet passes axe]]
+  // @lat: [[pwa-tests#Accessibility tests#The credit sheet passes axe]]
   it(
     'the credit sheet has no violations',
     async () => {

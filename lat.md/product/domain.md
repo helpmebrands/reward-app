@@ -1,14 +1,16 @@
 # Domain model
 
-The pure core of HelpMe Reward: cards, benefits, cycles, claims, and the selectors that resolve them into what every screen renders. Nothing in `src/domain/` imports a framework, which is what makes it the part worth testing.
+The pure core of HelpMe Reward: cards, benefits, cycles, claims, and the selectors that resolve them into what every screen renders.
 
-Types live in `src/domain/types.ts`. Everything else here is derived from `AppData`, which is `{ cards, benefits, claims, settings }`.
+The rules are pure functions of the data with no framework behind them, which is what makes this the part worth testing; the reference implementation is `apps/pwa/src/domain/`.
+
+Types live in `apps/pwa/src/domain/types.ts`. Everything else here is derived from `AppData`, which is `{ cards, benefits, claims, settings }`.
 
 ## Calendar dates, not timestamps
 
 Dates that name a day are `YYYY-MM-DD` strings (`IsoDate`); instants such as when a claim was recorded are full ISO-8601 strings (`IsoInstant`). "September 2026" must not shift when the user crosses a timezone.
 
-All calendar arithmetic in `src/domain/dates.ts` computes via `Date.UTC`, which has no DST transitions. Using local-time `Date` objects silently shifts dates by a day twice a year in most timezones. Two rules follow:
+All calendar arithmetic (`apps/pwa/src/domain/dates.ts`) computes in UTC, which has no DST transitions. Local-time date objects silently shift dates by a day twice a year in most timezones. Two rules follow:
 
 - [[apps/pwa/src/domain/dates.ts#addMonths]] clamps the day to the target month, so Jan 31 + 1 month is Feb 28, never March 3.
 - [[apps/pwa/src/domain/dates.ts#todayIso]] is the one exception: it reads the *local* clock, because the user experiences the issuer's calendar dates locally. At 23:30 local on the 16th, it is still the 16th even if UTC says the 17th.
@@ -65,7 +67,7 @@ Helpers: [[apps/pwa/src/domain/cycles.ts#nextCycle]], [[apps/pwa/src/domain/cycl
 
 A claim records one use of a credit within one cycle. Partial claims are the normal case, several claims per cycle are summed, and a claim is keyed by `benefitId` plus `cycleKey`.
 
-Rules the store enforces ([[apps/pwa/src/stores/app.tsx#AppProvider]]):
+Rules the app enforces (in the PWA, [[apps/pwa/src/stores/app.tsx#AppProvider]]):
 
 - Claiming without an amount takes what is *left*, not the face value, so a second claim on a partly used credit cannot overshoot.
 - `unclaim` removes every claim against one cycle; `removeClaim` removes one. The snackbar's Undo and the sheet's Remove both remove the one claim just made.
@@ -77,7 +79,7 @@ Claims are indexed once per resolve ([[apps/pwa/src/domain/selectors.ts#indexCla
 
 Every benefit instance sits on exactly one rung: `locked`, `manual`, `use_soon`, `available`, `captured` or `missed`. The status is computed, never stored.
 
-Precedence, from `statusFor` in `src/domain/selectors.ts`:
+Precedence, from `statusFor` in `apps/pwa/src/domain/selectors.ts`:
 
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
@@ -142,7 +144,7 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 ## Form rules
 
-`src/domain/validation.ts` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
+`apps/pwa/src/domain/validation.ts` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
 
 - [[apps/pwa/src/domain/validation.ts#requiredError]]: a text field must not be blank; the caller supplies the sentence.
 - [[apps/pwa/src/domain/validation.ts#moneyError]] and [[apps/pwa/src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[apps/pwa/src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
@@ -151,6 +153,6 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 ## Card catalogue
 
-`src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
+`apps/pwa/src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
 
 `enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.

@@ -86,7 +86,7 @@ describe('claiming', () => {
     expect(afterSecond?.status).toBe('captured')
   })
 
-  // @lat: [[tests#The store#Removing one claim leaves the rest]]
+  // @lat: [[pwa-tests#The store#Removing one claim leaves the rest]]
   it('removes one claim and leaves the rest of the cycle alone', () => {
     const store = mountStore()
     addPlatinum(store, 'Jim')

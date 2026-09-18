@@ -8,17 +8,17 @@ There is no server. A deploy carries no migration and no data risk, which is why
 
 Dependencies point inward: routes and UI depend on stores, stores on services and domain, services on domain, and the domain on nothing.
 
-- **`src/domain/`** is pure logic with no framework imports. This is the part the unit tests cover ([[tests]]) and the part `scripts/make-sample.ts` reuses to build a fixture the app will agree with.
-- **`src/services/`** wraps IndexedDB, notifications and service-worker registration.
-- **`src/stores/`** holds two Solid contexts: [[architecture#The app store]] and [[architecture#UI state]].
-- **`src/ui/`** and **`src/routes/`** are components and screens. Every list renders rows through one shared actions hook so a swipe and a sheet button behave identically ([[design#Undo over confirmation]]).
-- **`src/sw.ts`** is the worker ([[reminders#Service-worker replay]]).
+- **`apps/pwa/src/domain/`** is pure logic with no framework imports. This is the part the unit tests cover ([[tests]], [[pwa-tests]]) and the part `scripts/make-sample.ts` reuses to build a fixture the app will agree with.
+- **`apps/pwa/src/services/`** wraps IndexedDB, notifications and service-worker registration.
+- **`apps/pwa/src/stores/`** holds two Solid contexts: [[architecture#The app store]] and [[architecture#UI state]].
+- **`apps/pwa/src/ui/`** and **`apps/pwa/src/routes/`** are components and screens. Every list renders rows through one shared actions hook so a swipe and a sheet button behave identically ([[design#Undo over confirmation]]).
+- **`apps/pwa/src/sw.ts`** is the worker ([[delivery#Service-worker replay]]).
 
 ## Persistence
 
 The whole dataset is one IndexedDB record. A household's cards, benefits and claims are measured in kilobytes, so snapshot writes are cheaper than per-entity stores, and the service worker can read the same database without a schema to agree on.
 
-`src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[apps/pwa/src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import.
+`apps/pwa/src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[apps/pwa/src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import.
 
 [[apps/pwa/src/services/db.ts#loadData]] never throws: a corrupt or blocked IndexedDB starts the app empty rather than white-screening, because empty is recoverable and a crash is not.
 
@@ -59,7 +59,7 @@ The shell also owns four effects: republishing the reminder schedule on every da
 
 Every screen calls [[apps/pwa/src/ui/useScreenTitle.ts#useScreenTitle]], which sets `document.title` to `<Screen> · HelpMe Reward`; editors use the card or credit name (WCAG 2.4.2).
 
-On every route change after the first render, the shell focuses the new screen's `<h1>`, each of which carries `tabindex="-1"` (WCAG 2.4.3). The one exception is a press on the tab bar, where focus stays on the tab the user pressed. The skip link keeps targeting `#main`. Specified by [[tests#Accessibility tests#Navigation moves focus to the new heading]].
+On every route change after the first render, the shell focuses the new screen's `<h1>`, each of which carries `tabindex="-1"` (WCAG 2.4.3). The one exception is a press on the tab bar, where focus stays on the tab the user pressed. The skip link keeps targeting `#main`. Specified by [[pwa-tests#Accessibility tests#Navigation moves focus to the new heading]].
 
 ## Service worker lifecycle
 
@@ -67,7 +67,7 @@ The worker is hand-written and Workbox only injects the precache manifest (`inje
 
 Reminders are time-critical: a tab left open for a week on an old worker would keep replaying a stale schedule. So a new worker takes over immediately, at both ends: the worker calls `skipWaiting` on install and `clients.claim` on activate, and [[apps/pwa/src/services/sw-register.ts#registerServiceWorker]] activates a waiting update straight away rather than waiting for every tab to close. There is no server-side state to be out of step with, and the app re-reads IndexedDB on load, so the immediate swap is safe.
 
-Other decisions in `vite.config.ts` and `src/sw.ts`:
+Other decisions in `vite.config.ts` and `apps/pwa/src/sw.ts`:
 
 - Registration is skipped in `vite dev` unless `VITE_ENABLE_SW` is set, because precaching fights hot reload. Use `npm run preview` to test offline, installation and notifications.
 - Phosphor's 3 MB SVG fallback fonts are excluded from the precache; every current browser loads the woff2 files. Bundling the icon stylesheets from npm rather than a CDN is what lets them be precached at all.

@@ -23,7 +23,7 @@ const ROUTES: ReadonlyArray<[name: string, path: string]> = [
 ]
 
 for (const [name, path] of ROUTES) {
-  // @lat: [[tests#Accessibility tests#Landscape keeps the first row on screen]]
+  // @lat: [[pwa-tests#Accessibility tests#Landscape keeps the first row on screen]]
   test(`${name} fits a landscape phone`, async ({ page, viewport }) => {
     if (!viewport) throw new Error('no viewport')
     await page.goto(path)
@@ -72,7 +72,7 @@ for (const [name, path] of ROUTES) {
   })
 }
 
-// @lat: [[tests#Accessibility tests#The credit sheet works in landscape]]
+// @lat: [[pwa-tests#Accessibility tests#The credit sheet works in landscape]]
 test('the credit sheet opens, scrolls and closes', async ({ page, viewport }) => {
   await page.goto('/')
   await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
@@ -107,7 +107,7 @@ test('the credit sheet opens, scrolls and closes', async ({ page, viewport }) =>
   await expect(dialog).toBeHidden()
 })
 
-// @lat: [[tests#PWA manifest#Built manifest has no orientation key]]
+// @lat: [[pwa-tests#PWA manifest#Built manifest has no orientation key]]
 test('the built manifest does not lock orientation', async ({ page }) => {
   const response = await page.request.get('/manifest.webmanifest')
   expect(response.ok()).toBe(true)

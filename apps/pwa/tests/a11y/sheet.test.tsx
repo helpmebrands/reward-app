@@ -26,7 +26,7 @@ afterEach(() => {
 })
 
 describe('sheet presentation', () => {
-  // @lat: [[tests#Accessibility tests#The sheet is a dialog from 600px]]
+  // @lat: [[pwa-tests#Accessibility tests#The sheet is a dialog from 600px]]
   it('is a centred dialog with no grip at a medium width', async () => {
     mockWidth((query) => query.includes('600px'))
     const { ui } = await mountRoute('/')
@@ -38,7 +38,7 @@ describe('sheet presentation', () => {
     await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
   })
 
-  // @lat: [[tests#Accessibility tests#The sheet is a dialog from 600px]]
+  // @lat: [[pwa-tests#Accessibility tests#The sheet is a dialog from 600px]]
   it('keeps the grip and the drag transform on a phone', async () => {
     const { ui } = await mountRoute('/')
     ui.openCredit('ben-0003')

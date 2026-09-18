@@ -70,7 +70,7 @@ for (const [name, path] of ROUTES) {
     const expected = LAYOUT[viewport.width]
 
     if (!expected) {
-      // @lat: [[tests#Accessibility tests#The phone layout does not move]]
+      // @lat: [[pwa-tests#Accessibility tests#The phone layout does not move]]
       // Compact: the phone design as drawn. Compared against a baseline taken
       // from develop before the responsive work; UPDATE_LAYOUT_BASELINE=1
       // rewrites it once a change to the phone layout is intended.
@@ -98,7 +98,7 @@ for (const [name, path] of ROUTES) {
       return
     }
 
-    // @lat: [[tests#Accessibility tests#The rail and the centred column at wider widths]]
+    // @lat: [[pwa-tests#Accessibility tests#The rail and the centred column at wider widths]]
     const nav = page.getByRole('navigation', { name: 'Main' })
     const navBox = await nav.boundingBox()
     const mainBox = await page.locator('#main').boundingBox()
@@ -116,7 +116,7 @@ for (const [name, path] of ROUTES) {
   })
 }
 
-// @lat: [[tests#Accessibility tests#The rail and the centred column at wider widths]]
+// @lat: [[pwa-tests#Accessibility tests#The rail and the centred column at wider widths]]
 test('the four tabs are reachable by keyboard in order', async ({ page, viewport }) => {
   if (!viewport || !LAYOUT[viewport.width]) test.skip()
   await page.goto('/')

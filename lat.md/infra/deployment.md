@@ -40,7 +40,7 @@ Cloud Run was chosen over object hosting because the roadmap has a Web Push back
 
 ## Cache rules
 
-The cache headers in `deploy/nginx.conf.template` are correctness, not performance. If `sw.js` or `index.html` sit in a browser cache, a user stays pinned to an old service worker and an old reminder schedule.
+The cache headers in `apps/pwa/deploy/nginx.conf.template` are correctness, not performance. If `sw.js` or `index.html` sit in a browser cache, a user stays pinned to an old service worker and an old reminder schedule.
 
 That failure is silent: notifications quietly stop matching the data, and nothing else surfaces it.
 
@@ -56,7 +56,7 @@ Two traps the config avoids: the immutable header on `/assets/` is set without `
 
 ## Security headers
 
-`deploy/security-headers.conf` is included in every `location` block, because nginx's `add_header` does not inherit: a block that declares one header drops every header from its parent.
+`apps/pwa/deploy/security-headers.conf` is included in every `location` block, because nginx's `add_header` does not inherit: a block that declares one header drops every header from its parent.
 
 A location that forgets the include is therefore a silently unprotected route.
 
@@ -68,7 +68,7 @@ The Content Security Policy is same-origin apart from the Inter webfont. `script
 
 The stack name doubles as the environment (`staging`, `prod`).
 
-Provider settings (`gcp:project`, `gcp:region`) and `githubRepo` live per stack in `infra/Pulumi.<stack>.yaml`. `Pulumi.yaml` declares only the project's own unprefixed keys, because Pulumi rejects a namespaced key declared at project level without a value. `Pulumi.staging.yaml` targets `helpme-reward-staging` and trusts `helpmebrands/reward-app`; the test in [[tests#Infrastructure config]] pins both.
+Provider settings (`gcp:project`, `gcp:region`) and `githubRepo` live per stack in `infra/Pulumi.<stack>.yaml`. `Pulumi.yaml` declares only the project's own unprefixed keys, because Pulumi rejects a namespaced key declared at project level without a value. `Pulumi.staging.yaml` targets `helpme-reward-staging` and trusts `helpmebrands/reward-app`; the test in [[infra-tests#Infrastructure config]] pins both.
 
 The stack holds no secrets, so its passphrase is empty (`PULUMI_CONFIG_PASSPHRASE=""`); runbook 01 says to move to a real secrets provider before the first secret. Pulumi state lives in the versioned GCS bucket `gs://helpme-reward-staging-pulumi-state`, never on a laptop. Runbook 01 step 2 is the only login procedure, so a second, competing copy of the state is never initialised.
 
@@ -79,6 +79,6 @@ The stack holds no secrets, so its passphrase is empty (`PULUMI_CONFIG_PASSPHRAS
 - **Keyless deploys.** A Workload Identity Pool trusts GitHub's OIDC issuer, with an attribute condition pinning the repository owner. Only workflows from the configured `githubRepo` may impersonate the deployer account, which holds exactly two scoped roles: `artifactregistry.writer` on the one repository and `run.developer` on the one service, plus `serviceAccountUser` on the runtime account, which deploying a service that runs as another identity requires. No service-account key exists anywhere.
 - **Custom domain** mapping is created only when configured, because it fails unless the domain has already been verified in Search Console by the account running `pulumi up`, a manual step. DNS for `helpmereward.com` is in Cloudflare, and the mapping's CNAME must stay DNS-only (unproxied) or Google's managed certificate never issues; runbook 03 has the procedure and the proxy caveats.
 
-Staging is project `helpme-reward-staging` in `us-central1`, stack `staging`, service `reward-app` at <https://staging.helpmereward.com> (the `run.app` URL <https://reward-app-bduraqeztq-uc.a.run.app> still answers), deployed from `develop` since 2026-09-17. The apex `helpmereward.com` is reserved for `prod`. The table in `docs/runbooks/README.md` is the record; [[tests#Infrastructure config]] pins it.
+Staging is project `helpme-reward-staging` in `us-central1`, stack `staging`, service `reward-app` at <https://staging.helpmereward.com> (the `run.app` URL <https://reward-app-bduraqeztq-uc.a.run.app> still answers), deployed from `develop` since 2026-09-17. The apex `helpmereward.com` is reserved for `prod`. The table in `docs/runbooks/README.md` is the record; [[infra-tests#Infrastructure config]] pins it.
 
 The stack outputs are exactly the values GitHub needs as repository variables: `WIF_PROVIDER`, `DEPLOY_SERVICE_ACCOUNT`, `CLOUD_RUN_SERVICE`, `ARTIFACT_REPO`, `GCP_REGION`, `GCP_PROJECT_ID`.

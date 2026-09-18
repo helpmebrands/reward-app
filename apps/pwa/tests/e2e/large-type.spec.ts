@@ -50,7 +50,7 @@ function overlaps(boxes: ReturnType<typeof controlBoxes>) {
   return out
 }
 
-// @lat: [[tests#Accessibility tests#Body text follows the browser font size]]
+// @lat: [[pwa-tests#Accessibility tests#Body text follows the browser font size]]
 test('body text follows a 24px browser font size', async ({ page }) => {
   await page.goto('/')
   await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()
@@ -63,7 +63,7 @@ for (const [name, path] of [
   ['Today', '/'],
   ['Benefit editor', '/benefit/ben-0003'],
 ] as const) {
-  // @lat: [[tests#Accessibility tests#Controls keep clear of each other at 24px]]
+  // @lat: [[pwa-tests#Accessibility tests#Controls keep clear of each other at 24px]]
   test(`${name} controls keep clear of each other at 24px`, async ({ page }) => {
     await page.goto(path)
     await expect(page.locator('#main').getByText('Loading your cards')).toBeHidden()

@@ -20,7 +20,7 @@ async function openFirstCredit(page: Page) {
   return { row, dialog }
 }
 
-// @lat: [[tests#Accessibility tests#The sheet still drags on a phone]]
+// @lat: [[pwa-tests#Accessibility tests#The sheet still drags on a phone]]
 test('drags and dismisses past 110px on a phone', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width >= 600, 'phone widths only')
@@ -51,7 +51,7 @@ test('drags and dismisses past 110px on a phone', async ({ page, viewport }) => 
   await expect(dialog, 'past 110px dismisses').toBeHidden()
 })
 
-// @lat: [[tests#Accessibility tests#The sheet is a dialog from 600px]]
+// @lat: [[pwa-tests#Accessibility tests#The sheet is a dialog from 600px]]
 test('is a centred dialog at a medium width', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 600 || viewport.width >= 1024, 'medium width only')
@@ -64,7 +64,7 @@ test('is a centred dialog at a medium width', async ({ page, viewport }) => {
   expect(Math.abs(panel.y + panel.height / 2 - viewport.height / 2)).toBeLessThanOrEqual(1)
 })
 
-// @lat: [[tests#Accessibility tests#The credit panel sits beside the list]]
+// @lat: [[pwa-tests#Accessibility tests#The credit panel sits beside the list]]
 test('is a side panel beside the list at an expanded width', async ({ page, viewport }) => {
   if (!viewport) throw new Error('no viewport')
   test.skip(viewport.width < 1024, 'expanded width only')
