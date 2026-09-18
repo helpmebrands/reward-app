@@ -51,7 +51,7 @@ The expected list is `test/fixtures/sample-schedule-ids.json`, dumped by `apps/p
 
 ## Form rules
 
-`apps/pwa/tests/validation.test.ts` covers each rule in [[domain#Form rules]] without the DOM.
+`apps/pwa/tests/validation.test.ts` and its port `packages/domain/test/validation_test.dart` cover each rule in [[domain#Form rules]] without the DOM.
 
 ### A required field must not be blank
 
@@ -68,3 +68,52 @@ Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
 ### An enrolment page must be a web address
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
+
+## Card catalogue
+
+`packages/domain/test/catalog_test.dart` pins the starting templates in [[domain#Card catalogue]]. The PWA covers the first case from its store suite; the rest are Dart-only, since the PWA exercised them through the add-card screen.
+
+### Every template gives each credit an icon and a value
+
+Every credit in every template has an icon name and a value above zero, so a template can never land a blank row on Today.
+
+### Templates are found by id and end with blank
+
+`findTemplate` returns the template for a known id and null otherwise, and the last template is `blank`, the empty one the add-card flow offers for cards the catalogue does not know.
+
+### A template prices its year and names its locked credits
+
+`templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrolment box.
+
+### Template credits become ordinary benefits
+
+`benefitsFromTemplate` stamps every entry into a benefit with a fresh id, the new card's id, the given timestamps, active and unmuted, keeping `enrollmentRequired` so the credit lands locked or spendable as the template says.
+
+## Formatting
+
+`packages/domain/test/format_test.dart` pins the display forms in `format.dart`. The PWA's equivalents are locale-driven `Intl` calls exercised only through components; the port hand-rolls them, so these specs are what the two must agree on.
+
+### Whole dollars drop the cents
+
+`$15` for 1500 cents, `$12.95` for 1295, thousands grouped as `$1,500`, a negative as `-$5`; `formatMoneyExact` always shows cents, and `moneyParts` splits the symbol from the digits.
+
+### Typed money becomes whole cents
+
+`parseMoneyToCents` strips currency symbols and commas before parsing and refuses blanks, words and negatives; `parseMoney` (the form rule) accepts a sign, rejects commas and rounds to whole cents.
+
+### Dates show the year only outside the current one
+
+`formatDate` gives `Sep 30` inside the current year and `Mar 13, 2027` outside it; `formatRange` joins two with an en dash; the header reads `Tue, 15 Sep` and a reset date `30 September`.
+
+### Deadlines read the way a person would say them
+
+Negative days are `Expired`, then `Today`, `Tomorrow`, whole days under a week, weeks under a month, months under a year, and years after that, rounded the way `format.ts` rounds them.
+
+### Screen readers hear the date with the deadline
+
+`describeDeadline` says `Expires today`, `Expires tomorrow`, `Expires in N days` or `Expired on`, each followed by the formatted date.
+
+### Initials come from the first two words
+
+`initials` takes the first letter of the first two words, the first two letters of a single word, and `?` for nothing.
+
