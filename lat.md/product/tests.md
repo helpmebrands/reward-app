@@ -34,7 +34,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Ladder and schedule
 
-`apps/pwa/tests/reminders.test.ts` covers when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).
+`apps/pwa/tests/reminders.test.ts` and its port `packages/domain/test/reminders_test.dart` cover when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).
 
 - Each cadence's rungs match the table, open permissive and end urgent, and collapse to one last call when opted out. `currentRung` reports the rung a credit stands on.
 - The schedule is empty while reminders are off, fires a rung at the reminder time on the right day, never schedules in the past, and returns reminders in firing order.
@@ -42,6 +42,12 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - Muted credits, muted cards, fully claimed cycles, manual credits and sub-floor values are skipped; a partly used credit is reminded about for its balance.
 - Ids are stable and unique across recomputes, so the delivery layer's dedupe holds.
 - `dueReminders` returns only what has come due and not been shown, and drops anything the device slept through for days.
+
+### The sample household schedules the same ids in Dart
+
+`packages/domain/test/sample_household_test.dart` builds the schedule for the PWA's sample household on 16 September 2026 and expects the group ids the TypeScript build produces.
+
+The expected list is `test/fixtures/sample-schedule-ids.json`, dumped by `apps/pwa/scripts/schedule-ids.ts`. A drift here means the two implementations would remind on different days.
 
 ## Form rules
 

@@ -2,7 +2,7 @@
 
 Reminder timing is the product. Each cadence has its own ladder of warnings, everything due on one day is grouped into one notification, and the schedule is a pure function of the household's data.
 
-The schedule is computed from `AppData` alone (`apps/pwa/src/domain/reminders.ts` in the reference implementation) and handed to the platform to deliver ([[delivery]] for the PWA). That split keeps the timing rules testable and means delivery needs no domain knowledge.
+The schedule is computed from `AppData` alone (`apps/pwa/src/domain/reminders.ts` in the reference implementation, `packages/domain/lib/src/reminders.dart` in the port) and handed to the platform to deliver ([[delivery]] for the PWA). That split keeps the timing rules testable and means delivery needs no domain knowledge.
 
 ## The ladder
 
