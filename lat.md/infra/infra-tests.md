@@ -22,6 +22,16 @@ Pulumi rejects a namespaced key such as `gcp:project` declared at project level 
 
 `infra/Pulumi.staging.yaml` sets `customDomain` to `staging.helpmereward.com`, so a clean checkout previews no diff against the live mapping. The apex is reserved for `prod`.
 
+### Staging uses the KMS secrets provider
+
+`Pulumi.staging.yaml` names `gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging` in `secretsprovider` and carries an `encryptedkey` ([[deployment#Infrastructure]]).
+
+With both pinned, the stack can never fall back to the empty passphrase it started with.
+
+### Project config declares the database tier
+
+`Pulumi.yaml` declares `dbTier` with `default: db-f1-micro`, the smallest Cloud SQL machine, so a stack that says nothing gets the cheapest instance and raising it is a visible config change.
+
 ### Staging trusts this repository
 
 `githubRepo` is `helpmebrands/reward-app`. The WIF attribute condition and the impersonation binding are built from it, so a wrong value rejects every deploy.
@@ -45,6 +55,12 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 ### Verify gate typechecks the Pulumi program
 
 `verify.yml` has an `infra` job that runs `npm ci --workspace infra` and `npm run typecheck --workspace infra` against the root lockfile, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.
+
+### Verify gate previews the Pulumi program with keyless credentials
+
+The `infra` job authenticates with `google-github-actions/auth@v2`, logs Pulumi into `gs://helpme-reward-staging-pulumi-state` and runs `pulumi preview` ([[deployment#Pipeline]]).
+
+Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC exchange has no token to present.
 
 ### Root pubspec declares the pub workspace
 

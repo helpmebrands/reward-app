@@ -9,10 +9,11 @@
   },
   "dependencies": {
     "@pulumi/gcp": "^8.0.0",
-    "@pulumi/pulumi": "^3.0.0"
+    "@pulumi/pulumi": "^3.0.0",
+    "@pulumi/random": "^4.21.1"
   },
   "devDependencies": {
-    "typescript": "^5.6.0",
-    "@types/node": "^22.20.3"
+    "@types/node": "^22.20.3",
+    "typescript": "^5.6.0"
   }
 }
