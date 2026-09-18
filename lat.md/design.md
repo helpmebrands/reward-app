@@ -60,7 +60,7 @@ Four tabs, each answering a different question, plus editors and Settings. The t
 
 ### Forms and errors
 
-Validation is inline and announced, never silent (WCAG 3.3.1 to 3.3.3). [[src/ui/Field.tsx#Field]] wraps a labelled control with a hint and an error slot; the control gets `aria-invalid` and `aria-describedby`, and the error text says what to enter.
+Validation is inline and announced, never silent (WCAG 3.3.1 to 3.3.3). [[apps/pwa/src/ui/Field.tsx#Field]] wraps a labelled control with a hint and an error slot; the control gets `aria-invalid` and `aria-describedby`, and the error text says what to enter.
 
 Errors show once a field has been left or the form submitted, never on the first keystroke. Save buttons are never disabled: pressing Save with an invalid form shows the errors and focuses the first invalid control. Required fields carry `required` and a `*` explained once above the form. The rules are pure functions in [[domain#Form rules]]; the live editors keep what was typed in a draft and only write valid values to the store.
 
@@ -95,7 +95,7 @@ Screenshots at 768 and 1280px for review live in `tests/e2e/screenshots/` ([[tes
 
 Every credit row is reachable three ways: tap to open the sheet, swipe right to log the whole credit, swipe left to silence it. The swipe is an accelerator, never the only route, because a gesture nobody discovers is not a feature.
 
-[[src/ui/SwipeRow.tsx#SwipeRow]] implements Material's swipe-to-act with the behaviours that make it usable on a phone:
+[[apps/pwa/src/ui/SwipeRow.tsx#SwipeRow]] implements Material's swipe-to-act with the behaviours that make it usable on a phone:
 
 - **Direction locking.** The gesture only becomes a swipe once horizontal movement clearly beats vertical (10px), so a fast flick down the list never half-opens a row. Pointer capture happens only after the swipe is committed, so scrolling is never stolen.
 - **Rubber-banding** past the 84px action width.
@@ -105,9 +105,9 @@ Every credit row is reachable three ways: tap to open the sheet, swipe right to 
 
 ## Bottom sheets
 
-[[src/ui/Sheet.tsx#Sheet]] is a modal sheet in the shape the width calls for: a bottom sheet on a phone, a centred dialog from 600px, and for the credit sheet a side panel from 1024px. All three keep `role="dialog"`, `aria-modal`, Escape, the focus trap and focus return.
+[[apps/pwa/src/ui/Sheet.tsx#Sheet]] is a modal sheet in the shape the width calls for: a bottom sheet on a phone, a centred dialog from 600px, and for the credit sheet a side panel from 1024px. All three keep `role="dialog"`, `aria-modal`, Escape, the focus trap and focus return.
 
-The presentation comes from [[src/ui/useBreakpoint.ts#createBreakpoint]], which watches the two media queries the token sheet defines ([[design#Responsive layout]]).
+The presentation comes from [[apps/pwa/src/ui/useBreakpoint.ts#createBreakpoint]], which watches the two media queries the token sheet defines ([[design#Responsive layout]]).
 
 - **Bottom** (compact): Material's sheet on Nocturne's surfaces. A drag handle that actually drags, dismissal by distance (110px) or by downward flick (0.5 px/ms), a scrim that closes on tap. The drag listens on the handle only: dragging from anywhere would fight the sheet's own scrolling, which matters because the credit sheet is taller than the screen.
 - **Dialog** (medium, and the compare sheet at expanded): centred, at most 480px wide and 85% of the height, faded in. No handle, because there is nothing to drag.
@@ -119,26 +119,26 @@ Body scroll is locked while a sheet is open. Specified by [[tests#Accessibility 
 
 Logging a credit is the app's main destructive-feeling action and far more common than correcting one. So the flow is optimistic: the claim is written immediately and the snackbar offers to take it back, rather than asking "are you sure?" every time.
 
-[[src/ui/useCreditActions.ts#useCreditActions]] is shared by every list that renders a row, so a swipe behaves identically to the same action taken from the sheet, and every logged claim and every mute toggle returns an Undo through [[src/ui/Snackbar.tsx#useSnackbar]].
+[[apps/pwa/src/ui/useCreditActions.ts#useCreditActions]] is shared by every list that renders a row, so a swipe behaves identically to the same action taken from the sheet, and every logged claim and every mute toggle returns an Undo through [[apps/pwa/src/ui/Snackbar.tsx#useSnackbar]].
 
 There are two ways back, so undo is never a race against a clock (WCAG 2.2.1):
 
 - **The snackbar.** An undo stays up for twenty seconds, not Material's six. The clock stops while the pointer or keyboard focus is on the snackbar and restarts in full when they leave. The Undo button's accessible name says what it undoes ("Undo logging Uber Cash"), since the visible word alone does not.
-- **The sheet.** The credit sheet lists everything logged this period under "Logged this period", newest first, each with a Remove that deletes that one claim ([[src/stores/app.tsx#AppProvider]]'s `removeClaim`). This is the path that needs no timer at all.
+- **The sheet.** The credit sheet lists everything logged this period under "Logged this period", newest first, each with a Remove that deletes that one claim ([[apps/pwa/src/stores/app.tsx#AppProvider]]'s `removeClaim`). This is the path that needs no timer at all.
 
 ## Partial logging
 
-The credit sheet ([[src/ui/CreditSheet.tsx#CreditSheet]]) makes logging a partial amount as easy as logging the whole thing. Quick amounts are a quarter, a half and a round figure, all capped at what is actually left and rounded to whole dollars, because nobody logs $37.53.
+The credit sheet ([[apps/pwa/src/ui/CreditSheet.tsx#CreditSheet]]) makes logging a partial amount as easy as logging the whole thing. Quick amounts are a quarter, a half and a round figure, all capped at what is actually left and rounded to whole dollars, because nobody logs $37.53.
 
 ## Household filter
 
-[[src/ui/HolderFilter.tsx#HolderFilter]] narrows Today and Credits to one member. A native `<select>` sits invisibly over a styled row so mobile gets the OS picker.
+[[apps/pwa/src/ui/HolderFilter.tsx#HolderFilter]] narrows Today and Credits to one member. A native `<select>` sits invisibly over a styled row so mobile gets the OS picker.
 
 A custom dropdown would be worse in every way that matters: no keyboard accessory, no scroll wheel, no VoiceOver rotor. The control hides itself when there is only one person, because a filter with one option is furniture.
 
 ## Accessibility
 
-The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
+The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[apps/pwa/src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
 
 Every screen has exactly one `<h1>` and a document title of its own ([[architecture#The shell and routing#Titles and focus]]). Today's heading is visually hidden behind the logotype, which is decoration with an empty `alt`.
 

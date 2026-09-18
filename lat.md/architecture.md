@@ -18,24 +18,24 @@ Dependencies point inward: routes and UI depend on stores, stores on services an
 
 The whole dataset is one IndexedDB record. A household's cards, benefits and claims are measured in kilobytes, so snapshot writes are cheaper than per-entity stores, and the service worker can read the same database without a schema to agree on.
 
-`src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import.
+`src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[apps/pwa/src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import.
 
-[[src/services/db.ts#loadData]] never throws: a corrupt or blocked IndexedDB starts the app empty rather than white-screening, because empty is recoverable and a crash is not.
+[[apps/pwa/src/services/db.ts#loadData]] never throws: a corrupt or blocked IndexedDB starts the app empty rather than white-screening, because empty is recoverable and a crash is not.
 
 ## The app store
 
-[[src/stores/app.tsx#AppProvider]] owns a Solid store of `AppData`, every mutation, and the memos the screens read: `instances` (every active credit resolved against today, by urgency), `missed`, `cardSummaries`, and `visibleInstances` narrowed by the household filter.
+[[apps/pwa/src/stores/app.tsx#AppProvider]] owns a Solid store of `AppData`, every mutation, and the memos the screens read: `instances` (every active credit resolved against today, by urgency), `missed`, `cardSummaries`, and `visibleInstances` narrowed by the household filter.
 
 Two boot-time subtleties:
 
 - The persisted snapshot is loaded asynchronously and applied with `reconcile`, but only if nothing has been written locally in the meantime. The UI is gated on `loading()`, so in the app this cannot happen; a caller that does not wait (a test, or future programmatic use) would otherwise have its change silently discarded. The user's action wins.
 - The save effect reads the whole store as a JSON snapshot so it tracks every field, then bails out while loading, so the empty default never overwrites a real snapshot.
 
-Mutations go through a `write` wrapper that marks local changes. Notable ones: `claim` defaults to the remaining balance ([[domain#Claims]]), `deleteCard` cascades to benefits and claims, and `replaceAll` runs [[src/services/db.ts#migrate]] over imported data.
+Mutations go through a `write` wrapper that marks local changes. Notable ones: `claim` defaults to the remaining balance ([[domain#Claims]]), `deleteCard` cascades to benefits and claims, and `replaceAll` runs [[apps/pwa/src/services/db.ts#migrate]] over imported data.
 
 ### Keeping today fresh
 
-A PWA is resumed rather than reloaded, so a date captured at boot goes stale overnight and would show yesterday's deadlines. [[src/stores/app.tsx#createToday]] re-reads the clock every minute, on `visibilitychange`, and on `focus`.
+A PWA is resumed rather than reloaded, so a date captured at boot goes stale overnight and would show yesterday's deadlines. [[apps/pwa/src/stores/app.tsx#createToday]] re-reads the clock every minute, on `visibilitychange`, and on `focus`.
 
 ### Import and export
 
@@ -43,13 +43,13 @@ A PWA is resumed rather than reloaded, so a date captured at boot goes stale ove
 
 ## UI state
 
-[[src/stores/ui.tsx#UiProvider]] holds transient state: which credit sheet is open, which overlap is being compared, and whether the nudge preview is showing.
+[[apps/pwa/src/stores/ui.tsx#UiProvider]] holds transient state: which credit sheet is open, which overlap is being compared, and whether the nudge preview is showing.
 
 It is a context rather than props because the shell renders the sheets while the screens open them, and the two are on opposite sides of the router's layout boundary. Sheets track a benefit *id*, never a resolved instance: instances are recomputed on every claim, and holding one would leave the sheet showing a balance that went stale the moment the user logged something.
 
 ## The shell and routing
 
-[[src/App.tsx#Shell]] is the router's root layout. It has to sit inside the router because the tab bar and the notification handler both use router primitives, and it renders the sheets so a credit opened from Today, Credits or a compare all share one instance.
+[[apps/pwa/src/App.tsx#Shell]] is the router's root layout. It has to sit inside the router because the tab bar and the notification handler both use router primitives, and it renders the sheets so a credit opened from Today, Credits or a compare all share one instance.
 
 Routes: `/` Today, `/credits`, `/cards`, `/cards/new`, `/cards/:id`, `/benefit/:id`, `/value`, `/settings`, and a not-found fallback.
 
@@ -57,7 +57,7 @@ The shell also owns four effects: republishing the reminder schedule on every da
 
 ### Titles and focus
 
-Every screen calls [[src/ui/useScreenTitle.ts#useScreenTitle]], which sets `document.title` to `<Screen> · HelpMe Reward`; editors use the card or credit name (WCAG 2.4.2).
+Every screen calls [[apps/pwa/src/ui/useScreenTitle.ts#useScreenTitle]], which sets `document.title` to `<Screen> · HelpMe Reward`; editors use the card or credit name (WCAG 2.4.2).
 
 On every route change after the first render, the shell focuses the new screen's `<h1>`, each of which carries `tabindex="-1"` (WCAG 2.4.3). The one exception is a press on the tab bar, where focus stays on the tab the user pressed. The skip link keeps targeting `#main`. Specified by [[tests#Accessibility tests#Navigation moves focus to the new heading]].
 
@@ -65,7 +65,7 @@ On every route change after the first render, the shell focuses the new screen's
 
 The worker is hand-written and Workbox only injects the precache manifest (`injectManifest`), because reminder replay and push handling cannot be expressed by a generated worker.
 
-Reminders are time-critical: a tab left open for a week on an old worker would keep replaying a stale schedule. So a new worker takes over immediately, at both ends: the worker calls `skipWaiting` on install and `clients.claim` on activate, and [[src/services/sw-register.ts#registerServiceWorker]] activates a waiting update straight away rather than waiting for every tab to close. There is no server-side state to be out of step with, and the app re-reads IndexedDB on load, so the immediate swap is safe.
+Reminders are time-critical: a tab left open for a week on an old worker would keep replaying a stale schedule. So a new worker takes over immediately, at both ends: the worker calls `skipWaiting` on install and `clients.claim` on activate, and [[apps/pwa/src/services/sw-register.ts#registerServiceWorker]] activates a waiting update straight away rather than waiting for every tab to close. There is no server-side state to be out of step with, and the app re-reads IndexedDB on load, so the immediate swap is safe.
 
 Other decisions in `vite.config.ts` and `src/sw.ts`:
 

@@ -63,6 +63,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: apps/pwa/Dockerfile
           push: true
           tags: |
             ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-app:${{ github.sha }}

@@ -1,17 +1,21 @@
 # Keep the build context small and the image free of anything that is not the
 # app. node_modules especially — `npm ci` reinstalls inside the image, and
 # copying a host tree in can smuggle platform-specific binaries across.
-node_modules
-dist
-dev-dist
-coverage
+# The context is the repository root so the workspace lockfile is available;
+# only the manifests and apps/pwa reach the image (see apps/pwa/Dockerfile).
+**/node_modules
+**/dist
+**/dev-dist
+**/coverage
 .git
 .github
-infra
 docs
-design-reference
-samples
-scripts
+lat.md
+apps/pwa/design-reference
+apps/pwa/samples
+apps/pwa/scripts
+apps/pwa/playwright-report
+apps/pwa/test-results
 *.log
 .env
 .env.*

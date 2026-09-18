@@ -122,14 +122,14 @@ typecheck, tests, a production build and a container smoke test; merging builds
 an image, pushes it to Artifact Registry and deploys a new Cloud Run revision,
 then smoke-tests the live URL.
 
-Infrastructure is Pulumi (`infra/`), and GitHub authenticates to Google with
+Infrastructure is Pulumi (`../../infra/`), and GitHub authenticates to Google with
 Workload Identity Federation — there is no service-account key anywhere.
 
-**[docs/runbooks/](docs/runbooks/)** covers it end to end: first deployment,
+**[docs/runbooks/](../../docs/runbooks/)** covers it end to end: first deployment,
 routine changes, infrastructure changes, rollback and troubleshooting.
 
 One rule worth knowing before touching either side: **Pulumi owns the shape of
-the service, CI owns which image runs.** `infra/index.ts` deliberately ignores
+the service, CI owns which image runs.** `../../infra/index.ts` deliberately ignores
 changes to the container image, because otherwise `pulumi up` would reset the
 service to the image it last recorded — deploying old code as a side effect of
 an unrelated change.
@@ -140,6 +140,9 @@ service worker and an old reminder schedule, which fails silently. CI asserts
 that header on every build.
 
 ## Layout
+
+This app is the `apps/pwa` workspace of the `helpmebrands/reward-app` monorepo;
+`npm test`, `lint`, `typecheck` and `build` also run from the repository root.
 
 ```
 src/
@@ -158,8 +161,9 @@ src/
 samples/     An importable household, for trying the app with real history
 scripts/     Generates that sample using the app's own cycle functions
 deploy/      nginx config for the container — cache and security headers
-infra/       Pulumi: Artifact Registry, Cloud Run, keyless GitHub deploys
-docs/runbooks/   Deployment and operations, step by step
+Dockerfile   Built from the repository root so the workspace lockfile is in context
+../../infra/         Pulumi: Artifact Registry, Cloud Run, keyless GitHub deploys
+../../docs/runbooks/ Deployment and operations, step by step
 ```
 
 `design-reference/` holds the Nocturne tokens and the original design canvas,

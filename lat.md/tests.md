@@ -60,7 +60,7 @@ Two claims against the same cycle; removing the first by id leaves the second, s
 
 ## Infrastructure config
 
-`tests/infra-config.test.ts` pins the committed Pulumi configuration and the runbooks that quote it ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
+`apps/pwa/tests/infra-config.test.ts` pins the committed Pulumi configuration, the runbooks that quote it and the monorepo layout ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
 
 ### Project is named reward-app
 
@@ -88,7 +88,7 @@ Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `he
 
 ### No cardvantage in infrastructure names
 
-Nothing under `infra/`, `docs/`, `.github/`, `deploy/` or the `Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
+Nothing under `infra/`, `docs/`, `.github/`, `apps/pwa/deploy/` or `apps/pwa/Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
 
 
 ### Runbook names the real state backend
@@ -101,7 +101,19 @@ Runbook 01 logs Pulumi into `gs://helpme-reward-staging-pulumi-state` rather tha
 
 ### Verify gate typechecks the Pulumi program
 
-`verify.yml` has an `infra` job that runs `npm ci` and `npm run typecheck` in `infra/` with its own lockfile cache, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.
+`verify.yml` has an `infra` job that runs `npm ci --workspace infra` and `npm run typecheck --workspace infra` against the root lockfile, so a type error in `infra/index.ts` fails review instead of the next hand-run `pulumi up`.
+
+### Root package declares the workspaces
+
+The root `package.json` lists exactly `apps/pwa` and `infra` as npm workspaces, so one lockfile covers both and `npm test`, `lint`, `typecheck` and `build` delegate from the root ([[overview#Source layout]]).
+
+### The PWA lives in apps/pwa
+
+`apps/pwa/package.json` is still `@helpmebrands/reward-app`, and its `Dockerfile` and `deploy/nginx.conf.template` moved with it, so the frozen reference app is self-contained under one path.
+
+### Workflows build the PWA image from its Dockerfile
+
+Both `verify.yml` and `cd.yml` pass `file: apps/pwa/Dockerfile` with the repository root as the build context, which is what lets the image `npm ci` against the workspace lockfile ([[deployment#Container]]).
 
 ## Accessibility tests
 
@@ -109,7 +121,7 @@ Two axe gates for epic #21: `tests/a11y/` runs in jsdom as part of `npm test`, a
 
 Both suites render every route with the sample household from `samples/sample-household.json`, so what axe sees is a populated screen rather than an empty state. `tests/a11y/allowlist.ts` names each rule currently disabled and the sub-issue that removes it; a sub-issue is not done until its entries are gone. The rule set is WCAG 2.1 A and AA plus axe's best practices.
 
-`tests/a11y/mount.tsx` mounts the real shell ([[src/App.tsx#Shell]]) and route table ([[src/App.tsx#routes]]) on a memory router, so a screen is judged inside the same landmarks, sheets and tab bar it ships with.
+`tests/a11y/mount.tsx` mounts the real shell ([[apps/pwa/src/App.tsx#Shell]]) and route table ([[apps/pwa/src/App.tsx#routes]]) on a memory router, so a screen is judged inside the same landmarks, sheets and tab bar it ships with.
 
 The Playwright suite (`playwright.config.ts`) is one project per width and theme: 320, 402, 768 and 1280px, light and dark, against `vite preview` of `dist/`, so build first. Its `theme` option seeds the sample household into IndexedDB with that theme in settings, because the shell owns the `data-theme` attribute and would overwrite a stamp. In CI the `a11y` job of `verify.yml` runs it on the bundle the verify job built, and uploads the HTML report when it fails.
 
