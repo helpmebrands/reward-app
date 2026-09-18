@@ -1,0 +1,9 @@
+name: domain
+description: The HelpMe Reward domain rules, shared by the Flutter app and the service tier.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.12.0
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.0
