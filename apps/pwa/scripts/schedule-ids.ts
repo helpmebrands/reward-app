@@ -18,4 +18,10 @@ const data = JSON.parse(
 data.settings.notifications.enabled = true
 
 const schedule = buildSchedule(data, new Date(2026, 8, 16, 8, 0, 0))
-console.log(JSON.stringify(schedule.reminders.map((reminder) => reminder.id), null, 2))
+console.log(
+  JSON.stringify(
+    schedule.reminders.map((reminder) => reminder.id),
+    null,
+    2,
+  ),
+)
