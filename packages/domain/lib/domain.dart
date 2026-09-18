@@ -6,5 +6,8 @@ library;
 
 export 'src/cycles.dart';
 export 'src/dates.dart';
+export 'src/format.dart';
+export 'src/ladder.dart';
+export 'src/reminders.dart';
 export 'src/selectors.dart';
 export 'src/types.dart';
