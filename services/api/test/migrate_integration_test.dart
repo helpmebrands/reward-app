@@ -15,16 +15,19 @@ void main() {
       late Connection db;
       late Directory fixtures;
 
+      // Everything happens in its own schema, so this suite can drop
+      // schema_migrations freely while the device suite uses the migrated
+      // public schema in parallel.
       setUp(() async {
         db = await Connection.openFromUrl(url!);
-        await db.execute(
-          'DROP TABLE IF EXISTS schema_migrations, fixture_a, fixture_b, '
-          'fixture_c',
-        );
+        await db.execute('DROP SCHEMA IF EXISTS migrate_test CASCADE');
+        await db.execute('CREATE SCHEMA migrate_test');
+        await db.execute('SET search_path TO migrate_test');
         fixtures = await Directory.systemTemp.createTemp('migrations-');
       });
 
       tearDown(() async {
+        await db.execute('DROP SCHEMA migrate_test CASCADE');
         await db.close();
         await fixtures.delete(recursive: true);
       });
