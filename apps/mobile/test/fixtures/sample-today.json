@@ -1,0 +1,135 @@
+{
+  "on": "2026-09-16",
+  "totals": {
+    "claimableCents": 165890,
+    "lockedCents": 50000,
+    "capturedCents": 97500,
+    "missedCents": 167220
+  },
+  "nextReset": "2026-09-30",
+  "soon": [
+    {
+      "name": "Resy Dining Credit",
+      "holder": "Kathy",
+      "tone": "soon",
+      "cents": 10000
+    },
+    {
+      "name": "lululemon Credit",
+      "holder": "Kathy",
+      "tone": "soon",
+      "cents": 7500
+    },
+    {
+      "name": "Digital Entertainment Credit",
+      "holder": "Kathy",
+      "tone": "soon",
+      "cents": 2500
+    },
+    {
+      "name": "Digital Entertainment Credit",
+      "holder": "Jim",
+      "tone": "soon",
+      "cents": 1300
+    },
+    {
+      "name": "Walmart+ Membership Credit",
+      "holder": "Jim",
+      "tone": "soon",
+      "cents": 1295
+    },
+    {
+      "name": "Walmart+ Membership Credit",
+      "holder": "Kathy",
+      "tone": "soon",
+      "cents": 1295
+    }
+  ],
+  "overlaps": [
+    {
+      "label": "Hotel Credit (FHR / THC)",
+      "count": 2,
+      "remainingCents": 60000
+    },
+    {
+      "label": "Equinox Credit",
+      "count": 2,
+      "remainingCents": 60000
+    },
+    {
+      "label": "Oura Ring Credit",
+      "count": 2,
+      "remainingCents": 40000
+    }
+  ],
+  "locked": [
+    {
+      "name": "Equinox Credit",
+      "holder": "Kathy",
+      "tone": "locked",
+      "cents": 30000
+    },
+    {
+      "name": "Oura Ring Credit",
+      "holder": "Kathy",
+      "tone": "locked",
+      "cents": 20000
+    }
+  ],
+  "captured": [
+    {
+      "name": "Digital Entertainment Credit",
+      "holder": "Jim",
+      "tone": "soon",
+      "cents": 1300
+    },
+    {
+      "name": "Uber Cash",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 1500
+    },
+    {
+      "name": "Resy Dining Credit",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 10000
+    },
+    {
+      "name": "lululemon Credit",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 7500
+    },
+    {
+      "name": "Uber Cash",
+      "holder": "Kathy",
+      "tone": "captured",
+      "cents": 1500
+    },
+    {
+      "name": "Airline Fee Credit",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 20000
+    },
+    {
+      "name": "CLEAR+ Credit",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 21900
+    },
+    {
+      "name": "Uber One Membership Credit",
+      "holder": "Jim",
+      "tone": "captured",
+      "cents": 12000
+    },
+    {
+      "name": "CLEAR+ Credit",
+      "holder": "Kathy",
+      "tone": "captured",
+      "cents": 21900
+    }
+  ]
+}
