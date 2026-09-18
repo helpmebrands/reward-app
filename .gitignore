@@ -10,3 +10,6 @@ coverage
 lat.md/.cache
 test-results
 playwright-report
+
+# Dart
+.dart_tool

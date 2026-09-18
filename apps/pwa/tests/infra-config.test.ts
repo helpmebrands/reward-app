@@ -59,6 +59,16 @@ describe('verify workflow', () => {
     expect(infraJob).toContain('npm ci --workspace infra')
     expect(infraJob).toContain('npm run typecheck --workspace infra')
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Verify gate analyses and tests the Dart workspace]]
+  it('analyses and tests the Dart workspace in its own job', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const dartJob = verify.split(/^ {2}dart:\s*$/m)[1]
+    expect(dartJob).toBeDefined()
+    expect(dartJob).toContain('dart pub get')
+    expect(dartJob).toContain('dart analyze')
+    expect(dartJob).toContain('dart test')
+  })
 })
 
 describe('runbook README', () => {
@@ -110,6 +120,14 @@ describe('monorepo layout', () => {
   it('declares apps/pwa and infra as npm workspaces at the root', () => {
     const pkg = JSON.parse(read('package.json')) as { workspaces?: string[] }
     expect(pkg.workspaces).toEqual(['apps/pwa', 'infra'])
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Root pubspec declares the pub workspace]]
+  it('declares packages/domain in the pub workspace at the root', () => {
+    const pubspec = read('pubspec.yaml')
+    const workspace = pubspec.split(/^workspace:\s*$/m)[1] ?? ''
+    expect(workspace).toMatch(/^\s+- packages\/domain\s*$/m)
+    expect(read('packages/domain/pubspec.yaml')).toMatch(/^resolution: workspace$/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#The PWA lives in apps/pwa]]

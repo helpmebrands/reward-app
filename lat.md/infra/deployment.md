@@ -16,7 +16,7 @@ Every deploy points Cloud Run at a new image digest. If Pulumi also managed the 
 
 Three workflows in `.github/workflows/`, with the quality gate defined once and called twice.
 
-- **`verify.yml`** is the gate: `npm ci` at the root, then lint, typecheck, test and build through the workspace scripts, uploading `apps/pwa/dist/`; an `infra` job that runs `npm ci --workspace infra` and `tsc --noEmit` so a type error in the Pulumi program fails review rather than the next hand-run `pulumi up` (`pulumi preview` needs credentials and stays out); and a container job that builds the image from `apps/pwa/Dockerfile` without pushing and smoke-tests it.
+- **`verify.yml`** is the gate: `npm ci` at the root, then lint, typecheck, test and build through the workspace scripts, uploading `apps/pwa/dist/`; an `infra` job that runs `npm ci --workspace infra` and `tsc --noEmit` so a type error in the Pulumi program fails review rather than the next hand-run `pulumi up` (`pulumi preview` needs credentials and stays out); a `dart` job that resolves the pub workspace, analyses it and runs the `packages/domain` tests ([[infra-tests#Infrastructure config#Verify gate analyses and tests the Dart workspace]]); and a container job that builds the image from `apps/pwa/Dockerfile` without pushing and smoke-tests it.
 - **`ci.yml`** calls it on every pull request into `develop` or `main`. A new push cancels the previous run.
 - **`cd.yml`** runs on push to `develop` and on manual dispatch. It calls the gate *again* rather than trusting the PR's tick, because the merge commit is not the commit CI tested. Deploys never cancel in flight; interrupting a Cloud Run rollout leaves traffic split between revisions.
 

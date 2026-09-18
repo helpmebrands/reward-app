@@ -2,11 +2,11 @@
 
 The product test specs: what the suites pin about dates, cycles, statuses, overlaps, reminders and form rules. They are the fastest way to see what the app believes, and the Dart port is written against them.
 
-The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` supplying fixtures so each test states only what it is about. The fixture card is an Amex Platinum held by Jim with a 14 March anniversary, and most tests are dated 16 September 2026, the same "today" as the sample household. The PWA's own suites are in [[pwa-tests]].
+The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` supplying fixtures so each test states only what it is about. The Dart port in `packages/domain/test/` carries the same cases, one file per file, with the same fixtures in `factories.dart`; each Dart file tags the section it covers. The fixture card is an Amex Platinum held by Jim with a 14 March anniversary, and most tests are dated 16 September 2026, the same "today" as the sample household. The PWA's own suites are in [[pwa-tests]].
 
 ## Date arithmetic
 
-`apps/pwa/tests/dates.test.ts` guards the calendar-date discipline in [[domain#Calendar dates, not timestamps]].
+`apps/pwa/tests/dates.test.ts` and its port `packages/domain/test/dates_test.dart` guard the calendar-date discipline in [[domain#Calendar dates, not timestamps]].
 
 - Month addition clamps to the end of a shorter month and handles leap years in both directions.
 - Day addition does not drift across the US DST transitions on 8 March and 1 November 2026.
@@ -14,7 +14,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Cycles
 
-`apps/pwa/tests/cycles.test.ts` covers window construction for every cadence and both anchors ([[domain#Cycle]]).
+`apps/pwa/tests/cycles.test.ts` and its port `packages/domain/test/cycles_test.dart` cover window construction for every cadence and both anchors ([[domain#Cycle]]).
 
 - Calendar anchors put quarters on Jan/Apr/Jul/Oct, halves on Jan/Jul, and resolve dates before the anchor year.
 - Anniversary anchors run a cardmember year from the open date, place the day before the anniversary in the prior year, and do not drift for a 31st anniversary across short months.

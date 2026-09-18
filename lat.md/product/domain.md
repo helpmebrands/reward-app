@@ -2,7 +2,7 @@
 
 The pure core of HelpMe Reward: cards, benefits, cycles, claims, and the selectors that resolve them into what every screen renders.
 
-The rules are pure functions of the data with no framework behind them, which is what makes this the part worth testing; the reference implementation is `apps/pwa/src/domain/`.
+The rules are pure functions of the data with no framework behind them, which is what makes this the part worth testing. The reference implementation is `apps/pwa/src/domain/`; the Dart port shared by the Flutter app and the service tier is `packages/domain`, ported one module at a time with its tests first.
 
 Types live in `apps/pwa/src/domain/types.ts`. Everything else here is derived from `AppData`, which is `{ cards, benefits, claims, settings }`.
 
