@@ -168,6 +168,20 @@ attached:
 $ gcloud billing projects describe "$PROJECT_ID"
 ```
 
+## `pulumi up` fails: `billingbudgets.googleapis.com API requires a quota project`
+
+The budget resource is created against the billing account, and the API
+insists on a project to bill the request to. Your ADC file may already name
+one (`gcloud auth application-default set-quota-project`); the GCP provider
+still does not send it. Run the apply with the override:
+
+```sh
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT="$PROJECT_ID" pulumi up
+```
+
+Seen on 2026-09-20 on the first apply of the budget. Previews and the verify
+gate never hit this because they do not call the budget API.
+
 ## `pulumi preview` wants to replace the Cloud Run service
 
 Stop and read the diff. Changing the service's `name` or `location` forces a

@@ -142,8 +142,8 @@ minimum Flutter version is 3.35.
 
 Remember which side of the build it lands on:
 
-- **`VITE_*`** is inlined at **build** time. It must be a repository variable
-  and a `build-args` entry in `cd.yml`. Setting it on the `reward-app` Cloud
+- **`VITE_*`** is inlined at **build** time. It must be a variable on the
+  `staging` environment (runbook 01 §5) and a `build-args` entry in `cd.yml`. Setting it on the `reward-app` Cloud
   Run service has no effect whatsoever — the string is already baked into the
   JavaScript.
 - **The api reads its environment at runtime.** `PORT` comes from Cloud Run

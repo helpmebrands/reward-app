@@ -428,20 +428,30 @@ describe('runbooks after the GitHub cut-over', () => {
       const text = read(path)
       expect(text, path).not.toContain('gh variable set')
       expect(text, path).not.toContain('Settings → Branches')
-      expect(text, path).not.toMatch(/repository variables? (are|is) the operational source of truth/)
+      expect(text, path).not.toMatch(
+        /repository variables? (are|is) the operational source of truth/,
+      )
     }
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 01 applies with the quota project override]]
   it('shows the quota-project form of pulumi up in runbook 01 §4 and runbook 03', () => {
-    const step4 = runbook01().split(/^## 4\. /m)[1]?.split(/^## 5\. /m)[0] ?? ''
+    const step4 =
+      runbook01()
+        .split(/^## 4\. /m)[1]
+        ?.split(/^## 5\. /m)[0] ?? ''
     expect(step4).toContain('USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=')
-    expect(read('docs/runbooks/03-infrastructure-change.md')).toContain('USER_PROJECT_OVERRIDE=true')
+    expect(read('docs/runbooks/03-infrastructure-change.md')).toContain(
+      'USER_PROJECT_OVERRIDE=true',
+    )
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 01 records the token expiry and the GitHub-side results]]
   it('records the token expiry in §8 and lists the environment and ruleset under what you have now', () => {
-    const step8 = runbook01().split(/^## 8\. /m)[1]?.split(/^## What you have now/m)[0] ?? ''
+    const step8 =
+      runbook01()
+        .split(/^## 8\. /m)[1]
+        ?.split(/^## What you have now/m)[0] ?? ''
     expect(step8).toMatch(/token.*expir/i)
     const summary = runbook01().split(/^## What you have now/m)[1] ?? ''
     expect(summary).toMatch(/environment/i)

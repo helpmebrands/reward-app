@@ -13,8 +13,14 @@ $ pulumi stack select staging
 
 $ npm run typecheck
 $ pulumi preview --refresh  # read every line
-$ pulumi up --refresh
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=helpme-reward-staging pulumi up --refresh
 ```
+
+The two variables on `pulumi up` name the quota project for the budget API;
+the provider does not take it from your ADC file and the budget resource
+fails without them (runbook 05). Previews need neither. A change to the
+`develop` ruleset is the same loop from `infra-repo/` with
+`pulumi stack select repo`, no variables needed.
 
 The pull request's `infra` job runs the same preview against staging with the
 deployer's read-only roles, so reviewers see the diff without credentials of
@@ -168,7 +174,10 @@ $ pulumi config set reward-app:stateBucket <prod state bucket>
 $ pulumi config set reward-app:secretsKey projects/<prod-project-id>/locations/us-central1/keyRings/pulumi/cryptoKeys/prod
 $ pulumi config set reward-app:minInstances 1
 $ pulumi config set reward-app:dbTier db-custom-1-3840
-$ pulumi up
+$ pulumi config set --secret reward-app:billingAccount   # paste when prompted
+$ pulumi config set github:owner helpmebrands
+$ pulumi config set --secret github:token                # paste when prompted
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=<prod-project-id> pulumi up
 ```
 
 Resource names already carry the stack, and `deletionProtection` turns itself
@@ -209,7 +218,7 @@ anything else here:
 ```sh
 $ pulumi config set budgetAmount 50
 $ pulumi preview
-$ pulumi up
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=helpme-reward-staging pulumi up
 ```
 
 The budget lives on the billing account, so applying that change needs
