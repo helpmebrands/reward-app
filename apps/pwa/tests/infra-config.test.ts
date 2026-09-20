@@ -305,6 +305,57 @@ describe('monorepo layout', () => {
   })
 })
 
+describe('develop ruleset', () => {
+  // @lat: [[infra-tests#Infrastructure config#Program declares the develop ruleset]]
+  it('declares the ruleset from the GitHub provider with checks derived from verify.yml', () => {
+    const program = read('infra/index.ts')
+    expect(program).toMatch(/from '@pulumi\/github'/)
+    expect(program).toMatch(/new github\.RepositoryRuleset\(/)
+    expect(program).toMatch(/requiredChecks\(/)
+    expect(program).toContain("'.github/workflows/verify.yml'")
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Every verify job is a required check]]
+  it('derives one context per job in the real verify.yml', async () => {
+    const { requiredChecks } = await import('../../../infra/verify-checks')
+    const contexts = requiredChecks(read('.github/workflows/verify.yml'))
+    const jobs = read('.github/workflows/verify.yml').match(/^ {2}[\w-]+:\s*$/gm) ?? []
+    expect(contexts).toHaveLength(jobs.length)
+    for (const name of [
+      'Lint, typecheck, test, build',
+      'Accessibility gate',
+      'Infra typechecks and previews',
+      'Dart analyze and test',
+      'Flutter analyze and test',
+      'Api analyze, test and container',
+      'Container builds',
+    ]) {
+      expect(contexts).toContain(`verify / ${name}`)
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Staging names the GitHub owner]]
+  it('names the GitHub owner per stack and keeps the token out of plain text', () => {
+    const staging = read('infra/Pulumi.staging.yaml')
+    expect(staging).toMatch(/^\s+github:owner:\s*helpmebrands\s*$/m)
+    expect(staging).not.toMatch(/^\s+github:token:\s*\S/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Verify gate previews GitHub resources with the workflow token]]
+  it('gives the preview step the workflow token for the GitHub provider', () => {
+    const step = read('.github/workflows/verify.yml').split('Preview against staging')[1] ?? ''
+    expect(step).toMatch(/GITHUB_TOKEN:\s*\$\{\{\s*github\.token\s*\}\}/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 describes the ruleset, not the settings UI]]
+  it('is described in runbook 01 as stack-managed', () => {
+    const section = read('docs/runbooks/01-initial-deployment.md').split(/^## 6\. /m)[1] ?? ''
+    expect(section).not.toContain('Settings → Branches')
+    expect(section).toContain('RepositoryRuleset')
+    expect(section).toContain('pulumi import')
+  })
+})
+
 describe('billing budget', () => {
   // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
   it('declares billingAccount and budgetAmount at project level', () => {
