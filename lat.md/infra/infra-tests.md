@@ -6,6 +6,8 @@ What the repository-level suites pin: the Pulumi configuration, the runbooks tha
 
 `apps/pwa/tests/infra-config.test.ts` pins the committed Pulumi configuration, the runbooks that quote it and the monorepo layout ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
 
+Tests that import program code live beside it in `infra/` (`infra/verify-checks.test.ts`, run by the workspace's own `vitest`), because the PWA image typechecks `apps/pwa/tests` without `infra/` present and a cross-workspace import breaks the container build.
+
 ### Project is named reward-app
 
 `infra/Pulumi.yaml` names the project `reward-app`, which is also the config namespace the program reads. The pre-rebrand name would recreate every resource once a stack exists.
