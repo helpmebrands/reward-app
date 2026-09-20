@@ -15,7 +15,7 @@ it waiting on API enablement and Cloud SQL.
 | `roles/owner` (or equivalent) on that project | Needed to enable APIs, create the KMS key and IAM bindings |
 | Billing Account Costs Manager on the billing account | `gcloud billing accounts get-iam-policy <ACCOUNT_ID>` — the stack declares a budget, and budgets live on the account, not the project |
 | Docker | `docker version` — the api runbooks use the `postgres:16` image for `psql` |
-| Admin on the GitHub repository | Needed to set variables and branch protection |
+| Admin on the GitHub repository | Needed to mint the fine-grained token the stack uses to manage the ruleset and variables (step 3) |
 
 Billing genuinely must be on. Cloud Run and Artifact Registry both refuse to
 enable without it, and the error arrives several steps later as a permission
@@ -124,6 +124,22 @@ $ pulumi config set --secret reward-app:billingAccount "$(gcloud billing project
 secret because the repository is public; the ciphertext that lands in the
 stack file is the only form it ever takes here.
 
+The stack also manages the repository's GitHub configuration (step 6), so it
+needs a GitHub credential on the machine that runs `pulumi up`. Mint a
+**fine-grained personal access token** (Settings → Developer settings)
+scoped to this one repository with *Administration: read and write*,
+*Variables: read and write*, *Secrets: read and write* and *Environments:
+read and write*, an expiry of a year at most, and store it as secret config:
+
+```sh
+$ pulumi config set github:owner helpmebrands
+$ pulumi config set --secret github:token   # paste when prompted; not in shell history
+```
+
+The verify gate does not need it: `pulumi preview` never calls GitHub unless
+refreshing, and the workflow's own token covers reads. Record the token's
+expiry in step 8.
+
 Commit the resulting `Pulumi.<env>.yaml`; the `encryptedkey` line in it is the
 stack's data key wrapped by KMS and is safe to commit. Staging was moved from
 its original empty passphrase with
@@ -225,15 +241,36 @@ Without them the app falls back to service-worker replay, which works.
 
 ## 6. Protect `develop`
 
-Settings → Branches → Add rule for `develop`:
+The stack does this. `infra/index.ts` declares a `github.RepositoryRuleset`
+on `refs/heads/develop` that requires every job of `verify.yml` as a status
+check, by the `verify / <job name>` context each one reports under, and
+requires the branch to be up to date. The list of checks is read from the
+workflow file when the program runs (`infra/verify-checks.ts`), so nothing
+here is typed twice.
 
-- Require a pull request before merging
-- Require status checks to pass — add the CI checks (they appear in the list
-  after the first pull request has run, so come back for this)
-- Require branches to be up to date before merging
+Without it, CI is advisory: a red pull request stays mergeable and the deploy
+pipeline is the first thing to notice. "Pull request required" for
+integration branches is an organisation-level ruleset and is not repeated.
 
-Without the second one, CI is advisory: a red pull request stays mergeable and
-the deploy pipeline is the first thing to notice.
+**Adopting a ruleset that already exists** (staging's was created by hand
+as id 23613777 before the stack managed it):
+
+```sh
+$ pulumi import github:index/repositoryRuleset:RepositoryRuleset \
+    develop-requires-verify <ruleset id>
+$ pulumi preview      # shows only the checks being added
+$ pulumi up
+```
+
+`pulumi import` records the live ruleset in the state as it is; the `up`
+that follows brings it to what the program declares. Do not skip the import,
+or Pulumi creates a second ruleset with the same name beside the first.
+
+**When a verify job is renamed or added.** The pull request that changes
+`verify.yml` is blocked, because the ruleset still waits for the old name or
+does not yet require the new one. From that branch, run `pulumi up`; the
+ruleset updates and the pull request becomes mergeable. This is the one
+infrastructure change that is applied from a feature branch on purpose.
 
 ## 7. First real deploys
 

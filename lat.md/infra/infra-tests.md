@@ -76,6 +76,30 @@ The `infra` job authenticates with `google-github-actions/auth@v2`, logs Pulumi 
 
 Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC exchange has no token to present.
 
+### Required checks derive from verify.yml
+
+`infra/verify-checks.ts` maps every job in a workflow to `verify / <job name>` (the job id when unnamed) and throws on a workflow with no jobs, so the ruleset can never silently require nothing ([[deployment#Infrastructure]]).
+
+### Program declares the develop ruleset
+
+`index.ts` imports `@pulumi/github`, reads `.github/workflows/verify.yml` and declares one `github.RepositoryRuleset` whose required checks come from `requiredChecks`, so the ruleset and the workflow cannot disagree.
+
+### Every verify job is a required check
+
+Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all seven current job names, so a red Dart, Flutter, api or accessibility job blocks a merge.
+
+### Staging names the GitHub owner
+
+`Pulumi.staging.yaml` sets `github:owner` to `helpmebrands` and never carries `github:token` in plain text; the token is secret config or the `GITHUB_TOKEN` environment variable.
+
+### Verify gate previews GitHub resources with the workflow token
+
+The `Preview against staging` step passes `GITHUB_TOKEN: ${{ github.token }}`, which can read the repository but not administer it, all a preview without refresh needs ([[deployment#Pipeline]]).
+
+### Runbook 01 describes the ruleset, not the settings UI
+
+Step 6 of `01-initial-deployment.md` names `RepositoryRuleset` and the one-time `pulumi import`, and no longer sends the operator to *Settings → Branches*.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).
