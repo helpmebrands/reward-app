@@ -349,7 +349,9 @@ describe('develop ruleset', () => {
 
 describe('GitHub environment per stack', () => {
   const workflows = () =>
-    ['verify.yml', 'cd.yml', 'cd-api.yml', 'release-mobile.yml'].map((name) => read(`.github/workflows/${name}`))
+    ['verify.yml', 'cd.yml', 'cd-api.yml', 'release-mobile.yml'].map((name) =>
+      read(`.github/workflows/${name}`),
+    )
   // Build-time PWA variables are optional and set by hand (runbook 01 §5).
   const optional = new Set(['VITE_VAPID_PUBLIC_KEY', 'VITE_PUSH_API'])
 
@@ -546,9 +548,15 @@ describe('mobile release workflow', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Release workflow runs on version tags in the environment]]
   it('runs on v* tags, one job per platform, in the staging environment', () => {
-    expect(workflow()).toMatch(/^\s+tags:\s*\n\s+- ['"]v\*['"]\s*$/m)
-    const android = workflow().split(/^ {2}android:\s*$/m)[1]?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
-    const ios = workflow().split(/^ {2}ios:\s*$/m)[1]?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    expect(workflow()).toMatch(/^\s+tags:\s*(\[\s*['"]v\*['"]\s*\]|\n\s+- ['"]v\*['"])\s*$/m)
+    const android =
+      workflow()
+        .split(/^ {2}android:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    const ios =
+      workflow()
+        .split(/^ {2}ios:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
     expect(android).toContain('runs-on: ubuntu-latest')
     expect(ios).toContain('runs-on: macos-latest')
     for (const job of [android, ios]) {

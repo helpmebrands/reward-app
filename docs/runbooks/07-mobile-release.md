@@ -1,8 +1,10 @@
 # 07 — Mobile release
 
 Getting a build of the Flutter app in `apps/mobile` to testers, and what is
-and is not automated. Read the last section first: most of this runbook
-describes steps nobody has taken yet, and it says so where that is the case.
+and is not automated. The release is a tag push (*Getting it to testers*);
+the store records, the signing material and the Play Console link are
+one-time hand steps this runbook spells out, and it says where a step has
+not been taken yet.
 
 ## What exists
 
@@ -14,7 +16,7 @@ describes steps nobody has taken yet, and it says so where that is the case.
 | Version | `version: 1.0.0+1` in `apps/mobile/pubspec.yaml` |
 | Minimum Flutter | 3.35 (AGENTS.md rule 9); CI uses the version pinned in `verify.yml` |
 | CI | the `flutter` job of `verify.yml`: `flutter analyze --fatal-infos` and `flutter test` on every pull request and before every deploy |
-| CD | none yet. No workflow builds, signs or uploads the app; the trust it will use exists (below). |
+| CD | `release-mobile.yml` on a `v*` tag: Android to the Play internal track, iOS to TestFlight (*Getting it to testers*) |
 | Signing | nothing in the repository. Secret Manager holds one empty container per piece of signing material (`reward-app-<name>-staging`, declared in `infra/index.ts`), readable by the deployer and filled by hand (*Signing material*, below) |
 | Store accounts | a Play publisher identity, `reward-app-play-staging@…`, assumed keylessly from this repository; to be linked in Play Console. No App Store Connect record as of 2026-09-20 |
 
@@ -91,20 +93,44 @@ $ flutter build appbundle --release  # writes build/app/outputs/bundle/release/a
 
 ## Getting it to testers
 
-**TestFlight** (iOS). Upload the `.ipa` with the Transporter app or from
-Xcode (*Product → Archive → Distribute*), wait for processing, then add
-testers to an internal group in App Store Connect. Internal testers (members
-of the team) get builds without review; external groups need a short review
-once per version name.
+Tag `develop`. `release-mobile.yml` does the rest: one job builds the
+signed app bundle on Linux and uploads it to the Play internal testing
+track, the other builds, signs and uploads the iOS archive to TestFlight on
+a macOS runner, both in the `staging` environment with the signing material
+fetched from Secret Manager at build time.
 
-**Play internal testing track** (Android). In the Play Console, *Testing →
-Internal testing → Create new release*, upload the `.aab`, and add tester
-email addresses or a Google Group to the track. Internal track releases are
-available within minutes and do not need review. Promote to closed or open
-testing from the same release when it is time.
+```sh
+$ git checkout develop && git pull
+$ git tag v0.1.0-rc.1
+$ git push origin v0.1.0-rc.1
+$ gh run watch                     # pick the "Release mobile" run
+```
 
-For both, the build number rule above is the thing that fails: a rejected
-upload almost always means the store already has that number.
+The **build name** is the tag without `v` and without any pre-release
+suffix (`v0.1.0-rc.1` builds `0.1.0`), because the stores accept only
+`x.y.z` there. The **build number** is the workflow run number, so it always
+rises, and a rerun of the same tag carries the same number: the store
+rejects it as a duplicate rather than shipping the build twice. The
+`version:` line in `pubspec.yaml` is not used by the workflow; keep it
+sensible for local builds.
+
+**When it arrives.** Internal testers on TestFlight (members of the team in
+App Store Connect) get the build without review once Apple's processing
+finishes; the iOS job waits for processing, so a build Apple rejects fails
+the run rather than a tester's afternoon. The Play internal track is live
+within minutes and needs no review. Add testers once, in each console; the
+workflow never touches tester lists. Promote to closed or open testing, or
+to an external TestFlight group, from the consoles when it is time.
+
+**When Apple rejects the build in processing.** The run's iOS job fails on
+`upload_to_testflight` with Apple's reason: most often a missing usage
+description in `Info.plist`, an icon problem, or an export compliance
+question. Fix on a branch, merge, tag again. The Play job of the same tag
+has already succeeded and needs nothing.
+
+**When the store says the number exists.** The run was rerun, or someone
+uploaded by hand from a laptop with a higher number. Tag a new version; do
+not lower anything.
 
 ## Signing material
 
@@ -154,11 +180,22 @@ the release workflow to read.
 
 ## What CI does and does not do
 
-CI proves the app analyses and its widget tests pass on Linux. It does not
-yet build a release, sign, upload, or run on a device or simulator. The
-release workflow that does so (fastlane, a macOS runner for iOS) is its own
-issue on epic #96; it reads the signing material above from Secret Manager at
-build time as the deployer and never from a GitHub secret.
+The verify gate proves the app analyses and its widget tests pass on Linux,
+on every pull request. It does not build a release and does not run on a
+device or simulator.
+
+`release-mobile.yml` runs only on a `v*` tag. Android: `flutter build
+appbundle` with the keystore written to `android/key.properties` in the
+runner, then `apps/mobile/scripts/play-upload.sh`, which drives the Play
+Developer API with a token minted keylessly as the Play publisher identity
+(fastlane's `supply` wants a service-account key file, which this project
+does not have). iOS: `flutter build ios --no-codesign`, then the `beta` lane
+in `apps/mobile/ios/fastlane/Fastfile` imports the certificate into a
+throwaway keychain, installs the profile, archives with manual signing and
+uploads with the App Store Connect API key. Both jobs read the material
+from Secret Manager as the deployer and reference no GitHub secret; a
+leaked log has nothing durable in it. Rule 9 holds: fastlane is a Ruby tool
+on the runner, not a pub package.
 
 ## Rules that apply
 

@@ -1,0 +1,75 @@
+# Signs the archive and uploads it to TestFlight. Run by release-mobile.yml on
+# a macOS runner after `flutter build ios --release --no-codesign`.
+#
+# No `match`: the certificate and profile arrive from Secret Manager as files
+# in the runner's temp directory (paths in the environment below), are
+# imported into a throwaway keychain that setup_ci creates, and die with the
+# runner. The App Store Connect API key is the same story. Nothing here reads
+# a GitHub secret.
+#
+# Environment (all set by the workflow):
+#   IOS_CERT_PATH       distribution certificate with private key, .p12
+#   IOS_CERT_PASSWORD   its password
+#   IOS_PROFILE_PATH    App Store provisioning profile, .mobileprovision
+#   ASC_KEY_PATH        App Store Connect API key, .p8
+#   ASC_KEY_ID          its key id
+#   ASC_ISSUER_ID       the issuer id
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Sign the compiled app with the fetched certificate and profile and upload it to TestFlight"
+  lane :beta do
+    setup_ci
+
+    import_certificate(
+      certificate_path: ENV.fetch("IOS_CERT_PATH"),
+      certificate_password: ENV.fetch("IOS_CERT_PASSWORD"),
+      keychain_name: "fastlane_tmp_keychain",
+      keychain_password: "",
+    )
+
+    profile_path = install_provisioning_profile(path: ENV.fetch("IOS_PROFILE_PATH"))
+    profile = FastlaneCore::ProvisioningProfile.parse(profile_path)
+    profile_name = profile["Name"]
+    team_id = profile["TeamIdentifier"].first
+
+    # Manual signing with exactly what was fetched; automatic signing would
+    # need an Apple ID session on the runner, which is the thing we avoid.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Runner.xcodeproj",
+      team_id: team_id,
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name,
+      bundle_identifier: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+    )
+
+    build_app(
+      workspace: "Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) => profile_name,
+        },
+      },
+      output_directory: File.join(ENV.fetch("RUNNER_TEMP", "/tmp"), "ipa"),
+    )
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+    )
+
+    # Waits for Apple's processing so a rejected build fails this run rather
+    # than a tester's afternoon; internal testers only, no review needed.
+    upload_to_testflight(
+      api_key: api_key,
+      skip_waiting_for_build_processing: false,
+      distribute_external: false,
+    )
+  end
+end

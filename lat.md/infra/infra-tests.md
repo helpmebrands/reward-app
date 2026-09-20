@@ -170,6 +170,28 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 `07-mobile-release.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
 
+### Release workflow runs on version tags in the environment
+
+`release-mobile.yml` triggers on `v*` tags with an `android` job on `ubuntu-latest` and an `ios` job on `macos-latest`, both in the `staging` environment and both passing `--build-name` and `--build-number ${{ github.run_number }}` ([[deployment#Pipeline]]).
+
+### Release workflow stores nothing in GitHub secrets
+
+The release workflow references no `secrets.*` except `GITHUB_TOKEN`, so the signing material can only come from Secret Manager at build time.
+
+### Release workflow reads signing material from Secret Manager
+
+Every `SECRET_<NAME>` on the environment is read with `gcloud secrets versions access latest` after a keyless `google-github-actions/auth@v2`, and the Play upload authenticates as `PLAY_SERVICE_ACCOUNT`.
+
+### Store uploads are scripted beside the app
+
+`apps/mobile/scripts/play-upload.sh` drives the Play Developer API (edit, bundle, `tracks/internal`, `:commit`) and the iOS `Fastfile` imports the certificate and calls `upload_to_testflight` with an API key.
+
+The workflow calls both, so the store logic is reviewable code beside the app rather than YAML.
+
+### Runbook 07 describes the tag-driven release
+
+`07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).
