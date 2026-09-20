@@ -14,9 +14,9 @@ describes steps nobody has taken yet, and it says so where that is the case.
 | Version | `version: 1.0.0+1` in `apps/mobile/pubspec.yaml` |
 | Minimum Flutter | 3.35 (AGENTS.md rule 9); CI uses the version pinned in `verify.yml` |
 | CI | the `flutter` job of `verify.yml`: `flutter analyze --fatal-infos` and `flutter test` on every pull request and before every deploy |
-| CD | none. No workflow builds, signs or uploads the app. |
-| Signing | none in the repository: no certificates, provisioning profiles, keystore or `key.properties` |
-| Store accounts | none configured for this app as of 2026-09-18 |
+| CD | none yet. No workflow builds, signs or uploads the app; the trust it will use exists (below). |
+| Signing | nothing in the repository. Secret Manager holds one empty container per piece of signing material (`reward-app-<name>-staging`, declared in `infra/index.ts`), readable by the deployer and filled by hand (*Signing material*, below) |
+| Store accounts | a Play publisher identity, `reward-app-play-staging@…`, assumed keylessly from this repository; to be linked in Play Console. No App Store Connect record as of 2026-09-20 |
 
 The api it will talk to is `reward-api` ([README](README.md#environments));
 device registration is `POST /v1/devices` with the FCM token, an installation
@@ -78,8 +78,9 @@ $ keytool -genkey -v -keystore ~/reward-upload.jks -keyalg RSA -keysize 2048 \
     -validity 10000 -alias upload
 ```
 
-Keep the keystore and its passwords out of the repository (a password
-manager, and later a CI secret). `android/key.properties` names them and is
+Keep the keystore and its passwords out of the repository: in Secret Manager
+under the containers listed in *Signing material* below, which is where the
+release workflow will read them. `android/key.properties` names them and is
 gitignored by the Flutter template; `android/app/build.gradle.kts` needs the
 standard `signingConfigs.release` block reading it before the next command
 produces a signed bundle.
@@ -105,16 +106,59 @@ testing from the same release when it is time.
 For both, the build number rule above is the thing that fails: a rejected
 upload almost always means the store already has that number.
 
+## Signing material
+
+The stack declares, in Secret Manager, one container per piece of signing
+material and grants the deployer identity read on exactly those. It never
+writes a value: the values are yours to add, once, and to rotate when a
+certificate or key expires. Nothing is stored in GitHub, so a leaked
+workflow log exposes nothing durable.
+
+| Secret id | Holds |
+| --- | --- |
+| `reward-app-asc-api-key-staging` | the App Store Connect API key, the `.p8` file |
+| `reward-app-asc-api-key-id-staging` | its key id |
+| `reward-app-asc-issuer-id-staging` | the issuer id |
+| `reward-app-ios-distribution-cert-staging` | the distribution certificate with its private key, `.p12` |
+| `reward-app-ios-cert-password-staging` | the `.p12` password |
+| `reward-app-ios-provisioning-profile-staging` | the App Store provisioning profile, `.mobileprovision` |
+| `reward-app-android-upload-keystore-staging` | the upload keystore, `.jks` |
+| `reward-app-android-keystore-password-staging` | the keystore password |
+| `reward-app-android-key-password-staging` | the `upload` key's password |
+
+Add a version from the file or value, never from the shell history:
+
+```sh
+$ gcloud secrets versions add reward-app-android-upload-keystore-staging \
+    --project helpme-reward-staging --data-file ~/reward-upload.jks
+$ printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
+    reward-app-android-keystore-password-staging --project helpme-reward-staging --data-file -
+```
+
+Binary files (`.jks`, `.p12`, `.p8`, `.mobileprovision`) go in as they are;
+Secret Manager stores bytes. Rotation is a new version, and the workflow
+always reads `latest`. Certificates expire yearly and the App Store Connect
+key when you revoke it; put both dates in the README's environment table.
+
+## The Play publisher identity
+
+Uploading to the Play Console needs a Google Cloud service account with
+access to the app. The stack declares `reward-app-play-staging@…` and lets
+workflows from this repository assume it through the workload identity pool,
+so there is no key file. Link it once, by hand, in the Play Console: *Users
+and permissions → Invite new users*, the service account's email, with
+*Release to testing tracks* on the app. Until the app record exists there is
+nothing to link to. The email is on the GitHub environment as
+`PLAY_SERVICE_ACCOUNT`, and every secret id above as `SECRET_<NAME>`, for
+the release workflow to read.
+
 ## What CI does and does not do
 
 CI proves the app analyses and its widget tests pass on Linux. It does not
-build a release, does not sign, does not upload, and does not run on a device
-or simulator. Making it do so means putting the signing material in GitHub
-secrets (a base64 keystore and its passwords; a certificate, a profile and an
-App Store Connect API key) and adding a macOS runner for the iOS build; do
-that in its own issue, with the secrets handled the way the rest of this
-repository handles trust (no long-lived credential that a leaked log could
-expose without a rotation plan).
+yet build a release, sign, upload, or run on a device or simulator. The
+release workflow that does so (fastlane, a macOS runner for iOS) is its own
+issue on epic #96; it reads the signing material above from Secret Manager at
+build time as the deployer and never from a GitHub secret.
 
 ## Rules that apply
 

@@ -77,6 +77,7 @@ const services = [
   'secretmanager.googleapis.com',
   'cloudkms.googleapis.com',
   'billingbudgets.googleapis.com',
+  'androidpublisher.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -635,6 +636,76 @@ new gcp.kms.CryptoKeyIAMMember('deployer-can-decrypt-secrets', {
 })
 
 // ---------------------------------------------------------------------------
+// Mobile release trust
+// ---------------------------------------------------------------------------
+
+/**
+ * What a release workflow needs to reach the stores without a long-lived
+ * credential in GitHub. Two things, both platform, neither release logic:
+ *
+ * - An identity for the Google Play Developer API that the workflow assumes
+ *   keylessly through the same pool as the deployer. Play Console links a
+ *   service account by email (runbook 07); no key file ever exists.
+ * - Secret Manager containers for the signing material, with no versions:
+ *   the values are added by hand once and rotated by hand, and the deployer
+ *   may read exactly these secrets, so a workflow fetches them at build time
+ *   and nothing is stored in GitHub. A leaked log exposes nothing durable.
+ *
+ * The release workflow itself is a separate change (epic #96).
+ */
+const playAccount = new gcp.serviceaccount.Account(
+  'play-publisher',
+  {
+    project,
+    accountId: `${serviceName}-play-${environment}`.slice(0, 30),
+    displayName: `HelpMe Reward Play publisher (${environment})`,
+    description: 'Assumed by the release workflow to upload to the Play internal track. Linked in Play Console.',
+  },
+  dependsOnApis,
+)
+
+new gcp.serviceaccount.IAMMember('play-impersonation', {
+  serviceAccountId: playAccount.name,
+  role: 'roles/iam.workloadIdentityUser',
+  member: pulumi.interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository/${githubRepo}`,
+})
+
+/** One container per piece of signing material; the workflow reads them by
+ * these names through the ids written onto the GitHub environment below. */
+const signingSecrets = [
+  'asc-api-key',
+  'asc-api-key-id',
+  'asc-issuer-id',
+  'ios-distribution-cert',
+  'ios-cert-password',
+  'ios-provisioning-profile',
+  'android-upload-keystore',
+  'android-keystore-password',
+  'android-key-password',
+] as const
+
+const signingSecretIds: Record<string, pulumi.Output<string>> = {}
+for (const name of signingSecrets) {
+  const secret = new gcp.secretmanager.Secret(
+    `signing-${name}`,
+    {
+      project,
+      secretId: `${serviceName}-${name}-${environment}`,
+      labels: tags,
+      replication: { auto: {} },
+    },
+    dependsOnApis,
+  )
+  new gcp.secretmanager.SecretIamMember(`deployer-reads-${name}`, {
+    project,
+    secretId: secret.secretId,
+    role: 'roles/secretmanager.secretAccessor',
+    member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+  })
+  signingSecretIds[`SECRET_${name.toUpperCase().replace(/-/g, '_')}`] = secret.secretId
+}
+
+// ---------------------------------------------------------------------------
 // Optional custom domain
 // ---------------------------------------------------------------------------
 
@@ -700,6 +771,8 @@ const environmentVariables: Record<string, pulumi.Input<string>> = {
   DEPLOY_SERVICE_ACCOUNT: deployAccount.email,
   API_CLOUD_RUN_SERVICE: apiService.name,
   API_MIGRATION_JOB: migrateJob.name,
+  PLAY_SERVICE_ACCOUNT: playAccount.email,
+  ...signingSecretIds,
 }
 
 for (const [variableName, value] of Object.entries(environmentVariables)) {

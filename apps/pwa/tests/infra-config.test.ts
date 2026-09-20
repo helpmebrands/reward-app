@@ -528,7 +528,7 @@ describe('mobile release trust', () => {
   it('tells runbook 07 how to link the Play identity and add secret versions', () => {
     const runbook = read('docs/runbooks/07-mobile-release.md')
     expect(runbook).toContain('gcloud secrets versions add')
-    expect(runbook).toMatch(/Users and permissions/)
+    expect(runbook).toMatch(/Users\s+and\s+permissions/)
     expect(runbook).not.toMatch(/putting the signing material in GitHub\s+secrets/)
   })
 })

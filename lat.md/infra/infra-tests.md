@@ -150,6 +150,26 @@ Step 8 tells the operator to record the GitHub token's expiry, and *What you hav
 
 `05-troubleshooting.md` has a heading for `requires a quota project` with the override that fixes it, so the next operator does not rediscover it from a failed apply.
 
+### Play identity is keyless
+
+`index.ts` enables `androidpublisher.googleapis.com`, declares `reward-app-play-<env>` and lets this repository's workflows assume it through the workload identity pool; no `serviceaccount.Key` exists anywhere in the program ([[deployment#Infrastructure]]).
+
+### Signing material has a container and no version
+
+`signingSecrets` lists the nine pieces of signing material and each becomes a `gcp.secretmanager.Secret` with no `SecretVersion`, so the values are added and rotated by hand and never pass through the state.
+
+### Deployer reads exactly the signing secrets
+
+Each signing secret grants `secretmanager.secretAccessor` to the deployer through a `SecretIamMember`, and no `projects.IAMMember` grants that role, so a compromised workflow reads these secrets and nothing else in the project.
+
+### Release identifiers reach the environment
+
+`environmentVariables` carries `PLAY_SERVICE_ACCOUNT` and one `SECRET_<NAME>` per signing secret, so the release workflow hard-codes no identity and no secret id.
+
+### Runbook 07 has the two hand steps
+
+`07-mobile-release.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).
