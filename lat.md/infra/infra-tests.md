@@ -76,6 +76,22 @@ The `infra` job authenticates with `google-github-actions/auth@v2`, logs Pulumi 
 
 Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC exchange has no token to present.
 
+### Project config declares the budget
+
+`Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).
+
+### Staging keeps the billing account secret
+
+`Pulumi.staging.yaml` carries `reward-app:billingAccount` only under `secure:`, never in plain text, because the repository is public and the id is a foothold for social engineering.
+
+### Program declares the budget
+
+`index.ts` enables `billingbudgets.googleapis.com` and declares one `gcp.billing.Budget` filtered to `projects/<number>` of the stack's project, so the alert cannot drift to another project on the same billing account.
+
+### Runbook 03 points at the declared budget
+
+The `Costs` section of `03-infrastructure-change.md` names `budgetAmount` and no longer tells the operator to set an alert by hand.
+
 ### Root pubspec declares the pub workspace
 
 The root `pubspec.yaml` lists `packages/domain`, `apps/mobile` and `services/api` under `workspace:` and each resolves with `resolution: workspace`, so one `dart pub get` at the root resolves every Dart package.

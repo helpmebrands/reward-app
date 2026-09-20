@@ -42,3 +42,10 @@ config:
   secretsKey:
     type: string
     description: The KMS key encrypting this stack's secrets, as projects/…/cryptoKeys/…. The deployer may decrypt with it to preview.
+  billingAccount:
+    type: string
+    description: The billing account the project charges to, as XXXXXX-XXXXXX-XXXXXX. Set with `pulumi config set --secret`; the id never appears in plain text in this repository.
+  budgetAmount:
+    type: integer
+    description: Monthly budget in USD for the alert on this stack's project. Emails billing-account administrators at 50, 90 and 100 percent.
+    default: 25
