@@ -419,6 +419,48 @@ describe('GitHub environment per stack', () => {
   })
 })
 
+describe('runbooks after the GitHub cut-over', () => {
+  const runbook01 = () => read('docs/runbooks/01-initial-deployment.md')
+
+  // @lat: [[infra-tests#Infrastructure config#No runbook sends the operator to the GitHub settings UI]]
+  it('never tells the operator to set a variable or branch rule by hand', () => {
+    for (const path of filesUnder('docs/runbooks')) {
+      const text = read(path)
+      expect(text, path).not.toContain('gh variable set')
+      expect(text, path).not.toContain('Settings → Branches')
+      expect(text, path).not.toMatch(/repository variables? (are|is) the operational source of truth/)
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 applies with the quota project override]]
+  it('shows the quota-project form of pulumi up in runbook 01 §4 and runbook 03', () => {
+    const step4 = runbook01().split(/^## 4\. /m)[1]?.split(/^## 5\. /m)[0] ?? ''
+    expect(step4).toContain('USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=')
+    expect(read('docs/runbooks/03-infrastructure-change.md')).toContain('USER_PROJECT_OVERRIDE=true')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 records the token expiry and the GitHub-side results]]
+  it('records the token expiry in §8 and lists the environment and ruleset under what you have now', () => {
+    const step8 = runbook01().split(/^## 8\. /m)[1]?.split(/^## What you have now/m)[0] ?? ''
+    expect(step8).toMatch(/token.*expir/i)
+    const summary = runbook01().split(/^## What you have now/m)[1] ?? ''
+    expect(summary).toMatch(/environment/i)
+    expect(summary).toMatch(/ruleset/i)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#README names both Pulumi projects and the environment as source of truth]]
+  it('names infra-repo in the README and treats the GitHub environment as the source of truth', () => {
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toContain('infra-repo/')
+    expect(readme).toMatch(/environment `staging`/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 05 explains the quota project error]]
+  it('has a troubleshooting entry for the billing quota-project error', () => {
+    expect(read('docs/runbooks/05-troubleshooting.md')).toMatch(/^## .*requires a quota project/m)
+  })
+})
+
 describe('billing budget', () => {
   // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
   it('declares billingAccount and budgetAmount at project level', () => {
