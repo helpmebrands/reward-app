@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: develop
+      name: staging
       url: ${{ steps.deploy.outputs.url }}
 
     steps:

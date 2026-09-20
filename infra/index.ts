@@ -13,13 +13,10 @@
  * that, an infrastructure change quietly rolls production back.
  */
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import * as gcp from '@pulumi/gcp'
 import * as github from '@pulumi/github'
 import * as pulumi from '@pulumi/pulumi'
 import * as random from '@pulumi/random'
-import { requiredChecks } from './verify-checks'
 
 const config = new pulumi.Config('reward-app')
 const gcpConfig = new pulumi.Config('gcp')
@@ -661,46 +658,58 @@ const domainMapping = customDomain
   : undefined
 
 // ---------------------------------------------------------------------------
-// GitHub: the develop ruleset
+// GitHub: this stack's environment
 // ---------------------------------------------------------------------------
 
 /**
- * What makes the verify gate real rather than advisory. The ruleset requires
- * every job of `verify.yml` by name, and the names come from the file itself
- * (see `verify-checks.ts`), so a job that is added is required at once and a
- * job that is renamed is a visible diff here instead of a merge that quietly
- * stopped waiting for it. A pull request that renames a job is blocked until
- * `pulumi up` has run from that branch; runbook 01 §6 describes the flow.
+ * The values the workflows need to deploy to this stack, written where they
+ * read them. Each stack owns one GitHub environment named after itself and
+ * the variables on it; the deploy and preview jobs run in that environment,
+ * so `vars.X` resolves per stack and nothing is copied from
+ * `pulumi stack output` by hand. Repository-wide settings such as the develop
+ * ruleset live in `infra-repo/`, because two stacks cannot both own them.
+ *
+ * None of these are secret: identifiers only, and the trust is enforced by
+ * Google against the repository name. A variable keeps them readable in a
+ * failed deploy's log.
  *
  * The provider authenticates with `github:token` (secret config on a laptop,
  * a fine-grained token for this one repository) or `GITHUB_TOKEN` in the
  * environment (the workflow token in the verify gate, which can read but not
  * write). `pulumi preview` never calls GitHub unless refreshing, so the gate
- * needs no write access. The pull-request-only rule for integration branches
- * lives in an organisation ruleset and is deliberately not repeated here.
+ * needs no write access.
  *
- * The ruleset predates this program: import it once with
- * `pulumi import github:index/repositoryRuleset:RepositoryRuleset develop-requires-verify <id>`
- * before the first `up`, or Pulumi creates a second one alongside it.
+ * GitHub creates an environment implicitly the first time a workflow names
+ * one, so an environment a deploy has already used must be imported before
+ * the first `up` (runbook 01 §5), or the create is rejected as a duplicate.
  */
-const verifyWorkflow = readFileSync(join(__dirname, '..', '.github/workflows/verify.yml'), 'utf8')
 const [, repoName] = githubRepo.split('/')
 
-new github.RepositoryRuleset('develop-requires-verify', {
-  name: 'develop requires verify',
+const ghEnvironment = new github.RepositoryEnvironment('environment', {
   repository: repoName,
-  target: 'branch',
-  enforcement: 'active',
-  conditions: { refName: { includes: ['refs/heads/develop'], excludes: [] } },
-  rules: {
-    requiredStatusChecks: {
-      strictRequiredStatusChecksPolicy: true,
-      // 15368 is GitHub Actions' app id; without it any integration could
-      // satisfy the check by posting a status with the same name.
-      requiredChecks: requiredChecks(verifyWorkflow).map((context) => ({ context, integrationId: 15368 })),
-    },
-  },
+  environment,
 })
+
+/** Keyed by the `vars.*` name the workflows read. */
+const environmentVariables: Record<string, pulumi.Input<string>> = {
+  GCP_PROJECT_ID: project,
+  GCP_REGION: region,
+  ARTIFACT_REPO: repository.repositoryId,
+  CLOUD_RUN_SERVICE: service.name,
+  WIF_PROVIDER: provider.name,
+  DEPLOY_SERVICE_ACCOUNT: deployAccount.email,
+  API_CLOUD_RUN_SERVICE: apiService.name,
+  API_MIGRATION_JOB: migrateJob.name,
+}
+
+for (const [variableName, value] of Object.entries(environmentVariables)) {
+  new github.ActionsEnvironmentVariable(`var-${variableName}`, {
+    repository: repoName,
+    environment: ghEnvironment.environment,
+    variableName,
+    value,
+  })
+}
 
 // ---------------------------------------------------------------------------
 // Budget

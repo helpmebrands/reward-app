@@ -1,0 +1,13 @@
+name: reward-app-repo
+runtime:
+  name: nodejs
+  options:
+    typescript: true
+description: Repository-wide GitHub configuration for HelpMe Reward — the develop ruleset. One stack, `repo`, because a repository has one configuration while `infra/` has one stack per environment.
+
+# Only this project's own namespace is declared here; `github:owner` is
+# per-stack in Pulumi.repo.yaml for the same reason `gcp:project` is in infra/.
+config:
+  githubRepo:
+    type: string
+    description: The repository this program configures, as "owner/name".

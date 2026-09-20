@@ -348,14 +348,18 @@ describe('develop ruleset', () => {
 })
 
 describe('GitHub environment per stack', () => {
-  const workflows = ['verify.yml', 'cd.yml', 'cd-api.yml'].map((name) => read(`.github/workflows/${name}`))
+  const workflows = ['verify.yml', 'cd.yml', 'cd-api.yml'].map((name) =>
+    read(`.github/workflows/${name}`),
+  )
   // Build-time PWA variables are optional and set by hand (runbook 01 §5).
   const optional = new Set(['VITE_VAPID_PUBLIC_KEY', 'VITE_PUSH_API'])
 
   // @lat: [[infra-tests#Infrastructure config#Every workflow variable is declared on the environment]]
   it('declares every vars.* the workflows read as an environment variable', () => {
     const referenced = new Set(
-      workflows.flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1])).filter((v) => !optional.has(v)),
+      workflows
+        .flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1] ?? ''))
+        .filter((v) => !optional.has(v)),
     )
     expect([...referenced].sort()).toEqual([
       'API_CLOUD_RUN_SERVICE',
@@ -369,18 +373,24 @@ describe('GitHub environment per stack', () => {
     ])
     const program = read('infra/index.ts')
     expect(program).toMatch(/new github\.RepositoryEnvironment\(/)
+    const declared = program.split('const environmentVariables')[1]?.split('}')[0] ?? ''
     for (const name of referenced) {
-      expect(program, name).toContain(`variableName: '${name}'`)
+      expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
     }
   })
 
   // @lat: [[infra-tests#Infrastructure config#Workflows run in the stack's environment]]
   it('runs the deploy and preview jobs in the staging environment', () => {
     for (const name of ['cd.yml', 'cd-api.yml']) {
-      expect(read(`.github/workflows/${name}`), name).toMatch(/environment:\s*\n\s+name: staging\s*$/m)
+      expect(read(`.github/workflows/${name}`), name).toMatch(
+        /environment:\s*\n\s+name: staging\s*$/m,
+      )
       expect(read(`.github/workflows/${name}`), name).not.toMatch(/name: develop\s*$/m)
     }
-    const infraJob = read('.github/workflows/verify.yml').split(/^ {2}infra:\s*$/m)[1]?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    const infraJob =
+      read('.github/workflows/verify.yml')
+        .split(/^ {2}infra:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
     expect(infraJob).toMatch(/^\s+environment: staging\s*$/m)
   })
 
@@ -400,7 +410,10 @@ describe('GitHub environment per stack', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 01 no longer copies outputs into GitHub by hand]]
   it('drops the hand-copy of stack outputs from runbook 01 §5', () => {
-    const section = read('docs/runbooks/01-initial-deployment.md').split(/^## 5\. /m)[1]?.split(/^## 6\. /m)[0] ?? ''
+    const section =
+      read('docs/runbooks/01-initial-deployment.md')
+        .split(/^## 5\. /m)[1]
+        ?.split(/^## 6\. /m)[0] ?? ''
     expect(section).not.toContain('gh variable set')
     expect(section).toContain('ActionsEnvironmentVariable')
   })

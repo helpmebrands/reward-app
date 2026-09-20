@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "HelpMe Reward monorepo: the reference PWA, the Pulumi infrastructure and, as they land, the Flutter app and the service tier.",
-  "workspaces": ["apps/pwa", "infra"],
+  "workspaces": ["apps/pwa", "infra", "infra-repo"],
   "scripts": {
     "dev": "npm run dev -w apps/pwa",
     "build": "npm run build --workspaces --if-present",
