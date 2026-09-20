@@ -1,0 +1,3 @@
+# The bundle id is the one thing fastlane needs to know about the app; the
+# team and account come from the fetched profile and API key at run time.
+app_identifier("com.helpmebrands.reward")

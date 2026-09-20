@@ -348,20 +348,21 @@ describe('develop ruleset', () => {
 })
 
 describe('GitHub environment per stack', () => {
-  const workflows = ['verify.yml', 'cd.yml', 'cd-api.yml'].map((name) =>
-    read(`.github/workflows/${name}`),
-  )
+  const workflows = () =>
+    ['verify.yml', 'cd.yml', 'cd-api.yml', 'release-mobile.yml'].map((name) =>
+      read(`.github/workflows/${name}`),
+    )
   // Build-time PWA variables are optional and set by hand (runbook 01 §5).
   const optional = new Set(['VITE_VAPID_PUBLIC_KEY', 'VITE_PUSH_API'])
 
   // @lat: [[infra-tests#Infrastructure config#Every workflow variable is declared on the environment]]
   it('declares every vars.* the workflows read as an environment variable', () => {
     const referenced = new Set(
-      workflows
+      workflows()
         .flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1] ?? ''))
         .filter((v) => !optional.has(v)),
     )
-    expect([...referenced].sort()).toEqual([
+    for (const name of [
       'API_CLOUD_RUN_SERVICE',
       'API_MIGRATION_JOB',
       'ARTIFACT_REPO',
@@ -370,12 +371,21 @@ describe('GitHub environment per stack', () => {
       'GCP_PROJECT_ID',
       'GCP_REGION',
       'WIF_PROVIDER',
-    ])
+      'PLAY_SERVICE_ACCOUNT',
+    ]) {
+      expect(referenced, name).toContain(name)
+    }
     const program = read('infra/index.ts')
     expect(program).toMatch(/new github\.RepositoryEnvironment\(/)
-    const declared = program.split('const environmentVariables')[1]?.split('}')[0] ?? ''
+    const declared = program.split('const environmentVariables')[1]?.split('\n}')[0] ?? ''
+    const signing = program.split('const signingSecrets')[1]?.split(']')[0] ?? ''
     for (const name of referenced) {
-      expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
+      if (name.startsWith('SECRET_')) {
+        const base = name.slice('SECRET_'.length).toLowerCase().replace(/_/g, '-')
+        expect(signing, name).toContain(`'${base}'`)
+      } else {
+        expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
+      }
     }
   })
 
@@ -530,6 +540,79 @@ describe('mobile release trust', () => {
     expect(runbook).toContain('gcloud secrets versions add')
     expect(runbook).toMatch(/Users\s+and\s+permissions/)
     expect(runbook).not.toMatch(/putting the signing material in GitHub\s+secrets/)
+  })
+})
+
+describe('mobile release workflow', () => {
+  const workflow = () => read('.github/workflows/release-mobile.yml')
+
+  // @lat: [[infra-tests#Infrastructure config#Release workflow runs on version tags in the environment]]
+  it('runs on v* tags, one job per platform, in the staging environment', () => {
+    expect(workflow()).toMatch(/^\s+tags:\s*(\[\s*['"]v\*['"]\s*\]|\n\s+- ['"]v\*['"])\s*$/m)
+    const android =
+      workflow()
+        .split(/^ {2}android:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    const ios =
+      workflow()
+        .split(/^ {2}ios:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    expect(android).toContain('runs-on: ubuntu-latest')
+    expect(ios).toContain('runs-on: macos-latest')
+    for (const job of [android, ios]) {
+      expect(job).toMatch(/^\s+environment: staging\s*$/m)
+      expect(job).toContain('--build-number ${{ github.run_number }}')
+      expect(job).toContain('--build-name')
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Release workflow stores nothing in GitHub secrets]]
+  it('references no GitHub secret except the workflow token', () => {
+    const secrets = [...workflow().matchAll(/secrets\.([A-Za-z_]+)/g)].map((m) => m[1])
+    expect(secrets.filter((s) => s !== 'GITHUB_TOKEN')).toEqual([])
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Release workflow reads signing material from Secret Manager]]
+  it('fetches every piece of signing material with gcloud from the ids on the environment', () => {
+    expect(workflow()).toContain('gcloud secrets versions access latest')
+    for (const name of [
+      'SECRET_ASC_API_KEY',
+      'SECRET_ASC_API_KEY_ID',
+      'SECRET_ASC_ISSUER_ID',
+      'SECRET_IOS_DISTRIBUTION_CERT',
+      'SECRET_IOS_CERT_PASSWORD',
+      'SECRET_IOS_PROVISIONING_PROFILE',
+      'SECRET_ANDROID_UPLOAD_KEYSTORE',
+      'SECRET_ANDROID_KEYSTORE_PASSWORD',
+      'SECRET_ANDROID_KEY_PASSWORD',
+    ]) {
+      expect(workflow(), name).toContain(`vars.${name}`)
+    }
+    expect(workflow()).toContain('vars.PLAY_SERVICE_ACCOUNT')
+    expect(workflow()).toContain('google-github-actions/auth@v2')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Store uploads are scripted beside the app]]
+  it('uploads with the committed Play script and the iOS Fastfile', () => {
+    const play = read('apps/mobile/scripts/play-upload.sh')
+    expect(play).toContain('androidpublisher.googleapis.com/androidpublisher/v3/applications/')
+    expect(play).toContain('/tracks/internal')
+    expect(play).toContain(':commit')
+    const fastfile = read('apps/mobile/ios/fastlane/Fastfile')
+    expect(fastfile).toContain('upload_to_testflight')
+    expect(fastfile).toContain('app_store_connect_api_key')
+    expect(fastfile).toContain('import_certificate')
+    expect(workflow()).toContain('scripts/play-upload.sh')
+    expect(workflow()).toContain('fastlane')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 describes the tag-driven release]]
+  it('turns runbook 07 into the release procedure', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).toContain('release-mobile.yml')
+    expect(runbook).toMatch(/git tag v/)
+    expect(runbook).not.toMatch(/does not\s+yet build a release/)
+    expect(runbook).toMatch(/processing/i)
   })
 })
 

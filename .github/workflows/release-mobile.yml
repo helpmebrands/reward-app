@@ -1,0 +1,163 @@
+# Builds, signs and uploads the Flutter app on a version tag: Android to the
+# Play internal testing track, iOS to TestFlight.
+#
+# No long-lived credential lives in GitHub. Both jobs authenticate to Google
+# Cloud keylessly as the deployer and read the signing material from Secret
+# Manager at build time into the runner's temp directory; the Play upload runs
+# as the Play publisher identity, also keyless. Every id the jobs need is on
+# the `staging` environment, written by the Pulumi stack (runbook 07).
+#
+# The build number is the workflow run number, so a rerun of the same tag
+# carries the same number and is rejected by the store as a duplicate rather
+# than shipping twice. The build name is the tag without its `v` and without
+# any pre-release suffix, because the stores accept only x.y.z there.
+name: Release mobile
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# A release never cancels in flight: half an upload is worse than a slow one.
+concurrency:
+  group: release-mobile-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  FLUTTER_VERSION: 3.44.8
+
+jobs:
+  android:
+    name: Android to the Play internal track
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive the build name from the tag
+        id: version
+        run: |
+          name="${GITHUB_REF_NAME#v}"
+          echo "name=${name%%-*}" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Authenticate to Google Cloud as the deployer
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch the upload keystore and its passwords
+        # Into $RUNNER_TEMP, which the runner discards; never into the
+        # workspace, and never echoed.
+        run: |
+          gcloud secrets versions access latest --secret "${{ vars.SECRET_ANDROID_UPLOAD_KEYSTORE }}" \
+            --out-file "$RUNNER_TEMP/upload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/upload.jks"
+            echo "storePassword=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_ANDROID_KEYSTORE_PASSWORD }}")"
+            echo "keyPassword=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_ANDROID_KEY_PASSWORD }}")"
+            echo "keyAlias=upload"
+          } > apps/mobile/android/key.properties
+
+      - name: Resolve the workspace
+        run: dart pub get
+
+      - name: Build the signed app bundle
+        working-directory: apps/mobile
+        run: |
+          flutter build appbundle --release \
+            --build-name ${{ steps.version.outputs.name }} \
+            --build-number ${{ github.run_number }}
+
+      - name: Authenticate to Google Cloud as the Play publisher
+        id: play
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.PLAY_SERVICE_ACCOUNT }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+
+      - name: Upload to the internal testing track
+        env:
+          PLAY_ACCESS_TOKEN: ${{ steps.play.outputs.access_token }}
+        run: |
+          apps/mobile/scripts/play-upload.sh com.helpmebrands.reward \
+            apps/mobile/build/app/outputs/bundle/release/app-release.aab
+
+  ios:
+    name: iOS to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 45
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive the build name from the tag
+        id: version
+        run: |
+          name="${GITHUB_REF_NAME#v}"
+          echo "name=${name%%-*}" >> "$GITHUB_OUTPUT"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Authenticate to Google Cloud as the deployer
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch the certificate, profile and App Store Connect key
+        run: |
+          gcloud secrets versions access latest --secret "${{ vars.SECRET_IOS_DISTRIBUTION_CERT }}" \
+            --out-file "$RUNNER_TEMP/distribution.p12"
+          gcloud secrets versions access latest --secret "${{ vars.SECRET_IOS_PROVISIONING_PROFILE }}" \
+            --out-file "$RUNNER_TEMP/appstore.mobileprovision"
+          gcloud secrets versions access latest --secret "${{ vars.SECRET_ASC_API_KEY }}" \
+            --out-file "$RUNNER_TEMP/asc.p8"
+          {
+            echo "IOS_CERT_PASSWORD=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_IOS_CERT_PASSWORD }}")"
+            echo "ASC_KEY_ID=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_ASC_API_KEY_ID }}")"
+            echo "ASC_ISSUER_ID=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_ASC_ISSUER_ID }}")"
+          } >> "$GITHUB_ENV"
+          echo "::add-mask::$(gcloud secrets versions access latest --secret "${{ vars.SECRET_IOS_CERT_PASSWORD }}")"
+
+      - name: Resolve the workspace
+        run: dart pub get
+
+      - name: Compile without signing
+        working-directory: apps/mobile
+        run: |
+          flutter build ios --release --no-codesign \
+            --build-name ${{ steps.version.outputs.name }} \
+            --build-number ${{ github.run_number }}
+
+      - name: Sign, archive and upload to TestFlight
+        working-directory: apps/mobile/ios
+        env:
+          IOS_CERT_PATH: ${{ runner.temp }}/distribution.p12
+          IOS_PROFILE_PATH: ${{ runner.temp }}/appstore.mobileprovision
+          ASC_KEY_PATH: ${{ runner.temp }}/asc.p8
+        run: fastlane beta
