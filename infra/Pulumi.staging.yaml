@@ -8,5 +8,7 @@ config:
   reward-app:customDomain: staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state
   reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+  reward-app:billingAccount:
+    secure: v1:0CwVeAjXW0fknwpg:SvXrCDvTwmV2Dw6TY83QpwNl/wb/ggzTCZKE6kFN+9Yf3NNk
 secretsprovider: gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
 encryptedkey: CiQAuVK5vIbBdYmWPlWeUwibzQo8Xj01h0bNWV+xaLUueimdwTkSSAAvEBIWtpaw7vHAOE9O6Gp/pN8m+K4ckDsjOalooRE+WoYHm9IeMZ2mJDEvnMqR8z53doPeH22wxqkhvH3He2XMt8x7e5asfg==

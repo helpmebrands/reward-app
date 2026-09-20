@@ -304,3 +304,34 @@ describe('monorepo layout', () => {
     }
   })
 })
+
+describe('billing budget', () => {
+  // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
+  it('declares billingAccount and budgetAmount at project level', () => {
+    const configBlock = read('infra/Pulumi.yaml').split(/^config:\s*$/m)[1] ?? ''
+    expect(configBlock).toMatch(/^ {2}billingAccount:\s*$/m)
+    expect(configBlock).toMatch(/^ {2}budgetAmount:\s*\n(?: {4}.*\n)*? {4}default: \d+$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Staging keeps the billing account secret]]
+  it('carries the staging billing account only as a secret', () => {
+    const staging = read('infra/Pulumi.staging.yaml')
+    expect(staging).toMatch(/^\s+reward-app:billingAccount:\s*\n\s+secure: /m)
+    expect(staging).not.toMatch(/^\s+reward-app:billingAccount:\s*[\w-]+\s*$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Program declares the budget]]
+  it('enables the budget API and declares one budget filtered to the project', () => {
+    const program = read('infra/index.ts')
+    expect(program).toContain("'billingbudgets.googleapis.com'")
+    expect(program).toMatch(/new gcp\.billing\.Budget\(/)
+    expect(program).toMatch(/projects\/\$\{[^}]*number[^}]*\}/i)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 03 points at the declared budget]]
+  it('is described in runbook 03 instead of left to the operator', () => {
+    const costs = read('docs/runbooks/03-infrastructure-change.md').split(/^## Costs\s*$/m)[1] ?? ''
+    expect(costs).toContain('budgetAmount')
+    expect(costs).not.toMatch(/Set a budget alert on the project anyway/)
+  })
+})

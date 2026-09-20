@@ -32,6 +32,10 @@ const dbTier = config.get('dbTier') ?? 'db-f1-micro'
  * granted read and lock access to them so CI can preview. */
 const stateBucket = config.require('stateBucket')
 const secretsKey = config.require('secretsKey')
+/** Secret config: the id is not sensitive in itself, but the repository is
+ * public and a billing account id is a foothold for social engineering. */
+const billingAccount = config.requireSecret('billingAccount')
+const budgetAmount = config.getNumber('budgetAmount') ?? 25
 
 /**
  * The repository permitted to deploy, as `owner/name`.
@@ -71,6 +75,7 @@ const services = [
   'sqladmin.googleapis.com',
   'secretmanager.googleapis.com',
   'cloudkms.googleapis.com',
+  'billingbudgets.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -650,6 +655,48 @@ const domainMapping = customDomain
       dependsOnApis,
     )
   : undefined
+
+// ---------------------------------------------------------------------------
+// Budget
+// ---------------------------------------------------------------------------
+
+/**
+ * The alert that wakes someone up. `maxInstances` bounds compute, but Cloud
+ * SQL bills while idle and nothing else here has a ceiling, so a monthly
+ * budget on this stack's project is the one control that notices a mistake
+ * in dollars rather than in resources.
+ *
+ * Budgets live on the billing account, not the project, so the operator who
+ * applies this needs Billing Account Costs Manager (or Administrator) on it
+ * (runbook 01). The verify gate only previews and never reads the budget
+ * API, so the deployer needs no billing role. No `allUpdatesRule`: the
+ * provider then requires a channel or topic, whereas leaving it out keeps the
+ * API default, which emails billing-account administrators and users at each
+ * threshold with nothing extra to keep alive.
+ */
+const projectInfo = gcp.organizations.getProjectOutput({ projectId: project })
+
+new gcp.billing.Budget(
+  'budget',
+  {
+    billingAccount,
+    displayName: `${serviceName}-${environment}`,
+    budgetFilter: {
+      projects: [pulumi.interpolate`projects/${projectInfo.number}`],
+      calendarPeriod: 'MONTH',
+    },
+    amount: {
+      specifiedAmount: { currencyCode: 'USD', units: String(budgetAmount) },
+    },
+    thresholdRules: [
+      { thresholdPercent: 0.5 },
+      { thresholdPercent: 0.9 },
+      { thresholdPercent: 1.0 },
+      { thresholdPercent: 1.0, spendBasis: 'FORECASTED_SPEND' },
+    ],
+  },
+  dependsOnApis,
+)
 
 // ---------------------------------------------------------------------------
 // Outputs

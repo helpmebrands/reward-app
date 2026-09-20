@@ -13,6 +13,7 @@ it waiting on API enablement and Cloud SQL.
 | gcloud CLI | `gcloud version` — [install](https://cloud.google.com/sdk/docs/install) |
 | A Google Cloud project **with billing enabled** | `gcloud billing projects describe <PROJECT_ID>` |
 | `roles/owner` (or equivalent) on that project | Needed to enable APIs, create the KMS key and IAM bindings |
+| Billing Account Costs Manager on the billing account | `gcloud billing accounts get-iam-policy <ACCOUNT_ID>` — the stack declares a budget, and budgets live on the account, not the project |
 | Docker | `docker version` — the api runbooks use the `postgres:16` image for `psql` |
 | Admin on the GitHub repository | Needed to set variables and branch protection |
 
@@ -116,7 +117,12 @@ $ pulumi config set gcp:region "$REGION"
 $ pulumi config set reward-app:githubRepo helpmebrands/reward-app
 $ pulumi config set reward-app:stateBucket <the bucket from step 2>
 $ pulumi config set reward-app:secretsKey projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/<env>
+$ pulumi config set --secret reward-app:billingAccount "$(gcloud billing projects describe "$PROJECT_ID" --format='value(billingAccountName)' | sed 's|billingAccounts/||')"
 ```
+
+`billingAccount` feeds the budget alert (runbook 03, *Costs*). It is set as a
+secret because the repository is public; the ciphertext that lands in the
+stack file is the only form it ever takes here.
 
 Commit the resulting `Pulumi.<env>.yaml`; the `encryptedkey` line in it is the
 stack's data key wrapped by KMS and is safe to commit. Staging was moved from

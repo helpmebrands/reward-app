@@ -199,8 +199,23 @@ bills nothing. The things that actually cost money:
 - Secret Manager and KMS: cents. Egress, which for a ~600 KB precached app is
   negligible.
 
-Set a budget alert on the project anyway. `maxInstances` is the technical
-ceiling; a billing alert is the one that wakes someone up.
+`maxInstances` is the technical ceiling; a billing alert is the one that wakes
+someone up, and the stack declares it. `budgetAmount` (USD per month, default
+25) sets the line and `gcp.billing.Budget` emails the billing account's
+administrators and users at 50, 90 and 100 percent of it, and when the
+forecast for the month crosses 100 percent. Raise it the way you raise
+anything else here:
+
+```sh
+$ pulumi config set budgetAmount 50
+$ pulumi preview
+$ pulumi up
+```
+
+The budget lives on the billing account, so applying that change needs
+Billing Account Costs Manager on the account, not a project role (runbook 01,
+*Before you start*). `billingAccount` is secret config: set it with
+`pulumi config set --secret` and never paste the id into an issue or commit.
 
 ## Tearing down
 
