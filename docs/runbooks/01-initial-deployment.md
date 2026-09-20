@@ -170,8 +170,13 @@ $ pulumi config set reward-app:dbTier db-custom-1-3840   # more database; db-f1-
 ## 4. Create the infrastructure
 
 ```sh
-$ pulumi up
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT="$PROJECT_ID" pulumi up
 ```
+
+The two variables name the quota project for the budget API, which the GCP
+provider does not take from your ADC file; without them the budget fails to
+create with "requires a quota project" (runbook 05). Every `pulumi up` on an
+environment stack takes this form; `pulumi preview` needs neither.
 
 Read the preview before confirming. Expect 37 resources: nine API enablements,
 a registry, three service accounts, two Cloud Run services and the migration
@@ -256,8 +261,14 @@ $ gh api -X DELETE repos/helpmebrands/reward-app/environments/develop
 
 `VITE_VAPID_PUBLIC_KEY` and `VITE_PUSH_API` are **build-time** values — Vite
 inlines them into the bundle, so setting them on the Cloud Run service does
-nothing. Set them as repository variables and the CD workflow passes them as
-build arguments. The VAPID *public* key is safe in a variable; the private key
+nothing. Set them as variables on the `staging` environment (they are the one
+pair the stack does not write, because they are optional and product-side)
+and the CD workflow passes them as build arguments:
+
+```sh
+$ gh api -X POST repos/helpmebrands/reward-app/environments/staging/variables \
+    -f name=VITE_VAPID_PUBLIC_KEY -f value=<public key>
+``` The VAPID *public* key is safe in a variable; the private key
 belongs only to the push backend and never enters this repository.
 
 Without them the app falls back to service-worker replay, which works.
@@ -341,10 +352,15 @@ Application → Service Workers should show one activated.
 
 Add the environment to the table in [README.md](README.md#environments):
 project id, region, stack, state backend, services, job, database, secret,
-key and URLs. The repository variables are the operational source of truth,
-but a new starter should not have to reverse-engineer which GCP project is
-which. Staging was recorded there on 2026-09-17 and extended for the api on
-2026-09-18.
+key and URLs. The GitHub environment the stack writes is the operational
+source of truth, but a new starter should not have to reverse-engineer which
+GCP project is which. Staging was recorded there on 2026-09-17 and extended
+for the api on 2026-09-18.
+
+Record the GitHub token's expiry date next to it, with who minted it. A
+fine-grained token expires silently; the first sign is a `pulumi up` that
+fails with `401` on a GitHub resource, and the fix is a new token pasted into
+`pulumi config set --secret github:token` on both stacks.
 
 ## What you have now
 
@@ -358,6 +374,12 @@ which. Staging was recorded there on 2026-09-17 and extended for the api on
 - A PWA runtime identity with no permissions at all, and an api runtime
   identity with exactly two
 - Stack secrets encrypted with a KMS key, never a passphrase
+- A GitHub environment named after the stack, carrying every variable the
+  workflows read, written by the stack rather than copied by hand
+- The `develop` ruleset requiring every verify job, owned by the `repo` stack
+  of `infra-repo/`, with the check list derived from `verify.yml`
+- A monthly budget alert on the project, emailed to the billing account's
+  administrators
 
 Next: [02 — Routine change](02-routine-change.md), and read
 [04 — Rollback](04-rollback.md) and [06 — Database](06-database.md) before you

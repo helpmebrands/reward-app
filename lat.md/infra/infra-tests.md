@@ -130,6 +130,26 @@ The `infra` job installs, typechecks and previews `infra-repo` as well as `infra
 
 Step 5 of `01-initial-deployment.md` names `ActionsEnvironmentVariable` and contains no `gh variable set`, so the copy step that the runbook once defended as "shows up on the next pull request" is gone for good.
 
+### No runbook sends the operator to the GitHub settings UI
+
+No file under `docs/runbooks/` contains `gh variable set` or `Settings → Branches`, or calls repository variables the source of truth, so a hand step the stack replaced cannot creep back into the prose ([[infra#Runbooks]]).
+
+### Runbook 01 applies with the quota project override
+
+Step 4 of `01-initial-deployment.md` and runbook 03 show `USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=…` on `pulumi up`, because the budget API rejects an apply without a quota project and the provider does not take it from ADC.
+
+### Runbook 01 records the token expiry and the GitHub-side results
+
+Step 8 tells the operator to record the GitHub token's expiry, and *What you have now* lists the environment and the ruleset, so a fresh reader sees that GitHub is stack-managed and knows what silently expires.
+
+### README names both Pulumi projects and the environment as source of truth
+
+`docs/runbooks/README.md` names `infra-repo/` and when to touch it, and calls the GitHub environment `staging` the operational source of truth instead of repository variables.
+
+### Runbook 05 explains the quota project error
+
+`05-troubleshooting.md` has a heading for `requires a quota project` with the override that fixes it, so the next operator does not rediscover it from a failed apply.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).

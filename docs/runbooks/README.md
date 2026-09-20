@@ -15,8 +15,9 @@ when a change goes wrong.
 
 ## Environments
 
-The repository variables are the operational source of truth; this table is
-the human-readable copy. Update it when an environment is added or moved.
+The GitHub environment `staging`, written by the Pulumi stack of the same
+name, is the operational source of truth; this table is the human-readable
+copy. Update it when an environment is added or moved.
 
 | | staging |
 | --- | --- |
@@ -40,7 +41,11 @@ a silent rollback of production:
 
 - **Pulumi owns the shape of the infrastructure** — the two services and the
   migration job, their scaling, their identities, the database, the secret,
-  the registry, who may deploy.
+  the registry, who may deploy, the budget alert, and the GitHub environment
+  each stack deploys through. `infra/` has a stack per environment;
+  `infra-repo/` has one stack, `repo`, for what is true of the repository
+  regardless of environment (today the `develop` ruleset). Touch `infra-repo/`
+  when a verify job is added or renamed; touch `infra/` for everything else.
 - **CI owns which image is running.** A push to `develop` builds the image of
   whichever deployable it touched and points Cloud Run at that exact digest,
   for the api after running the migration job on it.
