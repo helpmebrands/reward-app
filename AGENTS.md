@@ -149,3 +149,14 @@ When implementing an epic, work through its open sub-issues in order. For each s
 ## 8. Issue flow: PR, then human gate
 
 When implementing a single issue: worktree, TDD, commit, open a PR against `develop`, then stop and ask the human. Only on their approval: merge the PR, remove the worktree, and close the issue. Do not merge without that approval.
+
+## 9. Flutter and Dart rules
+
+These rules apply to all Flutter and Dart code in this repository, including the Flutter app introduced by epic #64.
+
+- **Formatting**: all Dart code must be formatted with `flutter format .` before committing.
+- **Packages**: only [Flutter Favorite](https://pub.dev/packages?q=is%3Aflutter-favorite) packages may be added without confirmation. Any other package choice must be approved by a human before it is added to `pubspec.yaml`.
+- **Native dependencies**: use Swift Package Manager for iOS and macOS dependencies. Do not introduce CocoaPods without human approval.
+- **UI library**: use the Material library for UI. Do not use Cupertino widgets.
+- **Widget Preview**: every UI component must be available in Widget Preview (a `@Preview` in `previews.dart` or alongside the widget).
+- **Flutter version**: the minimum supported Flutter version is 3.35. Do not rely on APIs that require a newer version without human approval.
