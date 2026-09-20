@@ -4,6 +4,7 @@
 config:
   gcp:project: helpme-reward-staging
   gcp:region: us-central1
+  github:owner: helpmebrands
   reward-app:githubRepo: helpmebrands/reward-app
   reward-app:customDomain: staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state

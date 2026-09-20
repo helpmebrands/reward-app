@@ -1,0 +1,59 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, expect, it } from 'vitest'
+import { requiredChecks } from './verify-checks'
+
+// The develop ruleset requires status checks by name. ci.yml calls verify.yml
+// from a job with id `verify`, so every job in verify.yml reports as
+// `verify / <job name>`. Deriving the list from the workflow means adding a
+// job makes it required, and renaming one is a visible ruleset diff.
+
+const fixture = `
+name: Verify
+on:
+  workflow_call:
+jobs:
+  verify:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+  a11y:
+    name: Accessibility gate
+    needs: verify
+    runs-on: ubuntu-latest
+  unnamed:
+    runs-on: ubuntu-latest
+`
+
+describe('requiredChecks', () => {
+  // @lat: [[infra-tests#Infrastructure config#Required checks derive from verify.yml]]
+  it('maps every job to its "verify / <name>" context, falling back to the job id', () => {
+    expect(requiredChecks(fixture)).toEqual([
+      'verify / Lint, typecheck, test, build',
+      'verify / Accessibility gate',
+      'verify / unnamed',
+    ])
+  })
+
+  it('rejects a workflow with no jobs rather than requiring nothing', () => {
+    expect(() => requiredChecks('name: Empty\non: push\n')).toThrow(/no jobs/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Every verify job is a required check]]
+  it('derives one context per job in the real verify.yml', () => {
+    const workflow = readFileSync(join(__dirname, '..', '.github/workflows/verify.yml'), 'utf8')
+    const contexts = requiredChecks(workflow)
+    const jobs = (workflow.split(/^jobs:\s*$/m)[1] ?? '').match(/^ {2}[\w-]+:\s*$/gm) ?? []
+    expect(contexts).toHaveLength(jobs.length)
+    for (const name of [
+      'Lint, typecheck, test, build',
+      'Accessibility gate',
+      'Infra typechecks and previews',
+      'Dart analyze and test',
+      'Flutter analyze and test',
+      'Api analyze, test and container',
+      'Container builds',
+    ]) {
+      expect(contexts).toContain(`verify / ${name}`)
+    }
+  })
+})

@@ -131,6 +131,10 @@ jobs:
 
       - name: Preview against staging
         working-directory: infra
+        env:
+          # The GitHub provider reads this. The workflow token can read the
+          # repository but not administer it, which is all a preview needs.
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           pulumi login gs://helpme-reward-staging-pulumi-state
           pulumi stack select staging
