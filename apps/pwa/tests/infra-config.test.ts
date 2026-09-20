@@ -275,7 +275,7 @@ describe('monorepo layout', () => {
   // @lat: [[infra-tests#Infrastructure config#Root package declares the workspaces]]
   it('declares apps/pwa and infra as npm workspaces at the root', () => {
     const pkg = JSON.parse(read('package.json')) as { workspaces?: string[] }
-    expect(pkg.workspaces).toEqual(['apps/pwa', 'infra'])
+    expect(pkg.workspaces).toEqual(['apps/pwa', 'infra', 'infra-repo'])
   })
 
   // @lat: [[infra-tests#Infrastructure config#Root pubspec declares the pub workspace]]
@@ -307,12 +307,22 @@ describe('monorepo layout', () => {
 
 describe('develop ruleset', () => {
   // @lat: [[infra-tests#Infrastructure config#Program declares the develop ruleset]]
-  it('declares the ruleset from the GitHub provider with checks derived from verify.yml', () => {
-    const program = read('infra/index.ts')
+  it('declares the ruleset in the repo-level project with checks derived from verify.yml', () => {
+    const program = read('infra-repo/index.ts')
     expect(program).toMatch(/from '@pulumi\/github'/)
     expect(program).toMatch(/new github\.RepositoryRuleset\(/)
     expect(program).toMatch(/requiredChecks\(/)
     expect(program).toContain("'.github/workflows/verify.yml'")
+    expect(read('infra/index.ts')).not.toMatch(/RepositoryRuleset/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Repo-level project has its own stack]]
+  it('is a separate Pulumi project with one stack named repo', () => {
+    expect(read('infra-repo/Pulumi.yaml')).toMatch(/^name: reward-app-repo$/m)
+    const repo = read('infra-repo/Pulumi.repo.yaml')
+    expect(repo).toMatch(/^\s+github:owner:\s*helpmebrands\s*$/m)
+    expect(repo).toMatch(/^secretsprovider: gcpkms:\/\//m)
+    expect(repo).not.toMatch(/^\s+github:token:\s*\S/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Staging names the GitHub owner]]
@@ -334,6 +344,78 @@ describe('develop ruleset', () => {
     expect(section).not.toContain('Settings → Branches')
     expect(section).toContain('RepositoryRuleset')
     expect(section).toContain('pulumi import')
+  })
+})
+
+describe('GitHub environment per stack', () => {
+  const workflows = ['verify.yml', 'cd.yml', 'cd-api.yml'].map((name) =>
+    read(`.github/workflows/${name}`),
+  )
+  // Build-time PWA variables are optional and set by hand (runbook 01 §5).
+  const optional = new Set(['VITE_VAPID_PUBLIC_KEY', 'VITE_PUSH_API'])
+
+  // @lat: [[infra-tests#Infrastructure config#Every workflow variable is declared on the environment]]
+  it('declares every vars.* the workflows read as an environment variable', () => {
+    const referenced = new Set(
+      workflows
+        .flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1] ?? ''))
+        .filter((v) => !optional.has(v)),
+    )
+    expect([...referenced].sort()).toEqual([
+      'API_CLOUD_RUN_SERVICE',
+      'API_MIGRATION_JOB',
+      'ARTIFACT_REPO',
+      'CLOUD_RUN_SERVICE',
+      'DEPLOY_SERVICE_ACCOUNT',
+      'GCP_PROJECT_ID',
+      'GCP_REGION',
+      'WIF_PROVIDER',
+    ])
+    const program = read('infra/index.ts')
+    expect(program).toMatch(/new github\.RepositoryEnvironment\(/)
+    const declared = program.split('const environmentVariables')[1]?.split('}')[0] ?? ''
+    for (const name of referenced) {
+      expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Workflows run in the stack's environment]]
+  it('runs the deploy and preview jobs in the staging environment', () => {
+    for (const name of ['cd.yml', 'cd-api.yml']) {
+      expect(read(`.github/workflows/${name}`), name).toMatch(
+        /environment:\s*\n\s+name: staging\s*$/m,
+      )
+      expect(read(`.github/workflows/${name}`), name).not.toMatch(/name: develop\s*$/m)
+    }
+    const infraJob =
+      read('.github/workflows/verify.yml')
+        .split(/^ {2}infra:\s*$/m)[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    expect(infraJob).toMatch(/^\s+environment: staging\s*$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Verify gate covers both Pulumi projects]]
+  it('typechecks, tests and previews infra-repo alongside infra', () => {
+    const verify = read('.github/workflows/verify.yml')
+    expect(verify).toContain('npm ci --workspace infra --workspace infra-repo')
+    expect(verify).toContain('npm run typecheck --workspace infra-repo')
+    expect(verify).toContain('working-directory: infra-repo')
+    expect(verify).toMatch(/pulumi stack select repo/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#PWA image knows every workspace manifest]]
+  it('copies the infra-repo manifest into the PWA image so npm ci resolves the lockfile', () => {
+    expect(read('apps/pwa/Dockerfile')).toContain('COPY infra-repo/package.json infra-repo/')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 no longer copies outputs into GitHub by hand]]
+  it('drops the hand-copy of stack outputs from runbook 01 §5', () => {
+    const section =
+      read('docs/runbooks/01-initial-deployment.md')
+        .split(/^## 5\. /m)[1]
+        ?.split(/^## 6\. /m)[0] ?? ''
+    expect(section).not.toContain('gh variable set')
+    expect(section).toContain('ActionsEnvironmentVariable')
   })
 })
 

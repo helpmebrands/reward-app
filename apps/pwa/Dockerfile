@@ -15,6 +15,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/pwa/package.json apps/pwa/
 COPY infra/package.json infra/
+COPY infra-repo/package.json infra-repo/
 RUN npm ci --workspace apps/pwa
 
 COPY apps/pwa apps/pwa

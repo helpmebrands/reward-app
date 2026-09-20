@@ -1,0 +1,5 @@
+secretsprovider: gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+encryptedkey: CiQAuVK5vGMIl6iCSaRnWp9ZlxjzQy4TdXyR17XB4SThWgJxdWMSSQAvEBIWgOqb0SVRGozuM/o4M76te6UVbEnPf00fYXg9H4/YYJq9mmofZfC/oN4m3DejQQ30q4nI4aTzX56s9PEvMzlwYsXz8wg=
+config:
+  reward-app-repo:githubRepo: helpmebrands/reward-app
+  github:owner: helpmebrands

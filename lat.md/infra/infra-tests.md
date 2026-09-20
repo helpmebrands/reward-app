@@ -6,7 +6,7 @@ What the repository-level suites pin: the Pulumi configuration, the runbooks tha
 
 `apps/pwa/tests/infra-config.test.ts` pins the committed Pulumi configuration, the runbooks that quote it and the monorepo layout ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
 
-Tests that import program code live beside it in `infra/` (`infra/verify-checks.test.ts`, run by the workspace's own `vitest`), because the PWA image typechecks `apps/pwa/tests` without `infra/` present and a cross-workspace import breaks the container build.
+Tests that import program code live beside it (`infra-repo/verify-checks.test.ts`, run by that workspace's own `vitest`), because the PWA image typechecks `apps/pwa/tests` without the Pulumi workspaces present and a cross-workspace import breaks the container build.
 
 ### Project is named reward-app
 
@@ -84,7 +84,13 @@ Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC excha
 
 ### Program declares the develop ruleset
 
-`index.ts` imports `@pulumi/github`, reads `.github/workflows/verify.yml` and declares one `github.RepositoryRuleset` whose required checks come from `requiredChecks`, so the ruleset and the workflow cannot disagree.
+`infra-repo/index.ts` reads `.github/workflows/verify.yml` and declares one `github.RepositoryRuleset` whose required checks come from `requiredChecks`, so the ruleset and the workflow cannot disagree.
+
+`infra/index.ts` declares no ruleset, because two environment stacks cannot both own one repository setting.
+
+### Repo-level project has its own stack
+
+`infra-repo/Pulumi.yaml` names the project `reward-app-repo` and `Pulumi.repo.yaml` sets `github:owner` on the KMS secrets provider with no plain-text token, so the repository-wide configuration has exactly one stack ([[deployment#Infrastructure]]).
 
 ### Every verify job is a required check
 
@@ -101,6 +107,28 @@ The `Preview against staging` step passes `GITHUB_TOKEN: ${{ github.token }}`, w
 ### Runbook 01 describes the ruleset, not the settings UI
 
 Step 6 of `01-initial-deployment.md` names `RepositoryRuleset` and the one-time `pulumi import`, and no longer sends the operator to *Settings → Branches*.
+
+### Every workflow variable is declared on the environment
+
+Every `vars.*` the workflows read, except the optional build-time `VITE_*` pair, is a key of `environmentVariables` in `infra/index.ts`, so a variable a workflow needs cannot be missing from the stack that deploys it ([[deployment#Infrastructure]]).
+
+The same program declares the `github.RepositoryEnvironment` the variables are written to.
+
+### Workflows run in the stack's environment
+
+`cd.yml`, `cd-api.yml` and the `infra` job of `verify.yml` run in the `staging` environment and never `develop`, so `vars.*` resolves from the environment the stack writes rather than from repository variables that no longer exist.
+
+### Verify gate covers both Pulumi projects
+
+The `infra` job installs, typechecks and previews `infra-repo` as well as `infra` (`pulumi stack select repo` from `working-directory: infra-repo`) and runs its tests, so a broken ruleset program fails review like a broken environment program ([[deployment#Pipeline]]).
+
+### PWA image knows every workspace manifest
+
+`apps/pwa/Dockerfile` copies `infra-repo/package.json` beside the other manifests before `npm ci`, because npm refuses a lockfile whose workspaces are not all present.
+
+### Runbook 01 no longer copies outputs into GitHub by hand
+
+Step 5 of `01-initial-deployment.md` names `ActionsEnvironmentVariable` and contains no `gh variable set`, so the copy step that the runbook once defended as "shows up on the next pull request" is gone for good.
 
 ### Project config declares the budget
 

@@ -103,6 +103,10 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    # The stack writes the variables this job reads onto the environment named
+    # after itself, so the job runs there rather than reading repository-level
+    # variables that no longer exist.
+    environment: staging
 
     steps:
       - uses: actions/checkout@v4
@@ -113,10 +117,15 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --workspace infra
+        run: npm ci --workspace infra --workspace infra-repo
 
       - name: Typecheck
-        run: npm run typecheck --workspace infra
+        run: |
+          npm run typecheck --workspace infra
+          npm run typecheck --workspace infra-repo
+
+      - name: Test
+        run: npm test --workspace infra-repo
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
@@ -138,6 +147,15 @@ jobs:
         run: |
           pulumi login gs://helpme-reward-staging-pulumi-state
           pulumi stack select staging
+          pulumi preview --non-interactive --diff
+
+      - name: Preview the repository project
+        working-directory: infra-repo
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          pulumi login gs://helpme-reward-staging-pulumi-state
+          pulumi stack select repo
           pulumi preview --non-interactive --diff
 
   # The Dart pub workspace: packages/domain and the Flutter app, the service

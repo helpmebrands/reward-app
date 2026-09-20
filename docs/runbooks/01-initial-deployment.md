@@ -124,8 +124,23 @@ $ pulumi config set --secret reward-app:billingAccount "$(gcloud billing project
 secret because the repository is public; the ciphertext that lands in the
 stack file is the only form it ever takes here.
 
-The stack also manages the repository's GitHub configuration (step 6), so it
-needs a GitHub credential on the machine that runs `pulumi up`. Mint a
+Two Pulumi programs touch GitHub: this one writes the stack's environment and
+its variables (step 5), and `infra-repo/` owns what is true of the repository
+regardless of environment, the `develop` ruleset (step 6). `infra-repo/` has
+exactly one stack, `repo`, on the same backend and the same key, created once
+on 2026-09-20 with:
+
+```sh
+$ cd ../infra-repo
+$ pulumi stack init repo \
+    --secrets-provider "gcpkms://projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/staging"
+$ pulumi config set reward-app-repo:githubRepo helpmebrands/reward-app
+$ pulumi config set github:owner helpmebrands
+```
+
+A new environment does not repeat this; it only adds a stack to `infra/`.
+
+Both programs need a GitHub credential on the machine that runs `pulumi up`. Mint a
 **fine-grained personal access token** (Settings → Developer settings)
 scoped to this one repository with *Administration: read and write*,
 *Variables: read and write*, *Secrets: read and write* and *Environments:
@@ -189,45 +204,53 @@ deploy creates its tables.
 
 ## 5. Give GitHub the values it needs
 
-```sh
-$ pulumi stack output
-```
+The stack does this too. Step 4's `pulumi up` created a GitHub
+**environment** named after the stack (`staging`) and wrote onto it, as
+`github.ActionsEnvironmentVariable` resources, every value the workflows
+read:
 
-Set these as **repository variables** (Settings → Secrets and variables →
-Actions → *Variables*), not secrets:
-
-| Variable | From output |
+| Variable | Value |
 | --- | --- |
-| `GCP_PROJECT_ID` | `gcpProject` |
-| `GCP_REGION` | `gcpRegion` |
-| `ARTIFACT_REPO` | `artifactRepository` |
-| `CLOUD_RUN_SERVICE` | `cloudRunService` |
-| `WIF_PROVIDER` | `workloadIdentityProvider` |
-| `DEPLOY_SERVICE_ACCOUNT` | `deployServiceAccount` |
-| `API_CLOUD_RUN_SERVICE` | `apiCloudRunService` |
-| `API_MIGRATION_JOB` | `apiMigrationJob` |
+| `GCP_PROJECT_ID` | the project |
+| `GCP_REGION` | the region |
+| `ARTIFACT_REPO` | the image repository id |
+| `CLOUD_RUN_SERVICE` | the PWA service name |
+| `WIF_PROVIDER` | the workload identity provider's full name |
+| `DEPLOY_SERVICE_ACCOUNT` | the deployer's email |
+| `API_CLOUD_RUN_SERVICE` | the api service name |
+| `API_MIGRATION_JOB` | the migration job name |
 
-None of these are secret. They are identifiers, and the actual trust is
-enforced by Google against the repository name — a variable is the honest
-classification, and it keeps them readable in logs when you are debugging a
-failed deploy.
+The deploy jobs in `cd.yml` and `cd-api.yml` and the preview job in
+`verify.yml` run in that environment, so `vars.X` resolves per stack. None of
+these are secret: they are identifiers, and the actual trust is enforced by
+Google against the repository name. A variable keeps them readable in logs
+when you are debugging a failed deploy. Nothing is set at repository level.
 
-Or with the `gh` CLI, from `infra/`:
+Check what landed:
 
 ```sh
-$ gh variable set GCP_PROJECT_ID        --body "$(pulumi stack output gcpProject)"
-$ gh variable set GCP_REGION            --body "$(pulumi stack output gcpRegion)"
-$ gh variable set ARTIFACT_REPO         --body "$(pulumi stack output artifactRepository)"
-$ gh variable set CLOUD_RUN_SERVICE     --body "$(pulumi stack output cloudRunService)"
-$ gh variable set WIF_PROVIDER          --body "$(pulumi stack output workloadIdentityProvider)"
-$ gh variable set DEPLOY_SERVICE_ACCOUNT --body "$(pulumi stack output deployServiceAccount)"
-$ gh variable set API_CLOUD_RUN_SERVICE  --body "$(pulumi stack output apiCloudRunService)"
-$ gh variable set API_MIGRATION_JOB      --body "$(pulumi stack output apiMigrationJob)"
+$ gh variable list --env staging
 ```
 
-The `infra` job of every pull request also runs `pulumi preview` with these
-same variables, so a wrong one shows up on the next pull request rather than
-the next deploy.
+**If a deploy has already used the environment** before the stack managed it
+(GitHub creates an environment the first time a workflow names one), the
+`up` in step 4 is rejected with "already exists". Import it first:
+
+```sh
+$ pulumi import github:index/repositoryEnvironment:RepositoryEnvironment \
+    environment helpmebrands/reward-app:staging
+$ pulumi up
+```
+
+Staging is cutting over from repository variables and a `develop`
+environment to the `staging` environment (epic #96). Once one deploy of each
+service has succeeded from the new variables, delete the old ones by hand so
+nothing can fall back to them:
+
+```sh
+$ gh variable delete GCP_PROJECT_ID      # and the other seven
+$ gh api -X DELETE repos/helpmebrands/reward-app/environments/develop
+```
 
 ### If you have Web Push keys
 
@@ -241,12 +264,13 @@ Without them the app falls back to service-worker replay, which works.
 
 ## 6. Protect `develop`
 
-The stack does this. `infra/index.ts` declares a `github.RepositoryRuleset`
-on `refs/heads/develop` that requires every job of `verify.yml` as a status
-check, by the `verify / <job name>` context each one reports under, and
-requires the branch to be up to date. The list of checks is read from the
-workflow file when the program runs (`infra/verify-checks.ts`), so nothing
-here is typed twice.
+The `repo` stack of `infra-repo/` does this. `infra-repo/index.ts` declares
+a `github.RepositoryRuleset` on `refs/heads/develop` that requires every job
+of `verify.yml` as a status check, by the `verify / <job name>` context each
+one reports under, and requires the branch to be up to date. The list of
+checks is read from the workflow file when the program runs
+(`infra-repo/verify-checks.ts`), so nothing here is typed twice. The commands
+below run from `infra-repo/` with `pulumi stack select repo`.
 
 Without it, CI is advisory: a red pull request stays mergeable and the deploy
 pipeline is the first thing to notice. "Pull request required" for
