@@ -471,6 +471,68 @@ describe('runbooks after the GitHub cut-over', () => {
   })
 })
 
+describe('mobile release trust', () => {
+  const program = () => read('infra/index.ts')
+  const signingSecrets = [
+    'asc-api-key',
+    'asc-api-key-id',
+    'asc-issuer-id',
+    'ios-distribution-cert',
+    'ios-cert-password',
+    'ios-provisioning-profile',
+    'android-upload-keystore',
+    'android-keystore-password',
+    'android-key-password',
+  ]
+
+  // @lat: [[infra-tests#Infrastructure config#Play identity is keyless]]
+  it('declares a Play Developer API identity impersonated through the workload identity pool', () => {
+    expect(program()).toContain("'androidpublisher.googleapis.com'")
+    expect(program()).toMatch(/accountId: `\$\{serviceName\}-play-\$\{environment\}`/)
+    const binding = program().split("'play-impersonation'")[1]?.split('})')[0] ?? ''
+    expect(binding).toContain("role: 'roles/iam.workloadIdentityUser'")
+    expect(binding).toContain('principalSet://iam.googleapis.com/')
+    expect(program()).not.toMatch(/serviceaccount\.Key\(/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Signing material has a container and no version]]
+  it('declares one empty Secret Manager container per piece of signing material', () => {
+    const list = program().split('const signingSecrets')[1]?.split(']')[0] ?? ''
+    for (const name of signingSecrets) {
+      expect(list, name).toContain(`'${name}'`)
+    }
+    const after = program().split('const signingSecrets')[1] ?? ''
+    expect(after).toMatch(/new gcp\.secretmanager\.Secret\(/)
+    expect(after).not.toMatch(/new gcp\.secretmanager\.SecretVersion\(/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Deployer reads exactly the signing secrets]]
+  it('grants the deployer secretAccessor per signing secret and never project-wide', () => {
+    const after = program().split('const signingSecrets')[1] ?? ''
+    const grant = after.split('SecretIamMember(')[1] ?? ''
+    expect(grant).toContain("role: 'roles/secretmanager.secretAccessor'")
+    expect(grant).toContain('deployAccount.email')
+    for (const block of program().split('new gcp.projects.IAMMember(').slice(1)) {
+      expect(block.split('})')[0]).not.toContain('secretmanager.secretAccessor')
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Release identifiers reach the environment]]
+  it('writes the Play identity and every secret id onto the GitHub environment', () => {
+    const declared = program().split('const environmentVariables')[1]?.split('\n}')[0] ?? ''
+    expect(declared).toMatch(/^\s+PLAY_SERVICE_ACCOUNT:/m)
+    expect(program()).toMatch(/SECRET_\$\{name\.toUpperCase\(\)\.replace\(\/-\/g, '_'\)\}/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 has the two hand steps]]
+  it('tells runbook 07 how to link the Play identity and add secret versions', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).toContain('gcloud secrets versions add')
+    expect(runbook).toMatch(/Users and permissions/)
+    expect(runbook).not.toMatch(/putting the signing material in GitHub\s+secrets/)
+  })
+})
+
 describe('billing budget', () => {
   // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
   it('declares billingAccount and budgetAmount at project level', () => {
