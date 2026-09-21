@@ -192,6 +192,14 @@ The workflow calls both, so the store logic is reviewable code beside the app ra
 
 `07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
 
+### Runbook 01 gives the repository project its own step
+
+Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered step named for the repository project opens with `cd` into it and `pulumi stack select repo` before its import, so no command block straddles two Pulumi projects ([[infra#Runbooks]]).
+
+### Runbook 01 import ids carry the repository prefix
+
+Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository name without the owner, because the GitHub provider rejects `owner/name` and a bare id alike; an operator copying the block gets the form that works.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).
