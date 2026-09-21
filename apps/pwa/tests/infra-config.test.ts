@@ -616,6 +616,31 @@ describe('mobile release workflow', () => {
   })
 })
 
+describe('runbook 01 keeps the two Pulumi projects apart', () => {
+  const runbook01 = () => read('docs/runbooks/01-initial-deployment.md')
+  const step = (n: number) => runbook01().split(new RegExp(`^## ${n}\\. `, 'm'))[1]?.split(/^## /m)[0] ?? ''
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 gives the repository project its own step]]
+  it('keeps infra-repo out of step 3 and gives it a step of its own', () => {
+    expect(step(3)).not.toContain('infra-repo')
+    expect(runbook01()).toMatch(/^## \d+\. .*repository project/im)
+    const repoStep = runbook01().split(/^## \d+\. .*repository project.*$/im)[1]?.split(/^## /m)[0] ?? ''
+    expect(repoStep).toMatch(/^\$ cd .*infra-repo\s*$/m)
+    expect(repoStep).toMatch(/^\$ pulumi stack select repo\s*$/m)
+    expect(repoStep).toContain('pulumi import github:index/repositoryRuleset:RepositoryRuleset')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 01 import ids carry the repository prefix]]
+  it('prefixes every import id with the repository name, not the owner', () => {
+    const imports = runbook01().match(/pulumi import \S+ \\?\n?\s*\S+ \S+/g) ?? []
+    expect(imports.length).toBeGreaterThanOrEqual(2)
+    for (const line of imports) {
+      expect(line).toMatch(/ reward-app:\S+$/)
+      expect(line).not.toContain('helpmebrands/')
+    }
+  })
+})
+
 describe('billing budget', () => {
   // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
   it('declares billingAccount and budgetAmount at project level', () => {
