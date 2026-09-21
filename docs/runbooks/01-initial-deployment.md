@@ -124,36 +124,23 @@ $ pulumi config set --secret reward-app:billingAccount "$(gcloud billing project
 secret because the repository is public; the ciphertext that lands in the
 stack file is the only form it ever takes here.
 
-Two Pulumi programs touch GitHub: this one writes the stack's environment and
-its variables (step 5), and `infra-repo/` owns what is true of the repository
-regardless of environment, the `develop` ruleset (step 6). `infra-repo/` has
-exactly one stack, `repo`, on the same backend and the same key, created once
-on 2026-09-20 with:
-
-```sh
-$ cd ../infra-repo
-$ pulumi stack init repo \
-    --secrets-provider "gcpkms://projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/staging"
-$ pulumi config set reward-app-repo:githubRepo helpmebrands/reward-app
-$ pulumi config set github:owner helpmebrands
-```
-
-A new environment does not repeat this; it only adds a stack to `infra/`.
-
-Both programs need a GitHub credential on the machine that runs `pulumi up`. Mint a
+This stack also writes the GitHub environment it deploys through (step 5),
+so it needs a GitHub credential on the machine that runs `pulumi up`. Mint a
 **fine-grained personal access token** (Settings → Developer settings)
 scoped to this one repository with *Administration: read and write*,
 *Variables: read and write*, *Secrets: read and write* and *Environments:
-read and write*, an expiry of a year at most, and store it as secret config:
+read and write*, an expiry of a year at most, and store it as secret config
+on this stack:
 
 ```sh
 $ pulumi config set github:owner helpmebrands
 $ pulumi config set --secret github:token   # paste when prompted; not in shell history
 ```
 
-The verify gate does not need it: `pulumi preview` never calls GitHub unless
-refreshing, and the workflow's own token covers reads. Record the token's
-expiry in step 8.
+Keep the token to hand: the repository project in step 6 needs the same one
+on its own stack. The verify gate does not need it: `pulumi preview` never
+calls GitHub unless refreshing, and the workflow's own token covers reads.
+Record the token's expiry in step 8.
 
 Commit the resulting `Pulumi.<env>.yaml`; the `encryptedkey` line in it is the
 stack's data key wrapped by KMS and is safe to commit. Staging was moved from
@@ -243,9 +230,12 @@ $ gh variable list --env staging
 
 ```sh
 $ pulumi import github:index/repositoryEnvironment:RepositoryEnvironment \
-    environment helpmebrands/reward-app:staging
-$ pulumi up
+    environment reward-app:staging
+$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT="$PROJECT_ID" pulumi up
 ```
+
+The import id is `<repository name>:<environment>`, the name without the
+owner; the provider rejects `owner/name` with "does not exist".
 
 Staging is cutting over from repository variables and a `develop`
 environment to the `staging` environment (epic #96). Once one deploy of each
@@ -273,33 +263,63 @@ belongs only to the push backend and never enters this repository.
 
 Without them the app falls back to service-worker replay, which works.
 
-## 6. Protect `develop`
+## 6. Protect `develop`: the repository project
 
-The `repo` stack of `infra-repo/` does this. `infra-repo/index.ts` declares
-a `github.RepositoryRuleset` on `refs/heads/develop` that requires every job
-of `verify.yml` as a status check, by the `verify / <job name>` context each
-one reports under, and requires the branch to be up to date. The list of
-checks is read from the workflow file when the program runs
-(`infra-repo/verify-checks.ts`), so nothing here is typed twice. The commands
-below run from `infra-repo/` with `pulumi stack select repo`.
+Everything in this step runs in the **other** Pulumi program. `infra/` has a
+stack per environment; `infra-repo/` owns what is true of the repository
+regardless of environment, today the `develop` ruleset, and has exactly one
+stack, `repo`, on the same backend and the same KMS key. Change directory
+and select the stack before anything else, or the commands below land on the
+wrong project:
+
+```sh
+$ cd ../infra-repo
+$ pulumi stack select repo
+$ pulumi config get reward-app-repo:githubRepo   # helpmebrands/reward-app
+```
+
+The stack was created once, on 2026-09-20, and its config is committed in
+`Pulumi.repo.yaml`; a new environment does not repeat this. For the record:
+
+```sh
+$ pulumi stack init repo \
+    --secrets-provider "gcpkms://projects/$PROJECT_ID/locations/$REGION/keyRings/pulumi/cryptoKeys/staging"
+$ pulumi config set reward-app-repo:githubRepo helpmebrands/reward-app
+$ pulumi config set github:owner helpmebrands
+```
+
+Give this stack the same token as step 3; each stack keeps its own copy:
+
+```sh
+$ pulumi config set --secret github:token   # paste when prompted
+```
+
+`infra-repo/index.ts` declares a `github.RepositoryRuleset` on
+`refs/heads/develop` that requires every job of `verify.yml` as a status
+check, by the `verify / <job name>` context each one reports under, and
+requires the branch to be up to date. The list of checks is read from the
+workflow file when the program runs (`infra-repo/verify-checks.ts`), so
+nothing here is typed twice.
 
 Without it, CI is advisory: a red pull request stays mergeable and the deploy
 pipeline is the first thing to notice. "Pull request required" for
 integration branches is an organisation-level ruleset and is not repeated.
 
 **Adopting a ruleset that already exists** (staging's was created by hand
-as id 23613777 before the stack managed it):
+as id 23613777 before the stack managed it). The import id is
+`<repository name>:<ruleset id>`, the name without the owner:
 
 ```sh
 $ pulumi import github:index/repositoryRuleset:RepositoryRuleset \
-    develop-requires-verify <ruleset id>
+    develop-requires-verify reward-app:23613777
 $ pulumi preview      # shows only the checks being added
-$ pulumi up
+$ pulumi up           # no quota-project variables: this program touches only GitHub
 ```
 
 `pulumi import` records the live ruleset in the state as it is; the `up`
 that follows brings it to what the program declares. Do not skip the import,
-or Pulumi creates a second ruleset with the same name beside the first.
+or the `up` fails with "Name must be unique" trying to create a second one.
+Staging was adopted this way on 2026-09-20.
 
 **When a verify job is renamed or added.** The pull request that changes
 `verify.yml` is blocked, because the ruleset still waits for the old name or
