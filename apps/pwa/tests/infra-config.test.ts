@@ -652,8 +652,16 @@ describe('signing material procedure and token record', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 walks through every piece of signing material]]
   it('has a subsection for the keystore, the API key, the certificate and the profile', () => {
-    const signing = runbook07().split(/^## Signing material/m)[1]?.split(/^## /m)[0] ?? ''
-    for (const heading of ['upload keystore', 'App Store Connect API key', 'distribution certificate', 'provisioning profile']) {
+    const signing =
+      runbook07()
+        .split(/^## Signing material/m)[1]
+        ?.split(/^## /m)[0] ?? ''
+    for (const heading of [
+      'upload keystore',
+      'App Store Connect API key',
+      'distribution certificate',
+      'provisioning profile',
+    ]) {
       expect(signing, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
     }
     expect(signing).toContain('gcloud secrets versions add')
@@ -662,7 +670,7 @@ describe('signing material procedure and token record', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 says store records are per app id]]
   it('states that store records are per app id, not per environment', () => {
-    expect(runbook07()).toMatch(/one record per app/i)
+    expect(runbook07()).toMatch(/one record\s+per app/i)
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]

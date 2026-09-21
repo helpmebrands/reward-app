@@ -200,6 +200,20 @@ Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered
 
 Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository name without the owner, because the GitHub provider rejects `owner/name` and a bare id alike; an operator copying the block gets the form that works.
 
+### Runbook 07 walks through every piece of signing material
+
+The *Signing material* section of `07-mobile-release.md` has a subsection each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each ending in `gcloud secrets versions add`.
+
+It also names the Play App Signing first-upload quirk, so the first failed upload is not a mystery.
+
+### Runbook 07 says store records are per app id
+
+`07-mobile-release.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
+
+### README records the GitHub token
+
+The environment table in `docs/runbooks/README.md` has a *GitHub token* row naming who minted it and that it has no expiry, because a token without expiry fails nobody until it is revoked.
+
 ### Project config declares the budget
 
 `Pulumi.yaml` declares `billingAccount` and `budgetAmount` with a numeric default, so every stack gets a budget alert and the amount is a visible config change ([[deployment#Infrastructure]]).

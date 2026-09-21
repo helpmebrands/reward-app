@@ -33,6 +33,7 @@ copy. Update it when an environment is added or moved.
 | DNS | Cloudflare zone `helpmereward.com`; CNAME `staging` → `ghs.googlehosted.com`, DNS only |
 | Deployed from | `develop`: the PWA by `cd.yml`, the api by `cd-api.yml`, each on merges that touch it |
 | First deployed | PWA 2026-09-17; api 2026-09-18 |
+| GitHub token | fine-grained, this repository only, minted by `oravecz` on 2026-09-21, **no expiry**; held as `github:token` on the `staging` and `repo` stacks. Rotate by hand and update this row |
 
 ## What owns what
 
