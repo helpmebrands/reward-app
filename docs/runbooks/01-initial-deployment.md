@@ -140,7 +140,9 @@ $ pulumi config set --secret github:token   # paste when prompted; not in shell 
 Keep the token to hand: the repository project in step 6 needs the same one
 on its own stack. The verify gate does not need it: `pulumi preview` never
 calls GitHub unless refreshing, and the workflow's own token covers reads.
-Record the token's expiry in step 8.
+Record the token's expiry in step 8. Staging's token was minted without an
+expiry on 2026-09-21; a token like that never fails on its own, so its
+rotation is a calendar entry, not an error message.
 
 Commit the resulting `Pulumi.<env>.yaml`; the `encryptedkey` line in it is the
 stack's data key wrapped by KMS and is safe to commit. Staging was moved from

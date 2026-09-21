@@ -647,6 +647,40 @@ describe('runbook 01 keeps the two Pulumi projects apart', () => {
   })
 })
 
+describe('signing material procedure and token record', () => {
+  const runbook07 = () => read('docs/runbooks/07-mobile-release.md')
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 walks through every piece of signing material]]
+  it('has a subsection for the keystore, the API key, the certificate and the profile', () => {
+    const signing =
+      runbook07()
+        .split(/^## Signing material/m)[1]
+        ?.split(/^## /m)[0] ?? ''
+    for (const heading of [
+      'upload keystore',
+      'App Store Connect API key',
+      'distribution certificate',
+      'provisioning profile',
+    ]) {
+      expect(signing, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
+    }
+    expect(signing).toContain('gcloud secrets versions add')
+    expect(signing).toMatch(/Play App Signing/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 says store records are per app id]]
+  it('states that store records are per app id, not per environment', () => {
+    expect(runbook07()).toMatch(/one record\s+per app/i)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]
+  it('records who minted the GitHub token and its expiry in the README table', () => {
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toMatch(/^\| GitHub token \|.*oravecz.*\|$/m)
+    expect(readme).toMatch(/^\| GitHub token \|.*no expiry.*\|$/m)
+  })
+})
+
 describe('billing budget', () => {
   // @lat: [[infra-tests#Infrastructure config#Project config declares the budget]]
   it('declares billingAccount and budgetAmount at project level', () => {

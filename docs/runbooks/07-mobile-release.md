@@ -59,6 +59,12 @@ $ flutter analyze --fatal-infos
 $ flutter test
 ```
 
+Both stores key everything on the application id, so there is **one record
+per app, not per environment**: staging and production are different builds
+of `com.helpmebrands.reward` sent to different tracks and TestFlight groups.
+A staging app that installs beside the production one would need a second id
+through Flutter flavors, which is a product decision, not a runbook step.
+
 **iOS** needs a Mac with Xcode, an Apple Developer Program membership and an
 App Store Connect record for `com.helpmebrands.reward`. iOS and macOS
 dependencies are Swift Package Manager, never CocoaPods (rule 9).
@@ -73,16 +79,10 @@ The first time, open `ios/Runner.xcworkspace` in Xcode, sign in under
 Push notifications will need the *Push Notifications* capability and an APNs
 key uploaded to Firebase, which is part of wiring FCM and not of this runbook.
 
-**Android** needs an upload keystore and a Play Console record.
-
-```sh
-$ keytool -genkey -v -keystore ~/reward-upload.jks -keyalg RSA -keysize 2048 \
-    -validity 10000 -alias upload
-```
-
-Keep the keystore and its passwords out of the repository: in Secret Manager
-under the containers listed in *Signing material* below, which is where the
-release workflow will read them. `android/key.properties` names them and is
+**Android** needs an upload keystore and a Play Console record. The keystore
+is generated once and stored only in Secret Manager; *Signing material*
+below has the exact commands. For a local signed build, fetch it and write
+`android/key.properties` the way `release-mobile.yml` does. `android/key.properties` names them and is
 gitignored by the Flutter template; `android/app/build.gradle.kts` needs the
 standard `signingConfigs.release` block reading it before the next command
 produces a signed bundle.
@@ -152,19 +152,139 @@ workflow log exposes nothing durable.
 | `reward-app-android-keystore-password-staging` | the keystore password |
 | `reward-app-android-key-password-staging` | the `upload` key's password |
 
-Add a version from the file or value, never from the shell history:
-
-```sh
-$ gcloud secrets versions add reward-app-android-upload-keystore-staging \
-    --project helpme-reward-staging --data-file ~/reward-upload.jks
-$ printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
-    reward-app-android-keystore-password-staging --project helpme-reward-staging --data-file -
-```
-
+The procedure below goes from nothing to nine versions. Work in a scratch
+directory outside the repository, delete it when the versions are in, and
+never paste a password on a command line where the shell history keeps it.
 Binary files (`.jks`, `.p12`, `.p8`, `.mobileprovision`) go in as they are;
 Secret Manager stores bytes. Rotation is a new version, and the workflow
-always reads `latest`. Certificates expire yearly and the App Store Connect
-key when you revoke it; put both dates in the README's environment table.
+always reads `latest`.
+
+```sh
+$ export PROJECT_ID=helpme-reward-staging
+$ mkdir -p ~/reward-signing && cd ~/reward-signing
+```
+
+### Android: the upload keystore
+
+Play App Signing is on by default for a new app: Google holds the key that
+signs what users install, and this keystore is only the **upload** key that
+proves a bundle came from you. Losing it is recoverable through Play support;
+leaking it means rotating it there.
+
+```sh
+$ keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 \
+    -validity 10000 -alias upload
+```
+
+`keytool` prompts for a keystore password and, since Java 9, uses the same
+password for the key unless you say otherwise; the workflow sends both, so
+answer both prompts even if the answers match. The alias must be `upload`,
+which `release-mobile.yml` writes into `key.properties`. Then:
+
+```sh
+$ gcloud secrets versions add reward-app-android-upload-keystore-$STACK \
+    --project "$PROJECT_ID" --data-file upload.jks
+$ read -rs KEYSTORE_PASSWORD; printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
+    reward-app-android-keystore-password-$STACK --project "$PROJECT_ID" --data-file -
+$ read -rs KEY_PASSWORD; printf '%s' "$KEY_PASSWORD" | gcloud secrets versions add \
+    reward-app-android-key-password-$STACK --project "$PROJECT_ID" --data-file -
+```
+
+with `STACK=staging`. `read -rs` takes the value from the keyboard without
+echoing it or recording it.
+
+**First upload quirk.** The Play Console creates the app record but the Play
+Developer API cannot; and the console may insist that the very first bundle
+of a new app arrives through its own upload page, which is where Play App
+Signing enrolment happens. If the release workflow's first run fails on the
+upload step with a message about app signing or a missing release, build
+once on a laptop with this keystore (`flutter build appbundle --release`
+after writing `android/key.properties` as the workflow does) and upload the
+`.aab` by hand under *Testing → Internal testing*. Every run after that goes
+through the API.
+
+### iOS: the App Store Connect API key
+
+The key lets the workflow upload to TestFlight without an Apple ID session.
+In [App Store Connect](https://appstoreconnect.apple.com), *Users and Access
+→ Integrations → App Store Connect API → Team Keys → Generate API Key*: name
+it `reward-app release`, role **App Manager**. Download the `.p8` **once**;
+Apple never offers it again. On the same page, note the key's **Key ID** and
+the page's **Issuer ID**.
+
+```sh
+$ gcloud secrets versions add reward-app-asc-api-key-$STACK \
+    --project "$PROJECT_ID" --data-file AuthKey_XXXXXXXXXX.p8
+$ printf '%s' 'XXXXXXXXXX' | gcloud secrets versions add \
+    reward-app-asc-api-key-id-$STACK --project "$PROJECT_ID" --data-file -
+$ printf '%s' '00000000-0000-0000-0000-000000000000' | gcloud secrets versions add \
+    reward-app-asc-issuer-id-$STACK --project "$PROJECT_ID" --data-file -
+```
+
+The key id and issuer id are not secret in themselves, but they travel with
+the key so the workflow reads all three from one place.
+
+### iOS: the distribution certificate
+
+Before any of this, register the bundle id once at
+[developer.apple.com](https://developer.apple.com/account) under
+*Identifiers* (App IDs, `com.helpmebrands.reward`, Push Notifications
+capability ticked for later), and create the app record in App Store Connect
+under *Apps → +* with that id.
+
+The certificate is an **Apple Distribution** certificate with its private
+key, exported as a password-protected `.p12`. The Fastfile signs with the
+identity name `Apple Distribution`, so it must be that type, not the older
+*iOS Distribution*.
+
+1. On the Mac, *Keychain Access → Certificate Assistant → Request a
+   Certificate From a Certificate Authority*: your email, common name
+   `HelpMe Reward release`, *Saved to disk*. This creates the private key in
+   the login keychain and a `.certSigningRequest` file.
+2. At developer.apple.com, *Certificates → +*, choose **Apple Distribution**,
+   upload the request, download `distribution.cer`, double-click it so it
+   pairs with the private key in Keychain Access.
+3. In Keychain Access, *My Certificates*, right-click the `Apple
+   Distribution: HelpMe Brands …` entry, *Export*, format `.p12`, and set a
+   password when asked. That password is the certificate password below.
+
+```sh
+$ gcloud secrets versions add reward-app-ios-distribution-cert-$STACK \
+    --project "$PROJECT_ID" --data-file distribution.p12
+$ read -rs CERT_PASSWORD; printf '%s' "$CERT_PASSWORD" | gcloud secrets versions add \
+    reward-app-ios-cert-password-$STACK --project "$PROJECT_ID" --data-file -
+```
+
+Distribution certificates last a year. Put the date in the README table;
+when it passes, repeat this subsection and the next.
+
+### iOS: the provisioning profile
+
+At developer.apple.com, *Profiles → +*, choose **App Store Connect** under
+Distribution, the `com.helpmebrands.reward` app id, the certificate from the
+previous step, name `HelpMe Reward App Store`, download
+`HelpMe_Reward_App_Store.mobileprovision`. The Fastfile reads the team id
+and the profile name out of this file, so nothing else needs configuring.
+
+```sh
+$ gcloud secrets versions add reward-app-ios-provisioning-profile-$STACK \
+    --project "$PROJECT_ID" --data-file HelpMe_Reward_App_Store.mobileprovision
+```
+
+A profile is tied to its certificate: a new certificate means a new profile.
+
+### Check and clean up
+
+```sh
+$ for s in $(gcloud secrets list --project "$PROJECT_ID" --filter='name~reward-app-' --format='value(name)'); do
+    printf '%s: %s\n' "$s" "$(gcloud secrets versions list "$s" --project "$PROJECT_ID" --format='value(name)' | wc -l)"
+  done
+$ cd ~ && rm -rf ~/reward-signing
+```
+
+Every line should read `1`. The keystore and the `.p12` now exist only in
+Secret Manager and, if you choose, in a password manager; the `.p8` exists
+only in Secret Manager, because Apple will not hand it out twice.
 
 ## The Play publisher identity
 
