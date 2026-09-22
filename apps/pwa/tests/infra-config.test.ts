@@ -80,7 +80,7 @@ describe('verify workflow', () => {
   it('previews the Pulumi program against the state bucket in the infra job', () => {
     const verify = read('.github/workflows/verify.yml')
     const infraJob = verify.split(/^ {2}infra:\s*$/m)[1]
-    expect(infraJob).toContain('google-github-actions/auth@v2')
+    expect(infraJob).toMatch(/uses: google-github-actions\/auth@v\d+/)
     expect(infraJob).toContain('pulumi login gs://helpme-reward-staging-pulumi-state')
     expect(infraJob).toContain('pulumi preview')
     // WIF needs an OIDC token; the calling workflow must grant it.
@@ -603,7 +603,7 @@ describe('mobile release workflow', () => {
       expect(workflow(), name).toContain(`vars.${name}`)
     }
     expect(workflow()).toContain('vars.PLAY_SERVICE_ACCOUNT')
-    expect(workflow()).toContain('google-github-actions/auth@v2')
+    expect(workflow()).toMatch(/uses: google-github-actions\/auth@v\d+/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Store uploads are scripted beside the app]]
@@ -825,5 +825,81 @@ describe('local verify', () => {
     expect(hook).toMatch(/make verify/)
     expect(statSync(join(root, '.githooks/pre-push')).mode & 0o111).not.toBe(0)
     expect(read('docs/runbooks/02-routine-change.md')).toContain('make verify')
+  })
+})
+
+describe('workflow action runtimes', () => {
+  // The Node 24 floor for every action the workflows use. An action's own
+  // action.yml declares `runs.using`; a major below the floor still declares
+  // node20 and makes the runner print the Node 20 deprecation warning on every
+  // run. Verified on 2026-09-22 with
+  //   gh api repos/<owner>/<repo>/contents/action.yml?ref=<tag>
+  // subosito/flutter-action is composite and nests actions/cache@v5 (node24).
+  const node24Floor: Record<string, number> = {
+    'actions/checkout': 5,
+    'actions/setup-node': 6,
+    'actions/upload-artifact': 6,
+    'actions/download-artifact': 8,
+    'docker/build-push-action': 7,
+    'docker/setup-buildx-action': 4,
+    'google-github-actions/auth': 3,
+    'google-github-actions/setup-gcloud': 3,
+    'google-github-actions/deploy-cloudrun': 3,
+    'pulumi/actions': 7,
+    'subosito/flutter-action': 2,
+  }
+
+  const workflows = filesUnder('.github/workflows').filter((path) => path.endsWith('.yml'))
+
+  const usesIn = (path: string) =>
+    [...read(path).matchAll(/^\s*(?:- )?uses:\s*([^\s@]+)@(\S+)/gm)].map(([, action, ref]) => ({
+      action: action ?? '',
+      ref: ref ?? '',
+    }))
+
+  // @lat: [[infra-tests#Infrastructure config#Every workflow action declares the Node 24 runtime]]
+  it('pins every third-party action at a major whose action.yml declares node24', () => {
+    for (const path of workflows) {
+      for (const { action, ref } of usesIn(path)) {
+        if (action.startsWith('./')) continue
+        const floor = node24Floor[action] ?? Number.POSITIVE_INFINITY
+        expect(floor, `${path} uses ${action}, which is not in the audited table`).toBeLessThan(
+          Number.POSITIVE_INFINITY,
+        )
+        const major = Number(/^v(\d+)/.exec(ref)?.[1])
+        expect(
+          major,
+          `${path} pins ${action}@${ref}; the Node 24 floor is v${floor}`,
+        ).toBeGreaterThanOrEqual(floor)
+      }
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Pulumi CLI comes from the maintained action]]
+  it('installs the Pulumi CLI with pulumi/actions in install-only mode, not setup-pulumi', () => {
+    const verify = read('.github/workflows/verify.yml')
+    expect(verify).not.toMatch(/uses: pulumi\/setup-pulumi/)
+    const pulumiWith = /uses: pulumi\/actions@v\d+\n\s+with:\n((?:[ \t]+\S.*\n)+)/.exec(verify)?.[1]
+    expect(pulumiWith, 'pulumi/actions step with a `with:` block').toBeDefined()
+    expect(pulumiWith).toMatch(/^\s+pulumi-version: /m)
+    expect(pulumiWith).not.toMatch(/^\s+command:/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Nobody opts back into Node 20]]
+  it('never sets ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION anywhere in the repository', () => {
+    const tracked = ['.github', 'docs', 'infra', 'infra-repo', 'Makefile'].flatMap((entry) =>
+      statSync(join(root, entry)).isDirectory() ? filesUnder(entry) : [entry],
+    )
+    for (const path of tracked) {
+      expect(read(path), path).not.toContain('ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION')
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Dependabot watches the workflow actions]]
+  it('has Dependabot watching the github-actions ecosystem', () => {
+    expect(existsSync(join(root, '.github/dependabot.yml'))).toBe(true)
+    const dependabot = read('.github/dependabot.yml')
+    expect(dependabot).toMatch(/^version: 2$/m)
+    expect(dependabot).toMatch(/package-ecosystem: ["']?github-actions["']?/)
   })
 })

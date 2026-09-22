@@ -343,3 +343,21 @@ Both `verify.yml` and `cd.yml` pass `file: apps/pwa/Dockerfile` with the reposit
 ### The product spec names no PWA technology
 
 No file under `lat.md/product/` mentions Solid, IndexedDB, Vite, the service worker or Web Push, because the Dart port and the Flutter app are written against it and must not inherit a browser decision by accident.
+
+### Every workflow action declares the Node 24 runtime
+
+Every `uses:` in `.github/workflows/` pins a major at or above the first one whose `action.yml` declares `node24`, so no run prints the Node 20 deprecation warning ([[deployment#Pipeline#Action runtimes]]).
+
+The floors live in an audited table in the test. An action missing from the table fails the test, which forces the audit on every new dependency.
+
+### Pulumi CLI comes from the maintained action
+
+`verify.yml` installs the CLI with `pulumi/actions` in install-only mode (a `pulumi-version` and no `command`), never `pulumi/setup-pulumi`, which still declares Node 12 and was last committed in 2021 ([[deployment#Pipeline#Action runtimes]]).
+
+### Nobody opts back into Node 20
+
+No workflow, runbook, Makefile or Pulumi program sets `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`; the runtime is Node 24 because every action asks for it, not because the warning was silenced.
+
+### Dependabot watches the workflow actions
+
+`.github/dependabot.yml` is version 2 with a `github-actions` entry, so the next runtime deprecation arrives as a pull request instead of a warning on every run ([[deployment#Pipeline#Action runtimes]]).
