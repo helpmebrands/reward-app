@@ -272,6 +272,46 @@ Walking the sheet's semantics, every button, text field and switch has a label o
 
 `SheetHost` alone: with a focused node on the screen behind, opening yields a node with `scopesRoute` and `namesRoute` labelled with the title, focus moves inside the sheet, and closing hands focus back to that node.
 
+## Swipe row
+
+`swipe_row_test.dart` pumps a list of interactive `CreditRow`s at 402 wide, twelve open credits so the list scrolls and one captured, recording which callbacks fire, and measures how far each row's content has slid ([[mobile-architecture#The swipe row]]).
+
+### A drag right parks the row open on Log
+
+A 60 pixel drag right parks the row at the 84 pixel action width with "Log it" tappable and nothing logged; tapping it logs once and closes the row; opened again, a tap on another row closes it without logging.
+
+### A short drag springs back
+
+A 40 pixel drag, under 55% of the width, springs back to rest and logs nothing.
+
+### A vertical drag scrolls the list
+
+A drag of 6 across and 40 down scrolls the list and leaves the row at rest.
+
+### A flick commits before the distance
+
+A 30 pixel fling at 1200 pixels per second parks the row open although it never reached 55%.
+
+### A drag left parks the row open on Silence
+
+A 60 pixel drag left parks the row at minus 84 with "Silence" tappable; tapping it silences and closes.
+
+### A captured row has nothing to log
+
+A captured row dragged right stays at rest and logs nothing.
+
+### Every gesture is a semantics action
+
+The row's semantics node carries custom actions "Log the full credit" and "Silence"; performing each fires the matching callback with the row still at rest.
+
+### The bell silences by name
+
+Tapping the node labelled "Silence reminders for Credit 0" silences that credit and does not open it.
+
+### Tap opens, at 200% too
+
+At a 2.0 text scale a tap opens the credit and a 60 pixel drag still parks the row open with "Log it" tappable and no layout exception.
+
 ## Credit actions
 
 `credit_actions_test.dart` drives `CreditActions` as plain Dart over a `MemorySnapshotStore` and a `SnackbarState`, on a $100 Resy credit with $30 logged and a locked Equinox credit ([[mobile-architecture#Undo and the snackbar]]).
