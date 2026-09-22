@@ -92,10 +92,10 @@ class CreditRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // The name wraps rather than ellipsises: at a large text
+                  // size a truncated name loses the one thing the row is for.
                   Text(
                     instance.benefit.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                     style: text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w500,
                     ),

@@ -116,9 +116,9 @@ A macOS build is the way to see the medium and expanded classes without a tablet
 
 ## Accessibility
 
-The app carries the product's WCAG 2.2 AA intent ([[design#Accessibility]]) in Flutter terms; the theme's tokens and Material's 48dp targets are in place, and the scaling and contrast proofs are open work.
+The app carries the product's WCAG 2.2 AA intent ([[design#Accessibility]]) in Flutter terms; the theme's tokens, Material's 48dp targets and the text scaling proof are in place, and the contrast proof is open work.
 
-- **Text follows the platform size**: nothing overrides `MediaQuery.textScaler`, no text is clipped, and controls do not overlap at 200%; Today's number shrinks to fit its column instead of overflowing. Pinned, once written, by widget tests at a 2.0 scale factor.
+- **Text follows the platform size**: nothing overrides `MediaQuery.textScaler`, no text is clipped, and controls do not overlap at 200%; Today's number shrinks to fit its column instead of overflowing. Two layouts had to give for this: the header is a `Wrap` so the date drops under the title, and a credit row's name wraps instead of ellipsising, because a truncated name loses the one thing the row is for. Pinned by [[mobile-tests#Text scaling]] at a 2.0 scale factor on a 402-wide viewport, in the test font whose glyphs are squares, so it is stricter than any real typeface.
 - **Contrast comes from the tokens**: secondary text clears 4.5:1 and control borders 3:1 on every ground in both modes, checked over the theme extension the way `contrast.test.ts` checks `tokens.css`, so a copied token cannot drift.
 - **Every gesture has a route**: when swipe actions arrive with the credit sheet, each has a button or a `Semantics` action a screen reader and a switch can reach, as the PWA's table in [[design#Accessibility]] lists.
 - **Orientation is never locked** and the compact class covers a landscape phone.
