@@ -8,6 +8,7 @@ import 'logic/credit_actions.dart';
 import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
+import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
 import 'screens/today_screen.dart';
 import 'shell/width_class.dart';
@@ -376,6 +377,23 @@ Widget nudgePreviewUrgent() => _themed(
       onDismiss: () {},
       onOpen: () {},
     ),
+  ),
+  Brightness.dark,
+);
+
+@Preview(name: 'Credits, dark', size: Size(402, 874))
+Widget creditsDark() =>
+    _themed(CreditsScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+@Preview(name: 'Credits, light', size: Size(402, 874))
+Widget creditsLight() =>
+    _themed(CreditsScreen(store: _store(), ui: UiState()), Brightness.light);
+
+@Preview(name: 'Credits, expanded', size: Size(720, 900))
+Widget creditsExpanded() => _themed(
+  WidthClassScope(
+    widthClass: WidthClass.expanded,
+    child: CreditsScreen(store: _store(), ui: UiState()),
   ),
   Brightness.dark,
 );
