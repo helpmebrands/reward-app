@@ -1,0 +1,274 @@
+{
+  "on": "2026-09-16",
+  "header": {
+    "open": 12,
+    "locked": 2,
+    "missed": 48
+  },
+  "totals": {
+    "claimableCents": 165890,
+    "lockedCents": 50000,
+    "capturedCents": 97500,
+    "missedCents": 167220
+  },
+  "filters": {
+    "all": [
+      "Resy Dining Credit · Kathy · Q3 2026",
+      "lululemon Credit · Kathy · Q3 2026",
+      "Digital Entertainment Credit · Kathy · Sep 2026",
+      "Digital Entertainment Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Kathy · Sep 2026",
+      "Hotel Credit (FHR / THC) · Jim · H2 2026",
+      "Equinox Credit · Jim · 2026",
+      "Hotel Credit (FHR / THC) · Kathy · H2 2026",
+      "Oura Ring Credit · Jim · 2026",
+      "Airline Fee Credit · Kathy · 2026",
+      "Uber One Membership Credit · Kathy · 2026",
+      "Equinox Credit · Kathy · 2026",
+      "Oura Ring Credit · Kathy · 2026",
+      "Global Entry / TSA PreCheck · Jim · Untracked",
+      "Global Entry / TSA PreCheck · Kathy · Untracked",
+      "Uber Cash · Jim · Sep 2026",
+      "Resy Dining Credit · Jim · Q3 2026",
+      "lululemon Credit · Jim · Q3 2026",
+      "Uber Cash · Kathy · Sep 2026",
+      "Airline Fee Credit · Jim · 2026",
+      "CLEAR+ Credit · Jim · 2026",
+      "Uber One Membership Credit · Jim · 2026",
+      "CLEAR+ Credit · Kathy · 2026",
+      "Digital Entertainment Credit · Jim · Aug 2026",
+      "Walmart+ Membership Credit · Jim · Aug 2026",
+      "Uber Cash · Kathy · Aug 2026",
+      "Digital Entertainment Credit · Kathy · Aug 2026",
+      "Walmart+ Membership Credit · Kathy · Aug 2026",
+      "Digital Entertainment Credit · Jim · Jul 2026",
+      "Walmart+ Membership Credit · Jim · Jul 2026",
+      "Digital Entertainment Credit · Kathy · Jul 2026",
+      "Walmart+ Membership Credit · Kathy · Jul 2026",
+      "Digital Entertainment Credit · Jim · Jun 2026",
+      "Walmart+ Membership Credit · Jim · Jun 2026",
+      "Resy Dining Credit · Jim · Q2 2026",
+      "lululemon Credit · Jim · Q2 2026",
+      "Uber Cash · Kathy · Jun 2026",
+      "Digital Entertainment Credit · Kathy · Jun 2026",
+      "Walmart+ Membership Credit · Kathy · Jun 2026",
+      "Resy Dining Credit · Kathy · Q2 2026",
+      "lululemon Credit · Kathy · Q2 2026",
+      "Hotel Credit (FHR / THC) · Kathy · H1 2026",
+      "Digital Entertainment Credit · Jim · May 2026",
+      "Walmart+ Membership Credit · Jim · May 2026",
+      "Uber Cash · Kathy · May 2026",
+      "Digital Entertainment Credit · Kathy · May 2026",
+      "Walmart+ Membership Credit · Kathy · May 2026",
+      "Digital Entertainment Credit · Jim · Apr 2026",
+      "Walmart+ Membership Credit · Jim · Apr 2026",
+      "Uber Cash · Kathy · Apr 2026",
+      "Digital Entertainment Credit · Kathy · Apr 2026",
+      "Walmart+ Membership Credit · Kathy · Apr 2026",
+      "Digital Entertainment Credit · Jim · Mar 2026",
+      "Walmart+ Membership Credit · Jim · Mar 2026",
+      "Resy Dining Credit · Jim · Q1 2026",
+      "lululemon Credit · Jim · Q1 2026",
+      "Uber Cash · Kathy · Mar 2026",
+      "Digital Entertainment Credit · Kathy · Mar 2026",
+      "Walmart+ Membership Credit · Kathy · Mar 2026",
+      "Resy Dining Credit · Kathy · Q1 2026",
+      "lululemon Credit · Kathy · Q1 2026",
+      "Digital Entertainment Credit · Jim · Feb 2026",
+      "Walmart+ Membership Credit · Jim · Feb 2026",
+      "Uber Cash · Kathy · Feb 2026",
+      "Digital Entertainment Credit · Kathy · Feb 2026",
+      "Walmart+ Membership Credit · Kathy · Feb 2026",
+      "Digital Entertainment Credit · Jim · Jan 2026",
+      "Walmart+ Membership Credit · Jim · Jan 2026",
+      "Uber Cash · Kathy · Jan 2026",
+      "Digital Entertainment Credit · Kathy · Jan 2026",
+      "Walmart+ Membership Credit · Kathy · Jan 2026"
+    ],
+    "use_soon": [
+      "Resy Dining Credit · Kathy · Q3 2026",
+      "lululemon Credit · Kathy · Q3 2026",
+      "Digital Entertainment Credit · Kathy · Sep 2026",
+      "Digital Entertainment Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Kathy · Sep 2026"
+    ],
+    "open": [
+      "Resy Dining Credit · Kathy · Q3 2026",
+      "lululemon Credit · Kathy · Q3 2026",
+      "Digital Entertainment Credit · Kathy · Sep 2026",
+      "Digital Entertainment Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Jim · Sep 2026",
+      "Walmart+ Membership Credit · Kathy · Sep 2026",
+      "Hotel Credit (FHR / THC) · Jim · H2 2026",
+      "Equinox Credit · Jim · 2026",
+      "Hotel Credit (FHR / THC) · Kathy · H2 2026",
+      "Oura Ring Credit · Jim · 2026",
+      "Airline Fee Credit · Kathy · 2026",
+      "Uber One Membership Credit · Kathy · 2026"
+    ],
+    "locked": [
+      "Equinox Credit · Kathy · 2026",
+      "Oura Ring Credit · Kathy · 2026"
+    ],
+    "captured": [
+      "Digital Entertainment Credit · Jim · Sep 2026",
+      "Uber Cash · Jim · Sep 2026",
+      "Resy Dining Credit · Jim · Q3 2026",
+      "lululemon Credit · Jim · Q3 2026",
+      "Uber Cash · Kathy · Sep 2026",
+      "Airline Fee Credit · Jim · 2026",
+      "CLEAR+ Credit · Jim · 2026",
+      "Uber One Membership Credit · Jim · 2026",
+      "CLEAR+ Credit · Kathy · 2026"
+    ],
+    "missed": [
+      "Digital Entertainment Credit · Jim · Aug 2026",
+      "Walmart+ Membership Credit · Jim · Aug 2026",
+      "Uber Cash · Kathy · Aug 2026",
+      "Digital Entertainment Credit · Kathy · Aug 2026",
+      "Walmart+ Membership Credit · Kathy · Aug 2026",
+      "Digital Entertainment Credit · Jim · Jul 2026",
+      "Walmart+ Membership Credit · Jim · Jul 2026",
+      "Digital Entertainment Credit · Kathy · Jul 2026",
+      "Walmart+ Membership Credit · Kathy · Jul 2026",
+      "Digital Entertainment Credit · Jim · Jun 2026",
+      "Walmart+ Membership Credit · Jim · Jun 2026",
+      "Resy Dining Credit · Jim · Q2 2026",
+      "lululemon Credit · Jim · Q2 2026",
+      "Uber Cash · Kathy · Jun 2026",
+      "Digital Entertainment Credit · Kathy · Jun 2026",
+      "Walmart+ Membership Credit · Kathy · Jun 2026",
+      "Resy Dining Credit · Kathy · Q2 2026",
+      "lululemon Credit · Kathy · Q2 2026",
+      "Hotel Credit (FHR / THC) · Kathy · H1 2026",
+      "Digital Entertainment Credit · Jim · May 2026",
+      "Walmart+ Membership Credit · Jim · May 2026",
+      "Uber Cash · Kathy · May 2026",
+      "Digital Entertainment Credit · Kathy · May 2026",
+      "Walmart+ Membership Credit · Kathy · May 2026",
+      "Digital Entertainment Credit · Jim · Apr 2026",
+      "Walmart+ Membership Credit · Jim · Apr 2026",
+      "Uber Cash · Kathy · Apr 2026",
+      "Digital Entertainment Credit · Kathy · Apr 2026",
+      "Walmart+ Membership Credit · Kathy · Apr 2026",
+      "Digital Entertainment Credit · Jim · Mar 2026",
+      "Walmart+ Membership Credit · Jim · Mar 2026",
+      "Resy Dining Credit · Jim · Q1 2026",
+      "lululemon Credit · Jim · Q1 2026",
+      "Uber Cash · Kathy · Mar 2026",
+      "Digital Entertainment Credit · Kathy · Mar 2026",
+      "Walmart+ Membership Credit · Kathy · Mar 2026",
+      "Resy Dining Credit · Kathy · Q1 2026",
+      "lululemon Credit · Kathy · Q1 2026",
+      "Digital Entertainment Credit · Jim · Feb 2026",
+      "Walmart+ Membership Credit · Jim · Feb 2026",
+      "Uber Cash · Kathy · Feb 2026",
+      "Digital Entertainment Credit · Kathy · Feb 2026",
+      "Walmart+ Membership Credit · Kathy · Feb 2026",
+      "Digital Entertainment Credit · Jim · Jan 2026",
+      "Walmart+ Membership Credit · Jim · Jan 2026",
+      "Uber Cash · Kathy · Jan 2026",
+      "Digital Entertainment Credit · Kathy · Jan 2026",
+      "Walmart+ Membership Credit · Kathy · Jan 2026"
+    ]
+  },
+  "groups": {
+    "card": [
+      {
+        "label": "American Express Platinum — Kathy",
+        "count": 40,
+        "figure": "$832.95 claimable"
+      },
+      {
+        "label": "American Express Platinum — Jim",
+        "count": 32,
+        "figure": "$825.95 claimable"
+      }
+    ],
+    "cycle": [
+      {
+        "label": "Quarterly",
+        "count": 12,
+        "figure": "$175 claimable"
+      },
+      {
+        "label": "Monthly",
+        "count": 45,
+        "figure": "$63.90 claimable"
+      },
+      {
+        "label": "Semi-annual",
+        "count": 3,
+        "figure": "$600 claimable"
+      },
+      {
+        "label": "Annual",
+        "count": 10,
+        "figure": "$820 claimable"
+      },
+      {
+        "label": "Manual",
+        "count": 2,
+        "figure": "$0 claimable"
+      }
+    ],
+    "status": [
+      {
+        "label": "Use soon",
+        "count": 6,
+        "figure": "$238.90 claimable"
+      },
+      {
+        "label": "Available",
+        "count": 6,
+        "figure": "$1,420 claimable"
+      },
+      {
+        "label": "Locked",
+        "count": 2,
+        "figure": "$0 claimable"
+      },
+      {
+        "label": "Manual",
+        "count": 2,
+        "figure": "$0 claimable"
+      },
+      {
+        "label": "Captured",
+        "count": 8,
+        "figure": "$0 claimable"
+      },
+      {
+        "label": "Missed",
+        "count": 48,
+        "figure": "$0 claimable"
+      }
+    ],
+    "missedByCard": [
+      {
+        "label": "American Express Platinum — Jim",
+        "count": 20,
+        "figure": "$653.60 missed"
+      },
+      {
+        "label": "American Express Platinum — Kathy",
+        "count": 28,
+        "figure": "$1,018.60 missed"
+      }
+    ],
+    "capturedByCard": [
+      {
+        "label": "American Express Platinum — Jim",
+        "count": 7,
+        "figure": "$741 captured"
+      },
+      {
+        "label": "American Express Platinum — Kathy",
+        "count": 2,
+        "figure": "$234 captured"
+      }
+    ]
+  }
+}
