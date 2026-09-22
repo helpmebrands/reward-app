@@ -190,6 +190,88 @@ On a $25 credit with $10 claimed, `claim` without an amount records $15 with the
 
 With a snapshot store whose load is held open, `addCardFromTemplate` lands first; when the load resolves the store still holds the new card, that card is what was saved, and `loading` is false, with one notification per event.
 
+## UI state
+
+`ui_state_test.dart` covers the transient ui notifier as plain Dart ([[mobile-architecture#State management#UI state]]).
+
+### Sheets track an id and notify once
+
+Opening a credit sets the benefit id and notifies once, opening another replaces it, closing clears it, and closing an already closed sheet notifies nobody.
+
+### The compare sheet and the nudge are the other two
+
+The overlap label and the nudge reminder are opened and cleared the same way, one notification each.
+
+## Credit sheet
+
+`credit_sheet_test.dart` opens the sheet through `UiState` on a household with a $100 Resy credit ($10 then $20 logged), a locked Equinox credit and a captured Uber credit, dated 16 September 2026 ([[mobile-architecture#The credit sheet]]).
+
+It checks the content, the actions and the presentation at 402, 800 and 1280.
+
+### Quick amounts are a quarter and a half in whole dollars
+
+`quickAmounts` gives $25 and $50 for $100, $23 and $45 for $90, $4 and $8 for $15, and $2 and $3 for $6, each rounded to whole dollars.
+
+### Quick amounts never reach the remainder
+
+Nothing for $0 or under $5; every amount is a whole dollar, at least $1, and below the remainder.
+
+### The sheet shows the live balance
+
+Opening by id shows $70 left of $100, the full-amount button and the $18 and $35 quick amounts; after a $20 claim through the store the sheet, still open, shows $50 with $13 and $25.
+
+### Marking the full amount logs the remainder and closes
+
+"Mark the full $70 used" records a $70 claim and closes the sheet.
+
+### A quick amount logs that amount
+
+Tapping $35 records a $35 claim.
+
+### A custom amount is capped at what is left
+
+"Other…" reveals the amount field; "lots" shows "Enter an amount in dollars." and records nothing; "500" records $70, the remainder.
+
+### Logged this period lists newest first and removes one
+
+The two claims appear newest first, $20 above $10; "Remove the $20 logged on Sep 10" leaves only the $10 claim and the balance reads $90.
+
+### Silence and last call are switches on the sheet
+
+The switch labelled "Silence reminders for …" mutes the benefit and "Last call only for …" sets `lastCallOnly`.
+
+### A locked credit unlocks from the sheet
+
+A locked credit shows the "Not enrolled." note and no logging; "I've enrolled — unlock this credit" stamps `enrolledAt` and the full-amount button appears.
+
+### A captured credit can be undone
+
+A captured credit shows "Fully captured." with Undo, which clears the cycle's claims and brings the logging section back.
+
+### Compact is a bottom sheet with a scrim
+
+At 402 the sheet is a `BottomSheet` over the scrim, full width, flush with the bottom edge and shorter than the screen.
+
+### Medium is a centred dialog
+
+At 800 it is a `Dialog`, at most 480 wide and 85% of the height, centred on the window.
+
+### Expanded is a side panel beside a usable list
+
+At 1280 there is no bottom sheet, dialog or scrim; the sheet is 380 wide, full height, on the trailing edge, the content column ends before it, and choosing Credits from the rail switches tabs with the sheet still open.
+
+### Escape and back close the sheet
+
+Escape closes the dialog; reopened, the system back is handled and closes it again.
+
+### Every control on the sheet has a label
+
+Walking the sheet's semantics, every button, text field and switch has a label or a tooltip.
+
+### The sheet is a modal route that takes and returns focus
+
+`SheetHost` alone: with a focused node on the screen behind, opening yields a node with `scopesRoute` and `namesRoute` labelled with the title, focus moves inside the sheet, and closing hands focus back to that node.
+
 ## End to end
 
 `integration_test/app_test.dart` drives the real app on a simulator or emulator through `make e2e` ([[mobile-architecture#Make targets]]); it is not part of the verify gate.

@@ -4,11 +4,15 @@ import 'package:flutter/widget_previews.dart';
 
 import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
+import 'logic/ui_state.dart';
 import 'main.dart';
 import 'screens/stub_screen.dart';
 import 'screens/today_screen.dart';
+import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
+import 'widgets/credit_sheet.dart';
+import 'widgets/sheet_host.dart';
 
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
@@ -85,6 +89,21 @@ AppData _household() => AppData(
       amountCents: 1500,
       claimedAt: '2026-09-10T12:00:00.000Z',
     ),
+    Claim(
+      id: 'c2',
+      benefitId: 'r1',
+      cycleKey: '2026-07-01',
+      amountCents: 1000,
+      claimedAt: '2026-09-02T12:00:00.000Z',
+      note: 'Lunch',
+    ),
+    Claim(
+      id: 'c3',
+      benefitId: 'r1',
+      cycleKey: '2026-07-01',
+      amountCents: 2000,
+      claimedAt: '2026-09-10T12:00:00.000Z',
+    ),
   ],
   settings: const Settings(
     notifications: NotificationSettings(
@@ -149,3 +168,54 @@ Widget creditRows() {
     Brightness.dark,
   );
 }
+
+/// The credit sheet over Today, in the shape the width calls for. The sheet
+/// is opened through the shared ui state, as a screen would open it.
+Widget _sheetAt(Size size, String benefitId) {
+  final store = _store();
+  final ui = UiState()..openCredit(benefitId);
+  return SizedBox.fromSize(
+    size: size,
+    child: RewardApp(store: store, ui: ui),
+  );
+}
+
+@Preview(name: 'Credit sheet, compact bottom sheet', size: Size(402, 874))
+Widget creditSheetCompact() => _sheetAt(const Size(402, 874), 'r1');
+
+@Preview(name: 'Credit sheet, medium dialog', size: Size(768, 1024))
+Widget creditSheetMedium() => _sheetAt(const Size(768, 1024), 'r1');
+
+@Preview(name: 'Credit sheet, expanded panel', size: Size(1280, 800))
+Widget creditSheetExpanded() => _sheetAt(const Size(1280, 800), 'r1');
+
+/// The sheet's content alone, one preview per state it can be in.
+Widget _sheetContent(String benefitId, Brightness brightness) {
+  final store = _store();
+  return _themed(
+    SheetHost(
+      open: true,
+      widthClass: WidthClass.expanded,
+      title: 'Credit',
+      onClose: () {},
+      sheet: CreditSheet(store: store, benefitId: benefitId, onClose: () {}),
+      child: const SizedBox.expand(),
+    ),
+    brightness,
+  );
+}
+
+@Preview(name: 'Credit sheet, open with claims', size: Size(420, 900))
+Widget creditSheetOpen() => _sheetContent('r1', Brightness.dark);
+
+@Preview(name: 'Credit sheet, open, light', size: Size(420, 900))
+Widget creditSheetOpenLight() => _sheetContent('r1', Brightness.light);
+
+@Preview(name: 'Credit sheet, locked', size: Size(420, 700))
+Widget creditSheetLocked() => _sheetContent('e1', Brightness.dark);
+
+@Preview(name: 'Credit sheet, captured', size: Size(420, 700))
+Widget creditSheetCaptured() => _sheetContent('u1', Brightness.dark);
+
+@Preview(name: 'Credit sheet, untouched', size: Size(420, 700))
+Widget creditSheetUntouched() => _sheetContent('u2', Brightness.dark);

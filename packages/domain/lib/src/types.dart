@@ -149,9 +149,7 @@ class Card {
     issuer: issuer ?? this.issuer,
     product: product ?? this.product,
     holder: holder ?? this.holder,
-    nickname: identical(nickname, _unset)
-        ? this.nickname
-        : nickname as String?,
+    nickname: identical(nickname, _unset) ? this.nickname : nickname as String?,
     network: network ?? this.network,
     last4: identical(last4, _unset) ? this.last4 : last4 as String?,
     annualFeeCents: annualFeeCents ?? this.annualFeeCents,
