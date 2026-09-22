@@ -38,6 +38,26 @@ The three largest overlaps from the fixture appear as cards with their label, co
 
 With no snapshot the screen shows "Start with one card" and no rows.
 
+## Shell
+
+`shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).
+
+### Compact keeps the phone layout
+
+At 402 wide the four destinations are a `NavigationBar` in the order Today, Credits, Cards, Value, the content column is the full 402, and Today's list is padded 20.
+
+### Medium shows the rail beside a 560 column
+
+At 768 wide the destinations are an 80-wide, full-height `NavigationRail` with icons over labels at the leading edge, in the same order; the column is 560 wide, centred in the space beside the rail, and padded 24.
+
+### Expanded extends the rail beside a 720 column
+
+At 1280 wide the rail is 200 wide and extended, the column is 720 wide and centred beside it, the padding is 28, and the destination order is unchanged.
+
+### A destination opens its branch
+
+Choosing Cards from the bar, or Value from the rail, shows that branch's placeholder screen and selects its index, so the shell and the router are wired together.
+
 ## Store
 
 `snapshot_store_test.dart` covers persistence and the app store ([[mobile-architecture#The snapshot store]], [[mobile-architecture#The store]]).

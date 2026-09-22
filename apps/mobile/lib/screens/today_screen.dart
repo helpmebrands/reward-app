@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/app_store.dart';
+import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
 
@@ -67,7 +68,7 @@ class _TodayBody extends StatelessWidget {
     final parts = moneyParts(totals.claimableCents);
 
     return ListView(
-      padding: const EdgeInsets.all(Space.s6),
+      padding: EdgeInsets.all(WidthClass.of(context).padding),
       children: [
         Semantics(
           header: true,
