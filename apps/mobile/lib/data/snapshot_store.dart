@@ -3,6 +3,33 @@ import 'dart:convert';
 import 'package:domain/domain.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// The PWA's defaults: reminders off at 09:00, early enough to act on the day
+/// and late enough not to wake anyone, a $1 floor, a 30-day use-soon horizon.
+const Settings defaultSettings = Settings(
+  notifications: NotificationSettings(
+    enabled: false,
+    timeOfDay: '09:00',
+    minValueCents: 100,
+    annualFeeReminder: true,
+    enrollmentReminder: true,
+  ),
+  useSoonDays: 30,
+  theme: ThemeSetting.system,
+  holderFilter: '',
+);
+
+/// Bump when a migration is needed.
+const int dataVersion = 1;
+
+/// A fresh install's household: nothing but the defaults.
+AppData emptyAppData() => const AppData(
+  version: dataVersion,
+  cards: [],
+  benefits: [],
+  claims: [],
+  settings: defaultSettings,
+);
+
 /// Where the one `AppData` snapshot lives. A household's cards, benefits and
 /// claims are measured in kilobytes, so one record is cheaper and simpler
 /// than per-entity stores, as in the PWA's single IndexedDB record.

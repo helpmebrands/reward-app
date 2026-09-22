@@ -21,7 +21,7 @@ const stubBody = 'This screen arrives with a later issue.';
 Future<void> pumpShell(WidgetTester tester, Size size) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   tester.view.physicalSize = size;

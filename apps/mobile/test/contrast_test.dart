@@ -119,7 +119,7 @@ void main() {
                 as Map<String, dynamic>,
           ),
         ),
-        clock: () => '2026-09-16',
+        clock: () => DateTime(2026, 9, 16),
       );
       await store.load();
       tester.view.physicalSize = const Size(402, 4000);

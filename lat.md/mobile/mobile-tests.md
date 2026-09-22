@@ -130,6 +130,66 @@ A record that is not JSON loads as null rather than throwing.
 
 After `load` the store reports its cards, the first use-soon credit, the claimable total and the next reset for the fixed date, all from the domain selectors.
 
+`app_store_test.dart` is the mutation suite ([[mobile-architecture#The store#Mutations]]): plain Dart over a `MemorySnapshotStore` with the clock fixed at 16 September 2026, counting notifications. After every mutation the saved snapshot and the store's snapshot are the same JSON, so a write that skipped the store would fail every case.
+
+### A template becomes a card with its credits
+
+`addCardFromTemplate` on an empty household adds one card with the template's issuer and product, the given holder, nickname and anniversary, and one benefit per template credit; one notification.
+
+Both card timestamps are the clock's instant, and each benefit has a distinct id and the new card's id.
+
+### A blank template takes the typed issuer and product
+
+The blank template with `issuer` and `product` overrides yields a card named by them with no benefits, and its anniversary defaults to today.
+
+### Card patches stamp updatedAt
+
+`updateCard` applies the `copyWith` patch (nickname, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
+
+### Mute and archive are card patches
+
+`toggleCardMute` flips `muted` each call and `archiveCard` sets `archived`, after which `hasCards` is false; three calls, three notifications.
+
+### Deleting a card cascades
+
+With two cards, three benefits and three claims, `deleteCard` leaves the other card, its benefit and its claim only; one notification.
+
+### A benefit draft gets its identity from the store
+
+`addBenefit` keeps the draft's fields but replaces its id and sets both timestamps to the clock's instant, appending it after the existing benefits.
+
+### Benefit patches stamp updatedAt
+
+`updateBenefit` applies a name and value patch and stamps `updatedAt`; `toggleBenefitMute` flips `muted`; two notifications.
+
+### Enrolment is confirmed and revoked
+
+On a benefit that requires enrolment, `confirmEnrollment` stamps `enrolledAt` and the credit leaves the locked list; `revokeEnrollment` clears it to null and the credit is locked again.
+
+### Deleting a benefit takes its claims
+
+`deleteBenefit` removes the benefit and its claims and leaves the other benefit's claim.
+
+### A claim defaults to what is left
+
+On a $25 credit with $10 claimed, `claim` without an amount records $15 with the note, the instance's benefit id and cycle key, and the clock's instant, and the instance becomes captured.
+
+### A partial claim records its amount
+
+`claim` with an amount records that amount with no note, and the instance's remaining value drops by it.
+
+### Removing one claim keeps the cycle's others
+
+`removeClaim` deletes one claim and leaves the cycle's other claim and the older cycle's; `unclaim` then clears the whole cycle and leaves the older one.
+
+### Settings patches keep the rest
+
+`updateSettings` changes the holder filter and theme and keeps the horizon; `updateNotificationSettings` turns reminders on at a new time, keeps the floor, and leaves the holder filter as set.
+
+### A write before load wins
+
+With a snapshot store whose load is held open, `addCardFromTemplate` lands first; when the load resolves the store still holds the new card, that card is what was saved, and `loading` is false, with one notification per event.
+
 ## End to end
 
 `integration_test/app_test.dart` drives the real app on a simulator or emulator through `make e2e` ([[mobile-architecture#Make targets]]); it is not part of the verify gate.

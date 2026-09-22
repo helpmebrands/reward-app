@@ -129,6 +129,38 @@ class Card {
   final bool archived;
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
+
+  /// A copy with the given fields replaced. Pass [nickname] or [last4] as
+  /// null to clear them; leave them out to keep them.
+  Card copyWith({
+    String? issuer,
+    String? product,
+    String? holder,
+    Object? nickname = _unset,
+    CardNetwork? network,
+    Object? last4 = _unset,
+    int? annualFeeCents,
+    IsoDate? anniversaryOn,
+    bool? muted,
+    bool? archived,
+    IsoInstant? updatedAt,
+  }) => Card(
+    id: id,
+    issuer: issuer ?? this.issuer,
+    product: product ?? this.product,
+    holder: holder ?? this.holder,
+    nickname: identical(nickname, _unset)
+        ? this.nickname
+        : nickname as String?,
+    network: network ?? this.network,
+    last4: identical(last4, _unset) ? this.last4 : last4 as String?,
+    annualFeeCents: annualFeeCents ?? this.annualFeeCents,
+    anniversaryOn: anniversaryOn ?? this.anniversaryOn,
+    muted: muted ?? this.muted,
+    archived: archived ?? this.archived,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 }
 
 class Benefit {
@@ -199,6 +231,62 @@ class Benefit {
   final bool active;
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
+
+  /// A copy with the given fields replaced. The nullable fields
+  /// ([description], [icon], [merchant], [enrolledAt], [enrollmentNote],
+  /// [enrollmentUrl], [notes]) are cleared by passing null and kept by
+  /// leaving them out.
+  Benefit copyWith({
+    String? cardId,
+    String? name,
+    Object? description = _unset,
+    BenefitCategory? category,
+    Object? icon = _unset,
+    Object? merchant = _unset,
+    int? valueCents,
+    Cadence? cadence,
+    CycleAnchor? anchor,
+    bool? enrollmentRequired,
+    Object? enrolledAt = _unset,
+    Object? enrollmentNote = _unset,
+    Object? enrollmentUrl = _unset,
+    List<String>? redemptionSteps,
+    Object? notes = _unset,
+    bool? muted,
+    bool? lastCallOnly,
+    bool? active,
+    IsoInstant? updatedAt,
+  }) => Benefit(
+    id: id,
+    cardId: cardId ?? this.cardId,
+    name: name ?? this.name,
+    description: identical(description, _unset)
+        ? this.description
+        : description as String?,
+    category: category ?? this.category,
+    icon: identical(icon, _unset) ? this.icon : icon as String?,
+    merchant: identical(merchant, _unset) ? this.merchant : merchant as String?,
+    valueCents: valueCents ?? this.valueCents,
+    cadence: cadence ?? this.cadence,
+    anchor: anchor ?? this.anchor,
+    enrollmentRequired: enrollmentRequired ?? this.enrollmentRequired,
+    enrolledAt: identical(enrolledAt, _unset)
+        ? this.enrolledAt
+        : enrolledAt as IsoInstant?,
+    enrollmentNote: identical(enrollmentNote, _unset)
+        ? this.enrollmentNote
+        : enrollmentNote as String?,
+    enrollmentUrl: identical(enrollmentUrl, _unset)
+        ? this.enrollmentUrl
+        : enrollmentUrl as String?,
+    redemptionSteps: redemptionSteps ?? this.redemptionSteps,
+    notes: identical(notes, _unset) ? this.notes : notes as String?,
+    muted: muted ?? this.muted,
+    lastCallOnly: lastCallOnly ?? this.lastCallOnly,
+    active: active ?? this.active,
+    createdAt: createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
 }
 
 /// A concrete window during which a [Benefit] can be used. Derived, never
@@ -334,6 +422,20 @@ class NotificationSettings {
 
   /// Remind about credits that are locked behind enrolment.
   final bool enrollmentReminder;
+
+  NotificationSettings copyWith({
+    bool? enabled,
+    String? timeOfDay,
+    int? minValueCents,
+    bool? annualFeeReminder,
+    bool? enrollmentReminder,
+  }) => NotificationSettings(
+    enabled: enabled ?? this.enabled,
+    timeOfDay: timeOfDay ?? this.timeOfDay,
+    minValueCents: minValueCents ?? this.minValueCents,
+    annualFeeReminder: annualFeeReminder ?? this.annualFeeReminder,
+    enrollmentReminder: enrollmentReminder ?? this.enrollmentReminder,
+  );
 }
 
 class Settings {
@@ -352,6 +454,18 @@ class Settings {
 
   /// Filters Today and Credits to one household member; empty means everyone.
   final String holderFilter;
+
+  Settings copyWith({
+    NotificationSettings? notifications,
+    int? useSoonDays,
+    ThemeSetting? theme,
+    String? holderFilter,
+  }) => Settings(
+    notifications: notifications ?? this.notifications,
+    useSoonDays: useSoonDays ?? this.useSoonDays,
+    theme: theme ?? this.theme,
+    holderFilter: holderFilter ?? this.holderFilter,
+  );
 }
 
 /// The entire persisted state.
@@ -369,4 +483,21 @@ class AppData {
   final List<Benefit> benefits;
   final List<Claim> claims;
   final Settings settings;
+
+  AppData copyWith({
+    List<Card>? cards,
+    List<Benefit>? benefits,
+    List<Claim>? claims,
+    Settings? settings,
+  }) => AppData(
+    version: version,
+    cards: cards ?? this.cards,
+    benefits: benefits ?? this.benefits,
+    claims: claims ?? this.claims,
+    settings: settings ?? this.settings,
+  );
 }
+
+/// Marks a nullable `copyWith` argument as not passed, so null can mean
+/// "clear it".
+const Object _unset = Object();

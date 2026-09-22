@@ -103,7 +103,7 @@ AppData _household() => AppData(
 AppStore _store() {
   final store = AppStore(
     store: MemorySnapshotStore(_household()),
-    clock: () => _today,
+    clock: () => DateTime(2026, 9, 16),
   );
   store.load();
   return store;
