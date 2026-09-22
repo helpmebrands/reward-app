@@ -68,6 +68,34 @@ Notifiers reach widgets by constructor until the tree is deep enough to hurt, th
 - **Owner disposes**: a `State` that creates a `ValueNotifier` disposes it in `dispose`; the store is created in `main` and lives as long as the app. `addListener` in `initState` paired with `removeListener` in `dispose` is for side effects only (navigation, a snackbar); rendering goes through builders.
 - **Tests**: a notifier is plain Dart, tested without a widget tree by asserting its getters and counting notifications; widgets are tested against a real store on fakes ([[mobile-tests#Store]]).
 
+## Navigation
+
+Decided in issue #136: routing is `go_router`, published by flutter.dev, with the four destinations in a `StatefulShellRoute.indexedStack` and every screen addressable by path as in the PWA. No other routing package and no raw Navigator 2.0.
+
+The Flutter team's architecture guidance recommends `go_router`, and the package README declares it feature-complete: bug fixes and stability, no new features planned. For code an agent writes that is an asset, not a risk. Version 18 requires Flutter 3.44, the pinned toolchain. Screens are addressable because a tapped reminder must open the screen it names, as the PWA's shell does on the worker's `navigate` message ([[architecture#The shell and routing]]).
+
+### Routes and the shell
+
+The route table mirrors the PWA's nine routes, with the four tabs as branches of one shell route and the editors and Settings pushed above it.
+
+- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches; `/cards/new`, `/cards/:id`, `/benefit/:id` and `/settings` are full-screen routes above the shell; `errorBuilder` renders the not-found screen.
+- **The shell** is `StatefulShellRoute.indexedStack`: its builder renders the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) and keeps each tab's scroll position across switches. The `InheritedNotifier` scope of [[mobile-architecture#State management]] sits here too.
+- **The credit sheet is not a route**: as in the PWA, the shell shows one modal sheet whichever tab opened it, driven by the shared transient state, so the URL stays on the tab beneath.
+- **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
+- **Redirects read the store**: `refreshListenable` is the `AppStore`, so a `redirect` re-evaluates on every notification with no second state holder. There is no redirect today; the first will come with the api sign-in.
+- **Notification taps go by path**: the reminder payload carries the route to open and the handler calls `go`, the counterpart of the PWA's `navigate` message.
+- **Not added**: `app_links` (third-party, needs approval, and there are no associated domains or URL schemes to serve), `auto_route`, and hand-written `RouterDelegate` code.
+
+### Transitions and back
+
+Page transitions stay at the framework defaults, which on the pinned Flutter (3.44) means predictive back on Android with `FadeForwardsPageTransitionsBuilder` for a plain push, and the Cupertino slide on iOS.
+
+- **No `pageTransitionsTheme` in the theme**: pinning a builder opts out of predictive back. The first-party `animations` package is not added until [[design#Screens]] asks for a motion pattern the defaults lack; none does today.
+- **The manifest enables predictive back**: `android:enableOnBackInvokedCallback="true"` on the `<application>` element, without which the gesture does not animate. This lands with the shell in issue #118.
+- **Custom back handling uses `PopScope`**: a sheet or editor that must intercept back (an unsaved draft) does so through `PopScope` and `onPopInvokedWithResult`, never `WillPopScope`, so the predictive gesture keeps working.
+- **Per-route transitions** go through `CustomTransitionPage` in a route's `pageBuilder`, and only where a screen calls for one.
+- **Tests**: the route table is built by a function that takes the store, so a widget test pumps `MaterialApp.router` on a `MemorySnapshotStore` and asserts the screen a path renders; the shell tests in [[mobile-tests]] run at the three widths.
+
 ## Today screen
 
 `TodayScreen` is the PWA's Today ([[design#Screens]]) as Material widgets. No editing yet; the actions arrive with the credit sheet.
