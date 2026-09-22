@@ -274,7 +274,9 @@ The version number lives in one file, and `fvm flutter` on a laptop uses the sam
 
 ### macOS is a local run target only
 
-The Makefile's `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build macos`, `RELEASE_PLATFORMS` stays `ios android` so a bare `make build` and `deploy` never touch it, `pick-device.sh` knows the platform, both macOS entitlements files grant `network.client`, there is no Podfile, the README shows `make run macos` and `make build macos`, and the release workflow never builds macOS ([[mobile-architecture#Make targets]]).
+`make build macos` and `make run macos` work, a bare `make build` and the release workflow still cover only iOS and Android, and the macOS target carries the network entitlement with no Podfile ([[mobile-architecture#Make targets]]).
+
+Checked: `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build macos`; `RELEASE_PLATFORMS` stays `ios android` and `build` iterates it; `pick-device.sh` has a `macos` case; both entitlements files grant `com.apple.security.network.client`; `apps/mobile/macos/Podfile` does not exist; the README shows `make run macos` and `make build macos`; `release-mobile.yml` never runs `build macos`; the Make targets section names the platform.
 
 ### Root Makefile runs the verify gate locally
 

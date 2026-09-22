@@ -4,13 +4,16 @@
 #
 #   make help
 #   make init                 first-time setup on a machine
-#   make build ios            release build; `make build` does both platforms
+#   make build ios            release build; `make build` does both store platforms
 #   make test                 widget suite; `make test ios` adds the e2e run
 #   make e2e android          integration tests on an emulator or device
 #   make run                  lists devices and asks which; `make run ios` opens the simulator
+#   make run macos            the app in a resizable window, for the wider width classes
 #   make deploy VERSION=0.1.0-rc.1
 #
-# `ios` and `android` after a target are platform arguments, not targets.
+# `ios`, `android` and `macos` after a target are platform arguments, not
+# targets. macOS is a local target only: `deploy` and the release workflow
+# ship iOS and Android.
 # ARGS="..." appends flags to the underlying flutter command; DEVICE=<id>
 # picks a device for e2e and run. scripts/pick-device.sh does the choosing
 # and boots a simulator or emulator when none is running.
@@ -18,12 +21,13 @@
 ROOT      := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../..)
 FLUTTER   := fvm flutter
 DART      := fvm dart
-PLATFORMS := ios android
+PLATFORMS := ios android macos
+RELEASE_PLATFORMS := ios android
 PLATFORM  := $(filter $(PLATFORMS),$(MAKECMDGOALS))
 PICK      := scripts/pick-device.sh
 
 .DEFAULT_GOAL := help
-.PHONY: help init get analyze format check test e2e build build-ios build-android devices run clean deploy $(PLATFORMS)
+.PHONY: help init get analyze format check test e2e build build-ios build-android build-macos devices run clean deploy $(PLATFORMS)
 
 # Platform words are accepted as goals so `make build ios` parses; they do nothing themselves.
 $(PLATFORMS):
@@ -32,7 +36,7 @@ $(PLATFORMS):
 help: ## List the targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-9s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo
-	@echo "  Platform argument: make build ios | make build android | make test android | make e2e ios"
+	@echo "  Platform argument: make build ios | make build android | make test android | make e2e ios | make run macos"
 	@echo "  ARGS=\"...\" appends flutter flags; DEVICE=<id> picks a device for e2e and run"
 
 init: ## Install FVM if missing, fetch the pinned Flutter SDK, resolve the workspace, run doctor
@@ -65,8 +69,8 @@ e2e: ## Integration tests on a simulator or emulator: `make e2e` (iOS), `make e2
 	echo "running integration tests on $$device"; \
 	$(FLUTTER) test integration_test -d "$$device" $(ARGS)
 
-build: ## Release build: `make build ios` (Runner.app), `make build android` (app bundle), or both
-	@$(foreach p,$(or $(PLATFORM),$(PLATFORMS)),$(MAKE) --no-print-directory build-$(p) &&) true
+build: ## Release build: `make build ios` (Runner.app), `make build android` (app bundle), `make build macos` (.app); alone, both store platforms
+	@$(foreach p,$(or $(PLATFORM),$(RELEASE_PLATFORMS)),$(MAKE) --no-print-directory build-$(p) &&) true
 
 build-ios:
 	$(FLUTTER) build ios --release $(ARGS)
@@ -74,11 +78,14 @@ build-ios:
 build-android:
 	$(FLUTTER) build appbundle --release $(ARGS)
 
+build-macos:
+	$(FLUTTER) build macos --release $(ARGS)
+
 devices: ## List the devices, simulators and emulators Flutter can see
 	$(FLUTTER) devices
 	$(FLUTTER) emulators
 
-run: ## Run the app: `make run ios` (visible simulator) or `make run android`; `make run` lists devices and asks; DEVICE=<id> skips the question
+run: ## Run the app: `make run ios` (visible simulator), `make run android`, or `make run macos` (resizable window); `make run` lists devices and asks; DEVICE=<id> skips the question
 	@set -e; platform="$(firstword $(PLATFORM))"; device="$(DEVICE)"; \
 	if [ -z "$$platform" ] && [ -z "$$device" ]; then \
 	  $(FLUTTER) devices; \
