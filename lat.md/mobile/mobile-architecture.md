@@ -9,7 +9,7 @@ Created with `flutter create --org com.helpmebrands --project-name reward --plat
 The layout under `apps/mobile/lib/` follows Flutter's recommended architecture, with the domain kept outside the app entirely.
 
 - **UI** (`lib/screens/`, `lib/widgets/`): Material widgets on the Nocturne tokens. No widget hard-codes a colour; every one is read from the theme extension. Every component ships with a Widget Preview.
-- **Logic** (`lib/logic/`): the app store ([[mobile-architecture#The store]]), which calls [[domain]] selectors and exposes what a screen renders.
+- **Logic** (`lib/logic/`): the app store ([[mobile-architecture#The store]]), which calls [[domain]] selectors and exposes what a screen renders, under the rules in [[mobile-architecture#State management]].
 - **Data** (`lib/data/`): persistence of the single `AppData` snapshot ([[mobile-architecture#The snapshot store]]) and, later, the api client. Nothing above this layer knows where a snapshot lives.
 - **Domain** (`packages/domain`): the rules, imported as `package:domain/domain.dart`.
 
@@ -32,6 +32,69 @@ The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves 
 The views are instances by urgency narrowed by the household filter, the missed ledger, the four totals, the use-soon, locked and captured lists, overlaps and the next reset.
 
 Today is read from a clock on every access rather than captured at boot, because an app resumed the next morning must show that morning's deadlines ([[architecture#The app store#Keeping today fresh]] in the PWA). Tests and previews inject a fixed clock. `replaceAll` writes the snapshot back through the store; the screens never touch storage.
+
+## State management
+
+The app manages state with Flutter's own primitives and adds no state management or injection package: `ChangeNotifier` and `ValueNotifier` hold state, the builder widgets subscribe, and `setState` covers what one widget owns.
+
+Decided in issue #136. The app has one snapshot, a handful of derived views computed by [[domain]] selectors, and a dependency surface the team keeps at zero. Flutter's architecture guidance (2024/2025) builds its view models on `ChangeNotifier` and reaches for `provider` only to inject them; this app does the injection by hand. `provider`, `riverpod`, `bloc`, `get_it`, `signals` and the like are not added even where they are Flutter Favorites, and a skill step that says to register a dependency in `provider` or `get_it` is overridden here.
+
+### Choosing the primitive
+
+Three kinds of state, each with its own home; the rule is to pick the smallest one that serves every widget that needs the value.
+
+- **Widget-local state** (a text field's draft, whether a row is expanded, an animation): `StatefulWidget` and `setState`. It never leaves the widget.
+- **Shared transient state** (which credit sheet is open, the household filter, the width class): a `ValueNotifier` owned by the nearest common ancestor and read through `ValueListenableBuilder`. This is what `UiProvider` holds in the PWA ([[architecture#UI state]]).
+- **Application state** (the snapshot, today, the derived views): the store ([[mobile-architecture#The store]]), a `ChangeNotifier` that is the app's view model in the MVVM sense, read through `ListenableBuilder`.
+- **Promote only on demand**: state moves up one level when a second widget needs it, never pre-emptively. The width class is computed once in the shell and handed down as a value ([[mobile-architecture#Responsive layout]]).
+
+### Notifier rules
+
+The store and every later notifier follow Flutter's guidance for view models: the logic lives in the notifier, none in the widget, and data flows one way.
+
+- **Unidirectional**: state flows down through getters, events flow up as method calls (`replaceAll` today, `claim` later). A widget never mutates what it reads.
+- **Immutable exposure**: fields are private and getters return values or unmodifiable views, so nothing can change the store without a notification. The domain models are immutable already.
+- **One notification per change**: mutate every field, then `notifyListeners()` once. Never notify during `build`, and never after `dispose`.
+- **Async actions**: an action the UI must track (in flight, failed, done) is wrapped in the guide's Command pattern, a small `ChangeNotifier` with `running`, `error` and an `execute` that ignores re-entry. `load` gets by with a `loading` flag because it is the only async action; the api client brings the first Command.
+- **No rules in the store**: derived views are [[domain]] selectors called on every read, as today. The notifier decides when to notify, not what is true.
+
+### Wiring and lifecycle
+
+Notifiers reach widgets by constructor until the tree is deep enough to hurt, then through an `InheritedNotifier`; whoever creates a notifier disposes it.
+
+- **Constructor injection first**: `RewardApp(store:)` today. Tests and previews build the store on `MemorySnapshotStore` with a fixed clock, which is the guide's "make fakes" recommendation in practice.
+- **A scope when the shell arrives**: the navigation shell of epic #116 hands the store to four destinations, and at that point an `InheritedNotifier<AppStore>` with a static `of(context)` replaces threading it through constructors. `of` is the only place a widget looks the store up; there is no global.
+- **Builders as low as the change**: wrap what changes, not the page around it, and pass a static subtree as `child` so it is not rebuilt. A screen that is all derived views wraps once, as Today does. `ValueListenableBuilder` for one value, `ListenableBuilder` for a notifier, `Listenable.merge` when a widget depends on two.
+- **Owner disposes**: a `State` that creates a `ValueNotifier` disposes it in `dispose`; the store is created in `main` and lives as long as the app. `addListener` in `initState` paired with `removeListener` in `dispose` is for side effects only (navigation, a snackbar); rendering goes through builders.
+- **Tests**: a notifier is plain Dart, tested without a widget tree by asserting its getters and counting notifications; widgets are tested against a real store on fakes ([[mobile-tests#Store]]).
+
+## Navigation
+
+Decided in issue #136: routing is `go_router`, published by flutter.dev, with the four destinations in a `StatefulShellRoute.indexedStack` and every screen addressable by path as in the PWA. No other routing package and no raw Navigator 2.0.
+
+The Flutter team's architecture guidance recommends `go_router`, and the package README declares it feature-complete: bug fixes and stability, no new features planned. For code an agent writes that is an asset, not a risk. Version 18 requires Flutter 3.44, the pinned toolchain. Screens are addressable because a tapped reminder must open the screen it names, as the PWA's shell does on the worker's `navigate` message ([[architecture#The shell and routing]]).
+
+### Routes and the shell
+
+The route table mirrors the PWA's nine routes, with the four tabs as branches of one shell route and the editors and Settings pushed above it.
+
+- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches; `/cards/new`, `/cards/:id`, `/benefit/:id` and `/settings` are full-screen routes above the shell; `errorBuilder` renders the not-found screen.
+- **The shell** is `StatefulShellRoute.indexedStack`: its builder renders the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) and keeps each tab's scroll position across switches. The `InheritedNotifier` scope of [[mobile-architecture#State management]] sits here too.
+- **The credit sheet is not a route**: as in the PWA, the shell shows one modal sheet whichever tab opened it, driven by the shared transient state, so the URL stays on the tab beneath.
+- **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
+- **Redirects read the store**: `refreshListenable` is the `AppStore`, so a `redirect` re-evaluates on every notification with no second state holder. There is no redirect today; the first will come with the api sign-in.
+- **Notification taps go by path**: the reminder payload carries the route to open and the handler calls `go`, the counterpart of the PWA's `navigate` message.
+- **Not added**: `app_links` (third-party, needs approval, and there are no associated domains or URL schemes to serve), `auto_route`, and hand-written `RouterDelegate` code.
+
+### Transitions and back
+
+Page transitions stay at the framework defaults, which on the pinned Flutter (3.44) means predictive back on Android with `FadeForwardsPageTransitionsBuilder` for a plain push, and the Cupertino slide on iOS.
+
+- **No `pageTransitionsTheme` in the theme**: pinning a builder opts out of predictive back. The first-party `animations` package is not added until [[design#Screens]] asks for a motion pattern the defaults lack; none does today.
+- **The manifest enables predictive back**: `android:enableOnBackInvokedCallback="true"` on the `<application>` element, without which the gesture does not animate. This lands with the shell in issue #118.
+- **Custom back handling uses `PopScope`**: a sheet or editor that must intercept back (an unsaved draft) does so through `PopScope` and `onPopInvokedWithResult`, never `WillPopScope`, so the predictive gesture keeps working.
+- **Per-route transitions** go through `CustomTransitionPage` in a route's `pageBuilder`, and only where a screen calls for one.
+- **Tests**: the route table is built by a function that takes the store, so a widget test pumps `MaterialApp.router` on a `MemorySnapshotStore` and asserts the screen a path renders; the shell tests in [[mobile-tests]] run at the three widths.
 
 ## Today screen
 
