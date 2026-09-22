@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -781,6 +781,27 @@ describe('mobile Makefile', () => {
     ]) {
       expect(readme).toContain(target)
     }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#macOS is a local run target only]]
+  it('accepts macos for build and run, with the network entitlement, but never for deploy', () => {
+    const makefile = read('apps/mobile/Makefile')
+    expect(makefile).toMatch(/^PLATFORMS\s*:?=.*\bmacos\b/m)
+    expect(makefile).toMatch(/^build-macos:\n\t\$\(FLUTTER\) build macos/m)
+    expect(makefile).toMatch(/^build:[\s\S]*?\$\(or \$\(PLATFORM\),\$\(RELEASE_PLATFORMS\)\)/m)
+    expect(makefile).toMatch(/^RELEASE_PLATFORMS\s*:?=\s*ios android$/m)
+    expect(read('apps/mobile/scripts/pick-device.sh')).toMatch(/^\s*macos\)/m)
+    for (const profile of ['DebugProfile', 'Release']) {
+      const entitlements = read(`apps/mobile/macos/Runner/${profile}.entitlements`)
+      expect(entitlements, profile).toContain('com.apple.security.network.client')
+    }
+    expect(existsSync(join(root, 'apps/mobile/macos/Podfile'))).toBe(false)
+    const readme = read('apps/mobile/README.md')
+    expect(readme).toContain('make run macos')
+    expect(readme).toContain('make build macos')
+    const release = read('.github/workflows/release-mobile.yml')
+    expect(release).not.toMatch(/build macos/)
+    expect(read('lat.md/mobile/mobile-architecture.md')).toMatch(/## Make targets[\s\S]*macos/)
   })
 })
 

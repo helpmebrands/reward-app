@@ -272,6 +272,10 @@ The version number lives in one file, and `fvm flutter` on a laptop uses the sam
 
 `apps/mobile/Makefile` defines `help`, `init`, `build`, `test`, `e2e` and `deploy`, every recipe calls `fvm flutter` or `fvm dart` rather than a bare SDK, and the app README lists each target, so the entry points are discoverable and pinned ([[mobile-architecture#Make targets]]).
 
+### macOS is a local run target only
+
+The Makefile's `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build macos`, `RELEASE_PLATFORMS` stays `ios android` so a bare `make build` and `deploy` never touch it, `pick-device.sh` knows the platform, both macOS entitlements files grant `network.client`, there is no Podfile, the README shows `make run macos` and `make build macos`, and the release workflow never builds macOS ([[mobile-architecture#Make targets]]).
+
 ### Root Makefile runs the verify gate locally
 
 The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
