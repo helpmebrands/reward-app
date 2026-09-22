@@ -172,6 +172,41 @@ Widget creditRows() {
   );
 }
 
+/// Rows with their actions wired to the store: swipe right to log, left
+/// to silence, tap the bell, or tap the row; the snackbar shows the undo.
+@Preview(name: 'Credit rows, swipe to act', size: Size(402, 500))
+Widget creditRowsSwipe() {
+  final store = _store();
+  final snackbar = SnackbarState();
+  final actions = CreditActions(store: store, snackbar: snackbar);
+  return _themed(
+    SnackbarHost(
+      snackbar: snackbar,
+      child: ListenableBuilder(
+        listenable: store,
+        builder: (context, _) => ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            for (final instance in store.instances)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: CreditRow(
+                  instance: instance,
+                  showCard: true,
+                  onOpen: () =>
+                      snackbar.show('Would open ${instance.benefit.name}.'),
+                  onLogAll: () => actions.logAll(instance),
+                  onToggleMute: () => actions.toggleMute(instance),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+    Brightness.dark,
+  );
+}
+
 /// The credit sheet over Today, in the shape the width calls for. The sheet
 /// is opened through the shared ui state, as a screen would open it.
 Widget _sheetAt(Size size, String benefitId) {
