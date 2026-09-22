@@ -161,9 +161,13 @@ void main() {
     await pumpRows(tester);
     final before = tester.getTopLeft(row('b0')).dy;
 
-    await tester.drag(row('b0'), const Offset(6, -120));
+    await tester.drag(row('b0'), const Offset(6, -40));
     await tester.pumpAndSettle();
 
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable))
+        .position;
+    expect(position.pixels, greaterThan(0));
     expect(tester.getTopLeft(row('b0')).dy, lessThan(before));
     expect(slide(tester, 'b0'), 0);
   });
@@ -220,7 +224,7 @@ void main() {
     };
     expect(labels.keys, containsAll(['Log the full credit', 'Silence']));
 
-    final owner = tester.binding.pipelineOwner.semanticsOwner!;
+    final owner = node.owner!;
     owner.performAction(
       node.id,
       SemanticsAction.customAction,
