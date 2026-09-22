@@ -1,11 +1,15 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
+import 'dart:ui' show Tristate;
+
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/main.dart';
+import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_sheet.dart';
 import 'package:reward/widgets/sheet_host.dart';
 
@@ -95,13 +99,13 @@ AppData _household() => AppData(
   settings: defaultSettings,
 );
 
-class _App {
-  _App(this.store, this.ui);
+class App {
+  App(this.store, this.ui);
   final AppStore store;
   final UiState ui;
 }
 
-Future<_App> pumpApp(WidgetTester tester, Size size) async {
+Future<App> pumpApp(WidgetTester tester, Size size) async {
   final store = AppStore(
     store: MemorySnapshotStore(_household()),
     clock: () => DateTime(2026, 9, 16),
@@ -113,10 +117,10 @@ Future<_App> pumpApp(WidgetTester tester, Size size) async {
   addTearDown(tester.view.reset);
   await tester.pumpWidget(RewardApp(store: store, ui: ui));
   await tester.pumpAndSettle();
-  return _App(store, ui);
+  return App(store, ui);
 }
 
-Future<_App> openResy(WidgetTester tester, Size size) async {
+Future<App> openResy(WidgetTester tester, Size size) async {
   final app = await pumpApp(tester, size);
   app.ui.openCredit('resy');
   await tester.pumpAndSettle();
@@ -128,6 +132,10 @@ const tablet = Size(800, 1000);
 const desktop = Size(1280, 800);
 
 Finder get sheet => find.byKey(const Key('credit-sheet'));
+
+/// Text inside the sheet, not the row behind it that shows the same figure.
+Finder inSheet(String text) =>
+    find.descendant(of: sheet, matching: find.text(text));
 
 void main() {
   group('quick amounts', () {
@@ -163,21 +171,21 @@ void main() {
       final app = await openResy(tester, phone);
 
       expect(find.text('Resy Dining Credit'), findsWidgets);
-      expect(find.text('\$70'), findsOneWidget);
-      expect(find.text('left of \$100'), findsOneWidget);
-      expect(find.text('Mark the full \$70 used'), findsOneWidget);
-      expect(find.text('\$18'), findsOneWidget);
-      expect(find.text('\$35'), findsOneWidget);
+      expect(inSheet('\$70'), findsOneWidget);
+      expect(inSheet('left of \$100'), findsOneWidget);
+      expect(inSheet('Mark the full \$70 used'), findsOneWidget);
+      expect(inSheet('\$18'), findsOneWidget);
+      expect(inSheet('\$35'), findsOneWidget);
 
       final instance = app.store.instanceFor('resy')!;
       await app.store.claim(instance, amountCents: 2000);
       await tester.pumpAndSettle();
 
       expect(app.ui.openBenefitId, 'resy');
-      expect(find.text('\$50'), findsOneWidget);
-      expect(find.text('Mark the full \$50 used'), findsOneWidget);
-      expect(find.text('\$13'), findsOneWidget);
-      expect(find.text('\$25'), findsOneWidget);
+      expect(inSheet('\$50'), findsOneWidget);
+      expect(inSheet('Mark the full \$50 used'), findsOneWidget);
+      expect(inSheet('\$13'), findsOneWidget);
+      expect(inSheet('\$25'), findsOneWidget);
     });
 
     // @lat: [[mobile-tests#Credit sheet#Marking the full amount logs the remainder and closes]]
@@ -186,7 +194,7 @@ void main() {
     ) async {
       final app = await openResy(tester, phone);
 
-      await tester.tap(find.text('Mark the full \$70 used'));
+      await tester.tap(inSheet('Mark the full \$70 used'));
       await tester.pumpAndSettle();
 
       final claims = app.store.data!.claims
@@ -252,7 +260,11 @@ void main() {
       expect(section, findsOneWidget);
       final rows = find.descendant(
         of: section,
-        matching: find.byKey(const Key('sheet-claim'), skipOffstage: false),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey<String> &&
+              (w.key as ValueKey<String>).value.startsWith('sheet-claim-'),
+        ),
       );
       expect(rows, findsNWidgets(2));
       expect(
@@ -279,7 +291,7 @@ void main() {
             .map((c) => c.id),
         ['old'],
       );
-      expect(find.text('\$90'), findsOneWidget);
+      expect(inSheet('\$90'), findsOneWidget);
     });
 
     // @lat: [[mobile-tests#Credit sheet#Silence and last call are switches on the sheet]]
@@ -311,13 +323,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Not enrolled.'), findsOneWidget);
-      expect(find.text('Mark the full \$300 used'), findsNothing);
+      expect(inSheet('Mark the full \$300 used'), findsNothing);
 
       await tester.tap(find.text('I’ve enrolled — unlock this credit'));
       await tester.pumpAndSettle();
 
       expect(app.store.data!.benefits[1].enrolledAt, isNotNull);
-      expect(find.text('Mark the full \$300 used'), findsOneWidget);
+      expect(inSheet('Mark the full \$300 used'), findsOneWidget);
     });
 
     // @lat: [[mobile-tests#Credit sheet#A captured credit can be undone]]
@@ -336,7 +348,7 @@ void main() {
         app.store.data!.claims.where((c) => c.benefitId == 'uber'),
         isEmpty,
       );
-      expect(find.text('Mark the full \$15 used'), findsOneWidget);
+      expect(inSheet('Mark the full \$15 used'), findsOneWidget);
     });
   });
 
@@ -346,7 +358,7 @@ void main() {
       await openResy(tester, phone);
 
       expect(find.byType(BottomSheet), findsOneWidget);
-      expect(find.byType(ModalBarrier), findsWidgets);
+      expect(find.byKey(const Key('sheet-scrim')), findsOneWidget);
       final rect = tester.getRect(sheet);
       expect(rect.bottom, phone.height);
       expect(rect.width, phone.width);
@@ -372,7 +384,7 @@ void main() {
 
       expect(find.byType(BottomSheet), findsNothing);
       expect(find.byType(Dialog), findsNothing);
-      expect(find.byType(ModalBarrier), findsNothing);
+      expect(find.byKey(const Key('sheet-scrim')), findsNothing);
       final rect = tester.getRect(sheet);
       expect(rect.width, 380);
       expect(rect.right, desktop.width);
@@ -452,6 +464,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: nocturneTheme(Brightness.dark),
           home: ValueListenableBuilder(
             valueListenable: open,
             builder: (context, isOpen, _) => SheetHost(
