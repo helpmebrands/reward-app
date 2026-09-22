@@ -44,7 +44,7 @@ void main() {
     () async {
       final store = AppStore(
         store: MemorySnapshotStore(sampleHousehold()),
-        clock: () => '2026-09-16',
+        clock: () => DateTime(2026, 9, 16),
       );
       expect(store.loading, isTrue);
       await store.load();

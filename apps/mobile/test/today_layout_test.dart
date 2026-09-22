@@ -26,7 +26,7 @@ AppData sampleHousehold() => appDataFromJson(
 Future<void> pumpToday(WidgetTester tester, WidthClass widthClass) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   tester.view.physicalSize = Size(widthClass.column, 4000);

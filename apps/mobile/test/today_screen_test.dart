@@ -25,7 +25,7 @@ Map<String, dynamic> expectedToday() =>
 Future<AppStore> pumpToday(WidgetTester tester) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   // A tall viewport so every section is laid out and every row is found.
@@ -125,7 +125,7 @@ void main() {
   ) async {
     final store = AppStore(
       store: MemorySnapshotStore(),
-      clock: () => '2026-09-16',
+      clock: () => DateTime(2026, 9, 16),
     );
     await store.load();
     await tester.pumpWidget(

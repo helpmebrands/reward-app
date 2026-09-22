@@ -24,7 +24,7 @@ const viewport = Size(402, 6000);
 Future<void> pumpTodayAt2x(WidgetTester tester) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   tester.platformDispatcher.textScaleFactorTestValue = 2.0;
