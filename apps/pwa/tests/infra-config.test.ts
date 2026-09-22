@@ -80,7 +80,7 @@ describe('verify workflow', () => {
   it('previews the Pulumi program against the state bucket in the infra job', () => {
     const verify = read('.github/workflows/verify.yml')
     const infraJob = verify.split(/^ {2}infra:\s*$/m)[1]
-    expect(infraJob).toContain('google-github-actions/auth@v2')
+    expect(infraJob).toMatch(/uses: google-github-actions\/auth@v\d+/)
     expect(infraJob).toContain('pulumi login gs://helpme-reward-staging-pulumi-state')
     expect(infraJob).toContain('pulumi preview')
     // WIF needs an OIDC token; the calling workflow must grant it.
@@ -603,7 +603,7 @@ describe('mobile release workflow', () => {
       expect(workflow(), name).toContain(`vars.${name}`)
     }
     expect(workflow()).toContain('vars.PLAY_SERVICE_ACCOUNT')
-    expect(workflow()).toContain('google-github-actions/auth@v2')
+    expect(workflow()).toMatch(/uses: google-github-actions\/auth@v\d+/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Store uploads are scripted beside the app]]
@@ -845,8 +845,8 @@ describe('workflow action runtimes', () => {
 
   const usesIn = (path: string) =>
     [...read(path).matchAll(/^\s*(?:- )?uses:\s*([^\s@]+)@(\S+)/gm)].map(([, action, ref]) => ({
-      action,
-      ref,
+      action: action ?? '',
+      ref: ref ?? '',
     }))
 
   // @lat: [[infra-tests#Infrastructure config#Every workflow action declares the Node 24 runtime]]
@@ -854,13 +854,15 @@ describe('workflow action runtimes', () => {
     for (const path of workflows) {
       for (const { action, ref } of usesIn(path)) {
         if (action.startsWith('./')) continue
-        const floor = node24Floor[action]
-        expect(floor, `${path} uses ${action}, which is not in the audited table`).toBeDefined()
+        const floor = node24Floor[action] ?? Number.POSITIVE_INFINITY
+        expect(floor, `${path} uses ${action}, which is not in the audited table`).toBeLessThan(
+          Number.POSITIVE_INFINITY,
+        )
         const major = Number(/^v(\d+)/.exec(ref)?.[1])
         expect(
           major,
           `${path} pins ${action}@${ref}; the Node 24 floor is v${floor}`,
-        ).toBeGreaterThanOrEqual(floor!)
+        ).toBeGreaterThanOrEqual(floor)
       }
     }
   })
@@ -868,7 +870,7 @@ describe('workflow action runtimes', () => {
   // @lat: [[infra-tests#Infrastructure config#Pulumi CLI comes from the maintained action]]
   it('installs the Pulumi CLI with pulumi/actions in install-only mode, not setup-pulumi', () => {
     const verify = read('.github/workflows/verify.yml')
-    expect(verify).not.toContain('pulumi/setup-pulumi')
+    expect(verify).not.toMatch(/uses: pulumi\/setup-pulumi/)
     const pulumiWith = /uses: pulumi\/actions@v\d+\n\s+with:\n((?:[ \t]+\S.*\n)+)/.exec(verify)?.[1]
     expect(pulumiWith, 'pulumi/actions step with a `with:` block').toBeDefined()
     expect(pulumiWith).toMatch(/^\s+pulumi-version: /m)

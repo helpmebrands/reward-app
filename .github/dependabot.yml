@@ -1,0 +1,10 @@
+# Keeps the workflow actions current, so the next runner-runtime deprecation
+# arrives as a pull request instead of a warning on every run (#126).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(ci)"
