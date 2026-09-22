@@ -90,6 +90,30 @@ At the same scale no two credit rows and no two texts overlap, so nothing draws 
 
 The headline number's painted width at 2.0 is smaller than its natural width and its right edge stays inside the padded column, so it scales down rather than overflowing.
 
+## Token contrast
+
+`contrast_test.dart` computes WCAG ratios over the theme extension's token set for light and dark, the way `apps/pwa/tests/contrast.test.ts` does over `tokens.css`, so a copied token cannot drift ([[mobile-architecture#Accessibility]], [[pwa-tests#Token contrast]]).
+
+The tone lines around rows and the surface lines are decorative and are not asserted; WCAG 1.4.11 exempts them.
+
+### Secondary text reaches 4.5:1 on every ground
+
+`textSecondary` clears 4.5:1 on the page, the raised, sunken and quiet surfaces and the captured row's ground in both modes.
+
+### Control boundaries reach 3:1
+
+`controlBorder` clears 3:1 on the same five grounds in both modes.
+
+### Each tone's text holds on its own ground
+
+The soon, available, locked, captured and missed foregrounds each clear 4.5:1 on their own ground in both modes.
+
+### The overlap card's text holds on the section ground
+
+Today is rendered in each theme and every `Text` inside an overlap card is read back with its own style colour; each clears 4.5:1 on the section ground.
+
+The light theme's secondary text does not clear it there, which is why the card's body is neutral-300 as in the PWA.
+
 ## Store
 
 `snapshot_store_test.dart` covers persistence and the app store ([[mobile-architecture#The snapshot store]], [[mobile-architecture#The store]]).
