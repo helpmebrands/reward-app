@@ -4,6 +4,8 @@ import 'package:flutter/widget_previews.dart';
 
 import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
+import 'main.dart';
+import 'screens/stub_screen.dart';
 import 'screens/today_screen.dart';
 import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
@@ -117,6 +119,18 @@ Widget todayDark() => _themed(TodayScreen(store: _store()), Brightness.dark);
 
 @Preview(name: 'Today, light', size: Size(402, 874))
 Widget todayLight() => _themed(TodayScreen(store: _store()), Brightness.light);
+
+@Preview(name: 'Shell, compact', size: Size(402, 874))
+Widget shellCompact() => RewardApp(store: _store());
+
+@Preview(name: 'Shell, medium', size: Size(768, 1024))
+Widget shellMedium() => RewardApp(store: _store());
+
+@Preview(name: 'Shell, expanded', size: Size(1280, 800))
+Widget shellExpanded() => RewardApp(store: _store());
+
+@Preview(name: 'Placeholder screen', size: Size(402, 300))
+Widget stubScreen() => _themed(const StubScreen('Cards'), Brightness.dark);
 
 @Preview(name: 'Credit rows, every tone', size: Size(402, 400))
 Widget creditRows() {

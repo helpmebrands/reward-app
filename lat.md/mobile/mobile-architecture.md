@@ -8,7 +8,7 @@ Created with `flutter create --org com.helpmebrands --project-name reward --plat
 
 The layout under `apps/mobile/lib/` follows Flutter's recommended architecture, with the domain kept outside the app entirely.
 
-- **UI** (`lib/screens/`, `lib/widgets/`): Material widgets on the Nocturne tokens. No widget hard-codes a colour; every one is read from the theme extension. Every component ships with a Widget Preview.
+- **UI** (`lib/screens/`, `lib/widgets/`, `lib/shell/`): Material widgets on the Nocturne tokens. No widget hard-codes a colour; every one is read from the theme extension. Every component ships with a Widget Preview. The shell directory holds the router, the app shell with its width class, and the store scope ([[mobile-architecture#Navigation]], [[mobile-architecture#Responsive layout]]).
 - **Logic** (`lib/logic/`): the app store ([[mobile-architecture#The store]]), which calls [[domain]] selectors and exposes what a screen renders, under the rules in [[mobile-architecture#State management]].
 - **Data** (`lib/data/`): persistence of the single `AppData` snapshot ([[mobile-architecture#The snapshot store]]) and, later, the api client. Nothing above this layer knows where a snapshot lives.
 - **Domain** (`packages/domain`): the rules, imported as `package:domain/domain.dart`.
@@ -63,7 +63,7 @@ The store and every later notifier follow Flutter's guidance for view models: th
 Notifiers reach widgets by constructor until the tree is deep enough to hurt, then through an `InheritedNotifier`; whoever creates a notifier disposes it.
 
 - **Constructor injection first**: `RewardApp(store:)` today. Tests and previews build the store on `MemorySnapshotStore` with a fixed clock, which is the guide's "make fakes" recommendation in practice.
-- **A scope when the shell arrives**: the navigation shell of epic #116 hands the store to four destinations, and at that point an `InheritedNotifier<AppStore>` with a static `of(context)` replaces threading it through constructors. `of` is the only place a widget looks the store up; there is no global.
+- **A scope above the router**: `AppScope` is an `InheritedNotifier<AppStore>` wrapped around `MaterialApp.router`, and `AppScope.of(context)` in a route builder is how a screen gets the store; `TodayScreen` still takes it as a constructor argument so tests and previews build it bare. `of` is the only place a widget looks the store up; there is no global.
 - **Builders as low as the change**: wrap what changes, not the page around it, and pass a static subtree as `child` so it is not rebuilt. A screen that is all derived views wraps once, as Today does. `ValueListenableBuilder` for one value, `ListenableBuilder` for a notifier, `Listenable.merge` when a widget depends on two.
 - **Owner disposes**: a `State` that creates a `ValueNotifier` disposes it in `dispose`; the store is created in `main` and lives as long as the app. `addListener` in `initState` paired with `removeListener` in `dispose` is for side effects only (navigation, a snackbar); rendering goes through builders.
 - **Tests**: a notifier is plain Dart, tested without a widget tree by asserting its getters and counting notifications; widgets are tested against a real store on fakes ([[mobile-tests#Store]]).
@@ -78,8 +78,8 @@ The Flutter team's architecture guidance recommends `go_router`, and the package
 
 The route table mirrors the PWA's nine routes, with the four tabs as branches of one shell route and the editors and Settings pushed above it.
 
-- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches; `/cards/new`, `/cards/:id`, `/benefit/:id` and `/settings` are full-screen routes above the shell; `errorBuilder` renders the not-found screen.
-- **The shell** is `StatefulShellRoute.indexedStack`: its builder renders the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) and keeps each tab's scroll position across switches. The `InheritedNotifier` scope of [[mobile-architecture#State management]] sits here too.
+- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches, the constants in `lib/shell/router.dart`; `/cards/new`, `/cards/:id`, `/benefit/:id` and `/settings` will be full-screen routes above the shell, and `errorBuilder` the not-found screen, when those screens arrive. Today Credits, Cards and Value render `StubScreen`, a heading and one line, so the branches are real before the screens are.
+- **The shell** is `StatefulShellRoute.indexedStack` whose builder renders `AppShell`: the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) around the content column, keeping each tab's scroll position across switches. The four `Destination`s are one list the bar and the rail both draw, so the order cannot differ.
 - **The credit sheet is not a route**: as in the PWA, the shell shows one modal sheet whichever tab opened it, driven by the shared transient state, so the URL stays on the tab beneath.
 - **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
 - **Redirects read the store**: `refreshListenable` is the `AppStore`, so a `redirect` re-evaluates on every notification with no second state holder. There is no redirect today; the first will come with the api sign-in.
@@ -91,7 +91,7 @@ The route table mirrors the PWA's nine routes, with the four tabs as branches of
 Page transitions stay at the framework defaults, which on the pinned Flutter (3.44) means predictive back on Android with `FadeForwardsPageTransitionsBuilder` for a plain push, and the Cupertino slide on iOS.
 
 - **No `pageTransitionsTheme` in the theme**: pinning a builder opts out of predictive back. The first-party `animations` package is not added until [[design#Screens]] asks for a motion pattern the defaults lack; none does today.
-- **The manifest enables predictive back**: `android:enableOnBackInvokedCallback="true"` on the `<application>` element, without which the gesture does not animate. This lands with the shell in issue #118.
+- **The manifest enables predictive back**: `android:enableOnBackInvokedCallback="true"` on the `<application>` element, without which the gesture does not animate.
 - **Custom back handling uses `PopScope`**: a sheet or editor that must intercept back (an unsaved draft) does so through `PopScope` and `onPopInvokedWithResult`, never `WillPopScope`, so the predictive gesture keeps working.
 - **Per-route transitions** go through `CustomTransitionPage` in a route's `pageBuilder`, and only where a screen calls for one.
 - **Tests**: the route table is built by a function that takes the store, so a widget test pumps `MaterialApp.router` on a `MemorySnapshotStore` and asserts the screen a path renders; the shell tests in [[mobile-tests]] run at the three widths.
@@ -106,9 +106,9 @@ It shows the header with the date, the headline counting only what is claimable,
 
 ## Responsive layout
 
-The app must realise the product's three width classes ([[design#Responsive layout]]) with Flutter's own tools; today it renders the compact class at every width, and the wider classes are open work.
+The app realises the product's three width classes ([[design#Responsive layout]]) with Flutter's own tools: `AppShell` computes the class and draws the navigation and the column, and each screen reads it to re-flow. Today's wider re-flow is open work.
 
-A width class comes from `MediaQuery.sizeOf(context).width` against the 600 and 1024 thresholds, computed once in the shell and handed down, not re-derived in leaf widgets. The content column is a centred `ConstrainedBox` at 402, 560 or 720 logical pixels with 20, 24 or 28 of padding, and it is the only scrollable. The four destinations are a `NavigationBar` in compact and a `NavigationRail` from medium, 80 wide with icons over labels, 200 wide and extended from expanded, in the same order so focus traversal does not change. Today pairs the overlap cards from medium and becomes a two-column body from expanded with the headline spanning both; the widget order stays the phone's so `Semantics` reads the same at every width.
+`WidthClass` (compact, medium, expanded) carries the column width (402, 560, 720) and the screen padding (20, 24, 28) as enum fields, so no widget re-derives either. `AppShell` computes it once from `MediaQuery.sizeOf(context).width` against the 600 and 1024 thresholds and hands it down through `WidthClassScope`; `WidthClass.of(context)` falls back to compact outside the shell, so a screen in a test or a preview is the phone design. The content column is a top-centred `ConstrainedBox` (key `content-column`) capped at the class's width, the screens' own `ListView` is the only scrollable, and each screen pads itself with the class's padding. The four destinations are a `NavigationBar` in compact and a `NavigationRail` from medium, pinned to 80 wide with icons over labels, and 200 wide and extended from expanded; the rail's width is pinned by a `SizedBox` because its own minimum width lets a wide label push it out. Both draw the one `destinations` list, so the order and focus traversal cannot differ. Today pairs the overlap cards from medium and becomes a two-column body from expanded with the headline spanning both; the widget order stays the phone's so `Semantics` reads the same at every width. Pinned by [[mobile-tests#Shell]].
 
 A macOS build is the way to see the medium and expanded classes without a tablet, which is why macOS is a local run target and not a release target ([[mobile-architecture#Make targets]]).
 
