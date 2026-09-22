@@ -192,6 +192,12 @@ The workflow calls both, so the store logic is reviewable code beside the app ra
 
 `07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
 
+### Info.plist answers export compliance
+
+`apps/mobile/ios/Runner/Info.plist` sets `ITSAppUsesNonExemptEncryption` to `false`, and the *When it arrives* paragraph of `07-mobile-release.md` says the compliance answer lives there.
+
+The app only speaks HTTPS to its own api, which is exempt, so the answer is a constant. Declaring it answers the export-compliance question at upload time: fastlane no longer waits for a second round of processing, and a build uploaded by Xcode or Transporter is not stuck at *Missing Compliance*.
+
 ### Runbook 01 gives the repository project its own step
 
 Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered step named for the repository project opens with `cd` into it and `pulumi stack select repo` before its import, so no command block straddles two Pulumi projects ([[infra#Runbooks]]).

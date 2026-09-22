@@ -121,9 +121,13 @@ sensible for local builds.
 App Store Connect) get the build without review once Apple's processing
 finishes; the iOS job waits for processing, so a build Apple rejects fails
 the run rather than a tester's afternoon. The Play internal track is live
-within minutes and needs no review. Add testers once, in each console; the
-workflow never touches tester lists. Promote to closed or open testing, or
-to an external TestFlight group, from the consoles when it is time.
+within minutes and needs no review. The export compliance answer is in
+`Info.plist` (`ITSAppUsesNonExemptEncryption` is `false`, because the app
+only speaks HTTPS to its own api), so Apple never holds a build at *Missing
+Compliance* and fastlane does not wait for a second round of processing.
+Add testers once, in each console; the workflow never touches tester lists.
+Promote to closed or open testing, or to an external TestFlight group, from
+the consoles when it is time.
 
 **When Apple rejects the build in processing.** The run's iOS job fails on
 `upload_to_testflight` with Apple's reason: most often a missing usage
