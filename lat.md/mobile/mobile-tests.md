@@ -272,6 +272,66 @@ Walking the sheet's semantics, every button, text field and switch has a label o
 
 `SheetHost` alone: with a focused node on the screen behind, opening yields a node with `scopesRoute` and `namesRoute` labelled with the title, focus moves inside the sheet, and closing hands focus back to that node.
 
+## Credit actions
+
+`credit_actions_test.dart` drives `CreditActions` as plain Dart over a `MemorySnapshotStore` and a `SnackbarState`, on a $100 Resy credit with $30 logged and a locked Equinox credit ([[mobile-architecture#Undo and the snackbar]]).
+
+### Logging writes at once and Undo removes that claim
+
+`logAll` records the $70 remainder immediately and shows "Logged $70 on Resy Dining Credit." with an Undo labelled "Undo logging Resy Dining Credit"; acting on it removes that claim and leaves the earlier one.
+
+### A partial log names its amount
+
+`log` with $35 records $35 and says "Logged $35 on …".
+
+### Muting has an Undo that restores the previous state
+
+`toggleMute` silences with "Silenced … It is still tracked." and "Undo silencing …", whose Undo unmutes; from muted it says "Reminders back on for …" with "Undo reminders back on for …", whose Undo mutes again.
+
+### Unlocking has an Undo that revokes
+
+`confirmEnrollment` stamps `enrolledAt`, says "Equinox Credit unlocked." with "Undo unlocking Equinox Credit", and the Undo clears it.
+
+### Removing and clearing report without an Undo
+
+`removeClaim` says "Removed $30 from …" and `unclaimAll` "Cleared what was logged against …", each with no action.
+
+## Snackbar
+
+`snackbar_test.dart` pumps `SnackbarHost` bare with the test clock, then the whole app at 1280 and 402 ([[mobile-architecture#Undo and the snackbar]]).
+
+### An undo stays up for twenty seconds
+
+A message with an action is still there at 19 seconds and gone at 21.
+
+### A plain message leaves sooner
+
+A message without an action shows no Undo, is there at 3 seconds and gone at 4.
+
+### Focus pauses the timer and leaving restarts it
+
+Focusing the Undo at 5 seconds holds the bar through 30; blurring restarts the full 20, so it is there at 49 and gone at 51.
+
+### The pointer pauses the timer too
+
+A mouse over the bar at 5 seconds holds it through 30; moving away restarts the 20 the same way.
+
+### The undo button says what it undoes
+
+An action with a semantics label yields a button found by "Undo logging Uber Cash" whose visible text is "Undo"; tapping it acts once and dismisses the bar.
+
+### A newer message replaces the older
+
+A second message at 15 seconds replaces the first and is still up 15 seconds later, then gone after its own 20.
+
+### The snackbar centres on the content column
+
+At 1280 with the sample household, the bar's centre is the content column's centre, which is not the window's, and it is no wider than the column.
+
+### The snackbar sits above the bar on a phone
+
+At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centred on the phone column.
+
 ## End to end
 
 `integration_test/app_test.dart` drives the real app on a simulator or emulator through `make e2e` ([[mobile-architecture#Make targets]]); it is not part of the verify gate.
