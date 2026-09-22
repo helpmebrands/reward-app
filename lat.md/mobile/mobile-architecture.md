@@ -31,7 +31,17 @@ The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves 
 
 The views are instances by urgency narrowed by the household filter, the missed ledger, the four totals, the use-soon, locked and captured lists, overlaps and the next reset.
 
-Today is read from a clock on every access rather than captured at boot, because an app resumed the next morning must show that morning's deadlines ([[architecture#The app store#Keeping today fresh]] in the PWA). Tests and previews inject a fixed clock. `replaceAll` writes the snapshot back through the store; the screens never touch storage.
+Today is read from a clock on every access rather than captured at boot, because an app resumed the next morning must show that morning's deadlines ([[architecture#The app store#Keeping today fresh]] in the PWA). The clock is a `DateTime` source, so today and the `createdAt`, `updatedAt`, `enrolledAt` and `claimedAt` instants a mutation stamps come from the same place; tests and previews inject a fixed one. The screens never touch storage.
+
+### Mutations
+
+The store carries the PWA's mutations ([[architecture#The app store]]); every one replaces the snapshot, notifies once and saves through the snapshot store.
+
+Cards: `addCardFromTemplate`, `updateCard`, `toggleCardMute`, `archiveCard`, `deleteCard`. Benefits: `addBenefit`, `updateBenefit`, `toggleBenefitMute`, `confirmEnrollment`, `revokeEnrollment`, `deleteBenefit`. Claims: `claim`, `unclaim`, `removeClaim`. Settings: `updateSettings`, `updateNotificationSettings`. And `replaceAll`.
+
+Every one builds the next snapshot with the domain types' `copyWith`, replaces the store's snapshot, notifies once and then saves it through the [[mobile-architecture#The snapshot store|snapshot store]]; the returned future completes when the save does, but the change is visible and announced before the first await, so a screen that ignores the future still redraws at once. Patches are functions of the current record (`updateCard(id, (card) => card.copyWith(...))`) rather than partial objects, and the store stamps `updatedAt` after applying them. `claim` without an amount records the instance's remaining cents, not the face value, so a second claim against a partly used credit cannot overshoot; `deleteCard` cascades to the card's benefits and their claims, `deleteBenefit` to its claims. `addCardFromTemplate` takes the holder, an optional nickname, last four, anniversary (today by default) and, for the blank template, the typed issuer and product. Ids are version 4 UUIDs from `lib/logic/ids.dart` with no package, the shape the PWA's `crypto.randomUUID()` gives, so ids from either app look alike.
+
+A write that lands before `load` resolves is kept when the snapshot arrives, the PWA's "user's action wins" rule: nothing in the UI can write while `loading` is true, but a caller that does not wait must not have its change silently discarded. A mutation with no snapshot yet starts from `emptyAppData()`, the PWA's defaults in `lib/data/snapshot_store.dart`. Pinned by [[mobile-tests#Store]].
 
 ## State management
 
