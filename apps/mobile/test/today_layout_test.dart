@@ -54,7 +54,7 @@ Finder sectionTitle(String text) => find.textContaining(text);
 /// Every label in the semantics tree, in traversal order: what a screen
 /// reader would read, top to bottom.
 List<String> spokenOrder(WidgetTester tester) {
-  final root = tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!;
+  final root = tester.getSemantics(find.byType(ListView));
   final labels = <String>[];
   void visit(SemanticsNode node) {
     if (node.label.isNotEmpty) labels.add(node.label);
@@ -126,11 +126,11 @@ void main() {
     tester,
   ) async {
     final handle = tester.ensureSemantics();
-    addTearDown(handle.dispose);
     await pumpToday(tester, WidthClass.compact);
     final compact = spokenOrder(tester);
     await pumpToday(tester, WidthClass.expanded);
     final expanded = spokenOrder(tester);
+    handle.dispose();
     expect(compact, isNotEmpty);
     expect(expanded, compact);
   });

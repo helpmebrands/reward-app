@@ -1,5 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../logic/app_store.dart';
 import '../shell/width_class.dart';
@@ -56,6 +57,7 @@ class _TodayBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
+    final widthClass = WidthClass.of(context);
     final totals = store.totals;
     final soon = store.soon;
     final locked = store.locked;
@@ -67,108 +69,231 @@ class _TodayBody extends StatelessWidget {
     final daysToReset = soon.isEmpty ? null : soon.first.daysRemaining;
     final parts = moneyParts(totals.claimableCents);
 
-    return ListView(
-      padding: EdgeInsets.all(WidthClass.of(context).padding),
-      children: [
-        Semantics(
-          header: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text('HelpMe Reward', style: text.titleMedium),
-              const SizedBox(width: Space.s3),
-              Text(
-                formatHeaderDate(store.today),
-                style: text.bodySmall?.copyWith(color: tokens.textSecondary),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: Space.s8),
-        Text(
-          'UNCLAIMED, OPEN PERIODS',
-          style: text.labelSmall?.copyWith(color: tokens.textSecondary),
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final header = _Section(
+      order: 0,
+      child: Semantics(
+        header: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(parts.symbol, style: text.headlineSmall),
-            // The number shrinks with the column rather than forcing a
-            // sideways scroll, as the PWA's clamp() does.
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  parts.digits,
-                  key: const Key('today-amount'),
-                  style: text.displayMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
+            Text('HelpMe Reward', style: text.titleMedium),
+            const SizedBox(width: Space.s3),
+            Text(
+              formatHeaderDate(store.today),
+              style: text.bodySmall?.copyWith(color: tokens.textSecondary),
             ),
           ],
         ),
-        Text(
-          headlineSub(),
-          style: text.bodyMedium?.copyWith(color: tokens.textSecondary),
-        ),
-        if (soon.isNotEmpty) ...[
-          const SizedBox(height: Space.s8),
-          _SectionTitle(
-            resetOn != null
-                ? 'Use soon — resets ${formatResetDate(resetOn)}'
-                : 'Use soon',
-            trailing: daysToReset == null
-                ? null
-                : (daysToReset == 0 ? 'today' : '$daysToReset days'),
-          ),
-          for (final instance in soon) ...[
-            const SizedBox(height: Space.s2),
-            CreditRow(instance: instance, showCard: showCard),
-          ],
-        ],
-        if (overlaps.isNotEmpty) ...[
-          const SizedBox(height: Space.s8),
-          const _SectionTitle('Two cards, one benefit'),
+      ),
+    );
+
+    final headline = _Section(
+      order: 1,
+      child: Column(
+        key: const Key('today-headline'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Text(
-            'These credits exist twice in the household, and one purchase cannot draw on both.'
-            '${allOverlaps.length > overlaps.length ? ' Showing the ${overlaps.length} largest of ${allOverlaps.length}; the rest are on Credits.' : ''}',
-            style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+            'UNCLAIMED, OPEN PERIODS',
+            style: text.labelSmall?.copyWith(color: tokens.textSecondary),
           ),
-          for (final overlap in overlaps) ...[
-            const SizedBox(height: Space.s2),
-            _OverlapCard(overlap: overlap),
-          ],
-        ],
-        if (locked.isNotEmpty) ...[
-          const SizedBox(height: Space.s8),
-          const _SectionTitle('Locked behind enrolment'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(parts.symbol, style: text.headlineSmall),
+              // The number shrinks with the column rather than forcing a
+              // sideways scroll, as the PWA's clamp() does.
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    parts.digits,
+                    key: const Key('today-amount'),
+                    style: text.displayMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           Text(
-            '${formatMoney(totals.lockedCents)} you cannot touch until you tick a box on the '
-            'issuer’s benefits page.',
-            style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+            headlineSub(),
+            style: text.bodyMedium?.copyWith(color: tokens.textSecondary),
           ),
-          for (final instance in locked) ...[
-            const SizedBox(height: Space.s2),
-            CreditRow(instance: instance, showCard: showCard),
-          ],
         ],
-        if (captured.isNotEmpty) ...[
-          const SizedBox(height: Space.s8),
-          _SectionTitle(
-            'Captured this period — ${formatMoney(totals.capturedCents)}',
-          ),
-          for (final instance in captured) ...[
-            const SizedBox(height: Space.s2),
-            CreditRow(instance: instance, showCard: showCard),
-          ],
-        ],
+      ),
+    );
+
+    final soonSection = soon.isEmpty
+        ? null
+        : _Section(
+            order: 2,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: Space.s8),
+                _SectionTitle(
+                  resetOn != null
+                      ? 'Use soon — resets ${formatResetDate(resetOn)}'
+                      : 'Use soon',
+                  trailing: daysToReset == null
+                      ? null
+                      : (daysToReset == 0 ? 'today' : '$daysToReset days'),
+                ),
+                for (final instance in soon) ...[
+                  const SizedBox(height: Space.s2),
+                  CreditRow(instance: instance, showCard: showCard),
+                ],
+              ],
+            ),
+          );
+
+    final overlapsSection = overlaps.isEmpty
+        ? null
+        : _Section(
+            order: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: Space.s8),
+                const _SectionTitle('Two cards, one benefit'),
+                Text(
+                  'These credits exist twice in the household, and one purchase cannot draw on both.'
+                  '${allOverlaps.length > overlaps.length ? ' Showing the ${overlaps.length} largest of ${allOverlaps.length}; the rest are on Credits.' : ''}',
+                  style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+                ),
+                // Two across from medium, as the PWA pairs them; the widget
+                // order is the phone's either way.
+                if (widthClass == WidthClass.compact)
+                  for (final overlap in overlaps) ...[
+                    const SizedBox(height: Space.s2),
+                    _OverlapCard(overlap: overlap),
+                  ]
+                else
+                  for (var i = 0; i < overlaps.length; i += 2) ...[
+                    const SizedBox(height: Space.s2),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _OverlapCard(overlap: overlaps[i])),
+                          const SizedBox(width: Space.s2),
+                          Expanded(
+                            child: i + 1 < overlaps.length
+                                ? _OverlapCard(overlap: overlaps[i + 1])
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+              ],
+            ),
+          );
+
+    final lockedSection = locked.isEmpty
+        ? null
+        : _Section(
+            order: 4,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: Space.s8),
+                const _SectionTitle('Locked behind enrolment'),
+                Text(
+                  '${formatMoney(totals.lockedCents)} you cannot touch until you tick a box on the '
+                  'issuer’s benefits page.',
+                  style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+                ),
+                for (final instance in locked) ...[
+                  const SizedBox(height: Space.s2),
+                  CreditRow(instance: instance, showCard: showCard),
+                ],
+              ],
+            ),
+          );
+
+    final capturedSection = captured.isEmpty
+        ? null
+        : _Section(
+            order: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: Space.s8),
+                _SectionTitle(
+                  'Captured this period — ${formatMoney(totals.capturedCents)}',
+                ),
+                for (final instance in captured) ...[
+                  const SizedBox(height: Space.s2),
+                  CreditRow(instance: instance, showCard: showCard),
+                ],
+              ],
+            ),
+          );
+
+    final body = widthClass == WidthClass.expanded
+        // Two columns under the headline: what needs doing and what is done
+        // on the left, what is locked on the right. The sections carry sort
+        // keys so a screen reader still hears the phone order.
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [?soonSection, ?overlapsSection, ?capturedSection],
+                ),
+              ),
+              SizedBox(width: widthClass.padding),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [?lockedSection],
+                ),
+              ),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ?soonSection,
+              ?overlapsSection,
+              ?lockedSection,
+              ?capturedSection,
+            ],
+          );
+
+    return ListView(
+      padding: EdgeInsets.all(widthClass.padding),
+      children: [
+        header,
+        const SizedBox(height: Space.s8),
+        headline,
+        body,
       ],
     );
   }
+}
+
+/// One of Today's sections as a semantics node with its place in the phone
+/// order, so the two-column layout reads top to bottom the way the phone
+/// does rather than by position on screen.
+class _Section extends StatelessWidget {
+  const _Section({required this.order, required this.child});
+
+  final int order;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    sortKey: OrdinalSortKey(order.toDouble(), name: 'today'),
+    child: child,
+  );
 }
 
 class _SectionTitle extends StatelessWidget {
