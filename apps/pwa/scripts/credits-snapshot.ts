@@ -99,6 +99,17 @@ function groups(filter: Filter, grouping: Grouping) {
 
 const row = (i: BenefitInstance) => `${i.benefit.name} · ${i.card.holder} · ${i.cycle.label}`
 
+/** The rows as the screen draws them under the default grouping, by card. */
+function rendered(filter: Filter): string[] {
+  const buckets = new Map<string, BenefitInstance[]>()
+  for (const instance of filtered(filter)) {
+    const bucket = buckets.get(instance.card.id)
+    if (bucket) bucket.push(instance)
+    else buckets.set(instance.card.id, [instance])
+  }
+  return [...buckets.values()].flat().map(row)
+}
+
 console.log(
   JSON.stringify(
     {
@@ -112,7 +123,7 @@ console.log(
         live,
         missed.reduce((sum, m) => sum + m.missedCents, 0),
       ),
-      filters: Object.fromEntries(FILTERS.map((f) => [f, filtered(f).map(row)])),
+      filters: Object.fromEntries(FILTERS.map((f) => [f, rendered(f)])),
       groups: {
         card: groups('all', 'card'),
         cycle: groups('all', 'cycle'),

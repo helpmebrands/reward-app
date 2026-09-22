@@ -239,6 +239,15 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<CreditRow>(resy).tone, RowTone.soon);
 
+    // Swipes while open: left parks on Silence, a tap away closes it.
+    await tester.drag(resy, const Offset(-60, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Silence').hitTestable(), findsOneWidget);
+    // Just below the row, in the gap before the next one.
+    await tester.tapAt(Offset(200, tester.getRect(resy).bottom + 2));
+    await tester.pumpAndSettle();
+    expect(find.text('Silence').hitTestable(), findsNothing);
+
     await tester.tap(resy);
     await tester.pumpAndSettle();
     expect(ui.openBenefitId, 'ben-0018');
@@ -246,9 +255,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.widget<CreditRow>(resy).tone, RowTone.captured);
-    await tester.drag(resy, const Offset(-60, 0));
-    await tester.pumpAndSettle();
-    expect(find.text('Silence').hitTestable(), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Credits#The totals re-flow with the width]]
@@ -312,14 +318,12 @@ void main() {
   ) async {
     await pumpCredits(tester, textScale: 2, height: 20000);
     expect(tester.takeException(), isNull);
-    for (final element in find.byType(Text, skipOffstage: false).evaluate()) {
-      final box = element.renderObject as RenderBox?;
-      if (box == null || !box.hasSize) continue;
-      final rect = box.localToGlobal(Offset.zero) & box.size;
+    final texts = find.byType(Text, skipOffstage: false);
+    for (var i = 0; i < texts.evaluate().length; i++) {
       expect(
-        rect.right,
+        tester.getRect(texts.at(i)).right,
         lessThanOrEqualTo(402.5),
-        reason: (element.widget as Text).data,
+        reason: tester.widget<Text>(texts.at(i)).data,
       );
     }
   });
