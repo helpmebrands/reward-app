@@ -2,16 +2,17 @@
 # Prints the id of a device to run on, booting a simulator or emulator when
 # nothing of that platform is running. Used by the Makefile's e2e and run.
 #
-#   scripts/pick-device.sh ios|android [device-id]
+#   scripts/pick-device.sh ios|android|macos [device-id]
 #
 # A given device id is echoed back untouched. For ios the booted iPhone
 # simulator wins, else the first available iPhone simulator is booted. For
 # android the first attached device or emulator wins, else the first defined
-# emulator is launched and waited for. Nothing here reads a physical device
-# preference; pass its id to run on a phone.
+# emulator is launched and waited for. For macos the device is the desktop
+# itself. Nothing here reads a physical device preference; pass its id to run
+# on a phone.
 set -euo pipefail
 
-platform="${1:?usage: pick-device.sh ios|android [device-id]}"
+platform="${1:?usage: pick-device.sh ios|android|macos [device-id]}"
 if [ -n "${2:-}" ]; then
   printf '%s\n' "$2"
   exit 0
@@ -42,8 +43,11 @@ case "$platform" in
       device=$(attached)
     fi
     ;;
+  macos)
+    device=macos
+    ;;
   *)
-    echo "unknown platform '$platform'; use ios or android" >&2
+    echo "unknown platform '$platform'; use ios, android or macos" >&2
     exit 2
     ;;
 esac
