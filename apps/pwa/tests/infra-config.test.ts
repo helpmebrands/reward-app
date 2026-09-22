@@ -628,6 +628,14 @@ describe('mobile release workflow', () => {
     expect(runbook).not.toMatch(/does not\s+yet build a release/)
     expect(runbook).toMatch(/processing/i)
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Info.plist answers export compliance]]
+  it('declares ITSAppUsesNonExemptEncryption false in Info.plist and says so in runbook 07', () => {
+    const plist = read('apps/mobile/ios/Runner/Info.plist')
+    expect(plist).toMatch(/<key>ITSAppUsesNonExemptEncryption<\/key>\s*<false\/>/)
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).toContain('ITSAppUsesNonExemptEncryption')
+  })
 })
 
 describe('runbook 01 keeps the two Pulumi projects apart', () => {
