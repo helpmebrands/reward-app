@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/app_store.dart';
+import '../logic/credit_actions.dart';
 import '../theme/nocturne_tokens.dart' hide Tone;
 
 /// Quick amounts: a quarter and a half of what is left, rounded to whole
@@ -26,14 +27,17 @@ List<int> quickAmounts(int remainingCents) {
 class CreditSheet extends StatelessWidget {
   const CreditSheet({
     super.key,
-    required this.store,
+    required this.actions,
     required this.benefitId,
     required this.onClose,
   });
 
-  final AppStore store;
+  /// The shared actions, so a sheet button does what a swipe does.
+  final CreditActions actions;
   final String benefitId;
   final VoidCallback onClose;
+
+  AppStore get store => actions.store;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +46,11 @@ class CreditSheet extends StatelessWidget {
       builder: (context, _) {
         final instance = store.instanceFor(benefitId);
         if (instance == null) return _Gone(onClose: onClose);
-        return _SheetBody(store: store, instance: instance, onClose: onClose);
+        return _SheetBody(
+          actions: actions,
+          instance: instance,
+          onClose: onClose,
+        );
       },
     );
   }
@@ -81,12 +89,12 @@ class _CloseButton extends StatelessWidget {
 
 class _SheetBody extends StatefulWidget {
   const _SheetBody({
-    required this.store,
+    required this.actions,
     required this.instance,
     required this.onClose,
   });
 
-  final AppStore store;
+  final CreditActions actions;
   final BenefitInstance instance;
   final VoidCallback onClose;
 
@@ -101,7 +109,8 @@ class _SheetBodyState extends State<_SheetBody> {
 
   BenefitInstance get instance => widget.instance;
   Benefit get benefit => instance.benefit;
-  AppStore get store => widget.store;
+  CreditActions get actions => widget.actions;
+  AppStore get store => actions.store;
 
   @override
   void dispose() {
@@ -110,7 +119,7 @@ class _SheetBodyState extends State<_SheetBody> {
   }
 
   void _log([int? amountCents]) {
-    store.claim(instance, amountCents: amountCents);
+    actions.log(instance, amountCents: amountCents);
     widget.onClose();
   }
 
@@ -255,7 +264,7 @@ class _SheetBodyState extends State<_SheetBody> {
                   ),
                   const SizedBox(height: Space.s4),
                   OutlinedButton(
-                    onPressed: () => store.confirmEnrollment(benefit.id),
+                    onPressed: () => actions.confirmEnrollment(instance),
                     child: const Text('I’ve enrolled — unlock this credit'),
                   ),
                 ],
@@ -356,7 +365,7 @@ class _SheetBodyState extends State<_SheetBody> {
                           ),
                         ),
                         OutlinedButton(
-                          onPressed: () => store.removeClaim(claim.id),
+                          onPressed: () => actions.removeClaim(instance, claim),
                           child: Text(
                             'Remove',
                             semanticsLabel:
@@ -384,8 +393,7 @@ class _SheetBodyState extends State<_SheetBody> {
                     ),
                   ),
                   OutlinedButton(
-                    onPressed: () =>
-                        store.unclaim(benefit.id, instance.cycle.key),
+                    onPressed: () => actions.unclaimAll(instance),
                     child: const Text('Undo'),
                   ),
                 ],
@@ -513,7 +521,7 @@ class _SheetBodyState extends State<_SheetBody> {
                 '${statusLabel(status).toLowerCase()}.',
             label: 'Silence reminders for ${benefit.name}',
             value: benefit.muted,
-            onChanged: (_) => store.toggleBenefitMute(benefit.id),
+            onChanged: (_) => actions.toggleMute(instance),
           ),
         ],
       ),

@@ -4,6 +4,8 @@ import 'package:flutter/widget_previews.dart';
 
 import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
+import 'logic/credit_actions.dart';
+import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
 import 'screens/stub_screen.dart';
@@ -13,6 +15,7 @@ import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/sheet_host.dart';
+import 'widgets/snackbar_host.dart';
 
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
@@ -198,7 +201,11 @@ Widget _sheetContent(String benefitId, Brightness brightness) {
       widthClass: WidthClass.expanded,
       title: 'Credit',
       onClose: () {},
-      sheet: CreditSheet(store: store, benefitId: benefitId, onClose: () {}),
+      sheet: CreditSheet(
+        actions: CreditActions(store: store, snackbar: SnackbarState()),
+        benefitId: benefitId,
+        onClose: () {},
+      ),
       child: const SizedBox.expand(),
     ),
     brightness,
@@ -219,3 +226,37 @@ Widget creditSheetCaptured() => _sheetContent('u1', Brightness.dark);
 
 @Preview(name: 'Credit sheet, untouched', size: Size(420, 700))
 Widget creditSheetUntouched() => _sheetContent('u2', Brightness.dark);
+
+/// The undo snackbar over Today, as logging a credit shows it.
+Widget _snackbarAt(Size size) {
+  final store = _store();
+  final ui = UiState();
+  ui.snackbar.show(
+    'Logged \$15 on Uber Cash.',
+    action: SnackbarAction(
+      label: 'Undo',
+      semanticsLabel: 'Undo logging Uber Cash',
+      onAct: () {},
+    ),
+  );
+  return SizedBox.fromSize(
+    size: size,
+    child: RewardApp(store: store, ui: ui),
+  );
+}
+
+@Preview(name: 'Snackbar with Undo, compact', size: Size(402, 874))
+Widget snackbarCompact() => _snackbarAt(const Size(402, 874));
+
+@Preview(name: 'Snackbar with Undo, expanded', size: Size(1280, 800))
+Widget snackbarExpanded() => _snackbarAt(const Size(1280, 800));
+
+@Preview(name: 'Snackbar, plain', size: Size(402, 200))
+Widget snackbarPlain() {
+  final snackbar = SnackbarState()
+    ..show('Removed \$20 from Resy Dining Credit.');
+  return _themed(
+    SnackbarHost(snackbar: snackbar, child: const SizedBox.expand()),
+    Brightness.dark,
+  );
+}
