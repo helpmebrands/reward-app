@@ -34,6 +34,18 @@ The headline digits are the claimable total from the fixture, the subtitle names
 
 The three largest overlaps from the fixture appear as cards with their label, count and combined unclaimed value.
 
+### Medium pairs the overlap cards
+
+`today_layout_test.dart` renders Today bare inside a `WidthClassScope`. At medium the first two overlap cards share a top edge and sit side by side and the third starts a new row under the first; at compact they stack.
+
+### Expanded splits the body in two under the headline
+
+At expanded the headline block spans the full inner width, the use-soon and captured titles start at the left padding, the locked title starts past the centre on the same line as use-soon, and the first credit row ends before the centre.
+
+### The screen reader hears the phone order at every width
+
+The labels of the semantics tree in traversal order at expanded are exactly the labels at compact, so the two-column layout does not change what is read or in what sequence.
+
 ### A fresh install shows the first-run screen
 
 With no snapshot the screen shows "Start with one card" and no rows.
