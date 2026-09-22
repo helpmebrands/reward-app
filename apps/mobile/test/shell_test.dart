@@ -112,10 +112,11 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester, const Size(402, 874));
-    expect(find.text(stubBody), findsNothing);
+    final addCard = find.byKey(const Key('add-card'), skipOffstage: false);
+    expect(addCard, findsNothing);
     await tester.tap(find.text('Cards'));
     await tester.pumpAndSettle();
-    expect(find.text(stubBody), findsOneWidget);
+    expect(addCard, findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       2,

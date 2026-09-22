@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
 import '../screens/stub_screen.dart';
 import '../screens/today_screen.dart';
@@ -15,7 +16,11 @@ abstract final class Paths {
   static const credits = '/credits';
   static const cards = '/cards';
   static const value = '/value';
+  static const newCard = '/cards/new';
 }
+
+/// The card editor's path for one card.
+String cardPath(String id) => '/cards/$id';
 
 /// One of the four destinations the bar and the rail share, in the order
 /// both show them.
@@ -81,7 +86,10 @@ GoRouter appRouter(AppStore store) => GoRouter(
           routes: [
             GoRoute(
               path: Paths.cards,
-              builder: (context, state) => const StubScreen('Cards'),
+              builder: (context, state) => CardsScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
           ],
         ),

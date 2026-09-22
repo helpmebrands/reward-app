@@ -11,6 +11,7 @@ import 'package:reward/logic/ui_state.dart';
 import 'package:reward/screens/cards_screen.dart';
 import 'package:reward/shell/width_class.dart';
 import 'package:reward/theme/theme.dart';
+import 'package:reward/widgets/snackbar_host.dart';
 
 /// The Cards screen against what the PWA shows for the sample household on
 /// 16 September 2026, dumped by `apps/pwa/scripts/cards-snapshot.ts`.
@@ -57,7 +58,10 @@ Future<Pumped> pumpCards(
       home: Scaffold(
         body: WidthClassScope(
           widthClass: widthClass,
-          child: CardsScreen(store: store, ui: ui),
+          child: SnackbarHost(
+            snackbar: ui.snackbar,
+            child: CardsScreen(store: store, ui: ui),
+          ),
         ),
       ),
     ),
