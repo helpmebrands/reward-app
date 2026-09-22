@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../screens/credits_screen.dart';
 import '../screens/stub_screen.dart';
 import '../screens/today_screen.dart';
 import 'app_scope.dart';
@@ -69,7 +70,10 @@ GoRouter appRouter(AppStore store) => GoRouter(
           routes: [
             GoRoute(
               path: Paths.credits,
-              builder: (context, state) => const StubScreen('Credits'),
+              builder: (context, state) => CreditsScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
           ],
         ),

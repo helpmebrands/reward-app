@@ -398,10 +398,7 @@ void main() {
       // sheet stays open.
       await tester.tap(find.text('Credits'));
       await tester.pumpAndSettle();
-      expect(
-        find.text('This screen arrives with a later issue.'),
-        findsOneWidget,
-      );
+      expect(find.text('All credits'), findsOneWidget);
       expect(app.ui.openBenefitId, 'resy');
       expect(sheet, findsOneWidget);
     });

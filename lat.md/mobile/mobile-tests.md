@@ -86,6 +86,48 @@ With reminders off, "Preview nudge" shows "$1,658.90 on the line — one week le
 
 With reminders on, the preview is the first reminder `buildSchedule` produces after the clock, by id, title and body; "Dismiss preview" clears it.
 
+## Credits
+
+`credits_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-credits.json`, dumped by `apps/pwa/scripts/credits-snapshot.ts` ([[mobile-architecture#Credits screen]]).
+
+The fixture carries the header counts, the four totals, every filter's rows as drawn under the card grouping, and every grouping's labels and figures.
+
+### The header carries the counts and the four totals
+
+"All credits" is headed by "12 open · 2 locked · 48 missed", and the Claimable, Locked, Captured and Missed tiles show the fixture's totals.
+
+### Each filter shows the PWA's rows
+
+All shows the 72 rows the PWA shows in its order, and choosing Use soon, Open, Locked, Captured and Missed in turn shows exactly the fixture's rows for each.
+
+### Groupings produce the PWA's labels in order
+
+Card, Cycle and Status produce the fixture's group labels and figures in the fixture's order.
+
+### A group figure follows the filter and never mixes
+
+Under Missed by card the figures are the fixture's, starting "$653.60 missed"; under Captured they start "$741 captured"; no figure mentions both.
+
+### An empty filter says so
+
+A household with only a locked credit shows "Nothing matches that filter." and no rows under Captured.
+
+### Rows swipe and open the sheet in place
+
+In the app on the Credits tab, Kathy's Resy row swipes left to "Silence" and a tap away closes it; tapping the row opens its sheet, "Mark the full $100 used" turns that same row captured in place.
+
+### The totals re-flow with the width
+
+At compact Claimable and Locked share a top edge and Captured sits below; at expanded all four share a top edge inside the padded column.
+
+### Segments carry labels and a selected state
+
+"All" and "Card" are selected, "Missed" and "Cycle" are not, the groups are labelled "Filter by status" and "Group credits by", and choosing Missed moves the selection.
+
+### Credits at 200% clips nothing
+
+At a 2.0 text scale on 402 the screen raises no layout exception and every text's painted rectangle ends inside the width.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).
