@@ -13,7 +13,10 @@ import 'screens/today_screen.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
+import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
+import 'widgets/holder_filter.dart';
+import 'widgets/nudge_preview.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
 
@@ -295,3 +298,84 @@ Widget snackbarPlain() {
     Brightness.dark,
   );
 }
+
+@Preview(name: 'Today, interactive', size: Size(402, 874))
+Widget todayInteractive() {
+  final store = _store();
+  return _themed(TodayScreen(store: store, ui: UiState()), Brightness.dark);
+}
+
+@Preview(name: 'Household filter', size: Size(402, 120))
+Widget holderFilter() => _themed(
+  Padding(
+    padding: const EdgeInsets.all(16),
+    child: HolderFilter(store: _store()),
+  ),
+  Brightness.dark,
+);
+
+@Preview(name: 'Compare sheet', size: Size(480, 700))
+Widget compareSheet() {
+  final store = _store();
+  return _themed(
+    ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final overlap = store.overlapFor('Uber Cash');
+        if (overlap == null) return const Center(child: Text('Loading…'));
+        return SheetHost(
+          open: true,
+          widthClass: WidthClass.medium,
+          wide: SheetWide.dialog,
+          sheetKey: const Key('compare-sheet'),
+          title: overlap.label,
+          onClose: () {},
+          sheet: CompareSheet(
+            overlap: overlap,
+            actions: CreditActions(store: store, snackbar: SnackbarState()),
+            onClose: () {},
+            onOpenCredit: (_) {},
+          ),
+          child: const SizedBox.expand(),
+        );
+      },
+    ),
+    Brightness.dark,
+  );
+}
+
+@Preview(name: 'Nudge preview', size: Size(402, 160))
+Widget nudgePreview() => _themed(
+  Align(
+    alignment: Alignment.topCenter,
+    child: NudgePreview(
+      reminder: sampleReminder(165890, DateTime(2026, 9, 16)),
+      onDismiss: () {},
+      onOpen: () {},
+    ),
+  ),
+  Brightness.dark,
+);
+
+@Preview(name: 'Nudge preview, urgent', size: Size(402, 160))
+Widget nudgePreviewUrgent() => _themed(
+  Align(
+    alignment: Alignment.topCenter,
+    child: NudgePreview(
+      reminder: const Reminder(
+        id: 'r',
+        fireAt: 0,
+        title: '\$100 on the line — last call',
+        body: 'Resy Dining Credit closes tonight. Kathy’s card.',
+        tag: 'last-call',
+        url: '/',
+        items: [],
+        totalCents: 10000,
+        tone: Tone.urgent,
+      ),
+      onDismiss: () {},
+      onOpen: () {},
+    ),
+  ),
+  Brightness.dark,
+);

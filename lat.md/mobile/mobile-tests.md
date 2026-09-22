@@ -50,6 +50,42 @@ The labels of the semantics tree in traversal order at expanded are exactly the 
 
 With no snapshot the screen shows "Start with one card" and no rows.
 
+## Today interactions
+
+`today_interactions_test.dart` pumps the whole app at 402 wide over the sample household, dated 16 September 2026, with the ui state injected, and drives Today the way a user does ([[mobile-architecture#Today screen#Today's interactions]]).
+
+### A row opens the sheet and logging moves it to captured
+
+Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, drops the headline from $1,658.90 to $1,558.90, draws that row in the captured tone and shows the undo snackbar.
+
+### Swiping a row logs it with an undo
+
+A 60 pixel swipe on the same row and a tap on "Log it" drops the headline the same way, and "Undo logging Resy Dining Credit" restores it.
+
+### The household filter narrows the screen
+
+The filter reads "Everyone in the household"; choosing Jim writes the setting, leaves only Jim's rows, and the headline becomes the claimable total of Jim's instances.
+
+### One holder has no filter
+
+With only Jim's card and benefits the filter is not rendered.
+
+### An overlap card opens the compare sheet
+
+Tapping "Hotel Credit (FHR / THC) × 2" opens the compare sheet with Jim's and Kathy's sides, "Both sides are untouched at $300", and a log button per side; "Log $300 on Jim's card" closes it and records a $300 claim on Jim's hotel credit.
+
+### A compare side opens that credit
+
+Tapping Kathy's side closes the compare and opens the credit sheet for Kathy's hotel credit.
+
+### Preview nudge shows the stand-in when nothing is scheduled
+
+With reminders off, "Preview nudge" shows "$1,658.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
+
+### Preview nudge shows the next scheduled reminder
+
+With reminders on, the preview is the first reminder `buildSchedule` produces after the clock, by id, title and body; "Dismiss preview" clears it.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).
