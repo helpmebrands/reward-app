@@ -1,6 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/foundation.dart';
 
+import 'snackbar_state.dart';
+
 /// Transient UI state: which sheet is open, and whether the nudge preview is
 /// up. The counterpart of the PWA's `UiProvider`.
 ///
@@ -10,6 +12,11 @@ import 'package:flutter/foundation.dart';
 /// one would leave the sheet showing a balance that went stale the moment the
 /// user logged something.
 class UiState extends ChangeNotifier {
+  /// The one snackbar, owned here so the shell draws it and any screen or
+  /// sheet can show one. Its own notifier, so a message does not rebuild
+  /// whatever listens for the sheets.
+  final SnackbarState snackbar = SnackbarState();
+
   String? _openBenefitId;
   String? _openOverlapLabel;
   Reminder? _nudge;
@@ -56,5 +63,11 @@ class UiState extends ChangeNotifier {
     if (_nudge == null) return;
     _nudge = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    snackbar.dispose();
+    super.dispose();
   }
 }

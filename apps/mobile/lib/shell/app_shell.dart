@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../logic/credit_actions.dart';
 import '../widgets/credit_sheet.dart';
 import '../widgets/sheet_host.dart';
+import '../widgets/snackbar_host.dart';
 import 'app_scope.dart';
 import 'router.dart';
 import 'ui_scope.dart';
@@ -34,7 +36,7 @@ class AppShell extends StatelessWidget {
       sheet: openId == null
           ? null
           : CreditSheet(
-              store: store,
+              actions: CreditActions(store: store, snackbar: ui.snackbar),
               benefitId: openId,
               onClose: ui.closeCredit,
             ),
@@ -55,6 +57,8 @@ class _Scaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The snackbar lives inside the column, so it centres on the column the
+    // rail pushes off centre and sits above the bar, never over it.
     final column = WidthClassScope(
       widthClass: widthClass,
       child: Align(
@@ -62,7 +66,10 @@ class _Scaffold extends StatelessWidget {
         child: ConstrainedBox(
           key: const Key('content-column'),
           constraints: BoxConstraints(maxWidth: widthClass.column),
-          child: navigationShell,
+          child: SnackbarHost(
+            snackbar: UiScope.of(context).snackbar,
+            child: navigationShell,
+          ),
         ),
       ),
     );
