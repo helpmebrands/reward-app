@@ -336,14 +336,14 @@ describe('develop ruleset', () => {
     const repo = read('infra-repo/Pulumi.repo.yaml')
     expect(repo).toMatch(/^\s+github:owner:\s*helpmebrands\s*$/m)
     expect(repo).toMatch(/^secretsprovider: gcpkms:\/\//m)
-    expect(repo).not.toMatch(/^\s+github:token:\s*\S/m)
+    expect(repo).not.toMatch(/^\s+github:token:[ \t]*\S/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Staging names the GitHub owner]]
   it('names the GitHub owner per stack and keeps the token out of plain text', () => {
     const staging = read('infra/Pulumi.staging.yaml')
     expect(staging).toMatch(/^\s+github:owner:\s*helpmebrands\s*$/m)
-    expect(staging).not.toMatch(/^\s+github:token:\s*\S/m)
+    expect(staging).not.toMatch(/^\s+github:token:[ \t]*\S/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Verify gate previews GitHub resources with the workflow token]]
@@ -737,8 +737,30 @@ describe('mobile Makefile', () => {
     expect(makefile).toMatch(/^FLUTTER\s*:?=\s*fvm flutter$/m)
     expect(makefile).not.toMatch(/^\t+(flutter|dart) /m)
     const readme = read('apps/mobile/README.md')
-    for (const target of ['make init', 'make build', 'make test', 'make e2e', 'make deploy', 'make help']) {
+    for (const target of [
+      'make init',
+      'make build',
+      'make test',
+      'make e2e',
+      'make deploy',
+      'make help',
+    ]) {
       expect(readme).toContain(target)
     }
+  })
+})
+
+describe('local verify', () => {
+  // @lat: [[infra-tests#Infrastructure config#Root Makefile runs the verify gate locally]]
+  it('has a root Makefile with verify targets and a pre-push hook that calls it', () => {
+    const makefile = read('Makefile')
+    for (const target of ['help', 'init', 'verify', 'verify-full']) {
+      expect(makefile, target).toMatch(new RegExp(`^${target}:.*## `, 'm'))
+    }
+    expect(makefile).toMatch(/core\.hooksPath \.githooks/)
+    const hook = read('.githooks/pre-push')
+    expect(hook).toMatch(/make verify/)
+    expect(statSync(join(root, '.githooks/pre-push')).mode & 0o111).not.toBe(0)
+    expect(read('docs/runbooks/02-routine-change.md')).toContain('make verify')
   })
 })

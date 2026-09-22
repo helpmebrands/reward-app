@@ -30,7 +30,7 @@ $(PLATFORMS):
 	@:
 
 help: ## List the targets
-	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-9s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-9s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo
 	@echo "  Platform argument: make build ios | make build android | make test android | make e2e ios"
 	@echo "  ARGS=\"...\" appends flutter flags; DEVICE=<id> picks a device for e2e and run"

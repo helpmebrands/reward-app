@@ -256,6 +256,10 @@ The version number lives in one file, and `fvm flutter` on a laptop uses the sam
 
 `apps/mobile/Makefile` defines `help`, `init`, `build`, `test`, `e2e` and `deploy`, every recipe calls `fvm flutter` or `fvm dart` rather than a bare SDK, and the app README lists each target, so the entry points are discoverable and pinned ([[mobile-architecture#Make targets]]).
 
+### Root Makefile runs the verify gate locally
+
+The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
+
 ### Verify gate builds and smoke-tests the api
 
 `verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/health` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).

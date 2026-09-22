@@ -18,3 +18,8 @@ The operating procedures live outside this graph, in `docs/runbooks/`, because t
 - `06-database.md` — migrations by job, backups, restore, the proxy, all rehearsed on staging on 2026-09-18 ([[infra-tests#Infrastructure config#Runbooks 06 and 07 exist with their rehearsed commands]]).
 - `07-mobile-release.md` — versioning, signing and the test tracks for the Flutter app, and the honest list of what is not set up.
 
+## Local verify
+
+The root `Makefile` runs the verify workflow's jobs on a laptop, in CI's order, so a push is rarely the first place a failure shows; `.githooks/pre-push` runs it once `make init` has set `core.hooksPath`.
+
+`make verify` covers every job that needs no cloud credentials: the PWA's lint, typecheck, tests and build (whose root scripts also typecheck and test the two Pulumi projects), Dart analyze and test, the Flutter checks through `apps/mobile/Makefile`, and the api tests against docker compose. `make verify-full` adds the Playwright accessibility gate and both container builds. The Pulumi previews stay in CI ([[deployment#Pipeline]]); runbook 02 maps each job to its row. Pinned by [[infra-tests#Infrastructure config#Root Makefile runs the verify gate locally]].

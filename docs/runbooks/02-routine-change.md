@@ -17,19 +17,8 @@ $ cd ../reward-app-<issue>
 
 # ... work ...
 
-# PWA
-$ npm test          # the fast signal — under three seconds
-$ npm run lint
-$ npm run build     # typechecks, then bundles
-
-# domain and api
-$ fvm dart analyze --fatal-infos
-$ (cd packages/domain && fvm dart test)
-$ (cd services/api && docker compose up -d --wait && \
-   DATABASE_URL='postgres://reward:reward@localhost:5432/reward?sslmode=disable' fvm dart test)
-
-# mobile
-$ (cd apps/mobile && fvm flutter analyze --fatal-infos && fvm flutter test)
+$ npm test          # the fast signal while working — under three seconds
+$ make verify       # what CI will check, about two minutes; see below
 
 $ git push -u origin feat/<issue>-<slug>
 $ gh pr create --base develop
@@ -131,6 +120,20 @@ $ npm test && npm run build
 $ fvm dart pub outdated
 $ fvm dart pub upgrade  # within existing ranges, whole workspace
 ```
+
+### `make verify` and the CI jobs
+
+The root `Makefile` runs the verify workflow's jobs locally, in CI's order, and the committed `.githooks/pre-push` hook runs it before every push once `make init` has pointed git at it (`git push --no-verify` skips it once).
+
+| CI job | `make verify` row | Local command |
+| --- | --- | --- |
+| Lint, typecheck, test, build | `pwa` | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; the root scripts cover infra and infra-repo too |
+| Infra typechecks and previews | `pwa` for the typechecks | the previews need cloud credentials and stay in CI |
+| Dart analyze and test | `dart` | `fvm dart analyze --fatal-infos`, `fvm dart test` in `packages/domain` |
+| Flutter analyze and test | `flutter` | `make check` in `apps/mobile` |
+| Api analyze, test and container | `api` | `fvm dart test` in `services/api` against `docker compose`, or with the integration group skipped when docker is down |
+| Accessibility gate | `verify-full` only | `npm run test:e2e` |
+| Container builds | `verify-full` only | `docker build` of both Dockerfiles |
 
 Majors go in their own pull request so a revert is one click. The PWA is frozen
 as a reference and its stack is pinned deliberately — see the Solid note in
