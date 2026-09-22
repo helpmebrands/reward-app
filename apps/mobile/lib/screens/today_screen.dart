@@ -73,12 +73,13 @@ class _TodayBody extends StatelessWidget {
       order: 0,
       child: Semantics(
         header: true,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+        // A Wrap, not a Row: at a large text size the date drops under the
+        // title instead of running off the right edge.
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.end,
+          spacing: Space.s3,
           children: [
             Text('HelpMe Reward', style: text.titleMedium),
-            const SizedBox(width: Space.s3),
             Text(
               formatHeaderDate(store.today),
               style: text.bodySmall?.copyWith(color: tokens.textSecondary),
