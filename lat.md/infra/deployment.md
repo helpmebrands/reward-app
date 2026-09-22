@@ -30,6 +30,14 @@ The deploy reporting success only means Cloud Run accepted the revision. The smo
 
 They check that `/` and a client route return 200, that a missing asset 404s rather than returning HTML, and that `sw.js` carries `Cache-Control: no-store`. The last one guards the failure this pipeline most needs to catch ([[deployment#Cache rules]]).
 
+### Action runtimes
+
+Every action the workflows use is pinned at a major whose own `action.yml` declares `node24`, so the runner never has to force-upgrade a `node20` action and print the deprecation warning ([[infra-tests#Infrastructure config#Every workflow action declares the Node 24 runtime]]).
+
+The warning is per action, not per workflow: an action's `runs.using` is fixed by its author, and nothing in the workflow YAML (the `node-version` given to `setup-node` included) changes it. The only workflow-side override is `ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION`, which opts *back* into Node 20 and is not used here ([[infra-tests#Infrastructure config#Nobody opts back into Node 20]]).
+
+The Pulumi CLI comes from `pulumi/actions` in install-only mode (no `command`), because `pulumi/setup-pulumi` still declares Node 12 and has not been committed to since 2021 ([[infra-tests#Infrastructure config#Pulumi CLI comes from the maintained action]]). `subosito/flutter-action` is composite and nests `actions/cache@v5`, so it needs no bump. Dependabot watches the `github-actions` ecosystem weekly with `chore(ci)` commit prefixes so the next deprecation arrives as a pull request ([[infra-tests#Infrastructure config#Dependabot watches the workflow actions]]).
+
 ## Container
 
 A two-stage `apps/pwa/Dockerfile`, built with the repository root as its context because the npm workspace keeps its one lockfile there.

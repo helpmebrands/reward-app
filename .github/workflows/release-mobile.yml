@@ -35,7 +35,7 @@ jobs:
     environment: staging
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Derive the build name from the tag
         id: version
@@ -49,13 +49,13 @@ jobs:
           cache: true
 
       - name: Authenticate to Google Cloud as the deployer
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v3
 
       - name: Fetch the upload keystore and its passwords
         # Into $RUNNER_TEMP, which the runner discards; never into the
@@ -82,7 +82,7 @@ jobs:
 
       - name: Authenticate to Google Cloud as the Play publisher
         id: play
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
@@ -104,7 +104,7 @@ jobs:
     environment: staging
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Derive the build name from the tag
         id: version
@@ -118,13 +118,13 @@ jobs:
           cache: true
 
       - name: Authenticate to Google Cloud as the deployer
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
           workload_identity_provider: ${{ vars.WIF_PROVIDER }}
           service_account: ${{ vars.DEPLOY_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/setup-gcloud@v2
+      - uses: google-github-actions/setup-gcloud@v3
 
       - name: Fetch the certificate, profile and App Store Connect key
         run: |
