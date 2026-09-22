@@ -688,6 +688,40 @@ describe('signing material procedure and token record', () => {
     expect(runbook07()).toMatch(/one record\s+per app/i)
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 verifies the profile before storing it]]
+  it('checks the profile is for the app id before adding the secret version', () => {
+    const runbook = runbook07()
+    const profile =
+      runbook.split(/^### iOS: the provisioning profile/m)[1]?.split(/^### /m)[0] ?? ''
+    expect(runbook).toContain('XC com helpmebrands reward')
+    expect(profile).toContain('/v1/profiles')
+    expect(profile).toContain('security cms -D')
+    expect(profile.indexOf('application-identifier')).toBeGreaterThan(-1)
+    expect(profile.indexOf('application-identifier')).toBeLessThan(
+      profile.indexOf('gcloud secrets versions add'),
+    )
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 reads binaries back with --out-file]]
+  it('reads the binaries back with --out-file and proves them in the check step', () => {
+    const signing =
+      runbook07()
+        .split(/^## Signing material/m)[1]
+        ?.split(/^## /m)[0] ?? ''
+    const check = signing.split(/^### Check and clean up/m)[1] ?? ''
+    expect(check).toMatch(/--out-file check\.p12/)
+    expect(check).toMatch(/security import check\.p12/)
+    expect(check).toMatch(/security cms -D -i check\.mobileprovision/)
+    expect(check).toMatch(/stdout/)
+    expect(signing).not.toMatch(/'X{10}' \| gcloud/)
+    expect(signing).toMatch(/read -r ASC_KEY_ID/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
+  it('records the iOS certificate expiry in the README table', () => {
+    expect(read('docs/runbooks/README.md')).toMatch(/^\| iOS signing \|.*2027-09-21.*\|$/m)
+  })
+
   // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]
   it('records who minted the GitHub token and its expiry in the README table', () => {
     const readme = read('docs/runbooks/README.md')
