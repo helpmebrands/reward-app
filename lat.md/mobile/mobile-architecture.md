@@ -54,7 +54,7 @@ Decided in issue #136. The app has one snapshot, a handful of derived views comp
 Three kinds of state, each with its own home; the rule is to pick the smallest one that serves every widget that needs the value.
 
 - **Widget-local state** (a text field's draft, whether a row is expanded, an animation): `StatefulWidget` and `setState`. It never leaves the widget.
-- **Shared transient state** (which credit sheet is open, the household filter, the width class): a `ValueNotifier` owned by the nearest common ancestor and read through `ValueListenableBuilder`. This is what `UiProvider` holds in the PWA ([[architecture#UI state]]).
+- **Shared transient state** (which credit sheet is open, the household filter, the width class): a `ValueNotifier` owned by the nearest common ancestor and read through `ValueListenableBuilder`, or `UiState` when the shell and the screens both need it ([[mobile-architecture#State management#UI state]]). This is what `UiProvider` holds in the PWA ([[architecture#UI state]]).
 - **Application state** (the snapshot, today, the derived views): the store ([[mobile-architecture#The store]]), a `ChangeNotifier` that is the app's view model in the MVVM sense, read through `ListenableBuilder`.
 - **Promote only on demand**: state moves up one level when a second widget needs it, never pre-emptively. The width class is computed once in the shell and handed down as a value ([[mobile-architecture#Responsive layout]]).
 
@@ -68,12 +68,18 @@ The store and every later notifier follow Flutter's guidance for view models: th
 - **Async actions**: an action the UI must track (in flight, failed, done) is wrapped in the guide's Command pattern, a small `ChangeNotifier` with `running`, `error` and an `execute` that ignores re-entry. `load` gets by with a `loading` flag because it is the only async action; the api client brings the first Command.
 - **No rules in the store**: derived views are [[domain]] selectors called on every read, as today. The notifier decides when to notify, not what is true.
 
+### UI state
+
+`UiState` is the PWA's `UiProvider` as a `ChangeNotifier`: the open credit's benefit id, the open compare group's label and the nudge preview's reminder, each with an open and a close, notifying once per change and not at all when nothing changes.
+
+It lives above the router in `UiScope`, an `InheritedNotifier` beside `AppScope`, because the shell renders the sheets while the screens open them, and the two sit on opposite sides of the router's layout boundary. The sheet tracks a benefit *id*, never a resolved instance: the instance is recomputed on every claim, and holding one would leave the sheet showing a balance that went stale the moment the user logged something. `RewardApp` creates and disposes it unless a test injects one. Pinned by [[mobile-tests#UI state]].
+
 ### Wiring and lifecycle
 
 Notifiers reach widgets by constructor until the tree is deep enough to hurt, then through an `InheritedNotifier`; whoever creates a notifier disposes it.
 
 - **Constructor injection first**: `RewardApp(store:)` today. Tests and previews build the store on `MemorySnapshotStore` with a fixed clock, which is the guide's "make fakes" recommendation in practice.
-- **A scope above the router**: `AppScope` is an `InheritedNotifier<AppStore>` wrapped around `MaterialApp.router`, and `AppScope.of(context)` in a route builder is how a screen gets the store; `TodayScreen` still takes it as a constructor argument so tests and previews build it bare. `of` is the only place a widget looks the store up; there is no global.
+- **A scope above the router**: `AppScope` is an `InheritedNotifier<AppStore>` wrapped around `MaterialApp.router`, and `AppScope.of(context)` in a route builder is how a screen gets the store; `TodayScreen` still takes it as a constructor argument so tests and previews build it bare. `UiScope` does the same for `UiState`. `of` is the only place a widget looks either up; there is no global.
 - **Builders as low as the change**: wrap what changes, not the page around it, and pass a static subtree as `child` so it is not rebuilt. A screen that is all derived views wraps once, as Today does. `ValueListenableBuilder` for one value, `ListenableBuilder` for a notifier, `Listenable.merge` when a widget depends on two.
 - **Owner disposes**: a `State` that creates a `ValueNotifier` disposes it in `dispose`; the store is created in `main` and lives as long as the app. `addListener` in `initState` paired with `removeListener` in `dispose` is for side effects only (navigation, a snackbar); rendering goes through builders.
 - **Tests**: a notifier is plain Dart, tested without a widget tree by asserting its getters and counting notifications; widgets are tested against a real store on fakes ([[mobile-tests#Store]]).
@@ -90,7 +96,7 @@ The route table mirrors the PWA's nine routes, with the four tabs as branches of
 
 - **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches, the constants in `lib/shell/router.dart`; `/cards/new`, `/cards/:id`, `/benefit/:id` and `/settings` will be full-screen routes above the shell, and `errorBuilder` the not-found screen, when those screens arrive. Today Credits, Cards and Value render `StubScreen`, a heading and one line, so the branches are real before the screens are.
 - **The shell** is `StatefulShellRoute.indexedStack` whose builder renders `AppShell`: the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) around the content column, keeping each tab's scroll position across switches. The four `Destination`s are one list the bar and the rail both draw, so the order cannot differ.
-- **The credit sheet is not a route**: as in the PWA, the shell shows one modal sheet whichever tab opened it, driven by the shared transient state, so the URL stays on the tab beneath.
+- **The credit sheet is not a route**: as in the PWA, the shell shows one sheet whichever tab opened it, driven by `UiState`, so the URL stays on the tab beneath ([[mobile-architecture#The credit sheet]]). Back closes it through the host's `PopScope` before the router sees the pop.
 - **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
 - **Redirects read the store**: `refreshListenable` is the `AppStore`, so a `redirect` re-evaluates on every notification with no second state holder. There is no redirect today; the first will come with the api sign-in.
 - **Notification taps go by path**: the reminder payload carries the route to open and the handler calls `go`, the counterpart of the PWA's `navigate` message.
@@ -116,6 +122,20 @@ It shows the header with the date, the headline counting only what is claimable,
 
 The screen re-flows with the width class it reads from the shell ([[mobile-architecture#Responsive layout]]). From medium the overlap cards go two across in `IntrinsicHeight` rows of two `Expanded` cards. From expanded the body under the headline is a `Row` of two columns, use-soon, overlaps and captured on the left and locked on the right, with the headline spanning both. Flutter orders a screen reader's traversal by position, not by the widget tree, so each of Today's sections is a `_Section`: a semantics container with an `OrdinalSortKey` giving its place in the phone order. The two-column layout therefore reads exactly as the phone does, which [[mobile-tests#Today#The screen reader hears the phone order at every width]] proves by comparing the traversal at 402 and 1280.
 
+## The credit sheet
+
+`CreditSheet` is the PWA's credit sheet ([[design#Partial logging]]): the one place every credit action lives, opened by benefit id from any tab and drawn by the shell inside a `SheetHost` in the shape the width calls for.
+
+Its job is to make logging a partial amount as easy as logging the whole thing. It reads the instance from the store on every build through `AppStore.instanceFor`, so a claim made anywhere updates the balance without reopening. From top to bottom: the card label, name and window; the balance over a progress bar labelled "Claimed so far" and the deadline; for a locked credit, the enrolment note and "I've enrolled — unlock this credit" (`confirmEnrollment`); for an open one, "Log what you spent" with the quick amounts, "Other…" revealing an amount field whose entry is parsed with `parseMoneyToCents` and capped at what is left, and "Mark the full … used", each of which claims through the store and closes the sheet; "Logged this period" from `AppStore.claimsFor`, newest first, each with a Remove whose label names the amount and the day (`removeClaim`); for a captured credit "Fully captured" with Undo (`unclaim`); the missed note; the redemption steps; the notes; the reminder ladder with the reached rung emphasised; and the "Last call only" and "Silence this credit" switches (`updateBenefit`, `toggleBenefitMute`). Quick amounts are `quickAmounts`: a quarter and a half of the remainder rounded to whole dollars, each at least a dollar and under the remainder, and none under five dollars. The issuer's benefits page is not linked yet, since opening a URL needs a package; the edit link arrives with the benefit editor. Snackbars and undo arrive with the next issue.
+
+`SheetHost` is the PWA's `Sheet` ([[interaction#Bottom sheets]]) as one stateful widget the shell wraps around the scaffold, choosing by the width class it is handed:
+
+- **Compact**: Material's `BottomSheet` widget with its drag handle over a scrim, driven by the host's own animation controller so a drag past the handle's threshold calls `onClosing`, capped at 92% of the height.
+- **Medium**: a centred `Dialog` at most 480 wide and 85% of the height over the scrim.
+- **Expanded**: a 380-wide, full-height panel on the trailing edge in a `Row` beside the shell, with no scrim, so the list narrows rather than being covered and stays tappable; switching tabs leaves the sheet open.
+
+All three wrap the presentation in `Semantics(scopesRoute, namesRoute)` labelled with the credit's name, so a screen reader hears it as a dialog; a `FocusScope` keeps keyboard traversal inside, the host remembers the focused node on open, moves focus into the scope once the sheet is built (autofocus alone is honoured only when nothing behind has focus) and hands it back after close; `CallbackShortcuts` above the scope closes on Escape; and a `PopScope` with `canPop` false while open closes on the system back, leaving predictive back intact. The scrim is a dismissible `ModalBarrier` labelled "Close …". Pinned by [[mobile-tests#Credit sheet]]; every state and width has a Widget Preview.
+
 ## Responsive layout
 
 The app realises the product's three width classes ([[design#Responsive layout]]) with Flutter's own tools: `AppShell` computes the class and draws the navigation and the column, and each screen reads it to re-flow.
@@ -130,7 +150,7 @@ The app carries the product's WCAG 2.2 AA intent ([[design#Accessibility]]) in F
 
 - **Text follows the platform size**: nothing overrides `MediaQuery.textScaler`, no text is clipped, and controls do not overlap at 200%; Today's number shrinks to fit its column instead of overflowing. Two layouts had to give for this: the header is a `Wrap` so the date drops under the title, and a credit row's name wraps instead of ellipsising, because a truncated name loses the one thing the row is for. Pinned by [[mobile-tests#Text scaling]] at a 2.0 scale factor on a 402-wide viewport, in the test font whose glyphs are squares, so it is stricter than any real typeface.
 - **Contrast comes from the tokens**: secondary text clears 4.5:1 and control borders 3:1 on every ground in both modes, each tone's text on its own ground, and every text the overlap card draws on the section ground, checked over the theme extension the way `contrast.test.ts` checks `tokens.css`, so a copied token cannot drift ([[mobile-tests#Token contrast]]). The overlap card's body is neutral-300 rather than the secondary text colour, as in the PWA, because the light theme's secondary text reaches only 3.85:1 on the section ground.
-- **Every gesture has a route**: when swipe actions arrive with the credit sheet, each has a button or a `Semantics` action a screen reader and a switch can reach, as the PWA's table in [[design#Accessibility]] lists.
+- **Every gesture has a route**: every action on the credit sheet is a labelled button or switch ([[mobile-tests#Credit sheet#Every control on the sheet has a label]]), and when swipe actions arrive each has a button or a `Semantics` action a screen reader and a switch can reach, as the PWA's table in [[design#Accessibility]] lists.
 - **Orientation is never locked** and the compact class covers a landscape phone.
 
 ## Make targets

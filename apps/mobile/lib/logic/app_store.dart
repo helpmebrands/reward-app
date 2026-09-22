@@ -273,6 +273,27 @@ class AppStore extends ChangeNotifier {
         : all.where((i) => i.card.holder == holder).toList();
   }
 
+  /// One credit resolved against today, regardless of the household filter,
+  /// or null when it is not tracked.
+  BenefitInstance? instanceFor(String benefitId) {
+    final data = _data;
+    if (data == null) return null;
+    for (final instance in currentInstances(data, today)) {
+      if (instance.benefit.id == benefitId) return instance;
+    }
+    return null;
+  }
+
+  /// What has been logged against one cycle, newest first.
+  List<Claim> claimsFor(String benefitId, IsoDate cycleKey) {
+    final data = _data;
+    if (data == null) return const [];
+    return data.claims
+        .where((c) => c.benefitId == benefitId && c.cycleKey == cycleKey)
+        .toList()
+      ..sort((a, b) => b.claimedAt.compareTo(a.claimedAt));
+  }
+
   List<MissedCycle> get missed {
     final data = _data;
     return data == null ? const [] : missedCycles(data, today);

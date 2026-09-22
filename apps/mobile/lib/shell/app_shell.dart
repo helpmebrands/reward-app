@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../widgets/credit_sheet.dart';
+import '../widgets/sheet_host.dart';
+import 'app_scope.dart';
 import 'router.dart';
+import 'ui_scope.dart';
 import 'width_class.dart';
 
 /// The app shell: the four destinations as a bottom bar in the compact class
-/// and a rail from medium, and the centred content column the screens render
-/// into. The width class is computed once here, from the window width, and
-/// handed down; no leaf widget re-derives it.
+/// and a rail from medium, the centred content column the screens render
+/// into, and the one credit sheet whichever tab opened it. The width class is
+/// computed once here, from the window width, and handed down; no leaf widget
+/// re-derives it.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.navigationShell});
 
@@ -16,6 +21,40 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final widthClass = WidthClass.forWidth(MediaQuery.sizeOf(context).width);
+    final ui = UiScope.of(context);
+    final store = AppScope.of(context);
+    final openId = ui.openBenefitId;
+    return SheetHost(
+      open: openId != null,
+      widthClass: widthClass,
+      title: openId == null
+          ? ''
+          : store.instanceFor(openId)?.benefit.name ?? 'Credit',
+      onClose: ui.closeCredit,
+      sheet: openId == null
+          ? null
+          : CreditSheet(
+              store: store,
+              benefitId: openId,
+              onClose: ui.closeCredit,
+            ),
+      child: _Scaffold(
+        navigationShell: navigationShell,
+        widthClass: widthClass,
+      ),
+    );
+  }
+}
+
+/// The bar or the rail around the content column.
+class _Scaffold extends StatelessWidget {
+  const _Scaffold({required this.navigationShell, required this.widthClass});
+
+  final StatefulNavigationShell navigationShell;
+  final WidthClass widthClass;
+
+  @override
+  Widget build(BuildContext context) {
     final column = WidthClassScope(
       widthClass: widthClass,
       child: Align(
