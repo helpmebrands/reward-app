@@ -50,6 +50,7 @@ Finder row(String benefitId) =>
     find.byKey(ValueKey('row-$benefitId'), skipOffstage: false);
 
 Finder get creditSheet => find.byKey(const Key('credit-sheet'));
+
 Finder get compareSheet => find.byKey(const Key('compare-sheet'));
 
 String headline(WidgetTester tester) =>
@@ -137,7 +138,7 @@ void main() {
     );
     await pumpApp(tester, data: one);
 
-    expect(find.byType(HolderFilter), findsNothing);
+    expect(find.byKey(const Key('holder-filter')), findsNothing);
     expect(find.text('Everyone in the household'), findsNothing);
   });
 
@@ -145,10 +146,8 @@ void main() {
   testWidgets('tapping an overlap card compares both sides', (tester) async {
     final app = await pumpApp(tester);
 
-    await tester.scrollUntilVisible(
-      find.text('Hotel Credit (FHR / THC) × 2'),
-      200,
-    );
+    await tester.ensureVisible(find.text('Hotel Credit (FHR / THC) × 2'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hotel Credit (FHR / THC) × 2'));
     await tester.pumpAndSettle();
 
@@ -190,10 +189,8 @@ void main() {
   // @lat: [[mobile-tests#Today interactions#A compare side opens that credit]]
   testWidgets('a side of the compare sheet opens that credit', (tester) async {
     final app = await pumpApp(tester);
-    await tester.scrollUntilVisible(
-      find.text('Hotel Credit (FHR / THC) × 2'),
-      200,
-    );
+    await tester.ensureVisible(find.text('Hotel Credit (FHR / THC) × 2'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Hotel Credit (FHR / THC) × 2'));
     await tester.pumpAndSettle();
 

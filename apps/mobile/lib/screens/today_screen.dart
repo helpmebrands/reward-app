@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 
 import '../logic/app_store.dart';
+import '../logic/credit_actions.dart';
+import '../logic/ui_state.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
+import '../widgets/holder_filter.dart';
+import '../widgets/nudge_preview.dart';
 
 /// Today: one number, a countdown, and the rows behind them.
 ///
@@ -13,9 +17,13 @@ import '../widgets/credit_row.dart';
 /// get their own section further down. Adding money the user cannot spend
 /// into the number they are meant to act on would make the number a lie.
 class TodayScreen extends StatelessWidget {
-  const TodayScreen({super.key, required this.store});
+  const TodayScreen({super.key, required this.store, this.ui});
 
   final AppStore store;
+
+  /// The sheets and the nudge; without it the screen is static, as tests
+  /// and previews build it bare.
+  final UiState? ui;
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +36,52 @@ class TodayScreen extends StatelessWidget {
         if (!store.hasCards) {
           return const _FirstRun();
         }
-        return _TodayBody(store: store);
+        return _TodayBody(store: store, ui: ui);
       },
     );
   }
 }
 
 class _TodayBody extends StatelessWidget {
-  const _TodayBody({required this.store});
+  const _TodayBody({required this.store, required this.ui});
 
   final AppStore store;
+  final UiState? ui;
+
+  /// Shows the next real reminder, with the user's own numbers in it, or
+  /// the stand-in when nothing is scheduled. Notification permission is a
+  /// big ask on faith; showing exactly what will arrive is the honest way to
+  /// make it.
+  void previewNudge() {
+    final ui = this.ui;
+    final data = store.data;
+    if (ui == null || data == null) return;
+    final now = store.now;
+    final at = now.millisecondsSinceEpoch;
+    Reminder? next;
+    for (final reminder in buildSchedule(data, now).reminders) {
+      if (reminder.fireAt > at) {
+        next = reminder;
+        break;
+      }
+    }
+    ui.showNudge(next ?? sampleReminder(store.totals.claimableCents, now));
+  }
+
+  CreditRow row(BenefitInstance instance, bool showCard) {
+    final ui = this.ui;
+    final actions = ui == null
+        ? null
+        : CreditActions(store: store, snackbar: ui.snackbar);
+    return CreditRow(
+      key: ValueKey('row-${instance.benefit.id}'),
+      instance: instance,
+      showCard: showCard,
+      onOpen: ui == null ? null : () => ui.openCredit(instance.benefit.id),
+      onLogAll: actions == null ? null : () => actions.logAll(instance),
+      onToggleMute: actions == null ? null : () => actions.toggleMute(instance),
+    );
+  }
 
   String headlineSub() {
     final open = store.instances.where(isClaimable).length;
@@ -65,6 +109,8 @@ class _TodayBody extends StatelessWidget {
     final allOverlaps = store.overlaps;
     final overlaps = allOverlaps.take(3).toList();
     final showCard = store.cardCount > 1;
+    final ui = this.ui;
+    final compare = ui?.openOverlap;
     final resetOn = store.nextResetOn;
     final daysToReset = soon.isEmpty ? null : soon.first.daysRemaining;
     final parts = moneyParts(totals.claimableCents);
@@ -76,18 +122,34 @@ class _TodayBody extends StatelessWidget {
         // A Wrap, not a Row: at a large text size the date drops under the
         // title instead of running off the right edge.
         child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.end,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          alignment: WrapAlignment.spaceBetween,
           spacing: Space.s3,
+          runSpacing: Space.s2,
           children: [
-            Text('HelpMe Reward', style: text.titleMedium),
-            Text(
-              formatHeaderDate(store.today),
-              style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.end,
+              spacing: Space.s3,
+              children: [
+                Text('HelpMe Reward', style: text.titleMedium),
+                Text(
+                  formatHeaderDate(store.today),
+                  style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+                ),
+              ],
             ),
+            if (ui != null)
+              OutlinedButton.icon(
+                onPressed: previewNudge,
+                icon: const Icon(Icons.notifications_active_outlined, size: 14),
+                label: const Text('Preview nudge'),
+              ),
           ],
         ),
       ),
     );
+
+    final filter = HolderFilter(store: store);
 
     final headline = _Section(
       order: 1,
@@ -146,7 +208,7 @@ class _TodayBody extends StatelessWidget {
                 ),
                 for (final instance in soon) ...[
                   const SizedBox(height: Space.s2),
-                  CreditRow(instance: instance, showCard: showCard),
+                  row(instance, showCard),
                 ],
               ],
             ),
@@ -171,7 +233,7 @@ class _TodayBody extends StatelessWidget {
                 if (widthClass == WidthClass.compact)
                   for (final overlap in overlaps) ...[
                     const SizedBox(height: Space.s2),
-                    _OverlapCard(overlap: overlap),
+                    _OverlapCard(overlap: overlap, onCompare: compare),
                   ]
                 else
                   for (var i = 0; i < overlaps.length; i += 2) ...[
@@ -180,11 +242,19 @@ class _TodayBody extends StatelessWidget {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(child: _OverlapCard(overlap: overlaps[i])),
+                          Expanded(
+                            child: _OverlapCard(
+                              overlap: overlaps[i],
+                              onCompare: compare,
+                            ),
+                          ),
                           const SizedBox(width: Space.s2),
                           Expanded(
                             child: i + 1 < overlaps.length
-                                ? _OverlapCard(overlap: overlaps[i + 1])
+                                ? _OverlapCard(
+                                    overlap: overlaps[i + 1],
+                                    onCompare: compare,
+                                  )
                                 : const SizedBox.shrink(),
                           ),
                         ],
@@ -211,7 +281,7 @@ class _TodayBody extends StatelessWidget {
                 ),
                 for (final instance in locked) ...[
                   const SizedBox(height: Space.s2),
-                  CreditRow(instance: instance, showCard: showCard),
+                  row(instance, showCard),
                 ],
               ],
             ),
@@ -230,7 +300,7 @@ class _TodayBody extends StatelessWidget {
                 ),
                 for (final instance in captured) ...[
                   const SizedBox(height: Space.s2),
-                  CreditRow(instance: instance, showCard: showCard),
+                  row(instance, showCard),
                 ],
               ],
             ),
@@ -273,6 +343,7 @@ class _TodayBody extends StatelessWidget {
       children: [
         header,
         const SizedBox(height: Space.s8),
+        filter,
         headline,
         body,
       ],
@@ -330,11 +401,13 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// The one sanctioned saturated ground: the overlap card.
+/// The one sanctioned saturated ground: the overlap card. Tapping it opens
+/// the compare sheet for the group.
 class _OverlapCard extends StatelessWidget {
-  const _OverlapCard({required this.overlap});
+  const _OverlapCard({required this.overlap, this.onCompare});
 
   final OverlapGroup overlap;
+  final ValueChanged<String>? onCompare;
 
   @override
   Widget build(BuildContext context) {
@@ -345,31 +418,49 @@ class _OverlapCard extends StatelessWidget {
           (i) => i.card.holder.isNotEmpty ? i.card.holder : cardLabel(i.card),
         )
         .join(' and ');
-    return Container(
-      padding: const EdgeInsets.all(Space.s4),
-      decoration: BoxDecoration(
-        color: tokens.section,
+    final onCompare = this.onCompare;
+    return Material(
+      color: tokens.section,
+      shape: RoundedRectangleBorder(
         borderRadius: const BorderRadius.all(Radius.circular(Radii.md)),
-        border: Border.all(color: tokens.sectionGlow),
+        side: BorderSide(color: tokens.sectionGlow),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            overlap.sameProduct ? 'SAME CARD, TWICE' : 'SAME SPEND, TWO CARDS',
-            style: text.labelSmall?.copyWith(color: tokens.accentRamp[400]),
+      child: InkWell(
+        onTap: onCompare == null ? null : () => onCompare(overlap.label),
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.md)),
+        child: Padding(
+          padding: const EdgeInsets.all(Space.s4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                overlap.sameProduct
+                    ? 'SAME CARD, TWICE'
+                    : 'SAME SPEND, TWO CARDS',
+                style: text.labelSmall?.copyWith(color: tokens.accentRamp[400]),
+              ),
+              Text(
+                '${overlap.label} × ${overlap.instances.length}',
+                style: text.titleSmall,
+              ),
+              // Neutral-300, not the secondary text colour: on the section
+              // ground the light theme's secondary text falls short of 4.5:1.
+              Text(
+                '${formatMoney(overlap.remainingCents)} unclaimed across $holders.',
+                style: text.bodySmall?.copyWith(color: tokens.neutral[300]),
+              ),
+              if (onCompare != null) ...[
+                const SizedBox(height: Space.s2),
+                Text(
+                  'Compare →',
+                  style: text.labelSmall?.copyWith(
+                    color: tokens.accentRamp[300],
+                  ),
+                ),
+              ],
+            ],
           ),
-          Text(
-            '${overlap.label} × ${overlap.instances.length}',
-            style: text.titleSmall,
-          ),
-          // Neutral-300, not the secondary text colour: on the section
-          // ground the light theme's secondary text falls short of 4.5:1.
-          Text(
-            '${formatMoney(overlap.remainingCents)} unclaimed across $holders.',
-            style: text.bodySmall?.copyWith(color: tokens.neutral[300]),
-          ),
-        ],
+        ),
       ),
     );
   }

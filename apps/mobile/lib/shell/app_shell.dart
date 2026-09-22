@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/credit_actions.dart';
+import '../widgets/compare_sheet.dart';
 import '../widgets/credit_sheet.dart';
+import '../widgets/nudge_preview.dart';
 import '../widgets/sheet_host.dart';
 import '../widgets/snackbar_host.dart';
 import 'app_scope.dart';
@@ -25,24 +27,49 @@ class AppShell extends StatelessWidget {
     final widthClass = WidthClass.forWidth(MediaQuery.sizeOf(context).width);
     final ui = UiScope.of(context);
     final store = AppScope.of(context);
+    final actions = CreditActions(store: store, snackbar: ui.snackbar);
     final openId = ui.openBenefitId;
+    final overlap = ui.openOverlapLabel == null
+        ? null
+        : store.overlapFor(ui.openOverlapLabel!);
+    // The compare sheet sits above the credit sheet: a side of a compare
+    // opens that credit, closing the compare first.
     return SheetHost(
-      open: openId != null,
+      open: overlap != null,
       widthClass: widthClass,
-      title: openId == null
-          ? ''
-          : store.instanceFor(openId)?.benefit.name ?? 'Credit',
-      onClose: ui.closeCredit,
-      sheet: openId == null
+      wide: SheetWide.dialog,
+      sheetKey: const Key('compare-sheet'),
+      title: overlap?.label ?? '',
+      onClose: ui.closeOverlap,
+      sheet: overlap == null
           ? null
-          : CreditSheet(
-              actions: CreditActions(store: store, snackbar: ui.snackbar),
-              benefitId: openId,
-              onClose: ui.closeCredit,
+          : CompareSheet(
+              overlap: overlap,
+              actions: actions,
+              onClose: ui.closeOverlap,
+              onOpenCredit: (id) {
+                ui.closeOverlap();
+                ui.openCredit(id);
+              },
             ),
-      child: _Scaffold(
-        navigationShell: navigationShell,
+      child: SheetHost(
+        open: openId != null,
         widthClass: widthClass,
+        title: openId == null
+            ? ''
+            : store.instanceFor(openId)?.benefit.name ?? 'Credit',
+        onClose: ui.closeCredit,
+        sheet: openId == null
+            ? null
+            : CreditSheet(
+                actions: actions,
+                benefitId: openId,
+                onClose: ui.closeCredit,
+              ),
+        child: _Scaffold(
+          navigationShell: navigationShell,
+          widthClass: widthClass,
+        ),
       ),
     );
   }
@@ -68,7 +95,7 @@ class _Scaffold extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: widthClass.column),
           child: SnackbarHost(
             snackbar: UiScope.of(context).snackbar,
-            child: navigationShell,
+            child: _NudgeHost(child: navigationShell),
           ),
         ),
       ),
@@ -124,6 +151,38 @@ class _Scaffold extends StatelessWidget {
           Expanded(child: SafeArea(child: column)),
         ],
       ),
+    );
+  }
+}
+
+/// Draws the nudge preview over the top of the column while one is showing.
+class _NudgeHost extends StatelessWidget {
+  const _NudgeHost({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final ui = UiScope.of(context);
+    final nudge = ui.nudge;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        if (nudge != null)
+          Align(
+            alignment: Alignment.topCenter,
+            child: NudgePreview(
+              key: ValueKey(nudge.id),
+              reminder: nudge,
+              onDismiss: ui.dismissNudge,
+              onOpen: () {
+                ui.dismissNudge();
+                context.go(nudge.url);
+              },
+            ),
+          ),
+      ],
     );
   }
 }
