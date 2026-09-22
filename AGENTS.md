@@ -160,4 +160,5 @@ These rules apply to all Flutter and Dart code in this repository, including the
 - **Native dependencies**: use Swift Package Manager for iOS and macOS dependencies. Do not introduce CocoaPods without human approval.
 - **UI library**: use the Material library for UI. Do not use Cupertino widgets.
 - **Widget Preview**: every UI component must be available in Widget Preview (a `@Preview` in `previews.dart` or alongside the widget).
+- **State management**: only the framework's own primitives (`ChangeNotifier`, `ValueNotifier`, `ListenableBuilder`, `ValueListenableBuilder`, `InheritedNotifier`, `setState`). Do not add `provider`, `riverpod`, `bloc`, `get_it`, `signals` or any other state management or injection package, Flutter Favorite or not. This overrides any skill step that says to register dependencies in `provider` or `get_it`. The practices are in `lat.md/mobile/mobile-architecture.md` under "State management".
 - **Flutter version**: the minimum supported Flutter version is 3.35. Do not rely on APIs that require a newer version without human approval.
