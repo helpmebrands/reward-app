@@ -363,9 +363,11 @@ class _OverlapCard extends StatelessWidget {
             '${overlap.label} × ${overlap.instances.length}',
             style: text.titleSmall,
           ),
+          // Neutral-300, not the secondary text colour: on the section
+          // ground the light theme's secondary text falls short of 4.5:1.
           Text(
             '${formatMoney(overlap.remainingCents)} unclaimed across $holders.',
-            style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+            style: text.bodySmall?.copyWith(color: tokens.neutral[300]),
           ),
         ],
       ),
