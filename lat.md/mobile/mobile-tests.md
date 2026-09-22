@@ -128,6 +128,52 @@ At compact Claimable and Locked share a top edge and Captured sits below; at exp
 
 At a 2.0 text scale on 402 the screen raises no layout exception and every text's painted rectangle ends inside the width.
 
+## Cards
+
+`cards_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-cards.json`, dumped by `apps/pwa/scripts/cards-snapshot.ts` ([[mobile-architecture#Cards screen]]).
+
+The fixture carries the fee and captured totals and each active card's figures, verdict and tags.
+
+### Each card carries the PWA's figures, verdict and tags
+
+"Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage and days to renewal, the verdict headline and body, every tag and the edit button, and the catalogue button follows.
+
+### The verdict is the PWA's, case by case
+
+`cardVerdict` over made-up summaries gives No fee, Keep with its body, Unlock first, Catch up with its body, and Decide with the lounge-access line.
+
+### Mute from the menu offers an undo
+
+"Menu for American Express Platinum — Jim" then Mute silences the card and shows "Silenced every credit on …" with "Undo silencing …", whose Undo unmutes; the menu then offers Mute again.
+
+### Archive hides the card
+
+Archive marks the card archived, removes it from the screen while the other stays, and shows "Archived …" with an Undo that brings it back.
+
+### Delete asks first and cascades
+
+Delete shows "Delete … and everything logged against it? This cannot be undone."; Cancel keeps the card; Delete removes the card and every benefit on it and says "Card deleted." with no Undo.
+
+### One column, two across, then one wide row
+
+At compact the second card is below the first; at medium the two share a top edge side by side; at expanded each card takes the full padded width, one per row, with the verdict block to the right of the figures block on the same band.
+
+### The screen reader hears the phone order at every width
+
+The semantics labels in traversal order at expanded are exactly those at compact.
+
+### Cards at 200% clips nothing
+
+At a 2.0 text scale on 402 the screen raises no layout exception and every text's painted rectangle ends inside the width.
+
+### Every control on a card has a label
+
+Every button in the semantics tree has a label or a tooltip, and the menu is found by "Menu for …".
+
+### No cards shows the first-run copy
+
+With no cards the screen says "Start with one card", draws no card and still offers the catalogue.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).

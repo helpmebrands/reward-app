@@ -8,6 +8,7 @@ import 'logic/credit_actions.dart';
 import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
+import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
 import 'screens/today_screen.dart';
@@ -397,3 +398,39 @@ Widget creditsExpanded() => _themed(
   ),
   Brightness.dark,
 );
+
+@Preview(name: 'Cards, dark', size: Size(402, 874))
+Widget cardsDark() =>
+    _themed(CardsScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+@Preview(name: 'Cards, light', size: Size(402, 874))
+Widget cardsLight() =>
+    _themed(CardsScreen(store: _store(), ui: UiState()), Brightness.light);
+
+@Preview(name: 'Cards, medium', size: Size(560, 700))
+Widget cardsMedium() => _themed(
+  WidthClassScope(
+    widthClass: WidthClass.medium,
+    child: CardsScreen(store: _store(), ui: UiState()),
+  ),
+  Brightness.dark,
+);
+
+@Preview(name: 'Cards, expanded', size: Size(720, 700))
+Widget cardsExpanded() => _themed(
+  WidthClassScope(
+    widthClass: WidthClass.expanded,
+    child: CardsScreen(store: _store(), ui: UiState()),
+  ),
+  Brightness.dark,
+);
+
+@Preview(name: 'Cards, empty', size: Size(402, 500))
+Widget cardsEmpty() {
+  final store = AppStore(
+    store: MemorySnapshotStore(emptyAppData()),
+    clock: () => DateTime(2026, 9, 16),
+  );
+  store.load();
+  return _themed(CardsScreen(store: store, ui: UiState()), Brightness.dark);
+}

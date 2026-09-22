@@ -311,6 +311,20 @@ class AppStore extends ChangeNotifier {
       instances.where((i) => i.claimedCents > 0).toList();
   List<OverlapGroup> get overlaps => findOverlaps(instances);
 
+  /// Per-card figures for the Cards and Value screens, one per active card,
+  /// over every instance regardless of the household filter.
+  List<CardSummary> get cardSummaries {
+    final data = _data;
+    if (data == null) return const [];
+    final today = this.today;
+    final all = currentInstances(data, today);
+    final missed = missedCycles(data, today);
+    return [
+      for (final card in data.cards)
+        if (!card.archived) summarizeCard(card, data, all, missed, today),
+    ];
+  }
+
   /// The overlap group with this label among the visible instances, or null
   /// once a claim or the filter has dissolved it.
   OverlapGroup? overlapFor(String label) {
