@@ -204,6 +204,8 @@ Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository na
 
 The *Signing material* section of `07-mobile-release.md` has a subsection each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each ending in `gcloud secrets versions add`.
 
+Its setup block exports `STACK=staging` beside `PROJECT_ID`, because every `versions add` names its secret as `reward-app-<name>-$STACK` and a copied block with `STACK` unset targets an id that does not exist.
+
 It also names the Play App Signing first-upload quirk, so the first failed upload is not a mystery.
 
 ### Runbook 07 says store records are per app id
@@ -243,6 +245,20 @@ The Dart SDK comes from the Flutter SDK, because the workspace includes the Flut
 ### Verify gate analyses and tests the Flutter app
 
 `verify.yml` has a `flutter` job with `working-directory: apps/mobile` that runs `flutter analyze --fatal-infos` and `flutter test`, so a widget failure names itself rather than hiding in the Dart job ([[mobile-tests]]).
+
+### Flutter version is pinned once with FVM
+
+`.fvmrc` at the root names the exact Flutter version and every `subosito/flutter-action` step in `verify.yml` and `release-mobile.yml` reads it with `flutter-version-file: .fvmrc`, so laptops and CI share one SDK.
+
+The version number lives in one file, and `fvm flutter` on a laptop uses the same SDK as the runners.
+
+### Mobile Makefile is the app's script runner
+
+`apps/mobile/Makefile` defines `help`, `init`, `build`, `test`, `e2e` and `deploy`, every recipe calls `fvm flutter` or `fvm dart` rather than a bare SDK, and the app README lists each target, so the entry points are discoverable and pinned ([[mobile-architecture#Make targets]]).
+
+### Root Makefile runs the verify gate locally
+
+The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
 
 ### Verify gate builds and smoke-tests the api
 

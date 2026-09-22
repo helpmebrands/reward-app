@@ -154,7 +154,8 @@ When implementing a single issue: worktree, TDD, commit, open a PR against `deve
 
 These rules apply to all Flutter and Dart code in this repository, including the Flutter app introduced by epic #64.
 
-- **Formatting**: all Dart code must be formatted with `flutter format .` before committing.
+- **Toolchain**: the Flutter version is pinned in `.fvmrc` and managed with [FVM](https://fvm.app). Run every Flutter and Dart command through it: `fvm flutter …`, `fvm dart …`. CI reads the same file.
+- **Formatting**: all Dart code must be formatted with `fvm dart format .` before committing.
 - **Packages**: only [Flutter Favorite](https://pub.dev/packages?q=is%3Aflutter-favorite) packages may be added without confirmation. Any other package choice must be approved by a human before it is added to `pubspec.yaml`.
 - **Native dependencies**: use Swift Package Manager for iOS and macOS dependencies. Do not introduce CocoaPods without human approval.
 - **UI library**: use the Material library for UI. Do not use Cupertino widgets.

@@ -54,3 +54,10 @@ A record that is not JSON loads as null rather than throwing.
 
 After `load` the store reports its cards, the first use-soon credit, the claimable total and the next reset for the fixed date, all from the domain selectors.
 
+## End to end
+
+`integration_test/app_test.dart` drives the real app on a simulator or emulator through `make e2e` ([[mobile-architecture#Make targets]]); it is not part of the verify gate.
+
+### A fresh install launches to the first-run screen
+
+Booting the app with an empty snapshot store on a device reaches the Today screen and shows "Start with one card", proving the shell, the store and the screen wire together outside the test harness.

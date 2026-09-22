@@ -3,3 +3,5 @@ encryptedkey: CiQAuVK5vGMIl6iCSaRnWp9ZlxjzQy4TdXyR17XB4SThWgJxdWMSSQAvEBIWgOqb0S
 config:
   reward-app-repo:githubRepo: helpmebrands/reward-app
   github:owner: helpmebrands
+  github:token:
+    secure: v1:nXnQIQlFnMl8krHE:sr8aqCPuU/Y0XIArtBLMFeCcaSKMtb3Vy2NrHOtD4wd097YzFRS8LaDPhYzMmjdNAYqz9efhYcoCavPE3SHBZo3MhtKyNHescShi4CrZyJnqIEYMjL1t8e5CqI9hHIhz4METc2OkQkhe82ZkoA==

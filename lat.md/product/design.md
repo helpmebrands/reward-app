@@ -85,7 +85,25 @@ The credit sheet ([[apps/pwa/src/ui/CreditSheet.tsx#CreditSheet]]) makes logging
 
 A custom dropdown would be worse in every way that matters: no keyboard accessory, no scroll wheel, no VoiceOver rotor. The control hides itself when there is only one person, because a filter with one option is furniture.
 
+## Responsive layout
+
+Three width classes, Material's compact, medium and expanded, decide the navigation and the content column on every client. The phone design is the compact class; the wider ones re-flow it and never re-order it.
+
+| Class | Width | Content column | Screen padding | Navigation |
+| --- | --- | --- | --- | --- |
+| Compact | under 600 | 402 | 20 | bottom tab bar |
+| Medium | 600 to 1023 | 560 | 24 | rail, icons over labels, 80 wide |
+| Expanded | 1024 and up | 720 | 28 | rail, labels beside icons, 200 wide |
+
+Units are CSS pixels in the PWA and logical pixels in Flutter, which are the same size on a device. From medium the column is centred beside the rail and is the only thing that scrolls; the tab bar and the rail are the same four destinations in the same order. Today pairs its overlap cards from medium and splits into two columns from expanded, with the headline across both; Cards go two across from medium and one wide row each from expanded; editors pair short fields from expanded. Reading order and focus order are the phone's at every width.
+
+Orientation is never locked, and a landscape phone keeps the compact class with the short-viewport form under *Accessibility*. The PWA realises the classes in [[interaction#Responsive layout]]; the Flutter app in [[mobile-architecture#Responsive layout]].
+
 ## Accessibility
+
+The product targets WCAG 2.2 AA. The PWA is measured against it directly; the Flutter app carries the same requirements in platform terms ([[mobile-architecture#Accessibility]]), because the standard is written for the web but its intent is not.
+
+Every client must: re-flow to the width classes above with nothing scrolling sideways (1.4.10); let text follow the platform size preference to 200% without clipping or overlap (1.4.4); keep text at 4.5:1 and controls at 3:1 against every ground they sit on, from the same tokens (1.4.3, 1.4.11); never lock orientation (1.3.4); give every gesture a keyboard, switch or screen-reader route (2.5.1, 2.1.1); and offer undo rather than confirmation (2.2.1).
 
 The shell has a skip link; sheets are `role="dialog"` with `aria-modal`, a focus trap, and focus moved in on open. Deadlines have a screen-reader form ([[apps/pwa/src/domain/format.ts#describeDeadline]]) alongside the terse visual one.
 
