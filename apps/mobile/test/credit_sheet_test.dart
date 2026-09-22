@@ -300,12 +300,14 @@ void main() {
     ) async {
       final app = await openResy(tester, phone);
 
-      await tester.ensureVisible(
-        find.bySemanticsLabel('Silence reminders for Resy Dining Credit'),
+      final silence = find.descendant(
+        of: sheet,
+        matching: find.bySemanticsLabel(
+          'Silence reminders for Resy Dining Credit',
+        ),
       );
-      await tester.tap(
-        find.bySemanticsLabel('Silence reminders for Resy Dining Credit'),
-      );
+      await tester.ensureVisible(silence);
+      await tester.tap(silence);
       await tester.pumpAndSettle();
       expect(app.store.data!.benefits.first.muted, isTrue);
 

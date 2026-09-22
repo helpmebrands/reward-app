@@ -116,11 +116,23 @@ Page transitions stay at the framework defaults, which on the pinned Flutter (3.
 
 ## Today screen
 
-`TodayScreen` is the PWA's Today ([[design#Screens]]) as Material widgets. No editing yet; the actions arrive with the credit sheet.
+`TodayScreen` is the PWA's Today ([[design#Screens]]) as Material widgets: the number, the countdown, the rows behind them, and every interaction the PWA has.
 
-It shows the header with the date, the headline counting only what is claimable, the use-soon rows with the reset countdown, up to three overlap cards on the section ground, the locked section with its own total, and the captured rows.
+It shows the header with the date and the "Preview nudge" button, the household filter, the headline counting only what is claimable, the use-soon rows with the reset countdown, up to three overlap cards on the section ground, the locked section with its own total, and the captured rows.
 
-`CreditRow` draws every status in one of five tones from the token set (soon, available, locked, captured, missed), with the holder in the subtitle when the household has more than one card, and the claimed amount on a captured row. Given callbacks it becomes the interactive row of [[mobile-architecture#The swipe row]]; Today still draws it static until its interactions arrive. The headline number shrinks to fit the column rather than overflow. Every component has a Widget Preview in `lib/previews.dart`. Pinned by [[mobile-tests#Today]].
+`CreditRow` draws every status in one of five tones from the token set (soon, available, locked, captured, missed), with the holder in the subtitle when the household has more than one card, and the claimed amount on a captured row. Given callbacks it is the interactive row of [[mobile-architecture#The swipe row]]. The headline number shrinks to fit the column rather than overflow. Every component has a Widget Preview in `lib/previews.dart`. Pinned by [[mobile-tests#Today]].
+
+### Today's interactions
+
+The screen takes the `UiState` beside the store; without it the screen is static, which is how tests and previews still build it bare.
+
+With it, every row gets `onOpen` (the credit sheet by benefit id), `onLogAll` and `onToggleMute` through the shared `CreditActions` ([[mobile-architecture#Undo and the snackbar]]), so a tap, a swipe and a sheet button all do the same thing and the headline follows a claim at once.
+
+- **Household filter**: `HolderFilter` is the PWA's ([[design#Household filter]]) as a styled row over Material's `PopupMenuButton`, so the picker is the platform's menu rather than a custom dropdown. It writes `Settings.holderFilter` through the store, which every derived view already respects, and hides itself when the household has one person, because a filter with one option is furniture. `DropdownMenu` was tried and dropped: its floating label breaks at a 2.0 text scale.
+- **Compare sheet**: tapping an overlap card opens `CompareSheet` for the group, through `UiState.openOverlap` and `AppStore.overlapFor`. It is the PWA's: the two sides side by side, each a button that opens that credit (closing the compare first), the "What to do" advice that is concrete about one booking drawing on one card and stops short of ranking the two people, and a "Log … on …'s card" button per unlocked side that claims through `CreditActions` and closes. The shell hosts it above the credit sheet in a `SheetHost` with `wide: dialog`, so it stays a centred dialog at expanded where the credit sheet docks.
+- **Nudge preview**: "Preview nudge" shows the next reminder from `buildSchedule` over the current snapshot at the store's clock, or `sampleReminder` built from the claimable total when nothing is scheduled ([[reminders#Nudge preview]]), through `UiState.showNudge`. `NudgePreview` is drawn by the shell at the top of the content column: the app name, "preview", the title and the body, a Dismiss with its own label, a six-second clock of its own, and a tap that dismisses and goes to the reminder's route. It is in-app and needs no permission; delivery on the device is a later epic.
+
+Pinned by [[mobile-tests#Today interactions]].
 
 The screen re-flows with the width class it reads from the shell ([[mobile-architecture#Responsive layout]]). From medium the overlap cards go two across in `IntrinsicHeight` rows of two `Expanded` cards. From expanded the body under the headline is a `Row` of two columns, use-soon, overlaps and captured on the left and locked on the right, with the headline spanning both. Flutter orders a screen reader's traversal by position, not by the widget tree, so each of Today's sections is a `_Section`: a semantics container with an `OrdinalSortKey` giving its place in the phone order. The two-column layout therefore reads exactly as the phone does, which [[mobile-tests#Today#The screen reader hears the phone order at every width]] proves by comparing the traversal at 402 and 1280.
 

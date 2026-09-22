@@ -4,6 +4,9 @@ import 'package:flutter/services.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 
+/// What a sheet becomes at expanded width.
+enum SheetWide { dialog, panel }
+
 /// A modal sheet in the shape the width calls for, drawn over [child].
 ///
 /// On a phone it is Material's bottom sheet on Nocturne's surfaces: a drag
@@ -22,9 +25,18 @@ class SheetHost extends StatefulWidget {
     required this.sheet,
     required this.child,
     this.widthClass = WidthClass.compact,
+    this.wide = SheetWide.panel,
+    this.sheetKey = const Key('credit-sheet'),
   });
 
   final bool open;
+
+  /// What the sheet becomes at expanded width: the credit sheet docks as a
+  /// panel beside the list, the compare sheet stays a dialog.
+  final SheetWide wide;
+
+  /// The key on the presented sheet, for tests and previews.
+  final Key sheetKey;
 
   /// Announced as the route's name.
   final String title;
@@ -113,7 +125,7 @@ class _SheetHostState extends State<SheetHost>
     // The route semantics wrap the whole presentation, drag handle included,
     // and carry the key the tests measure.
     Widget route(Widget presentation) => Semantics(
-      key: const Key('credit-sheet'),
+      key: widget.sheetKey,
       scopesRoute: true,
       namesRoute: true,
       label: widget.title,
@@ -121,7 +133,12 @@ class _SheetHostState extends State<SheetHost>
       child: presentation,
     );
 
-    return switch (widget.widthClass) {
+    final presentation =
+        widget.widthClass == WidthClass.expanded &&
+            widget.wide == SheetWide.dialog
+        ? WidthClass.medium
+        : widget.widthClass;
+    return switch (presentation) {
       WidthClass.compact => Stack(
         fit: StackFit.expand,
         children: [

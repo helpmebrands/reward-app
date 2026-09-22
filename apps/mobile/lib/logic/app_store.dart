@@ -33,6 +33,9 @@ class AppStore extends ChangeNotifier {
   /// resumed the next morning shows that morning's deadlines.
   IsoDate get today => todayIso(_clock());
 
+  /// The instant, for the schedule and the nudge preview.
+  DateTime get now => _clock();
+
   IsoInstant get _now => _clock().toUtc().toIso8601String();
 
   Future<void> load() async {
@@ -307,6 +310,16 @@ class AppStore extends ChangeNotifier {
   List<BenefitInstance> get captured =>
       instances.where((i) => i.claimedCents > 0).toList();
   List<OverlapGroup> get overlaps => findOverlaps(instances);
+
+  /// The overlap group with this label among the visible instances, or null
+  /// once a claim or the filter has dissolved it.
+  OverlapGroup? overlapFor(String label) {
+    for (final overlap in overlaps) {
+      if (overlap.label == label) return overlap;
+    }
+    return null;
+  }
+
   IsoDate? get nextResetOn => nextReset(instances);
   bool get hasCards => _data?.cards.any((card) => !card.archived) ?? false;
   int get cardCount => _data?.cards.where((card) => !card.archived).length ?? 0;

@@ -6,6 +6,7 @@ import '../screens/stub_screen.dart';
 import '../screens/today_screen.dart';
 import 'app_scope.dart';
 import 'app_shell.dart';
+import 'ui_scope.dart';
 
 /// Route paths, the PWA's, written by hand rather than generated.
 abstract final class Paths {
@@ -57,8 +58,10 @@ GoRouter appRouter(AppStore store) => GoRouter(
           routes: [
             GoRoute(
               path: Paths.today,
-              builder: (context, state) =>
-                  TodayScreen(store: AppScope.of(context)),
+              builder: (context, state) => TodayScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
           ],
         ),
