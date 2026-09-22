@@ -225,22 +225,32 @@ the page's **Issuer ID**.
 ```sh
 $ gcloud secrets versions add reward-app-asc-api-key-$STACK \
     --project "$PROJECT_ID" --data-file AuthKey_XXXXXXXXXX.p8
-$ printf '%s' 'XXXXXXXXXX' | gcloud secrets versions add \
+$ read -r ASC_KEY_ID; printf '%s' "$ASC_KEY_ID" | gcloud secrets versions add \
     reward-app-asc-api-key-id-$STACK --project "$PROJECT_ID" --data-file -
-$ printf '%s' '00000000-0000-0000-0000-000000000000' | gcloud secrets versions add \
+$ read -r ASC_ISSUER_ID; printf '%s' "$ASC_ISSUER_ID" | gcloud secrets versions add \
     reward-app-asc-issuer-id-$STACK --project "$PROJECT_ID" --data-file -
 ```
 
 The key id and issuer id are not secret in themselves, but they travel with
-the key so the workflow reads all three from one place.
+the key so the workflow reads all three from one place. `read -r` takes each
+id from the keyboard: the first pass of this runbook stored its own inline
+placeholder as a version, which is why there are no placeholders here.
 
 ### iOS: the distribution certificate
 
-Before any of this, register the bundle id once at
-[developer.apple.com](https://developer.apple.com/account) under
-*Identifiers* (App IDs, `com.helpmebrands.reward`, Push Notifications
-capability ticked for later), and create the app record in App Store Connect
-under *Apps → +* with that id.
+Before any of this, look under *Identifiers* at
+[developer.apple.com](https://developer.apple.com/account) for
+`com.helpmebrands.reward`. If the app has ever been run on a device from
+Xcode with automatic signing it is already there, named
+`XC com helpmebrands reward`; use that entry. Do not register a second id
+under a friendlier name: a profile made for any other identifier fails the
+build at signing time, and the first pass of this runbook did exactly that.
+If the id is genuinely missing, register it (App IDs, explicit,
+`com.helpmebrands.reward`). Either way the *Push Notifications* capability
+goes on it, by hand or by the script in the next subsection. Then create the
+app record in App Store Connect under *Apps → +* with that id; the record is
+the one thing in this section that only the web UI can create, and
+`upload_to_testflight` fails without it.
 
 The certificate is an **Apple Distribution** certificate with its private
 key, exported as a password-protected `.p12`. The Fastfile signs with the
@@ -270,11 +280,63 @@ when it passes, repeat this subsection and the next.
 
 ### iOS: the provisioning profile
 
-At developer.apple.com, *Profiles → +*, choose **App Store Connect** under
-Distribution, the `com.helpmebrands.reward` app id, the certificate from the
-previous step, name `HelpMe Reward App Store`, download
-`HelpMe_Reward_App_Store.mobileprovision`. The Fastfile reads the team id
-and the profile name out of this file, so nothing else needs configuring.
+Either at developer.apple.com, *Profiles → +*, choose **App Store Connect**
+under Distribution, the `com.helpmebrands.reward` app id, the certificate
+from the previous step, name `HelpMe Reward App Store`, download
+`HelpMe_Reward_App_Store.mobileprovision`; or let the App Store Connect API
+key from two subsections up do it, which cannot pick the wrong app id. The
+script below adds the Push Notifications capability to the id and generates
+the profile with the team's distribution certificate; it needs only Ruby's
+standard library, and `ASC_KEY_PATH` is the `.p8`.
+
+```ruby
+# Adds the Push Notifications capability to the app id and generates its App
+# Store profile with the team's distribution certificate, through the App
+# Store Connect API key. Usage: ruby asc-profile.rb <bundle id> <profile name> <out.mobileprovision>
+require 'openssl'; require 'json'; require 'base64'; require 'net/http'
+kid, iss, p8 = ENV.fetch('ASC_KEY_ID'), ENV.fetch('ASC_ISSUER_ID'), ENV.fetch('ASC_KEY_PATH')
+b64 = ->(s) { Base64.urlsafe_encode64(s, padding: false) }
+now = Time.now.to_i
+signing = "#{b64.({ alg: 'ES256', kid: kid, typ: 'JWT' }.to_json)}.#{b64.({ iss: iss, iat: now, exp: now + 600, aud: 'appstoreconnect-v1' }.to_json)}"
+der = OpenSSL::PKey.read(File.read(p8)).sign(OpenSSL::Digest.new('SHA256'), signing)
+jwt = "#{signing}.#{b64.(OpenSSL::ASN1.decode(der).value.map { |v| v.value.to_s(2).rjust(32, "\0") }.join)}"
+api = lambda do |method, path, body = nil|
+  uri = URI("https://api.appstoreconnect.apple.com#{path}")
+  req = Net::HTTP.const_get(method).new(uri, 'Authorization' => "Bearer #{jwt}", 'Content-Type' => 'application/json')
+  req.body = body.to_json if body
+  JSON.parse(Net::HTTP.start(uri.host, 443, use_ssl: true) { |h| h.request(req) }.body)
+end
+bundle = api.(:Get, "/v1/bundleIds?filter[identifier]=#{ARGV[0]}").fetch('data').fetch(0).fetch('id')
+cert = api.(:Get, '/v1/certificates?filter[certificateType]=DISTRIBUTION').fetch('data').fetch(0).fetch('id')
+api.(:Post, '/v1/bundleIdCapabilities', data: { type: 'bundleIdCapabilities', attributes: { capabilityType: 'PUSH_NOTIFICATIONS' },
+  relationships: { bundleId: { data: { type: 'bundleIds', id: bundle } } } })
+profile = api.(:Post, '/v1/profiles', data: { type: 'profiles', attributes: { name: ARGV[1], profileType: 'IOS_APP_STORE' },
+  relationships: { bundleId: { data: { type: 'bundleIds', id: bundle } }, certificates: { data: [{ type: 'certificates', id: cert }] } } })
+File.binwrite(ARGV[2], Base64.decode64(profile.fetch('data').fetch('attributes').fetch('profileContent')))
+```
+
+```sh
+$ ASC_KEY_ID=… ASC_ISSUER_ID=… ASC_KEY_PATH=AuthKey_XXXXXXXXXX.p8 \
+    ruby asc-profile.rb com.helpmebrands.reward 'HelpMe Reward App Store' \
+    HelpMe_Reward_App_Store.mobileprovision
+```
+
+Whichever way it was made, **verify the profile is for the app** before it
+goes anywhere near Secret Manager. The one line that matters is
+`application-identifier`:
+
+```sh
+$ security cms -D -i HelpMe_Reward_App_Store.mobileprovision | plutil -p - \
+    | grep -E 'application-identifier|aps-environment|ExpirationDate'
+    "application-identifier" => "LMFUSVPCDH.com.helpmebrands.reward"
+    "aps-environment" => "production"
+  "ExpirationDate" => 2027-09-21 14:44:44 +0000
+```
+
+If the identifier is anything but the team id followed by
+`com.helpmebrands.reward`, the profile was made for another app id; make it
+again. The Fastfile reads the team id and the profile name out of this file,
+so nothing else needs configuring.
 
 ```sh
 $ gcloud secrets versions add reward-app-ios-provisioning-profile-$STACK \
@@ -285,16 +347,37 @@ A profile is tied to its certificate: a new certificate means a new profile.
 
 ### Check and clean up
 
+Count the versions, then read the two iOS binaries back and prove they are
+what the workflow needs: a certificate that imports as a signing identity,
+and a profile for the app.
+
 ```sh
 $ for s in $(gcloud secrets list --project "$PROJECT_ID" --filter='name~reward-app-' --format='value(name)'); do
-    printf '%s: %s\n' "$s" "$(gcloud secrets versions list "$s" --project "$PROJECT_ID" --format='value(name)' | wc -l)"
+    printf '%s: %s\n' "$s" "$(gcloud secrets versions list "$s" --project "$PROJECT_ID" --filter='state=enabled' --format='value(name)' | wc -l)"
   done
+$ gcloud secrets versions access latest --secret reward-app-ios-distribution-cert-$STACK \
+    --project "$PROJECT_ID" --out-file check.p12
+$ security create-keychain -p '' check.keychain-db
+$ security import check.p12 -k check.keychain-db -P "$CERT_PASSWORD" -T /usr/bin/codesign
+$ security find-identity -v -p codesigning check.keychain-db
+  1) 2B69E218… "Apple Distribution: … (LMFUSVPCDH)"
+     1 valid identities found
+$ security delete-keychain check.keychain-db
+$ gcloud secrets versions access latest --secret reward-app-ios-provisioning-profile-$STACK \
+    --project "$PROJECT_ID" --out-file check.mobileprovision
+$ security cms -D -i check.mobileprovision | plutil -p - | grep application-identifier
+    "application-identifier" => "LMFUSVPCDH.com.helpmebrands.reward"
 $ cd ~ && rm -rf ~/reward-signing
 ```
 
-Every line should read `1`. The keystore and the `.p12` now exist only in
-Secret Manager and, if you choose, in a password manager; the `.p8` exists
-only in Secret Manager, because Apple will not hand it out twice.
+Every count should read `1`. Read binaries with `--out-file`, never by
+redirecting stdout: `gcloud` writes stdout as text and every byte above
+`0x7F` comes out as U+FFFD, so a check made that way fails on material that
+is fine. The workflow uses `--out-file` and is unaffected.
+
+The keystore and the `.p12` now exist only in Secret Manager and, if you
+choose, in a password manager; the `.p8` exists only in Secret Manager,
+because Apple will not hand it out twice.
 
 ## The Play publisher identity
 

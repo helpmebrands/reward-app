@@ -212,6 +212,22 @@ It also names the Play App Signing first-upload quirk, so the first failed uploa
 
 `07-mobile-release.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
 
+### Runbook 07 verifies the profile before storing it
+
+The provisioning-profile subsection of `07-mobile-release.md` points at the Xcode-registered `XC com helpmebrands reward` id, offers the API route, and checks `application-identifier` before `gcloud secrets versions add`.
+
+The first pass of the runbook stored a profile made for a second, hand-registered app id; the build would have failed at signing. The `security cms -D` check comes before the version is added so that cannot recur.
+
+### Runbook 07 reads binaries back with --out-file
+
+The *Check and clean up* subsection of `07-mobile-release.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.
+
+The key id and issuer id are entered with `read -r` rather than inline placeholders, because the placeholder was once stored verbatim as a version.
+
+### README records the iOS signing expiry
+
+The environment table in `docs/runbooks/README.md` has an *iOS signing* row naming the certificate and profile ids and their expiry date, so renewal is a dated task rather than a surprise.
+
 ### README records the GitHub token
 
 The environment table in `docs/runbooks/README.md` has a *GitHub token* row naming who minted it and that it has no expiry, because a token without expiry fails nobody until it is revoked.
