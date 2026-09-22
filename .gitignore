@@ -16,7 +16,9 @@ playwright-report
 
 # Flutter
 **/ephemeral/
+.fvm/
 .claude
 .mcp.json
 .pi
 .idea/
+/secrets.md

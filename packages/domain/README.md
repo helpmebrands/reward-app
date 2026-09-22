@@ -10,9 +10,9 @@ development. Calendar dates are `YYYY-MM-DD` strings computed in UTC; money
 is whole cents.
 
 ```sh
-dart pub get          # at the repository root, which is the pub workspace
-dart analyze          # at the root
-dart test             # in packages/domain
+fvm dart pub get      # at the repository root, which is the pub workspace
+fvm dart analyze      # at the root
+fvm dart test         # in packages/domain
 ```
 
 ## Every export, and its Dart equivalent

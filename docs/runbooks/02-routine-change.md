@@ -23,13 +23,13 @@ $ npm run lint
 $ npm run build     # typechecks, then bundles
 
 # domain and api
-$ dart analyze --fatal-infos
-$ (cd packages/domain && dart test)
+$ fvm dart analyze --fatal-infos
+$ (cd packages/domain && fvm dart test)
 $ (cd services/api && docker compose up -d --wait && \
-   DATABASE_URL='postgres://reward:reward@localhost:5432/reward?sslmode=disable' dart test)
+   DATABASE_URL='postgres://reward:reward@localhost:5432/reward?sslmode=disable' fvm dart test)
 
 # mobile
-$ (cd apps/mobile && flutter analyze --fatal-infos && flutter test)
+$ (cd apps/mobile && fvm flutter analyze --fatal-infos && fvm flutter test)
 
 $ git push -u origin feat/<issue>-<slug>
 $ gh pr create --base develop
@@ -128,8 +128,8 @@ $ npm outdated
 $ npm update            # within existing ranges
 $ npm test && npm run build
 
-$ dart pub outdated
-$ dart pub upgrade      # within existing ranges, whole workspace
+$ fvm dart pub outdated
+$ fvm dart pub upgrade  # within existing ranges, whole workspace
 ```
 
 Majors go in their own pull request so a revert is one click. The PWA is frozen

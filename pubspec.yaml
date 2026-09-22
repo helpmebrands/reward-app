@@ -1,6 +1,7 @@
 # The Dart pub workspace (Dart 3.12): one resolution for every Dart package in
-# the repository. `dart pub get` here resolves them all; `dart analyze` here
-# analyses them all.
+# the repository. `fvm dart pub get` here resolves them all; `fvm dart analyze`
+# here analyses them all. The Flutter SDK, and so the Dart SDK, is pinned in
+# .fvmrc and managed with FVM.
 name: helpmebrands_reward_workspace
 publish_to: none
 environment:

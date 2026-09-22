@@ -173,7 +173,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version-file: .fvmrc
           cache: true
 
       - name: Resolve the workspace
@@ -200,7 +200,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version-file: .fvmrc
           cache: true
 
       - name: Resolve the workspace
@@ -243,7 +243,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.44.8
+          flutter-version-file: .fvmrc
           cache: true
 
       - name: Resolve the workspace

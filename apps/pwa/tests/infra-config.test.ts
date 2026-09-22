@@ -107,6 +107,20 @@ describe('verify workflow', () => {
     expect(flutterJob).toContain('working-directory: apps/mobile')
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Flutter version is pinned once with FVM]]
+  it('pins the Flutter version in .fvmrc and every workflow reads it from there', () => {
+    const fvmrc = JSON.parse(read('.fvmrc')) as { flutter?: string }
+    expect(fvmrc.flutter).toMatch(/^\d+\.\d+\.\d+$/)
+    for (const file of ['.github/workflows/verify.yml', '.github/workflows/release-mobile.yml']) {
+      const workflow = read(file)
+      const setups = workflow.match(/uses: subosito\/flutter-action@v2/g) ?? []
+      expect(setups.length, file).toBeGreaterThan(0)
+      const fromFile = workflow.match(/flutter-version-file: \.fvmrc/g) ?? []
+      expect(fromFile.length, file).toBe(setups.length)
+      expect(workflow, file).not.toMatch(/flutter-version:/)
+    }
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Verify gate builds and smoke-tests the api]]
   it('analyses, tests, builds and smoke-tests the api in its own job', () => {
     const verify = read('.github/workflows/verify.yml')
@@ -665,6 +679,7 @@ describe('signing material procedure and token record', () => {
       expect(signing, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
     }
     expect(signing).toContain('gcloud secrets versions add')
+    expect(signing).toMatch(/^\$ export STACK=staging$/m)
     expect(signing).toMatch(/Play App Signing/)
   })
 
@@ -709,5 +724,21 @@ describe('billing budget', () => {
     const costs = read('docs/runbooks/03-infrastructure-change.md').split(/^## Costs\s*$/m)[1] ?? ''
     expect(costs).toContain('budgetAmount')
     expect(costs).not.toMatch(/Set a budget alert on the project anyway/)
+  })
+})
+
+describe('mobile Makefile', () => {
+  // @lat: [[infra-tests#Infrastructure config#Mobile Makefile is the app's script runner]]
+  it('defines the documented targets through fvm and the README lists them', () => {
+    const makefile = read('apps/mobile/Makefile')
+    for (const target of ['help', 'init', 'build', 'test', 'e2e', 'deploy']) {
+      expect(makefile, target).toMatch(new RegExp(`^${target}:.*## `, 'm'))
+    }
+    expect(makefile).toMatch(/^FLUTTER\s*:?=\s*fvm flutter$/m)
+    expect(makefile).not.toMatch(/^\t+(flutter|dart) /m)
+    const readme = read('apps/mobile/README.md')
+    for (const target of ['make init', 'make build', 'make test', 'make e2e', 'make deploy', 'make help']) {
+      expect(readme).toContain(target)
+    }
   })
 })

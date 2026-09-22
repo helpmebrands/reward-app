@@ -3,8 +3,8 @@
 #
 #   docker compose up -d
 #   export DATABASE_URL=postgres://reward:reward@localhost:5432/reward?sslmode=disable
-#   dart run bin/migrate.dart
-#   dart test
+#   fvm dart run bin/migrate.dart
+#   fvm dart test
 services:
   postgres:
     image: postgres:16

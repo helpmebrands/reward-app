@@ -14,7 +14,8 @@ not been taken yet.
 | Application id | `com.helpmebrands.reward` on both platforms (`PRODUCT_BUNDLE_IDENTIFIER` in `ios/Runner.xcodeproj`, `applicationId` in `android/app/build.gradle.kts`) |
 | Display name | `Reward` (`CFBundleDisplayName`); the product name is HelpMe Reward |
 | Version | `version: 1.0.0+1` in `apps/mobile/pubspec.yaml` |
-| Minimum Flutter | 3.35 (AGENTS.md rule 9); CI uses the version pinned in `verify.yml` |
+| Flutter | pinned in `.fvmrc` at the root, used by `fvm flutter` locally and by CI; minimum 3.35 (AGENTS.md rule 9) |
+| Minimum iOS | 15.0 (`IPHONEOS_DEPLOYMENT_TARGET` in `ios/Runner.xcodeproj`); Xcode 27 refuses anything lower |
 | CI | the `flutter` job of `verify.yml`: `flutter analyze --fatal-infos` and `flutter test` on every pull request and before every deploy |
 | CD | `release-mobile.yml` on a `v*` tag: Android to the Play internal track, iOS to TestFlight (*Getting it to testers*) |
 | Signing | nothing in the repository. Secret Manager holds one empty container per piece of signing material (`reward-app-<name>-staging`, declared in `infra/index.ts`), readable by the deployer and filled by hand (*Signing material*, below) |
@@ -52,11 +53,13 @@ Both builds are done on a laptop for now, because CI has no signing material.
 Run the checks CI runs first; a release build does not run tests.
 
 ```sh
+$ brew tap leoafarias/fvm && brew install fvm   # once per machine
+$ fvm install                        # at the repository root: fetches the version in .fvmrc
 $ cd apps/mobile
-$ flutter --version                  # 3.35 or newer
-$ dart pub get
-$ flutter analyze --fatal-infos
-$ flutter test
+$ fvm flutter --version              # must match .fvmrc; the first run also fills the SDK cache that `fvm dart` needs
+$ fvm dart pub get
+$ fvm flutter analyze --fatal-infos
+$ fvm flutter test
 ```
 
 Both stores key everything on the application id, so there is **one record
@@ -70,7 +73,7 @@ App Store Connect record for `com.helpmebrands.reward`. iOS and macOS
 dependencies are Swift Package Manager, never CocoaPods (rule 9).
 
 ```sh
-$ flutter build ipa --release        # writes build/ios/ipa/*.ipa
+$ fvm flutter build ipa --release    # writes build/ios/ipa/*.ipa
 ```
 
 The first time, open `ios/Runner.xcworkspace` in Xcode, sign in under
@@ -88,7 +91,7 @@ standard `signingConfigs.release` block reading it before the next command
 produces a signed bundle.
 
 ```sh
-$ flutter build appbundle --release  # writes build/app/outputs/bundle/release/app-release.aab
+$ fvm flutter build appbundle --release  # writes build/app/outputs/bundle/release/app-release.aab
 ```
 
 ## Getting it to testers
@@ -159,9 +162,16 @@ Binary files (`.jks`, `.p12`, `.p8`, `.mobileprovision`) go in as they are;
 Secret Manager stores bytes. Rotation is a new version, and the workflow
 always reads `latest`.
 
+Every secret id in the table is `reward-app-<name>-<stack>`, the
+`secretId` the stack declares in `infra/index.ts`, so the commands below
+name them through `$STACK`. Set it, with the project, before any of them:
+
 ```sh
 $ export PROJECT_ID=helpme-reward-staging
+$ export STACK=staging
 $ mkdir -p ~/reward-signing && cd ~/reward-signing
+$ gcloud secrets list --project "$PROJECT_ID" --filter="name~reward-app-.*-$STACK" \
+    --format='value(name)'          # the nine ids from the table; if not, apply the stack first
 ```
 
 ### Android: the upload keystore
@@ -190,15 +200,15 @@ $ read -rs KEY_PASSWORD; printf '%s' "$KEY_PASSWORD" | gcloud secrets versions a
     reward-app-android-key-password-$STACK --project "$PROJECT_ID" --data-file -
 ```
 
-with `STACK=staging`. `read -rs` takes the value from the keyboard without
-echoing it or recording it.
+`read -rs` takes the value from the keyboard without echoing it or
+recording it.
 
 **First upload quirk.** The Play Console creates the app record but the Play
 Developer API cannot; and the console may insist that the very first bundle
 of a new app arrives through its own upload page, which is where Play App
 Signing enrolment happens. If the release workflow's first run fails on the
 upload step with a message about app signing or a missing release, build
-once on a laptop with this keystore (`flutter build appbundle --release`
+once on a laptop with this keystore (`fvm flutter build appbundle --release`
 after writing `android/key.properties` as the workflow does) and upload the
 `.aab` by hand under *Testing → Internal testing*. Every run after that goes
 through the API.
@@ -319,7 +329,7 @@ on the runner, not a pub package.
 
 ## Rules that apply
 
-From AGENTS.md rule 9: Dart formatted with `flutter format .`; only Flutter
+From AGENTS.md rule 9: Dart formatted with `fvm dart format .`; only Flutter
 Favourite packages without a human's approval; Swift Package Manager, not
 CocoaPods; Material, not Cupertino; every widget has a Widget Preview;
 minimum Flutter 3.35. A release build that needed an exception to any of

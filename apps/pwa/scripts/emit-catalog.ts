@@ -3,7 +3,7 @@
  * package, so the two implementations share one list of templates:
  *
  *   node --experimental-strip-types scripts/emit-catalog.ts \
- *     > ../../packages/domain/lib/src/catalog.dart && dart format ../../packages/domain
+ *     > ../../packages/domain/lib/src/catalog.dart && fvm dart format ../../packages/domain
  */
 import { CARD_TEMPLATES } from '../src/domain/catalog.ts'
 

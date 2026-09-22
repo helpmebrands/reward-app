@@ -167,7 +167,7 @@ agree:
 
 ```sh
 $ cd services/api
-$ DATABASE_URL="postgres://api:$PW@localhost:5433/reward?sslmode=disable" dart run bin/migrate.dart
+$ DATABASE_URL="postgres://api:$PW@localhost:5433/reward?sslmode=disable" fvm dart run bin/migrate.dart
 schema is current; nothing to apply
 ```
 
@@ -204,8 +204,8 @@ session here as production access even on staging.
 $ cd services/api
 $ docker compose up -d --wait
 $ export DATABASE_URL='postgres://reward:reward@localhost:5432/reward?sslmode=disable'
-$ dart run bin/migrate.dart
-$ dart test
+$ fvm dart run bin/migrate.dart
+$ fvm dart test
 ```
 
 `docker compose down -v` throws the data away; without `-v` it survives.
