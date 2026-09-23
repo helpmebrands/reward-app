@@ -38,6 +38,7 @@ Benefit _benefit(
   int valueCents, {
   Cadence cadence = Cadence.quarterly,
   bool enrollmentRequired = false,
+  int? spendThresholdCents,
   List<String> steps = const [],
 }) => Benefit(
   id: id,
@@ -48,6 +49,7 @@ Benefit _benefit(
   cadence: cadence,
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
+  spendThresholdCents: spendThresholdCents,
   redemptionSteps: steps,
   muted: false,
   lastCallOnly: false,
@@ -65,7 +67,8 @@ Claim _claim(String id, String benefitId, int cents, String day) => Claim(
 );
 
 /// Jim's card with a $100 Resy credit ($10 then $20 logged, $70 left), a
-/// locked $300 Equinox credit, and a $15 Uber credit fully used.
+/// locked $300 Equinox credit, a $15 Uber credit fully used, and a $1,000
+/// Dell bonus gated behind $5,000 of spend.
 AppData _household() => AppData(
   version: 1,
   cards: [_card('jim', 'Jim'), _card('kathy', 'Kathy')],
@@ -84,6 +87,13 @@ AppData _household() => AppData(
       enrollmentRequired: true,
     ),
     _benefit('uber', 'Uber Cash', 1500, cadence: Cadence.monthly),
+    _benefit(
+      'dell',
+      'Dell Bonus',
+      100000,
+      cadence: Cadence.annual,
+      spendThresholdCents: 500000,
+    ),
   ],
   claims: [
     _claim('old', 'resy', 1000, '2026-09-02'),
@@ -332,6 +342,29 @@ void main() {
 
       expect(app.store.data!.benefits[1].enrolledAt, isNotNull);
       expect(inSheet('Mark the full \$300 used'), findsOneWidget);
+    });
+
+    // @lat: [[mobile-tests#Credit sheet#A spend-gated credit unlocks from the sheet]]
+    testWidgets('a spend-gated credit shows the spend copy and unlocks', (
+      tester,
+    ) async {
+      final app = await pumpApp(tester, phone);
+      app.ui.openCredit('dell');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Unlocks after \$5,000 spend this year.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Not enrolled.'), findsNothing);
+      expect(inSheet('Mark the full \$1,000 used'), findsNothing);
+
+      await tester.tap(find.text('I’ve reached it — unlock'));
+      await tester.pumpAndSettle();
+
+      expect(app.store.data!.benefits.last.spendMetAt, isNotNull);
+      expect(app.ui.snackbar.current!.text, 'Dell Bonus unlocked.');
+      expect(inSheet('Mark the full \$1,000 used'), findsOneWidget);
     });
 
     // @lat: [[mobile-tests#Credit sheet#A captured credit can be undone]]

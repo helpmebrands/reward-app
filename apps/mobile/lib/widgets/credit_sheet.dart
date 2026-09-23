@@ -256,20 +256,32 @@ class _SheetBodyState extends State<_SheetBody> {
                       const SizedBox(width: Space.s3),
                       Expanded(
                         child: Text(
-                          benefit.enrollmentNote ??
-                              'Not enrolled. ${formatMoney(benefit.valueCents)} is '
-                                  'unreachable until you tick the box on the issuer’s '
-                                  'benefits page.',
+                          lockReason(benefit, instance.card, today) ==
+                                  LockReason.spend
+                              ? 'Unlocks after '
+                                    '${formatMoney(benefit.spendThresholdCents ?? 0)} '
+                                    'spend this year.'
+                              : benefit.enrollmentNote ??
+                                    'Not enrolled. ${formatMoney(benefit.valueCents)} is '
+                                        'unreachable until you tick the box on the issuer’s '
+                                        'benefits page.',
                           style: text.bodySmall,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: Space.s4),
-                  OutlinedButton(
-                    onPressed: () => actions.confirmEnrollment(instance),
-                    child: const Text('I’ve enrolled — unlock this credit'),
-                  ),
+                  if (lockReason(benefit, instance.card, today) ==
+                      LockReason.spend)
+                    OutlinedButton(
+                      onPressed: () => actions.confirmSpend(instance),
+                      child: const Text('I’ve reached it — unlock'),
+                    )
+                  else
+                    OutlinedButton(
+                      onPressed: () => actions.confirmEnrollment(instance),
+                      child: const Text('I’ve enrolled — unlock this credit'),
+                    ),
                 ],
               ),
             ),

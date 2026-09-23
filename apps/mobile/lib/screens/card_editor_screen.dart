@@ -344,6 +344,11 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
             child: _BenefitLink(
               key: ValueKey('benefit-link-${benefit.id}'),
               benefit: benefit,
+              lock: switch (lockReason(benefit, current, store.today)) {
+                LockReason.enrollment => 'needs enrolment',
+                LockReason.spend => 'needs spend',
+                null => null,
+              },
               onTap: () => context.go(benefitPath(benefit.id)),
             ),
           ),
@@ -353,9 +358,17 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
 }
 
 class _BenefitLink extends StatelessWidget {
-  const _BenefitLink({super.key, required this.benefit, required this.onTap});
+  const _BenefitLink({
+    super.key,
+    required this.benefit,
+    required this.lock,
+    required this.onTap,
+  });
 
   final Benefit benefit;
+
+  /// What keeps the credit locked, for the meta line, or null when nothing.
+  final String? lock;
   final VoidCallback onTap;
 
   @override
@@ -365,7 +378,7 @@ class _BenefitLink extends StatelessWidget {
     final meta = [
       cadenceLabel(benefit.cadence),
       formatMoney(benefit.valueCents),
-      if (isLocked(benefit)) 'needs enrolment',
+      ?lock,
       if (!benefit.active) 'paused',
     ].join(' · ');
     return Material(

@@ -291,6 +291,27 @@ class _TodayBody extends StatelessWidget {
             ),
           );
 
+    // The section says what stands in the way: a box to tick, a spend to
+    // reach, or both.
+    final reasons = {
+      for (final instance in locked)
+        lockReason(instance.benefit, instance.card, store.today),
+    };
+    final bySpend = reasons.contains(LockReason.spend);
+    final byEnrolment = reasons.contains(LockReason.enrollment);
+    final lockedTitle = bySpend && byEnrolment
+        ? 'Locked behind enrolment and spend'
+        : bySpend
+        ? 'Locked behind a spend threshold'
+        : 'Locked behind enrolment';
+    final lockedNote = bySpend && byEnrolment
+        ? '${formatMoney(totals.lockedCents)} you cannot touch yet: some needs a box '
+              'ticked on the issuer’s benefits page, some a spend threshold.'
+        : bySpend
+        ? '${formatMoney(totals.lockedCents)} you cannot touch until you reach the '
+              'spend the issuer asks for.'
+        : '${formatMoney(totals.lockedCents)} you cannot touch until you tick a box on the '
+              'issuer’s benefits page.';
     final lockedSection = locked.isEmpty
         ? null
         : _Section(
@@ -299,10 +320,9 @@ class _TodayBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: Space.s8),
-                const _SectionTitle('Locked behind enrolment'),
+                _SectionTitle(lockedTitle),
                 Text(
-                  '${formatMoney(totals.lockedCents)} you cannot touch until you tick a box on the '
-                  'issuer’s benefits page.',
+                  lockedNote,
                   style: text.bodySmall?.copyWith(color: tokens.textSecondary),
                 ),
                 for (final instance in locked) ...[

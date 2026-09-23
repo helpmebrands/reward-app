@@ -157,6 +157,9 @@ class AppStore extends ChangeNotifier {
       enrolledAt: draft.enrolledAt,
       enrollmentNote: draft.enrollmentNote,
       enrollmentUrl: draft.enrollmentUrl,
+      spendThresholdCents: draft.spendThresholdCents,
+      spendMetAt: draft.spendMetAt,
+      endsOn: draft.endsOn,
       redemptionSteps: draft.redemptionSteps,
       notes: draft.notes,
       muted: draft.muted,
@@ -196,6 +199,13 @@ class AppStore extends ChangeNotifier {
 
   Future<void> revokeEnrollment(String id) =>
       updateBenefit(id, (b) => b.copyWith(enrolledAt: null));
+
+  /// Records that this year's spend threshold has been reached.
+  Future<void> confirmSpend(String id) =>
+      updateBenefit(id, (b) => b.copyWith(spendMetAt: _now));
+
+  Future<void> revokeSpend(String id) =>
+      updateBenefit(id, (b) => b.copyWith(spendMetAt: null));
 
   /// Removes the benefit and its claims.
   Future<void> deleteBenefit(String id) {

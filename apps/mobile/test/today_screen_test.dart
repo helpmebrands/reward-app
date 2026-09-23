@@ -22,9 +22,9 @@ Map<String, dynamic> expectedToday() =>
     jsonDecode(File('test/fixtures/sample-today.json').readAsStringSync())
         as Map<String, dynamic>;
 
-Future<AppStore> pumpToday(WidgetTester tester) async {
+Future<AppStore> pumpToday(WidgetTester tester, {AppData? data}) async {
   final store = AppStore(
-    store: MemorySnapshotStore(sampleHousehold()),
+    store: MemorySnapshotStore(data ?? sampleHousehold()),
     clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
@@ -95,6 +95,37 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  // @lat: [[mobile-tests#Today#The locked section says why]]
+  testWidgets('the locked section names a spend threshold when one applies', (
+    tester,
+  ) async {
+    final sample = sampleHousehold();
+    final gated = Benefit(
+      id: 'gated',
+      cardId: sample.cards.first.id,
+      name: 'Dell Bonus',
+      category: BenefitCategory.shopping,
+      valueCents: 100000,
+      cadence: Cadence.annual,
+      anchor: CycleAnchor.calendar,
+      enrollmentRequired: false,
+      spendThresholdCents: 500000,
+      redemptionSteps: const [],
+      muted: false,
+      lastCallOnly: false,
+      active: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    );
+    await pumpToday(
+      tester,
+      data: sample.copyWith(benefits: [...sample.benefits, gated]),
+    );
+    expect(find.text('Locked behind enrolment and spend'), findsOneWidget);
+    expect(find.textContaining('some a spend threshold'), findsOneWidget);
+    expect(find.text('Dell Bonus'), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Today#Overlaps show the three largest]]

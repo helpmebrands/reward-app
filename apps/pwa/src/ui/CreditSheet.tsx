@@ -7,7 +7,7 @@ import {
   parseMoneyToCents,
 } from '../domain/format.ts'
 import { currentRung, ladderFor } from '../domain/ladder.ts'
-import { cardLabel, statusLabel } from '../domain/selectors.ts'
+import { cardLabel, lockReason, statusLabel } from '../domain/selectors.ts'
 import type { BenefitInstance, Claim } from '../domain/types.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from './Ph.tsx'
@@ -37,6 +37,23 @@ export function CreditSheet(props: CreditSheetProps) {
   const instance = () => props.instance
   const benefit = () => instance()?.benefit
   const status = () => instance()?.status
+  const reason = () => {
+    const current = instance()
+    return current ? lockReason(current.benefit, current.card, app.today()) : null
+  }
+
+  /** What stands in the way of a locked credit, in the user's terms. */
+  function lockedNote(current: BenefitInstance): string {
+    if (reason() === 'spend') {
+      return `Unlocks after ${formatMoney(current.benefit.spendThresholdCents ?? 0)} spend this year.`
+    }
+    return (
+      current.benefit.enrollmentNote ??
+      `Not enrolled. ${formatMoney(
+        current.benefit.valueCents,
+      )} is unreachable until you tick the box on the issuer's benefits page.`
+    )
+  }
 
   /**
    * Quick amounts: a quarter, a half, and a round figure, all capped at what is
@@ -196,40 +213,56 @@ export function CreditSheet(props: CreditSheetProps) {
               <section class="sheet-locked">
                 <div class="row" style={{ 'align-items': 'flex-start', gap: 'var(--space-3)' }}>
                   <Ph name="lock-simple" size={15} color="var(--tone-locked-fg)" />
-                  <p class="sheet-locked__note">
-                    {current().benefit.enrollmentNote ??
-                      `Not enrolled. ${formatMoney(
-                        current().benefit.valueCents,
-                      )} is unreachable until you tick the box on the issuer's benefits page.`}
-                  </p>
+                  <p class="sheet-locked__note">{lockedNote(current())}</p>
                 </div>
                 <div class="stack stack--tight" style={{ 'margin-top': 'var(--space-4)' }}>
-                  <Show when={current().benefit.enrollmentUrl}>
-                    {(url) => (
-                      <a
-                        class="btn btn--primary btn--block"
-                        href={url()}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        <Ph name="arrow-square-out" size={14} />
-                        Open the benefits page
-                      </a>
-                    )}
-                  </Show>
-                  <button
-                    type="button"
-                    class="btn btn--block"
-                    onClick={() => {
-                      app.confirmEnrollment(current().benefit.id)
-                      snackbar.show(`${current().benefit.name} unlocked.`, {
-                        label: 'Undo',
-                        onAct: () => app.revokeEnrollment(current().benefit.id),
-                      })
-                    }}
+                  <Show
+                    when={reason() === 'spend'}
+                    fallback={
+                      <>
+                        <Show when={current().benefit.enrollmentUrl}>
+                          {(url) => (
+                            <a
+                              class="btn btn--primary btn--block"
+                              href={url()}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              <Ph name="arrow-square-out" size={14} />
+                              Open the benefits page
+                            </a>
+                          )}
+                        </Show>
+                        <button
+                          type="button"
+                          class="btn btn--block"
+                          onClick={() => {
+                            app.confirmEnrollment(current().benefit.id)
+                            snackbar.show(`${current().benefit.name} unlocked.`, {
+                              label: 'Undo',
+                              onAct: () => app.revokeEnrollment(current().benefit.id),
+                            })
+                          }}
+                        >
+                          I&rsquo;ve enrolled &mdash; unlock this credit
+                        </button>
+                      </>
+                    }
                   >
-                    I&rsquo;ve enrolled &mdash; unlock this credit
-                  </button>
+                    <button
+                      type="button"
+                      class="btn btn--block"
+                      onClick={() => {
+                        app.confirmSpend(current().benefit.id)
+                        snackbar.show(`${current().benefit.name} unlocked.`, {
+                          label: 'Undo',
+                          onAct: () => app.revokeSpend(current().benefit.id),
+                        })
+                      }}
+                    >
+                      I&rsquo;ve reached it &mdash; unlock
+                    </button>
+                  </Show>
                 </div>
               </section>
             </Show>

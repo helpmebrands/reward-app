@@ -2,7 +2,8 @@ import { useNavigate, useParams } from '@solidjs/router'
 import { createMemo, createSignal, For, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
 import { formatMoney } from '../domain/format.ts'
-import { cardLabel, isLocked } from '../domain/selectors.ts'
+import { cardLabel, lockReason } from '../domain/selectors.ts'
+import type { Benefit } from '../domain/types.ts'
 import { anniversaryError, moneyError, parseMoney, requiredError } from '../domain/validation.ts'
 import { useApp } from '../stores/app.tsx'
 import { Field } from '../ui/Field.tsx'
@@ -32,6 +33,18 @@ export function CardEditor() {
   const holderText = () => holderDraft() ?? card()?.holder ?? ''
   const feeText = () => feeDraft() ?? ((card()?.annualFeeCents ?? 0) / 100).toString()
   const anniversaryText = () => anniversaryDraft() ?? card()?.anniversaryOn ?? ''
+  /** What keeps a credit locked, for the list's meta line. */
+  const lockTag = (benefit: Benefit) => {
+    const owner = card()
+    switch (owner ? lockReason(benefit, owner, app.today()) : null) {
+      case 'enrollment':
+        return 'needs enrolment'
+      case 'spend':
+        return 'needs spend'
+      default:
+        return null
+    }
+  }
   const errors = {
     holder: () => requiredError(holderText(), 'Enter whose card this is.'),
     fee: () => moneyError(feeText()),
@@ -184,7 +197,7 @@ export function CardEditor() {
                         <span class="benefit-link__name truncate">{benefit.name}</span>
                         <span class="benefit-link__meta">
                           {cadenceLabel(benefit.cadence)} &middot; {formatMoney(benefit.valueCents)}
-                          <Show when={isLocked(benefit)}> &middot; needs enrolment</Show>
+                          <Show when={lockTag(benefit)}>{(tag) => <> &middot; {tag()}</>}</Show>
                           <Show when={!benefit.active}> &middot; paused</Show>
                         </span>
                       </span>

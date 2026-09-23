@@ -480,4 +480,96 @@ void main() {
       expect(missed.first.missedCents, 2500);
     });
   });
+
+  group('a spend-gated credit', () {
+    final card = makeCard();
+
+    test('is Locked, for spend, until the threshold is met', () {
+      final benefit = makeBenefit(
+        Cadence.annual,
+        spendThresholdCents: 25000000,
+      );
+      expect(
+        currentInstances(makeData(benefits: [benefit]), today).first.status,
+        BenefitStatus.locked,
+      );
+      expect(lockReason(benefit, card, today), LockReason.spend);
+    });
+
+    test('names enrolment first when both apply', () {
+      final benefit = makeBenefit(
+        Cadence.annual,
+        enrollmentRequired: true,
+        spendThresholdCents: 100,
+      );
+      expect(lockReason(benefit, card, today), LockReason.enrollment);
+    });
+
+    test(
+      'unlocks with a spend met inside the current calendar year, not the previous one',
+      () {
+        BenefitStatus statusOf(String spendMetAt) => currentInstances(
+          makeData(
+            benefits: [
+              makeBenefit(
+                Cadence.annual,
+                spendThresholdCents: 100,
+                spendMetAt: spendMetAt,
+              ),
+            ],
+          ),
+          today,
+        ).first.status;
+        expect(statusOf('2026-03-01T00:00:00.000Z'), BenefitStatus.available);
+        expect(statusOf('2025-12-31T00:00:00.000Z'), BenefitStatus.locked);
+      },
+    );
+
+    test(
+      'measures the year from the anniversary when the credit is anchored there',
+      () {
+        // The card's year turns over on 14 March, so February is last year.
+        Benefit met(String spendMetAt) => makeBenefit(
+          Cadence.annual,
+          anchor: CycleAnchor.anniversary,
+          spendThresholdCents: 100,
+          spendMetAt: spendMetAt,
+        );
+        expect(
+          lockReason(met('2026-02-01T00:00:00.000Z'), card, today),
+          LockReason.spend,
+        );
+        expect(
+          lockReason(met('2026-04-01T00:00:00.000Z'), card, today),
+          isNull,
+        );
+      },
+    );
+
+    test("contributes nothing to the card's annual value while gated", () {
+      final gated = makeBenefit(
+        Cadence.annual,
+        id: 'gated',
+        valueCents: 120000,
+        spendThresholdCents: 100,
+      );
+      final open = makeBenefit(Cadence.monthly, id: 'open', valueCents: 1500);
+      int annual(List<Benefit> benefits) {
+        final data = makeData(benefits: benefits);
+        return summarizeCard(
+          card,
+          data,
+          currentInstances(data, today),
+          const [],
+          today,
+        ).annualValueCents;
+      }
+
+      expect(annual([gated, open]), 18000);
+      expect(
+        annual([gated.copyWith(spendMetAt: '2026-03-01T00:00:00.000Z'), open]),
+        138000,
+      );
+    });
+  });
 }

@@ -56,6 +56,7 @@ Benefit _benefit(
   Cadence cadence = Cadence.monthly,
   bool enrollmentRequired = false,
   String? merchant,
+  int? spendThresholdCents,
   IsoDate? endsOn,
 }) => Benefit(
   id: id,
@@ -67,6 +68,7 @@ Benefit _benefit(
   cadence: cadence,
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
+  spendThresholdCents: spendThresholdCents,
   endsOn: endsOn,
   redemptionSteps: const [],
   muted: false,
@@ -97,6 +99,14 @@ AppData _household() => AppData(
       30000,
       cadence: Cadence.annual,
       enrollmentRequired: true,
+    ),
+    _benefit(
+      'd1',
+      'kathy',
+      'Dell Bonus',
+      100000,
+      cadence: Cadence.annual,
+      spendThresholdCents: 500000,
     ),
   ],
   claims: const [
@@ -523,6 +533,14 @@ Widget benefitEditor() => _themed(
 Widget benefitEditorLight() => _themed(
   BenefitEditorScreen(store: _store(), id: 'r1', ui: UiState()),
   Brightness.light,
+);
+
+/// A credit gated behind a spend threshold: the "Unlocks after spending"
+/// field is filled and the "Spend reached this year" switch is shown.
+@Preview(name: 'Benefit editor, spend threshold', size: Size(402, 1300))
+Widget benefitEditorSpendThreshold() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'd1', ui: UiState()),
+  Brightness.dark,
 );
 
 /// A credit the issuer has given an end date: the "Ends on" field is filled

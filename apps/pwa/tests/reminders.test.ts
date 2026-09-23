@@ -177,6 +177,14 @@ describe('buildSchedule', () => {
     expect(buildSchedule(data, new Date(2026, 8, 21, 8, 0, 0)).reminders).toHaveLength(0)
   })
 
+  it('never schedules a spend-locked credit, even with enrolment reminders on', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('monthly', { spendThresholdCents: 100 })] }),
+      { enrollmentReminder: true },
+    )
+    expect(buildSchedule(data, NOW).reminders).toHaveLength(0)
+  })
+
   it('ignores untracked credits, which have no deadline to warn about', () => {
     const data = withNotifications(makeData({ benefits: [makeBenefit('manual')] }))
     expect(buildSchedule(data, NOW).reminders).toHaveLength(0)

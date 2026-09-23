@@ -6,7 +6,7 @@ import {
   daysRemainingIn,
   hasEnded,
 } from './cycles.ts'
-import { compareIsoDate, daysBetween, todayIso } from './dates.ts'
+import { compareIsoDate, daysBetween, isWithin, todayIso } from './dates.ts'
 import type {
   AppData,
   Benefit,
@@ -40,23 +40,47 @@ export function claimedIn(claims: ClaimIndex, benefitId: string, cycleKey: strin
   return claims.get(keyOf(benefitId, cycleKey)) ?? 0
 }
 
-/** True when a credit cannot be spent until the user ticks an enrolment box. */
-export function isLocked(benefit: Benefit): boolean {
-  return benefit.enrollmentRequired && !benefit.enrolledAt
+/** Why a credit cannot be spent yet. Enrolment outranks spend. */
+export type LockReason = 'enrollment' | 'spend'
+
+/**
+ * What stands between the user and the credit, or null when nothing does: an
+ * unticked enrolment box, or a spend threshold not yet met this year.
+ */
+export function lockReason(benefit: Benefit, card: Card, on: IsoDate): LockReason | null {
+  if (benefit.enrollmentRequired && !benefit.enrolledAt) return 'enrollment'
+  if (benefit.spendThresholdCents !== undefined && !spendMetThisYear(benefit, card, on)) {
+    return 'spend'
+  }
+  return null
+}
+
+/** True when a credit cannot be spent until a box is ticked or a spend reached. */
+export function isLocked(benefit: Benefit, card: Card, on: IsoDate): boolean {
+  return lockReason(benefit, card, on) !== null
+}
+
+/**
+ * Whether the spend was met in the credit's current year: the calendar year
+ * for a calendar-anchored credit, the cardmember year for an anniversary one.
+ */
+function spendMetThisYear(benefit: Benefit, card: Card, on: IsoDate): boolean {
+  if (!benefit.spendMetAt) return false
+  const year = cycleFor({ ...benefit, cadence: 'annual' }, card, on)
+  return year !== null && isWithin(benefit.spendMetAt.slice(0, 10), year.start, year.end)
 }
 
 function statusFor(
   benefit: Benefit,
-  cycle: Cycle,
   claimedCents: number,
   daysRemaining: number,
+  locked: boolean,
   useSoonDays: number,
 ): BenefitStatus {
   if (claimedCents >= benefit.valueCents) return 'captured'
   if (benefit.cadence === 'manual') return 'manual'
-  if (isLocked(benefit)) return 'locked'
+  if (locked) return 'locked'
   if (daysRemaining < 0) return 'missed'
-  void cycle
   return daysRemaining <= useSoonDays ? 'use_soon' : 'available'
 }
 
@@ -83,7 +107,13 @@ export function resolveInstance(
     cycle,
     claimedCents,
     remainingCents: Math.max(0, benefit.valueCents - claimedCents),
-    status: statusFor(benefit, cycle, claimedCents, daysRemaining, useSoonDays),
+    status: statusFor(
+      benefit,
+      claimedCents,
+      daysRemaining,
+      isLocked(benefit, card, on),
+      useSoonDays,
+    ),
     daysRemaining,
     cycleProgress: cycleProgress(cycle, on),
     muted: benefit.muted || card.muted,
@@ -408,7 +438,11 @@ export function summarizeCard(
   return {
     card,
     instances: mine,
-    annualValueCents: benefits.reduce((sum, b) => sum + annualValueCents(b), 0),
+    // A spend-gated credit is not the card's to give until the spend is met.
+    annualValueCents: benefits.reduce(
+      (sum, b) => sum + (lockReason(b, card, on) === 'spend' ? 0 : annualValueCents(b)),
+      0,
+    ),
     capturedCents,
     claimableCents: sumRemaining(mine.filter(isClaimable)),
     lockedCents: sumRemaining(mine.filter((i) => i.status === 'locked')),

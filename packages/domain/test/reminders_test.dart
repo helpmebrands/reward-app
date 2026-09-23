@@ -286,6 +286,19 @@ void main() {
       },
     );
 
+    test(
+      'never schedules a spend-locked credit, even with enrolment reminders on',
+      () {
+        final data = withNotifications(
+          makeData(
+            benefits: [makeBenefit(Cadence.monthly, spendThresholdCents: 100)],
+          ),
+          enrollmentReminder: true,
+        );
+        expect(buildSchedule(data, now).reminders, isEmpty);
+      },
+    );
+
     test('ignores untracked credits, which have no deadline to warn about', () {
       final data = withNotifications(
         makeData(benefits: [makeBenefit(Cadence.manual)]),

@@ -23,6 +23,7 @@ class BenefitTemplate {
     required this.cadence,
     required this.anchor,
     this.enrollmentRequired = false,
+    this.spendThresholdCents,
     this.endsOn,
     this.redemptionSteps = const [],
     this.notes,
@@ -39,6 +40,9 @@ class BenefitTemplate {
   final Cadence cadence;
   final CycleAnchor anchor;
   final bool enrollmentRequired;
+
+  /// Spend the issuer asks for in a year before the credit opens, in cents.
+  final int? spendThresholdCents;
 
   /// The last day the credit can be used, when the issuer has announced one.
   final IsoDate? endsOn;
@@ -1569,11 +1573,12 @@ CardTemplate? findTemplate(String id) {
 }
 
 /// Total value a template releases in a year, for the catalogue rows.
+/// Credits gated behind a spend threshold are left out: a price that
+/// counts them promises money most cardholders will never see.
 int templateAnnualValueCents(CardTemplate template) {
-  return template.benefits.fold(
-    0,
-    (sum, b) => sum + b.valueCents * _perYear(b.cadence),
-  );
+  return template.benefits
+      .where((b) => b.spendThresholdCents == null)
+      .fold(0, (sum, b) => sum + b.valueCents * _perYear(b.cadence));
 }
 
 int _perYear(Cadence cadence) => switch (cadence) {
@@ -1613,6 +1618,7 @@ List<Benefit> benefitsFromTemplate(
           cadence: entry.cadence,
           anchor: entry.anchor,
           enrollmentRequired: entry.enrollmentRequired,
+          spendThresholdCents: entry.spendThresholdCents,
           endsOn: entry.endsOn,
           redemptionSteps: entry.redemptionSteps,
           notes: entry.notes,

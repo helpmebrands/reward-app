@@ -30,6 +30,10 @@ Every `CreditRow` on the screen, in order, has the name, holder, tone and amount
 
 The headline digits are the claimable total from the fixture, the subtitle names the nearest reset, and the section titles carry the reset date and the captured total.
 
+### The locked section says why
+
+With a spend-gated Dell bonus added to the sample household, the section is titled "Locked behind enrolment and spend", its note mentions a spend threshold, and the bonus is listed in it.
+
 ### Overlaps show the three largest
 
 The three largest overlaps from the fixture appear as cards with their label, count and combined unclaimed value.
@@ -272,6 +276,10 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 "Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Track this credit" pauses it; "Last call only" sets it.
 
+### A spend threshold and its reached switch write the benefit
+
+"abc" in "Unlocks after spending" shows the money sentence after blur and writes nothing; "5000" writes $5,000 and reveals "Spend reached this year", which stamps `spendMetAt`; emptying the field clears the threshold.
+
 ### An end date is optional and validated
 
 Uber Cash has no end date; "2026-13-40" in "Ends on" shows "Enter the last day it can be used as a date, or leave it blank." after blur and writes nothing; "2026-12-31" writes it and clears the sentence; emptying the field clears the date.
@@ -492,6 +500,10 @@ With two cards, three benefits and three claims, `deleteCard` leaves the other c
 
 On a benefit that requires enrolment, `confirmEnrollment` stamps `enrolledAt` and the credit leaves the locked list; `revokeEnrollment` clears it to null and the credit is locked again.
 
+### A spend threshold is confirmed and revoked
+
+On a benefit gated behind $5,000 of spend, `confirmSpend` stamps `spendMetAt` with the clock's instant and the credit leaves the locked list; `revokeSpend` clears it to null and the credit is locked again; two notifications.
+
 ### Deleting a benefit takes its claims
 
 `deleteBenefit` removes the benefit and its claims and leaves the other benefit's claim.
@@ -530,7 +542,7 @@ The overlap label and the nudge reminder are opened and cleared the same way, on
 
 ## Credit sheet
 
-`credit_sheet_test.dart` opens the sheet through `UiState` on a household with a $100 Resy credit ($10 then $20 logged), a locked Equinox credit and a captured Uber credit, dated 16 September 2026 ([[mobile-architecture#The credit sheet]]).
+`credit_sheet_test.dart` opens the sheet through `UiState` on a household with a $100 Resy credit ($10 then $20 logged), a locked Equinox credit, a captured Uber credit and a spend-gated Dell bonus, dated 16 September 2026 ([[mobile-architecture#The credit sheet]]).
 
 It checks the content, the actions and the presentation at 402, 800 and 1280.
 
@@ -569,6 +581,10 @@ The switch labelled "Silence reminders for …" mutes the benefit and "Last call
 ### A locked credit unlocks from the sheet
 
 A locked credit shows the "Not enrolled." note and no logging; "I've enrolled — unlock this credit" stamps `enrolledAt` and the full-amount button appears.
+
+### A spend-gated credit unlocks from the sheet
+
+The $1,000 Dell bonus behind $5,000 of spend shows "Unlocks after $5,000 spend this year." and no enrolment note or logging; "I've reached it — unlock" stamps `spendMetAt`, says "Dell Bonus unlocked." and the full-amount button appears.
 
 ### A captured credit can be undone
 

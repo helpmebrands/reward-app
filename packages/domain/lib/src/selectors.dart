@@ -27,20 +27,47 @@ int claimedIn(ClaimIndex claims, String benefitId, String cycleKey) {
   return claims[_keyOf(benefitId, cycleKey)] ?? 0;
 }
 
-/// True when a credit cannot be spent until the user ticks an enrolment box.
-bool isLocked(Benefit benefit) {
-  return benefit.enrollmentRequired && benefit.enrolledAt == null;
+/// Why a credit cannot be spent yet. Enrolment outranks spend.
+enum LockReason { enrollment, spend }
+
+/// What stands between the user and the credit, or null when nothing does:
+/// an unticked enrolment box, or a spend threshold not yet met this year.
+LockReason? lockReason(Benefit benefit, Card card, IsoDate on) {
+  if (benefit.enrollmentRequired && benefit.enrolledAt == null) {
+    return LockReason.enrollment;
+  }
+  if (benefit.spendThresholdCents != null &&
+      !_spendMetThisYear(benefit, card, on)) {
+    return LockReason.spend;
+  }
+  return null;
+}
+
+/// True when a credit cannot be spent until a box is ticked or a spend
+/// reached.
+bool isLocked(Benefit benefit, Card card, IsoDate on) {
+  return lockReason(benefit, card, on) != null;
+}
+
+/// Whether the spend was met in the credit's current year: the calendar year
+/// for a calendar-anchored credit, the cardmember year for an anniversary one.
+bool _spendMetThisYear(Benefit benefit, Card card, IsoDate on) {
+  final metAt = benefit.spendMetAt;
+  if (metAt == null) return false;
+  final year = cycleFor(benefit.copyWith(cadence: Cadence.annual), card, on);
+  return year != null && isWithin(metAt.substring(0, 10), year.start, year.end);
 }
 
 BenefitStatus _statusFor(
   Benefit benefit,
   int claimedCents,
   int daysRemaining,
+  bool locked,
   int useSoonHorizon,
 ) {
   if (claimedCents >= benefit.valueCents) return BenefitStatus.captured;
   if (benefit.cadence == Cadence.manual) return BenefitStatus.manual;
-  if (isLocked(benefit)) return BenefitStatus.locked;
+  if (locked) return BenefitStatus.locked;
   if (daysRemaining < 0) return BenefitStatus.missed;
   return daysRemaining <= useSoonHorizon
       ? BenefitStatus.useSoon
@@ -69,7 +96,13 @@ BenefitInstance resolveInstance(
     cycle: cycle,
     claimedCents: claimedCents,
     remainingCents: remaining > 0 ? remaining : 0,
-    status: _statusFor(benefit, claimedCents, daysRemaining, useSoonHorizon),
+    status: _statusFor(
+      benefit,
+      claimedCents,
+      daysRemaining,
+      isLocked(benefit, card, on),
+      useSoonHorizon,
+    ),
     daysRemaining: daysRemaining,
     cycleProgress: cycleProgress(cycle, on),
     muted: benefit.muted || card.muted,
@@ -524,7 +557,15 @@ CardSummary summarizeCard(
   return CardSummary(
     card: card,
     instances: mine,
-    annualValueCents: benefits.fold(0, (sum, b) => sum + annualValueCents(b)),
+    // A spend-gated credit is not the card's to give until the spend is met.
+    annualValueCents: benefits.fold(
+      0,
+      (sum, b) =>
+          sum +
+          (lockReason(b, card, day) == LockReason.spend
+              ? 0
+              : annualValueCents(b)),
+    ),
     capturedCents: capturedCents,
     claimableCents: sumRemaining(mine.where(isClaimable)),
     lockedCents: sumRemaining(

@@ -354,6 +354,34 @@ void main() {
       expect(benefitOf(app, uber).lastCallOnly, isTrue);
     });
 
+    // @lat: [[mobile-tests#Editors#A spend threshold and its reached switch write the benefit]]
+    testWidgets(
+      'a spend threshold writes the benefit and reveals the reached switch',
+      (tester) async {
+        final app = await pumpAt(tester, benefitPath(uber));
+        expect(find.bySemanticsLabel('Spend reached this year'), findsNothing);
+
+        await type(tester, 'field-spend-threshold', 'abc');
+        await blurTo(tester, 'field-merchant');
+        expect(
+          find.text('Enter the amount as a number, like 695.'),
+          findsOneWidget,
+        );
+        expect(benefitOf(app, uber).spendThresholdCents, isNull);
+
+        await type(tester, 'field-spend-threshold', '5000');
+        expect(benefitOf(app, uber).spendThresholdCents, 500000);
+
+        await show(tester, find.bySemanticsLabel('Spend reached this year'));
+        await tester.tap(find.bySemanticsLabel('Spend reached this year'));
+        await tester.pumpAndSettle();
+        expect(benefitOf(app, uber).spendMetAt, isNotNull);
+
+        await type(tester, 'field-spend-threshold', '');
+        expect(benefitOf(app, uber).spendThresholdCents, isNull);
+      },
+    );
+
     // @lat: [[mobile-tests#Editors#An end date is optional and validated]]
     testWidgets('an end date is optional, validated, and written when real', (
       tester,
