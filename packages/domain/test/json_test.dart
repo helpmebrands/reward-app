@@ -19,6 +19,23 @@ void main() {
     expect(jsonDecode(jsonEncode(appDataToJson(data))), json);
   });
 
+  // @lat: [[tests#Snapshot JSON#The sample household rolls its Global Entry credits]]
+  test('the sample household carries Global Entry as a rolling credit', () {
+    final raw = File(
+      '../../apps/pwa/samples/sample-household.json',
+    ).readAsStringSync();
+    final data = appDataFromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final globalEntry = data.benefits
+        .where((b) => b.name.startsWith('Global Entry'))
+        .toList();
+    expect(globalEntry, hasLength(2));
+    for (final benefit in globalEntry) {
+      expect(benefit.cadence, Cadence.rolling);
+      expect(benefit.intervalMonths, 48);
+    }
+    expect(data.benefits.any((b) => b.cadence == Cadence.manual), isFalse);
+  });
+
   // @lat: [[tests#Snapshot JSON#Enums use the PWA's spellings]]
   test('writes fee_credit and use_soon the way the PWA spells them', () {
     final benefit = benefitFromJson({
