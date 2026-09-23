@@ -68,6 +68,46 @@ void main() {
       },
     );
 
+    // @lat: [[tests#Card catalogue#A template prices its year without its spend-gated credits]]
+    test('prices a template without its spend-gated credits', () {
+      const template = CardTemplate(
+        id: 't',
+        issuer: 'Issuer',
+        product: 'Product',
+        network: CardNetwork.visa,
+        annualFeeCents: 0,
+        benefits: [
+          BenefitTemplate(
+            name: 'Gated',
+            category: BenefitCategory.other,
+            icon: 'x',
+            valueCents: 120000,
+            cadence: Cadence.annual,
+            anchor: CycleAnchor.calendar,
+            spendThresholdCents: 25000000,
+          ),
+          BenefitTemplate(
+            name: 'Open',
+            category: BenefitCategory.other,
+            icon: 'x',
+            valueCents: 1500,
+            cadence: Cadence.monthly,
+            anchor: CycleAnchor.calendar,
+          ),
+        ],
+      );
+      expect(templateAnnualValueCents(template), 18000);
+      expect(
+        benefitsFromTemplate(
+          template,
+          'card-9',
+          '2026-09-16T00:00:00.000Z',
+          () => 'id',
+        ).first.spendThresholdCents,
+        25000000,
+      );
+    });
+
     // @lat: [[tests#Card catalogue#Template credits become ordinary benefits]]
     test('stamps template entries into real benefits with fresh ids', () {
       final template = findTemplate('amex-platinum')!;

@@ -138,6 +138,37 @@ describe('enrolment', () => {
   })
 })
 
+describe('spend threshold', () => {
+  it('locks a gated credit until the spend is confirmed, and can take it back', () => {
+    const store = mountStore()
+    const card = addPlatinum(store, 'Jim')
+    const benefit = store.addBenefit({
+      cardId: card.id,
+      name: 'Dell Bonus',
+      category: 'shopping',
+      valueCents: 100_000,
+      cadence: 'annual',
+      anchor: 'calendar',
+      enrollmentRequired: false,
+      spendThresholdCents: 500_000,
+      redemptionSteps: [],
+      muted: false,
+      lastCallOnly: false,
+      active: true,
+    })
+    const statusOf = () => store.instances().find((i) => i.benefit.id === benefit.id)?.status
+    expect(statusOf()).toBe('locked')
+
+    store.confirmSpend(benefit.id)
+    expect(statusOf()).not.toBe('locked')
+    expect(store.data.benefits.find((b) => b.id === benefit.id)?.spendMetAt).toBeDefined()
+
+    store.revokeSpend(benefit.id)
+    expect(statusOf()).toBe('locked')
+    expect(store.data.benefits.find((b) => b.id === benefit.id)?.spendMetAt).toBeUndefined()
+  })
+})
+
 describe('muting', () => {
   it('silences a credit without changing where it stands', () => {
     const store = mountStore()

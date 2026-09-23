@@ -32,6 +32,7 @@ Benefit _benefit({
   int valueCents = 2500,
   bool enrollmentRequired = false,
   IsoInstant? enrolledAt,
+  int? spendThresholdCents,
 }) => Benefit(
   id: id,
   cardId: cardId,
@@ -42,6 +43,7 @@ Benefit _benefit({
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
   enrolledAt: enrolledAt,
+  spendThresholdCents: spendThresholdCents,
   redemptionSteps: const [],
   muted: false,
   lastCallOnly: false,
@@ -278,6 +280,26 @@ void main() {
         expect(h.notifications, 2);
       },
     );
+
+    // @lat: [[mobile-tests#Store#A spend threshold is confirmed and revoked]]
+    test('confirmSpend stamps spendMetAt and revokeSpend clears it', () async {
+      final h = await _load(
+        _data(benefits: [_benefit(spendThresholdCents: 500000)]),
+      );
+      expect(h.store.locked.single.benefit.id, 'benefit-1');
+
+      await h.store.confirmSpend('benefit-1');
+      expect(
+        h.saved.benefits.single.spendMetAt,
+        _now.toUtc().toIso8601String(),
+      );
+      expect(h.store.locked, isEmpty);
+
+      await h.store.revokeSpend('benefit-1');
+      expect(h.saved.benefits.single.spendMetAt, isNull);
+      expect(h.store.locked.single.benefit.id, 'benefit-1');
+      expect(h.notifications, 2);
+    });
 
     // @lat: [[mobile-tests#Store#Deleting a benefit takes its claims]]
     test('deleteBenefit removes the benefit and its claims only', () async {

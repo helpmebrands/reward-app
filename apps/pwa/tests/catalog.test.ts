@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { benefitsFromTemplate, type CardTemplate } from '../src/domain/catalog.ts'
+import {
+  benefitsFromTemplate,
+  type CardTemplate,
+  templateAnnualValueCents,
+} from '../src/domain/catalog.ts'
 
 const template: CardTemplate = {
   id: 't',
@@ -51,5 +55,34 @@ describe('benefitsFromTemplate', () => {
       ['2026-12-31', true],
       [undefined, true],
     ])
+  })
+})
+
+describe('templateAnnualValueCents', () => {
+  // @lat: [[tests#Card catalogue#A template prices its year without its spend-gated credits]]
+  it('prices a template without its spend-gated credits', () => {
+    const gated: CardTemplate = {
+      ...template,
+      benefits: [
+        {
+          name: 'Gated',
+          category: 'other',
+          icon: 'x',
+          valueCents: 120_000,
+          cadence: 'annual',
+          anchor: 'calendar',
+          spendThresholdCents: 25_000_000,
+        },
+        {
+          name: 'Open',
+          category: 'other',
+          icon: 'x',
+          valueCents: 1500,
+          cadence: 'monthly',
+          anchor: 'calendar',
+        },
+      ],
+    }
+    expect(templateAnnualValueCents(gated)).toBe(18_000)
   })
 })

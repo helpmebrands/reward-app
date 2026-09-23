@@ -4,6 +4,7 @@ import {
   cardLabel,
   currentInstances,
   findOverlaps,
+  lockReason,
   missedCycles,
   monthlyTotals,
   nextReset,
@@ -353,5 +354,52 @@ describe('a credit that ends on a date', () => {
     const missed = missedCycles(data, '2026-09-25')
     expect(missed.map((m) => m.cycle.end)).toEqual(['2026-09-20', '2026-08-31'])
     expect(missed[0]?.missedCents).toBe(2500)
+  })
+})
+
+describe('a spend-gated credit', () => {
+  const card = makeCard()
+
+  it('is Locked, for spend, until the threshold is met', () => {
+    const benefit = makeBenefit('annual', { spendThresholdCents: 25_000_000 })
+    expect(currentInstances(makeData({ benefits: [benefit] }), TODAY)[0]?.status).toBe('locked')
+    expect(lockReason(benefit, card, TODAY)).toBe('spend')
+  })
+
+  it('names enrolment first when both apply', () => {
+    const benefit = makeBenefit('annual', { enrollmentRequired: true, spendThresholdCents: 100 })
+    expect(lockReason(benefit, card, TODAY)).toBe('enrollment')
+  })
+
+  it('unlocks with a spend met inside the current calendar year, not the previous one', () => {
+    const met = (spendMetAt: string) =>
+      makeBenefit('annual', { spendThresholdCents: 100, spendMetAt })
+    const statusOf = (spendMetAt: string) =>
+      currentInstances(makeData({ benefits: [met(spendMetAt)] }), TODAY)[0]?.status
+    expect(statusOf('2026-03-01T00:00:00.000Z')).toBe('available')
+    expect(statusOf('2025-12-31T00:00:00.000Z')).toBe('locked')
+  })
+
+  it('measures the year from the anniversary when the credit is anchored there', () => {
+    // The card's year turns over on 14 March, so February is last year.
+    const met = (spendMetAt: string) =>
+      makeBenefit('annual', { anchor: 'anniversary', spendThresholdCents: 100, spendMetAt })
+    expect(lockReason(met('2026-02-01T00:00:00.000Z'), card, TODAY)).toBe('spend')
+    expect(lockReason(met('2026-04-01T00:00:00.000Z'), card, TODAY)).toBeNull()
+  })
+
+  it("contributes nothing to the card's annual value while gated", () => {
+    const gated = makeBenefit('annual', {
+      id: 'gated',
+      valueCents: 120_000,
+      spendThresholdCents: 100,
+    })
+    const open = makeBenefit('monthly', { id: 'open', valueCents: 1500 })
+    const annual = (benefits: typeof gated[]) => {
+      const data = makeData({ benefits })
+      return summarizeCard(card, data, currentInstances(data, TODAY), [], TODAY).annualValueCents
+    }
+    expect(annual([gated, open])).toBe(18_000)
+    expect(annual([{ ...gated, spendMetAt: '2026-03-01T00:00:00.000Z' }, open])).toBe(138_000)
   })
 })
