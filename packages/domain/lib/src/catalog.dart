@@ -127,6 +127,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        spendThresholdCents: 500000,
         redemptionSteps: [
           'Enroll in the Dell benefit',
           'Spend \$5,000+ on U.S. purchases directly with Dell in the calendar year',
@@ -254,8 +255,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
         ],
@@ -272,6 +274,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 120000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend \$250,000 on eligible purchases in a calendar year',
           'In the following calendar year, book flights on AmexTravel.com with the card',
@@ -289,6 +292,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 240000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend \$250,000 on eligible purchases in a calendar year',
           'Use American Express One AP in the following calendar year; monthly fees are credited',
@@ -366,8 +370,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck (official enrollment provider) fee with the card',
           'Statement credit posts automatically',
@@ -569,8 +574,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Brilliant card',
           'Statement credit posts automatically',
@@ -791,8 +797,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Platinum Card',
         ],
@@ -848,8 +855,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Statement credit posts automatically',
@@ -891,8 +899,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Venture X card.',
           'Statement credit posts automatically.',
@@ -936,6 +945,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 10000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 2000000,
         redemptionSteps: [
           'Spend at least \$20,000 on purchases in a calendar year.',
           'The \$100 statement credit and 10,000 bonus points post automatically.',
@@ -950,8 +960,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the application fee with the IHG Premier card.',
           'Statement credit posts automatically (one every four years).',
@@ -1011,8 +1022,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck, or NEXUS application fee with the Sapphire Preferred card.',
           'Statement credit posts automatically (one credit every four years).',
@@ -1091,6 +1103,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.semiannual,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate the benefit once on Chase.com or the Chase Mobile app',
           'Buy tickets on StubHub or viagogo with the card',
@@ -1109,6 +1122,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Pay with the card on a qualifying DoorDash restaurant order',
@@ -1128,6 +1142,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Place a qualifying non-restaurant DoorDash order (grocery, retail) with the card',
@@ -1146,6 +1161,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-09-30',
         redemptionSteps: [
           'Add the Sapphire Reserve card as a payment method in the Lyft app',
           'The \$10 in-app credit is issued each calendar month and applied to rides',
@@ -1164,6 +1180,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate once at onepeloton.com/digital/promotions/chase',
           'Pay for an eligible Peloton membership with the Sapphire Reserve card',
@@ -1179,8 +1196,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck or NEXUS application fee with the card',
           'Statement credit posts automatically',
@@ -1304,6 +1322,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Register the United Quest card on Instacart\'s Chase United page and activate the complimentary Instacart+ (3 months, then 50% off renewal).',
           'Keep an active Instacart+ membership and set the card as payment or backup payment.',
@@ -1323,6 +1342,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Same setup as the \$10 credit (registered card, active Instacart+).',
           'The \$5 credit applies to the second order each month.',
@@ -1337,8 +1357,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the application fee with the United Quest card.',
           'Statement credit posts automatically (one every four years).',
@@ -1449,8 +1470,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Credit posts within 1-2 billing cycles',
@@ -1525,8 +1547,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Statement credit posts automatically',

@@ -52,7 +52,7 @@ void main() {
       expect(store.hasCards, isTrue);
       expect(store.cardCount, 2);
       expect(store.soon.first.benefit.name, 'Resy Dining Credit');
-      expect(store.totals.claimableCents, 165890);
+      expect(store.totals.claimableCents, 189890);
       expect(store.nextResetOn, '2026-09-30');
     },
   );

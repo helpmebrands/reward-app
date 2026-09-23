@@ -66,7 +66,7 @@ void main() {
   ) async {
     final app = await pumpApp(tester);
     final resy = benefitId(app.store.data!, 'Resy Dining Credit', 'card-0002');
-    expect(headline(tester), moneyParts(165890).digits);
+    expect(headline(tester), moneyParts(189890).digits);
     expect(tester.widget<CreditRow>(row(resy)).tone, RowTone.soon);
 
     await tester.tap(row(resy));
@@ -78,7 +78,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(creditSheet, findsNothing);
-    expect(headline(tester), moneyParts(155890).digits);
+    expect(headline(tester), moneyParts(179890).digits);
     expect(tester.widget<CreditRow>(row(resy)).tone, RowTone.captured);
     expect(find.text('Logged \$100 on Resy Dining Credit.'), findsOneWidget);
   });
@@ -95,10 +95,10 @@ void main() {
     await tester.tap(find.text('Log it'));
     await tester.pumpAndSettle();
 
-    expect(headline(tester), moneyParts(155890).digits);
+    expect(headline(tester), moneyParts(179890).digits);
     await tester.tap(find.bySemanticsLabel('Undo logging Resy Dining Credit'));
     await tester.pumpAndSettle();
-    expect(headline(tester), moneyParts(165890).digits);
+    expect(headline(tester), moneyParts(189890).digits);
   });
 
   // @lat: [[mobile-tests#Today interactions#The household filter narrows the screen]]
@@ -217,8 +217,8 @@ void main() {
     await tester.tap(find.text('Preview nudge'));
     await tester.pumpAndSettle();
 
-    final sample = sampleReminder(165890, now);
-    expect(sample.title, '\$1,658.90 on the line — one week left');
+    final sample = sampleReminder(189890, now);
+    expect(sample.title, '\$1,898.90 on the line — one week left');
     expect(find.text(sample.title), findsOneWidget);
     expect(find.text(sample.body), findsOneWidget);
 
