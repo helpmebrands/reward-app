@@ -275,7 +275,6 @@ void main() {
     }
   });
 
-  // @lat: [[mobile-tests#Add a card#The blank template asks for issuer and card]]
   // @lat: [[mobile-tests#Add a card#A business template lands as a business card]]
   testWidgets('a business template is business, and the chips can change it', (
     tester,
@@ -295,18 +294,14 @@ void main() {
     expect(app.store.data!.cards.last.kind, CardKind.business);
   });
 
-  testWidgets('setting one up by hand asks for the issuer and the card', (
+  // @lat: [[mobile-tests#Add a card#The blank template asks for issuer and card]]
+  testWidgets('adding a card manually asks for the issuer and the card', (
     tester,
   ) async {
     final app = await pumpAdd(tester);
-    await tester.dragUntilVisible(
-      find.text('Set one up by hand'),
-      find.byType(ListView),
-      const Offset(0, -300),
-    );
+    await tester.tap(find.byKey(const Key('add-manually-top')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Set one up by hand'));
-    await tester.pumpAndSettle();
+    expect(find.text('Card details'), findsOneWidget);
 
     await tester.tap(save);
     await tester.pumpAndSettle();
@@ -325,5 +320,99 @@ void main() {
     expect(card.kind, CardKind.personal);
     expect(app.store.data!.benefits.where((b) => b.cardId == card.id), isEmpty);
     expect(app.ui.snackbar.current!.text, 'Card added. Add its credits next.');
+  });
+
+  // @lat: [[mobile-tests#Add a card#Manual entry sits at the top, labelled by width]]
+  testWidgets('the top CTA is on screen at once, labelled by width', (
+    tester,
+  ) async {
+    await pumpAdd(tester);
+    final top = find.byKey(const Key('add-manually-top'));
+    expect(
+      find.descendant(of: top, matching: find.text('Add card')),
+      findsOneWidget,
+    );
+    expect(tester.getRect(top).bottom, lessThanOrEqualTo(874));
+    expect(tester.getSize(top).height, greaterThanOrEqualTo(48));
+
+    await pumpAdd(tester, size: const Size(1280, 800));
+    expect(
+      find.descendant(of: top, matching: find.text('Add card manually')),
+      findsOneWidget,
+    );
+    expect(tester.getRect(top).bottom, lessThanOrEqualTo(800));
+  });
+
+  // @lat: [[mobile-tests#Add a card#The end of the list offers manual entry]]
+  testWidgets(
+    '"Enter it manually" at the end of the list opens the blank form',
+    (tester) async {
+      final app = await pumpAdd(tester);
+      final end = find.byKey(const Key('add-manually-end'));
+      await tester.scrollUntilVisible(end, 300);
+      await tester.pumpAndSettle();
+      expect(find.text("Don't see your card?"), findsOneWidget);
+      expect(find.text('Set one up by hand'), findsNothing);
+      expect(tester.getSize(end).height, greaterThanOrEqualTo(48));
+      await tester.tap(end);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('field-issuer')), findsOneWidget);
+      expect(find.byKey(const Key('field-product')), findsOneWidget);
+
+      await tester.enterText(find.byKey(const Key('field-issuer')), 'Chase');
+      await tester.enterText(find.byKey(const Key('field-product')), 'Freedom');
+      await tester.enterText(holder, 'Kathy');
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+      final card = app.store.data!.cards.last;
+      expect(card.product, 'Freedom');
+      expect(
+        app.ui.snackbar.current!.text,
+        'Card added. Add its credits next.',
+      );
+    },
+  );
+
+  // @lat: [[mobile-tests#Add a card#The catalogue is ordered by annual value]]
+  testWidgets('the first tile is the template worth the most a year', (
+    tester,
+  ) async {
+    await pumpAdd(tester);
+    final best = sortByValue(
+      filterTemplates(cardTemplates, const CatalogFilter()),
+    ).first;
+    final tiles = find.byWidgetPredicate(
+      (w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('template-'),
+    );
+    expect(tester.widget(tiles.first).key, ValueKey('template-${best.id}'));
+    for (final t in cardTemplates.where((t) => t.id != 'blank')) {
+      expect(
+        templateAnnualValueCents(best),
+        greaterThanOrEqualTo(templateAnnualValueCents(t)),
+      );
+    }
+  });
+
+  // @lat: [[mobile-tests#Add a card#The catalogue at 200% clips nothing]]
+  testWidgets('the catalogue at a 2.0 text scale clips nothing', (
+    tester,
+  ) async {
+    await pumpAdd(tester, textScale: 2, size: const Size(402, 874));
+    expect(tester.takeException(), isNull);
+    final texts = find.byType(Text);
+    for (var i = 0; i < texts.evaluate().length; i++) {
+      expect(
+        tester.getRect(texts.at(i)).right,
+        lessThanOrEqualTo(402.5),
+        reason: tester.widget<Text>(texts.at(i)).data,
+      );
+    }
+    final end = find.byKey(const Key('add-manually-end'));
+    await tester.scrollUntilVisible(end, 300);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(tester.getRect(end).right, lessThanOrEqualTo(402.5));
   });
 }
