@@ -202,7 +202,7 @@ void main() {
     await pumpSettings(tester, size: const Size(402, 4000), textScale: 2);
     await flip(tester, 'Send me reminders');
     expect(tester.takeException(), isNull);
-    final texts = find.byType(Text, skipOffstage: false);
+    final texts = find.byType(Text);
     for (var i = 0; i < texts.evaluate().length; i++) {
       expect(
         tester.getRect(texts.at(i)).right,

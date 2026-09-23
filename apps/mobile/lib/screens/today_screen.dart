@@ -12,6 +12,7 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
 import '../widgets/holder_filter.dart';
 import '../widgets/nudge_preview.dart';
+import '../widgets/screen_title.dart';
 
 /// Today: one number, a countdown, and the rows behind them.
 ///
@@ -119,56 +120,58 @@ class _TodayBody extends StatelessWidget {
 
     final header = _Section(
       order: 0,
-      child: Semantics(
-        header: true,
-        // A Wrap, not a Row: at a large text size the date drops under the
-        // title instead of running off the right edge.
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          alignment: WrapAlignment.spaceBetween,
-          spacing: Space.s3,
-          runSpacing: Space.s2,
-          children: [
+      // A Wrap, not a Row: at a large text size the date drops under the
+      // title instead of running off the right edge.
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        alignment: WrapAlignment.spaceBetween,
+        spacing: Space.s3,
+        runSpacing: Space.s2,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: Space.s3,
+            children: [
+              // The heading reads "Today"; the logotype is what is drawn.
+              ScreenTitle(
+                label: 'Today',
+                text: 'HelpMe Reward',
+                style: text.titleMedium,
+              ),
+              Text(
+                formatHeaderDate(store.today),
+                style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+              ),
+            ],
+          ),
+          if (ui != null)
             Wrap(
-              crossAxisAlignment: WrapCrossAlignment.end,
-              spacing: Space.s3,
+              spacing: Space.s2,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text('HelpMe Reward', style: text.titleMedium),
-                Text(
-                  formatHeaderDate(store.today),
-                  style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+                OutlinedButton.icon(
+                  onPressed: previewNudge,
+                  icon: const Icon(
+                    Icons.notifications_active_outlined,
+                    size: 14,
+                  ),
+                  label: const Text('Preview nudge'),
+                ),
+                // The only way into Settings, and therefore into turning
+                // reminders on at all, so it lives on the screen people
+                // open every day.
+                MergeSemantics(
+                  child: Semantics(
+                    label: 'Settings',
+                    child: IconButton(
+                      onPressed: () => context.go(Paths.settings),
+                      icon: const Icon(Icons.settings_outlined, size: 18),
+                    ),
+                  ),
                 ),
               ],
             ),
-            if (ui != null)
-              Wrap(
-                spacing: Space.s2,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: previewNudge,
-                    icon: const Icon(
-                      Icons.notifications_active_outlined,
-                      size: 14,
-                    ),
-                    label: const Text('Preview nudge'),
-                  ),
-                  // The only way into Settings, and therefore into turning
-                  // reminders on at all, so it lives on the screen people
-                  // open every day.
-                  MergeSemantics(
-                    child: Semantics(
-                      label: 'Settings',
-                      child: IconButton(
-                        onPressed: () => context.go(Paths.settings),
-                        icon: const Icon(Icons.settings_outlined, size: 18),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
+        ],
       ),
     );
 
@@ -410,6 +413,7 @@ class _SectionTitle extends StatelessWidget {
           Expanded(
             child: Semantics(
               header: true,
+              headingLevel: 2,
               child: Text(title, style: text.titleSmall),
             ),
           ),
@@ -501,8 +505,15 @@ class _FirstRun extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          ScreenTitle(
+            label: 'Today',
+            text: 'HelpMe Reward',
+            style: text.labelSmall,
+          ),
+          const SizedBox(height: Space.s6),
           Semantics(
             header: true,
+            headingLevel: 2,
             child: Text('Start with one card', style: text.titleMedium),
           ),
           const SizedBox(height: Space.s3),

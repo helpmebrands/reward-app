@@ -132,8 +132,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
     final n = settings.notifications;
 
-    Widget title(String value) =>
-        Semantics(header: true, child: Text(value, style: text.titleSmall));
+    Widget title(String value) => Semantics(
+      header: true,
+      headingLevel: 2,
+      child: Text(value, style: text.titleSmall),
+    );
 
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),

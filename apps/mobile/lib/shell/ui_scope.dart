@@ -10,4 +10,8 @@ class UiScope extends InheritedNotifier<UiState> {
 
   static UiState of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<UiScope>()!.notifier!;
+
+  /// The state, or null outside the app, as in a bare test or a preview.
+  static UiState? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<UiScope>()?.notifier;
 }

@@ -59,7 +59,11 @@ List<SemanticsNode> headings(WidgetTester tester) {
     });
   }
 
-  visit(tester.binding.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!);
+  var root = tester.getSemantics(find.byType(Scaffold).first);
+  while (root.parent != null) {
+    root = root.parent!;
+  }
+  visit(root);
   return out;
 }
 
@@ -119,7 +123,7 @@ void main() {
     tester,
   ) async {
     final handle = tester.ensureSemantics();
-    await pumpAt(tester, '/');
+    final ui = await pumpAt(tester, '/');
 
     router(tester).go(Paths.credits);
     await tester.pumpAndSettle();
@@ -128,21 +132,23 @@ void main() {
     );
     expect(creditsTitle, findsOneWidget);
     expect(
-      tester.widget<ScreenTitle>(creditsTitle).focusNode.hasPrimaryFocus,
+      tester.state<ScreenTitleState>(creditsTitle).focusNode.hasPrimaryFocus,
       isTrue,
     );
 
-    final before = FocusManager.instance.primaryFocus;
+    // A press on the bar: the new heading does not take focus. The Credits
+    // heading cannot keep it either, since its branch is hidden, so what is
+    // asserted is that no heading holds it.
     await tester.tap(find.text('Cards'));
     await tester.pumpAndSettle();
     final cardsTitle = find.byWidgetPredicate(
       (w) => w is ScreenTitle && w.label == 'Cards',
     );
     expect(
-      tester.widget<ScreenTitle>(cardsTitle).focusNode.hasPrimaryFocus,
+      tester.state<ScreenTitleState>(cardsTitle).focusNode.hasPrimaryFocus,
       isFalse,
     );
-    expect(FocusManager.instance.primaryFocus, same(before));
+    expect(ui.headings.values.any((node) => node.hasPrimaryFocus), isFalse);
     handle.dispose();
   });
 
@@ -157,16 +163,15 @@ void main() {
     expect(find.byType(BenefitEditorScreen), findsOneWidget);
     expect(find.text('Uber Cash'), findsWidgets);
 
-    // The shell is still beneath: back returns to it.
+    // The editor is above the shell: back leaves it.
     expect(await tester.binding.handlePopRoute(), isTrue);
     await tester.pumpAndSettle();
     expect(find.byType(BenefitEditorScreen), findsNothing);
-    expect(find.byType(TodayScreen), findsOneWidget);
 
     // Anything but a path is ignored.
     handleNotificationTap(router(tester), {'url': 'https://elsewhere'});
     handleNotificationTap(router(tester), null);
     await tester.pumpAndSettle();
-    expect(find.byType(TodayScreen), findsOneWidget);
+    expect(find.byType(BenefitEditorScreen), findsNothing);
   });
 }

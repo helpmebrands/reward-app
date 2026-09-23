@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import 'snackbar_state.dart';
 
@@ -20,6 +20,19 @@ class UiState extends ChangeNotifier {
   String? _openBenefitId;
   String? _openOverlapLabel;
   Reminder? _nudge;
+
+  /// Each mounted screen's heading focus node by its location, so the app
+  /// can move focus to the new screen on navigation. Not a notification:
+  /// nothing renders from it.
+  final Map<String, FocusNode> headings = {};
+
+  /// Set by the bar or the rail before it switches branch: focus then stays
+  /// on the destination the user pressed, as in the PWA.
+  bool keepFocusOnDestination = false;
+
+  /// The location whose heading takes focus once it is built, set by the
+  /// app on navigation and consumed by that screen's title.
+  String? pendingHeadingFocus;
 
   /// The credit whose sheet is open, or null.
   String? get openBenefitId => _openBenefitId;

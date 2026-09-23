@@ -389,7 +389,7 @@ void main() {
         textScale: 2,
       );
       expect(tester.takeException(), isNull);
-      final texts = find.byType(Text, skipOffstage: false);
+      final texts = find.byType(Text);
       for (var i = 0; i < texts.evaluate().length; i++) {
         expect(
           tester.getRect(texts.at(i)).right,

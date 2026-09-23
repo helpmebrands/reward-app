@@ -8,6 +8,7 @@ import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/field.dart';
+import '../widgets/screen_title.dart';
 import '../widgets/snackbar_host.dart';
 
 /// Add a card, in two steps: pick the product, then say whose it is and when
@@ -207,9 +208,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Semantics(
-                header: true,
-                child: Text(picked == null ? 'Add a card' : 'Card details'),
+              ScreenTitle(
+                label: picked == null ? 'Add a card' : 'Card details',
               ),
               Text(
                 picked == null ? '1 of 2' : '2 of 2',

@@ -9,6 +9,7 @@ import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/screen_title.dart';
 
 /// Which colour a verdict is drawn in.
 enum VerdictTone { accent, locked, missed }
@@ -119,7 +120,7 @@ class _CardsBody extends StatelessWidget {
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(header: true, child: Text('Cards', style: text.titleMedium)),
+        ScreenTitle(label: 'Cards', style: text.titleMedium),
         if (summaries.isNotEmpty) ...[
           const SizedBox(height: Space.s2),
           Text(
@@ -191,6 +192,7 @@ class _CardsBody extends StatelessWidget {
                 const SizedBox(height: Space.s3),
                 Semantics(
                   header: true,
+                  headingLevel: 2,
                   child: Text('Start with one card', style: text.titleSmall),
                 ),
                 const SizedBox(height: Space.s2),
@@ -322,6 +324,7 @@ class _CardStat extends StatelessWidget {
                 Text(card.issuer, style: quiet),
                 Semantics(
                   header: true,
+                  headingLevel: 2,
                   child: Text(label, style: text.titleSmall),
                 ),
               ],
