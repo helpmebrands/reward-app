@@ -7,6 +7,7 @@ import '../screens/benefit_editor_screen.dart';
 import '../screens/card_editor_screen.dart';
 import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
+import '../screens/settings_screen.dart';
 import '../screens/today_screen.dart';
 import '../screens/value_screen.dart';
 import 'app_scope.dart';
@@ -19,6 +20,7 @@ abstract final class Paths {
   static const credits = '/credits';
   static const cards = '/cards';
   static const value = '/value';
+  static const settings = '/settings';
   static const newCard = '/cards/new';
 }
 
@@ -59,83 +61,88 @@ const destinations = [
 /// The route table: the four destinations as branches of one stateful shell,
 /// each keeping its own navigator and scroll position. The store is the
 /// refresh listenable so a later redirect re-evaluates on every notification.
-GoRouter appRouter(AppStore store, {String initialLocation = Paths.today}) =>
-    GoRouter(
-      refreshListenable: store,
-      initialLocation: initialLocation,
-      routes: [
-        // Full-screen routes above the shell. `/cards/new` is declared before
-        // `/cards/:id` so the literal wins the match.
-        GoRoute(
-          path: Paths.newCard,
-          builder: (context, state) => AddCardScreen(
-            store: AppScope.of(context),
-            ui: UiScope.of(context),
-          ),
-        ),
-        GoRoute(
-          path: '/cards/:id',
-          builder: (context, state) => CardEditorScreen(
-            store: AppScope.of(context),
-            ui: UiScope.of(context),
-            id: state.pathParameters['id']!,
-          ),
-        ),
-        GoRoute(
-          path: '/benefit/:id',
-          builder: (context, state) => BenefitEditorScreen(
-            store: AppScope.of(context),
-            ui: UiScope.of(context),
-            id: state.pathParameters['id']!,
-          ),
-        ),
-        StatefulShellRoute.indexedStack(
-          builder: (context, state, navigationShell) =>
-              AppShell(navigationShell: navigationShell),
-          branches: [
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: Paths.today,
-                  builder: (context, state) => TodayScreen(
-                    store: AppScope.of(context),
-                    ui: UiScope.of(context),
-                  ),
-                ),
-              ],
+GoRouter appRouter(
+  AppStore store, {
+  String initialLocation = Paths.today,
+}) => GoRouter(
+  refreshListenable: store,
+  initialLocation: initialLocation,
+  routes: [
+    // Full-screen routes above the shell. `/cards/new` is declared before
+    // `/cards/:id` so the literal wins the match.
+    GoRoute(
+      path: Paths.newCard,
+      builder: (context, state) =>
+          AddCardScreen(store: AppScope.of(context), ui: UiScope.of(context)),
+    ),
+    GoRoute(
+      path: '/cards/:id',
+      builder: (context, state) => CardEditorScreen(
+        store: AppScope.of(context),
+        ui: UiScope.of(context),
+        id: state.pathParameters['id']!,
+      ),
+    ),
+    GoRoute(
+      path: '/benefit/:id',
+      builder: (context, state) => BenefitEditorScreen(
+        store: AppScope.of(context),
+        ui: UiScope.of(context),
+        id: state.pathParameters['id']!,
+      ),
+    ),
+    GoRoute(
+      path: Paths.settings,
+      builder: (context, state) =>
+          SettingsScreen(store: AppScope.of(context), ui: UiScope.of(context)),
+    ),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AppShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: Paths.today,
+              builder: (context, state) => TodayScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: Paths.credits,
-                  builder: (context, state) => CreditsScreen(
-                    store: AppScope.of(context),
-                    ui: UiScope.of(context),
-                  ),
-                ),
-              ],
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: Paths.credits,
+              builder: (context, state) => CreditsScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: Paths.cards,
-                  builder: (context, state) => CardsScreen(
-                    store: AppScope.of(context),
-                    ui: UiScope.of(context),
-                  ),
-                ),
-              ],
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: Paths.cards,
+              builder: (context, state) => CardsScreen(
+                store: AppScope.of(context),
+                ui: UiScope.of(context),
+              ),
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: Paths.value,
-                  builder: (context, state) =>
-                      ValueScreen(store: AppScope.of(context)),
-                ),
-              ],
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: Paths.value,
+              builder: (context, state) =>
+                  ValueScreen(store: AppScope.of(context)),
             ),
           ],
         ),
       ],
-    );
+    ),
+  ],
+);

@@ -1,10 +1,12 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/semantics.dart';
 
 import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
 import '../logic/ui_state.dart';
+import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
@@ -139,10 +141,31 @@ class _TodayBody extends StatelessWidget {
               ],
             ),
             if (ui != null)
-              OutlinedButton.icon(
-                onPressed: previewNudge,
-                icon: const Icon(Icons.notifications_active_outlined, size: 14),
-                label: const Text('Preview nudge'),
+              Wrap(
+                spacing: Space.s2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: previewNudge,
+                    icon: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 14,
+                    ),
+                    label: const Text('Preview nudge'),
+                  ),
+                  // The only way into Settings, and therefore into turning
+                  // reminders on at all, so it lives on the screen people
+                  // open every day.
+                  MergeSemantics(
+                    child: Semantics(
+                      label: 'Settings',
+                      child: IconButton(
+                        onPressed: () => context.go(Paths.settings),
+                        icon: const Icon(Icons.settings_outlined, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ),
           ],
         ),

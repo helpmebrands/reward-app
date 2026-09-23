@@ -1,3 +1,4 @@
+import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -58,12 +59,22 @@ class _RewardAppState extends State<RewardApp> {
       ui: _ui,
       child: AppScope(
         store: widget.store,
-        child: MaterialApp.router(
-          title: 'HelpMe Reward',
-          theme: nocturneTheme(Brightness.light),
-          darkTheme: nocturneTheme(Brightness.dark),
-          themeMode: ThemeMode.system,
-          routerConfig: _router,
+        // The theme mode is the settings' choice, read from the store so an
+        // override takes effect the moment it is saved; System follows the
+        // platform as before.
+        child: ListenableBuilder(
+          listenable: widget.store,
+          builder: (context, _) => MaterialApp.router(
+            title: 'HelpMe Reward',
+            theme: nocturneTheme(Brightness.light),
+            darkTheme: nocturneTheme(Brightness.dark),
+            themeMode: switch (widget.store.data?.settings.theme) {
+              ThemeSetting.dark => ThemeMode.dark,
+              ThemeSetting.light => ThemeMode.light,
+              _ => ThemeMode.system,
+            },
+            routerConfig: _router,
+          ),
         ),
       ),
     );
