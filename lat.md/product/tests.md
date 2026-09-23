@@ -203,6 +203,12 @@ With Chase selected, the issuer counts equal the unfiltered ones (Chase is 4). E
 
 With Wells Fargo selected, all five fee bands are listed and $600+ reads 0. Networks are Amex, Visa and Mastercard, with Amex at 0. The six issuers are alphabetical. The merchants are unique and alphabetical ignoring case, and Uber reads 0.
 
+### The kind facet ORs its kinds and counts past its own selection
+
+Business alone returns only the Business Platinum, and Business plus Personal returns every card. The kind counts stay 15 personal and 1 business with Business selected, and fall to 4 and 0 once Chase is also selected.
+
+A catalogue with no business template does not offer the Business option.
+
 ### The catalogue sorts by annual value, ties in catalogue order
 
 `sortByValue` puts the highest `templateAnnualValueCents` first and keeps equal values in their given order, for both synthetic templates and the shipped catalogue.

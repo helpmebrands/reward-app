@@ -35,6 +35,7 @@ class CatalogFilter {
   const CatalogFilter({
     this.feeBands = const {},
     this.networks = const {},
+    this.kinds = const {},
     this.issuers = const {},
     this.merchants = const {},
     this.search = '',
@@ -42,25 +43,32 @@ class CatalogFilter {
 
   final Set<FeeBand> feeBands;
   final Set<CardNetwork> networks;
+  final Set<CardKind> kinds;
   final Set<String> issuers;
   final Set<String> merchants;
   final String search;
 
   /// Selected values across every facet. The search text is not counted.
   int get activeCount =>
-      feeBands.length + networks.length + issuers.length + merchants.length;
+      feeBands.length +
+      networks.length +
+      kinds.length +
+      issuers.length +
+      merchants.length;
 
   bool get isEmpty => activeCount == 0 && search.trim().isEmpty;
 
   CatalogFilter copyWith({
     Set<FeeBand>? feeBands,
     Set<CardNetwork>? networks,
+    Set<CardKind>? kinds,
     Set<String>? issuers,
     Set<String>? merchants,
     String? search,
   }) => CatalogFilter(
     feeBands: feeBands ?? this.feeBands,
     networks: networks ?? this.networks,
+    kinds: kinds ?? this.kinds,
     issuers: issuers ?? this.issuers,
     merchants: merchants ?? this.merchants,
     search: search ?? this.search,
@@ -70,6 +78,8 @@ class CatalogFilter {
       copyWith(feeBands: _toggled(feeBands, band));
   CatalogFilter toggleNetwork(CardNetwork network) =>
       copyWith(networks: _toggled(networks, network));
+  CatalogFilter toggleKind(CardKind kind) =>
+      copyWith(kinds: _toggled(kinds, kind));
   CatalogFilter toggleIssuer(String issuer) =>
       copyWith(issuers: _toggled(issuers, issuer));
   CatalogFilter toggleMerchant(String merchant) =>
@@ -79,6 +89,7 @@ class CatalogFilter {
       feeBands.isEmpty || feeBands.any((b) => b.contains(t.annualFeeCents));
   bool _matchesNetwork(CardTemplate t) =>
       networks.isEmpty || networks.contains(t.network);
+  bool _matchesKind(CardTemplate t) => kinds.isEmpty || kinds.contains(t.kind);
   bool _matchesIssuer(CardTemplate t) =>
       issuers.isEmpty || issuers.contains(t.issuer);
   bool _matchesMerchant(CardTemplate t) =>
@@ -115,6 +126,7 @@ List<CardTemplate> filterTemplates(
       (t) =>
           filter._matchesFee(t) &&
           filter._matchesNetwork(t) &&
+          filter._matchesKind(t) &&
           filter._matchesIssuer(t) &&
           filter._matchesMerchant(t) &&
           filter._matchesSearch(t),
@@ -141,6 +153,7 @@ class FacetCounts {
   const FacetCounts({
     required this.feeBands,
     required this.networks,
+    required this.kinds,
     required this.issuers,
     required this.merchants,
   });
@@ -150,6 +163,9 @@ class FacetCounts {
 
   /// Networks present in the catalogue, in enum order.
   final Map<CardNetwork, int> networks;
+
+  /// Kinds present in the catalogue, in enum order.
+  final Map<CardKind, int> kinds;
 
   /// Issuers, alphabetical.
   final Map<String, int> issuers;
@@ -161,6 +177,7 @@ class FacetCounts {
 FacetCounts facetCounts(List<CardTemplate> templates, CatalogFilter filter) {
   final all = _listable(templates).toList();
   final present = all.map((t) => t.network).toSet();
+  final presentKinds = all.map((t) => t.kind).toSet();
   final issuers = all.map((t) => t.issuer).toSet().toList()..sort();
   final merchants = {
     for (final t in all)
@@ -173,6 +190,7 @@ FacetCounts facetCounts(List<CardTemplate> templates, CatalogFilter filter) {
 
   final noFee = filter.copyWith(feeBands: const {});
   final noNetwork = filter.copyWith(networks: const {});
+  final noKind = filter.copyWith(kinds: const {});
   final noIssuer = filter.copyWith(issuers: const {});
   final noMerchant = filter.copyWith(merchants: const {});
   return FacetCounts(
@@ -184,6 +202,11 @@ FacetCounts facetCounts(List<CardTemplate> templates, CatalogFilter filter) {
       for (final network in CardNetwork.values)
         if (present.contains(network))
           network: count(noNetwork, (t) => t.network == network),
+    },
+    kinds: {
+      for (final kind in CardKind.values)
+        if (presentKinds.contains(kind))
+          kind: count(noKind, (t) => t.kind == kind),
     },
     issuers: {
       for (final issuer in issuers)

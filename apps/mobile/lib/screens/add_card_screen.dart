@@ -333,6 +333,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
       for (final b in filter.feeBands) (b.label, (f) => f.toggleFeeBand(b)),
       for (final n in filter.networks)
         (networkLabel(n), (f) => f.toggleNetwork(n)),
+      for (final k in filter.kinds) (kindLabel(k), (f) => f.toggleKind(k)),
       for (final i in filter.issuers) (i, (f) => f.toggleIssuer(i)),
       for (final m in filter.merchants) (m, (f) => f.toggleMerchant(m)),
     ];
