@@ -228,6 +228,58 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 "Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a card with no benefits and says "Card added. Add its credits next."
 
+## Editors
+
+`editors_test.dart` opens the app at the card editor for Jim's Platinum and at the benefit editor for his Uber Cash over the sample household ([[mobile-architecture#Forms and the Field pattern#The editors]]).
+
+### The card editor writes valid values and shows errors for the rest
+
+The editor is titled by the card with "12 credits"; a typed holder reaches the store at once; an invalid fee or date shows its sentence after blur and is not written.
+
+"abc" as the fee leaves the fee alone and shows "Enter the amount as a number, like 695."; "695" writes $695 and clears it; "2026-02-30" shows the date sentence.
+
+### Mute, archive and network are on the card editor
+
+The "Silence every credit" switch mutes the card, choosing Visa writes the network, and "Archive this card" archives it.
+
+### The credit list opens each editor and adds a credit
+
+The twelve credits are listed by name in order; tapping Uber Cash opens its editor; "Add" adds a "New credit" on the card and opens its editor.
+
+### Deleting a card from its editor confirms, cascades and returns
+
+"Delete this card" asks, Delete removes the card and every benefit on it, says "Card deleted." and lands on Cards.
+
+### Back with an unsaved draft asks first
+
+With nothing invalid, system back leaves for Cards at once; with "abc" as the fee it asks "Leave without saving?", Stay keeps the editor, Leave goes to Cards.
+
+### An unknown id shows the not-found state
+
+`/cards/nope` shows "Card not found" and "That card is no longer here."; `/benefit/nope` shows "Credit not found" and its line.
+
+### The window follows the cadence and the anchor live
+
+Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; choosing Quarterly shows "Jul 1 – Sep 30 (Q3 2026)" and writes the cadence.
+
+"Card anniversary" then shows the window `cycleFor` gives for Jim's anniversary and writes the anchor.
+
+### The benefit editor writes valid values and shows errors for the rest
+
+"0" as the value shows "Enter a value above zero." and leaves $15; "45" writes $45 and clears it; a blank name shows its sentence and keeps the name; a merchant is written as typed.
+
+### Enrolment, tracking and the switches write the benefit
+
+"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Track this credit" pauses it; "Last call only" sets it.
+
+### Deleting a benefit takes its claims and returns to the card
+
+"Delete this credit" then Delete removes the benefit and its claims, says "Credit deleted." and lands on the card editor.
+
+### Editor fields pair from expanded and survive 200%
+
+At 1280 the name and value fields share a top edge side by side; at a 2.0 text scale on 402 the benefit editor raises no layout exception and every text ends inside the width.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).

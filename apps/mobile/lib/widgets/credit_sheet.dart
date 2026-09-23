@@ -1,8 +1,10 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
+import '../shell/router.dart';
 import '../theme/nocturne_tokens.dart' hide Tone;
 
 /// Quick amounts: a quarter and a half of what is left, rounded to whole
@@ -522,6 +524,15 @@ class _SheetBodyState extends State<_SheetBody> {
             label: 'Silence reminders for ${benefit.name}',
             value: benefit.muted,
             onChanged: (_) => actions.toggleMute(instance),
+          ),
+          const SizedBox(height: Space.s6),
+          TextButton.icon(
+            onPressed: () {
+              widget.onClose();
+              context.go(benefitPath(benefit.id));
+            },
+            icon: const Icon(Icons.edit_outlined, size: 14),
+            label: const Text('Edit this credit'),
           ),
         ],
       ),
