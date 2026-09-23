@@ -103,6 +103,17 @@ void main() {
     );
   });
 
+  // @lat: [[mobile-tests#Token contrast#The missed bar reaches 3:1 on the page]]
+  test('the chart\'s missed bar reaches 3:1 on the page ground', () {
+    expect(
+      failures(
+        (t) => [('chartMissed on background', t.chartMissed, t.background)],
+        3,
+      ),
+      isEmpty,
+    );
+  });
+
   // @lat: [[mobile-tests#Token contrast#The overlap card's text holds on the section ground]]
   testWidgets("every text the overlap card draws reaches 4.5:1 on its ground", (
     tester,
