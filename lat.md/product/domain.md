@@ -25,7 +25,7 @@ A card belongs to one person in the household. The `holder` field is what distin
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).
 - `muted` silences every credit on the card without losing their state. `archived` hides the card and its credits from every selector.
 - `last4` is display only; a full PAN is never stored.
-- `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. Filtering by kind is deliberately left to a later epic. A snapshot from before `kind` existed loads with every card `personal` ([[architecture#Persistence]]).
+- `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. The add-card catalogue can be filtered by kind ([[domain#Catalogue filter]]); the Cards screen cannot. A snapshot from before `kind` existed loads with every card `personal` ([[architecture#Persistence]]).
 
 ## Benefit
 
@@ -188,11 +188,11 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 `packages/domain/lib/src/catalog_filter.dart` narrows and orders the catalogue on the add-card screen. It is Dart only, since the PWA is frozen. The blank template is never a result, because manual entry has its own buttons.
 
-A `CatalogFilter` holds the selected fee bands, networks, issuers and merchants, plus the search text. Its `activeCount` counts the selected values only, so the Filters badge ignores typing.
+A `CatalogFilter` holds the selected fee bands, networks, card kinds, issuers and merchants, plus the search text. Its `activeCount` counts the selected values only, so the Filters badge ignores typing.
 
 - Values in one facet are OR-ed. Facets are AND-ed with each other and with the search.
 - The search is a case-insensitive substring match on issuer, product, benefit name and merchant.
 - `FeeBand` splits the annual fee, in cents, into No fee (0), Under $100 (1–9,999), $100–$399 (10,000–39,999), $400–$599 (40,000–59,999) and $600+ (60,000 and up).
-- `facetCounts` counts, for each option, the cards that selecting it would return. Every other facet and the search apply, but the option's own facet does not. An option stays listed at zero. The fee bands keep band order, networks keep enum order and appear only if the catalogue has them, and issuers and merchants are alphabetical.
+- `facetCounts` counts, for each option, the cards that selecting it would return. Every other facet and the search apply, but the option's own facet does not. An option stays listed at zero. The fee bands keep band order, networks and kinds keep enum order and appear only if the catalogue has them, and issuers and merchants are alphabetical.
 - `sortByValue` is the only order. It puts the highest `templateAnnualValueCents` first, and ties keep catalogue order. There is no sort control.
 - `matchedBenefits` names the benefits that a selected merchant or the search matched, so a row can say why it is listed.

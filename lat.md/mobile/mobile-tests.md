@@ -264,6 +264,10 @@ Picking the Business Platinum and saving with a holder and a date adds a card wh
 
 The header starts at "16 of 16 cards". Checking Chase leaves 4 tiles, shows "4 of 16 cards" and adds a "Chase" chip. The chip's "Remove Chase filter" button restores all 16.
 
+### Business narrows to business cards in the panel and the sheet
+
+At 1280, checking Business in the panel adds a "Business" chip and leaves only the Business Platinum. At 402, checking it in the sheet shows "Show 1", which closes onto the same chip and tile.
+
 ### Facets combine and counts follow the other facets
 
 With Chase checked, the fee bands count 2, 1, 0 and 1 for Under $100, $100–$399, $400–$599 and $600+. Checking $600+ as well leaves only the Sapphire Reserve, with a "$600+" chip.

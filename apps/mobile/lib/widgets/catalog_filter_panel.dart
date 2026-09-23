@@ -22,6 +22,11 @@ class CatalogFilterPanel extends StatefulWidget {
   State<CatalogFilterPanel> createState() => _CatalogFilterPanelState();
 }
 
+String kindLabel(CardKind kind) => switch (kind) {
+  CardKind.personal => 'Personal',
+  CardKind.business => 'Business',
+};
+
 /// Merchants listed before "Show all".
 const _merchantsShown = 6;
 
@@ -74,6 +79,16 @@ class _CatalogFilterPanelState extends State<CatalogFilterPanel> {
                 count: count,
                 selected: filter.networks.contains(network),
                 onToggle: () => c.update((f) => f.toggleNetwork(network)),
+              ),
+            _Heading('Card kind'),
+            for (final MapEntry(key: kind, value: count)
+                in counts.kinds.entries)
+              _Option(
+                id: 'kind-${kind.name}',
+                label: kindLabel(kind),
+                count: count,
+                selected: filter.kinds.contains(kind),
+                onToggle: () => c.update((f) => f.toggleKind(kind)),
               ),
             _Heading('Issuer'),
             for (final MapEntry(key: issuer, value: count)

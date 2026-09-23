@@ -52,8 +52,8 @@ enum BenefitCategory {
 enum CardNetwork { amex, visa, mastercard, discover, other }
 
 /// Whether the card is a personal or a business product. Classification only:
-/// the Cards screen marks business cards, and filtering by kind is left to a
-/// later epic.
+/// the Cards screen marks business cards, and the add-card catalogue can be
+/// filtered by it.
 enum CardKind { personal, business }
 
 /// The status ladder, taken from the design.
