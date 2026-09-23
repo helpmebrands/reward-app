@@ -52,11 +52,17 @@ Future<App> pumpAdd(
   return App(store, ui);
 }
 
+/// The template list; from medium up the filter panel scrolls beside it.
+Finder get results => find.descendant(
+  of: find.byKey(const Key('catalog-results')),
+  matching: find.byType(Scrollable),
+);
+
 Finder get platinum => find.byKey(const Key('template-amex-platinum'));
 
 /// The catalogue outgrows the screen, so scroll the Platinum into view first.
 Future<void> showPlatinum(WidgetTester tester) async {
-  await tester.scrollUntilVisible(platinum, 200);
+  await tester.scrollUntilVisible(platinum, 200, scrollable: results);
   await tester.ensureVisible(platinum);
   await tester.pumpAndSettle();
 }

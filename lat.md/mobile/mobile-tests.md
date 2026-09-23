@@ -256,6 +256,38 @@ At a 2.0 text scale at 402 wide, the catalogue raises no layout exception. Every
 
 Picking the Business Platinum and saving with a holder and a date adds a card whose kind is `business`, copied from the template.
 
+## Catalogue filter
+
+`catalog_filter_test.dart` opens the app at `/cards/new`, 1280 wide unless a case says otherwise, and drives the side panel ([[mobile-architecture#Forms and the Field pattern#Add a card#Catalogue filter]]).
+
+### Checking an issuer narrows the list and adds a chip
+
+The header starts at "16 of 16 cards". Checking Chase leaves 4 tiles, shows "4 of 16 cards" and adds a "Chase" chip. The chip's "Remove Chase filter" button restores all 16.
+
+### Facets combine and counts follow the other facets
+
+With Chase checked, the fee bands count 2, 1, 0 and 1 for Under $100, $100–$399, $400–$599 and $600+. Checking $600+ as well leaves only the Sapphire Reserve, with a "$600+" chip.
+
+### Search narrows per keystroke and Clear all resets everything
+
+Typing "u", "ub", "ube" and "uber" shows each prefix's `filterTemplates` count. "Clear all" then empties the facets, both search fields and the chips, and hides itself.
+
+### The merchant group shows six and searches its own options
+
+Six merchant options show until "Show all" lists every one, and "Show fewer" returns to six. Typing "a" in the merchant sub-search lists every merchant containing it, hides the toggle and leaves the card count at 16.
+
+### No match shows the empty state with manual entry
+
+Searching "zzzz" leaves no tiles and shows "No cards match. Try removing a filter, or add your card manually.". Its button opens the blank form with Issuer and Card.
+
+### The result count is a live region
+
+The "N of 16 cards" text's semantics node carries the live-region flag, so a screen reader announces each change.
+
+### The panel at 200% clips nothing
+
+At 720 wide with a 2.0 text scale, and American Express and Adobe checked, no layout exception is raised and every text ends inside the width.
+
 ## Editors
 
 `editors_test.dart` opens the app at the card editor for Jim's Platinum and at the benefit editor for his Uber Cash over the sample household ([[mobile-architecture#Forms and the Field pattern#The editors]]).
