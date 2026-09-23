@@ -2,7 +2,7 @@ import { cyclesBetween, hasEnded } from './cycles.ts'
 import { addDays, atLocalTime, compareIsoDate, todayIso } from './dates.ts'
 import { formatMoney } from './format.ts'
 import { ladderFor } from './ladder.ts'
-import { cardLabel, claimedIn, indexClaims, isLocked } from './selectors.ts'
+import { cardLabel, claimedIn, indexClaims, lockReason } from './selectors.ts'
 import type { AppData, IsoDate, LadderRung } from './types.ts'
 
 /**
@@ -86,7 +86,10 @@ export function buildSchedule(
     if (!card || card.archived || card.muted) continue
     if (benefit.valueCents < settings.minValueCents) continue
 
-    const locked = isLocked(benefit)
+    const reason = lockReason(benefit, card, from)
+    // No reminder can unlock a spend threshold, so a gated credit gets none.
+    if (reason === 'spend') continue
+    const locked = reason !== null
     // A locked credit cannot be spent, so it is only worth a nudge if the user
     // asked to be told about enrolment — otherwise it is an impossible chore.
     if (locked && !settings.enrollmentReminder) continue

@@ -10,7 +10,7 @@ Vitest runs in jsdom under `apps/pwa/tests/` as part of `npm test`; Playwright r
 
 - Adding a card from a template brings its credits and enrolment flags, and records the holder so two identical cards stay apart.
 - Claiming defaults to the balance left, never the face value again; unclaiming clears the whole cycle.
-- Enrolment unlocks a credit and can be revoked. Muting a credit or a card changes `muted` without moving status.
+- Enrolment unlocks a credit and can be revoked. A spend threshold locks a credit until `confirmSpend`, and `revokeSpend` locks it again. Muting a credit or a card changes `muted` without moving status.
 - Deleting a card removes its credits and claims and leaves the other holder untouched.
 - Export and import round-trip the dataset; a file that is not an export is refused.
 

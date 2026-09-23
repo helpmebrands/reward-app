@@ -8,6 +8,7 @@ import type { BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
 import {
   endsOnError,
   enrollmentUrlError,
+  moneyError,
   parseMoney,
   positiveMoneyError,
   requiredError,
@@ -66,15 +67,21 @@ export function BenefitEditor() {
   const [valueDraft, setValueDraft] = createSignal<string | null>(null)
   const [urlDraft, setUrlDraft] = createSignal<string | null>(null)
   const [endsOnDraft, setEndsOnDraft] = createSignal<string | null>(null)
+  const [spendDraft, setSpendDraft] = createSignal<string | null>(null)
   const nameText = () => nameDraft() ?? benefit()?.name ?? ''
   const valueText = () => valueDraft() ?? ((benefit()?.valueCents ?? 0) / 100).toString()
   const urlText = () => urlDraft() ?? benefit()?.enrollmentUrl ?? ''
   const endsOnText = () => endsOnDraft() ?? benefit()?.endsOn ?? ''
+  const spendText = () => {
+    const threshold = benefit()?.spendThresholdCents
+    return spendDraft() ?? (threshold === undefined ? '' : (threshold / 100).toString())
+  }
   const errors = {
     name: () => requiredError(nameText(), 'Enter what the credit is called.'),
     value: () => positiveMoneyError(valueText()),
     url: () => enrollmentUrlError(urlText()),
     endsOn: () => endsOnError(endsOnText()),
+    spend: () => (spendText().trim() === '' ? null : moneyError(spendText())),
   }
 
   function patch(changes: BenefitPatch) {
@@ -306,6 +313,57 @@ export function BenefitEditor() {
                   />
                 )}
               </Field>
+            </Show>
+
+            <Field
+              id="benefit-spend-threshold"
+              label="Unlocks after spending (optional)"
+              hint="Dollars the issuer asks you to spend in a year before this credit opens."
+              error={errors.spend()}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  class="input numeric"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={spendText()}
+                  onInput={(e) => {
+                    setSpendDraft(e.currentTarget.value)
+                    const raw = e.currentTarget.value.trim()
+                    if (raw === '') {
+                      patch({ spendThresholdCents: undefined })
+                      return
+                    }
+                    const cents = parseMoney(raw)
+                    if (cents !== null && cents >= 0) patch({ spendThresholdCents: cents })
+                  }}
+                />
+              )}
+            </Field>
+
+            <Show when={current().spendThresholdCents !== undefined}>
+              <div class="panel row row--between">
+                <span class="grow">
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Spend reached this year
+                  </span>
+                  <span class="section-note">
+                    <Show when={current().spendMetAt} fallback="Not yet — the credit is locked.">
+                      {(at) => `Confirmed ${formatDate(at().slice(0, 10))}.`}
+                    </Show>
+                  </span>
+                </span>
+                <Switch
+                  label="Spend reached this year"
+                  checked={Boolean(current().spendMetAt)}
+                  onChange={(next) =>
+                    next ? app.confirmSpend(current().id) : app.revokeSpend(current().id)
+                  }
+                />
+              </div>
             </Show>
 
             <div class="field">

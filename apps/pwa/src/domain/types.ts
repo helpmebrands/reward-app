@@ -107,6 +107,14 @@ export interface Benefit {
   enrollmentNote?: string
   enrollmentUrl?: string
   /**
+   * Spend the issuer asks for in a year before the credit opens, in cents.
+   * Until {@link spendMetAt} falls inside the current year the credit is
+   * `locked` for spend, excluded from value totals and never reminded about.
+   */
+  spendThresholdCents?: number
+  /** When the user said the threshold was reached; cleared by revoking. */
+  spendMetAt?: IsoInstant
+  /**
    * The last day the credit can be used, for credits the issuer has announced
    * an end to. The final window is clamped to this day and nothing follows
    * it; afterwards the credit is skipped the way an inactive one is.

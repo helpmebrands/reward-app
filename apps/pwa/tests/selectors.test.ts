@@ -395,7 +395,7 @@ describe('a spend-gated credit', () => {
       spendThresholdCents: 100,
     })
     const open = makeBenefit('monthly', { id: 'open', valueCents: 1500 })
-    const annual = (benefits: typeof gated[]) => {
+    const annual = (benefits: (typeof gated)[]) => {
       const data = makeData({ benefits })
       return summarizeCard(card, data, currentInstances(data, TODAY), [], TODAY).annualValueCents
     }

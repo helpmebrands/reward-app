@@ -28,6 +28,8 @@ export interface BenefitTemplate {
   cadence: Cadence
   anchor: CycleAnchor
   enrollmentRequired?: boolean
+  /** Spend the issuer asks for in a year before the credit opens, in cents. */
+  spendThresholdCents?: number
   /** The last day the credit can be used, when the issuer has announced one. */
   endsOn?: IsoDate
   redemptionSteps?: string[]
@@ -1543,7 +1545,11 @@ export function findTemplate(id: string): CardTemplate | undefined {
   return CARD_TEMPLATES.find((template) => template.id === id)
 }
 
-/** Total value a template releases in a year, for the catalogue rows. */
+/**
+ * Total value a template releases in a year, for the catalogue rows. Credits
+ * gated behind a spend threshold are left out: a price that counts them
+ * promises money most cardholders will never see.
+ */
 export function templateAnnualValueCents(template: CardTemplate): number {
   const perYear: Record<Cadence, number> = {
     monthly: 12,
@@ -1552,7 +1558,9 @@ export function templateAnnualValueCents(template: CardTemplate): number {
     annual: 1,
     manual: 1,
   }
-  return template.benefits.reduce((sum, b) => sum + b.valueCents * perYear[b.cadence], 0)
+  return template.benefits
+    .filter((b) => b.spendThresholdCents === undefined)
+    .reduce((sum, b) => sum + b.valueCents * perYear[b.cadence], 0)
 }
 
 /** Credits in a template that are stuck behind an enrolment box. */
@@ -1586,6 +1594,9 @@ export function benefitsFromTemplate(
     updatedAt: now,
     ...(entry.description ? { description: entry.description } : {}),
     ...(entry.merchant ? { merchant: entry.merchant } : {}),
+    ...(entry.spendThresholdCents !== undefined
+      ? { spendThresholdCents: entry.spendThresholdCents }
+      : {}),
     ...(entry.endsOn ? { endsOn: entry.endsOn } : {}),
     ...(entry.notes ? { notes: entry.notes } : {}),
   }))

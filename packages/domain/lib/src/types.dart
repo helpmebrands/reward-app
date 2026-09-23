@@ -177,6 +177,8 @@ class Benefit {
     this.enrolledAt,
     this.enrollmentNote,
     this.enrollmentUrl,
+    this.spendThresholdCents,
+    this.spendMetAt,
     this.endsOn,
     required this.redemptionSteps,
     this.notes,
@@ -215,6 +217,15 @@ class Benefit {
   final String? enrollmentNote;
   final String? enrollmentUrl;
 
+  /// Spend the issuer asks for in a year before the credit opens, in cents.
+  /// Until [spendMetAt] falls inside the current year the credit is
+  /// [BenefitStatus.locked] for spend, excluded from value totals and never
+  /// reminded about.
+  final int? spendThresholdCents;
+
+  /// When the user said the threshold was reached; cleared by revoking.
+  final IsoInstant? spendMetAt;
+
   /// The last day the credit can be used, for credits the issuer has
   /// announced an end to. The final window is clamped to this day and nothing
   /// follows it; afterwards the credit is skipped the way an inactive one is.
@@ -238,8 +249,8 @@ class Benefit {
 
   /// A copy with the given fields replaced. The nullable fields
   /// ([description], [icon], [merchant], [enrolledAt], [enrollmentNote],
-  /// [enrollmentUrl], [endsOn], [notes]) are cleared by passing null and kept
-  /// by leaving them out.
+  /// [enrollmentUrl], [spendThresholdCents], [spendMetAt], [endsOn], [notes])
+  /// are cleared by passing null and kept by leaving them out.
   Benefit copyWith({
     String? cardId,
     String? name,
@@ -254,6 +265,8 @@ class Benefit {
     Object? enrolledAt = _unset,
     Object? enrollmentNote = _unset,
     Object? enrollmentUrl = _unset,
+    Object? spendThresholdCents = _unset,
+    Object? spendMetAt = _unset,
     Object? endsOn = _unset,
     List<String>? redemptionSteps,
     Object? notes = _unset,
@@ -284,6 +297,12 @@ class Benefit {
     enrollmentUrl: identical(enrollmentUrl, _unset)
         ? this.enrollmentUrl
         : enrollmentUrl as String?,
+    spendThresholdCents: identical(spendThresholdCents, _unset)
+        ? this.spendThresholdCents
+        : spendThresholdCents as int?,
+    spendMetAt: identical(spendMetAt, _unset)
+        ? this.spendMetAt
+        : spendMetAt as IsoInstant?,
     endsOn: identical(endsOn, _unset) ? this.endsOn : endsOn as IsoDate?,
     redemptionSteps: redemptionSteps ?? this.redemptionSteps,
     notes: identical(notes, _unset) ? this.notes : notes as String?,

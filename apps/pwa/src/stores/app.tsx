@@ -93,6 +93,9 @@ export interface AppStore {
   /** Records that the user has ticked the issuer's enrolment box. */
   confirmEnrollment(id: string): void
   revokeEnrollment(id: string): void
+  /** Records that this year's spend threshold has been reached. */
+  confirmSpend(id: string): void
+  revokeSpend(id: string): void
   deleteBenefit(id: string): void
 
   /** Logs a use of a credit. Omit `amountCents` to claim everything left. */
@@ -257,6 +260,14 @@ export function AppProvider(props: ParentProps) {
           }
         }),
       )
+    },
+
+    confirmSpend(id) {
+      store.updateBenefit(id, { spendMetAt: nowIso() })
+    },
+
+    revokeSpend(id) {
+      store.updateBenefit(id, { spendMetAt: undefined })
     },
 
     deleteBenefit(id) {

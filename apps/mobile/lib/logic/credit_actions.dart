@@ -70,6 +70,21 @@ class CreditActions {
     );
   }
 
+  /// Records this year's spend threshold as reached, with an undo.
+  Future<void> confirmSpend(BenefitInstance instance) async {
+    final id = instance.benefit.id;
+    final name = instance.benefit.name;
+    await store.confirmSpend(id);
+    snackbar.show(
+      '$name unlocked.',
+      action: SnackbarAction(
+        label: 'Undo',
+        semanticsLabel: 'Undo unlocking $name',
+        onAct: () => store.revokeSpend(id),
+      ),
+    );
+  }
+
   /// Removes one claim. No undo: the sheet is the way back for a claim, and
   /// what was removed is said.
   Future<void> removeClaim(BenefitInstance instance, Claim claim) async {

@@ -539,7 +539,10 @@ void main() {
           lockReason(met('2026-02-01T00:00:00.000Z'), card, today),
           LockReason.spend,
         );
-        expect(lockReason(met('2026-04-01T00:00:00.000Z'), card, today), isNull);
+        expect(
+          lockReason(met('2026-04-01T00:00:00.000Z'), card, today),
+          isNull,
+        );
       },
     );
 

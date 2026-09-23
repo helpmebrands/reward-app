@@ -70,33 +70,36 @@ void main() {
   });
 
   // @lat: [[tests#Snapshot JSON#A spend threshold round-trips with its met stamp]]
-  test('round-trips spendThresholdCents and spendMetAt, omitted when unset', () {
-    final benefit = benefitFromJson({
-      'id': 'b',
-      'cardId': 'c',
-      'name': 'Dell Bonus',
-      'category': 'shopping',
-      'valueCents': 100000,
-      'cadence': 'annual',
-      'anchor': 'calendar',
-      'enrollmentRequired': false,
-      'spendThresholdCents': 500000,
-      'spendMetAt': '2026-03-01T00:00:00.000Z',
-      'muted': false,
-      'lastCallOnly': false,
-      'active': true,
-      'createdAt': 't',
-      'updatedAt': 't',
-    });
-    expect(benefit.spendThresholdCents, 500000);
-    expect(benefit.spendMetAt, '2026-03-01T00:00:00.000Z');
-    final json = benefitToJson(benefit);
-    expect(json['spendThresholdCents'], 500000);
-    expect(json['spendMetAt'], '2026-03-01T00:00:00.000Z');
-    final cleared = benefitToJson(
-      benefit.copyWith(spendThresholdCents: null, spendMetAt: null),
-    );
-    expect(cleared.containsKey('spendThresholdCents'), isFalse);
-    expect(cleared.containsKey('spendMetAt'), isFalse);
-  });
+  test(
+    'round-trips spendThresholdCents and spendMetAt, omitted when unset',
+    () {
+      final benefit = benefitFromJson({
+        'id': 'b',
+        'cardId': 'c',
+        'name': 'Dell Bonus',
+        'category': 'shopping',
+        'valueCents': 100000,
+        'cadence': 'annual',
+        'anchor': 'calendar',
+        'enrollmentRequired': false,
+        'spendThresholdCents': 500000,
+        'spendMetAt': '2026-03-01T00:00:00.000Z',
+        'muted': false,
+        'lastCallOnly': false,
+        'active': true,
+        'createdAt': 't',
+        'updatedAt': 't',
+      });
+      expect(benefit.spendThresholdCents, 500000);
+      expect(benefit.spendMetAt, '2026-03-01T00:00:00.000Z');
+      final json = benefitToJson(benefit);
+      expect(json['spendThresholdCents'], 500000);
+      expect(json['spendMetAt'], '2026-03-01T00:00:00.000Z');
+      final cleared = benefitToJson(
+        benefit.copyWith(spendThresholdCents: null, spendMetAt: null),
+      );
+      expect(cleared.containsKey('spendThresholdCents'), isFalse);
+      expect(cleared.containsKey('spendMetAt'), isFalse);
+    },
+  );
 }

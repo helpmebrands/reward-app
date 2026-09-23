@@ -134,7 +134,10 @@ ReminderSchedule buildSchedule(
     if (card == null || card.archived || card.muted) continue;
     if (benefit.valueCents < settings.minValueCents) continue;
 
-    final locked = isLocked(benefit);
+    final reason = lockReason(benefit, card, from);
+    // No reminder can unlock a spend threshold, so a gated credit gets none.
+    if (reason == LockReason.spend) continue;
+    final locked = reason != null;
     // A locked credit cannot be spent, so it is only worth a nudge if the user
     // asked to be told about enrolment; otherwise it is an impossible chore.
     if (locked && !settings.enrollmentReminder) continue;

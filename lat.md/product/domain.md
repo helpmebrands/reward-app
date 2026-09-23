@@ -34,6 +34,7 @@ Fields with behaviour behind them:
 
 - `cadence` and `anchor` decide the window. See [[domain#Benefit#Cadence]] and [[domain#Benefit#Cycle anchors]].
 - `enrollmentRequired` with no `enrolledAt` makes the credit `locked` ([[domain#Status ladder#Locked is not unclaimed]]).
+- `spendThresholdCents` is the second kind of lock: spend the issuer asks for in a year before the credit opens (Business Platinum's $250K credits, the Dell bonus). Until `spendMetAt` falls inside the current year the credit is `locked` for spend ([[domain#Status ladder#A spend threshold is the other lock]]).
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
 - `muted` silences reminders for this credit only; `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]).
 - `active: false` keeps history but stops tracking.
@@ -86,7 +87,7 @@ Precedence, from `statusFor` in `apps/pwa/src/domain/selectors.ts`:
 
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
-3. `locked` when enrolment is required and unconfirmed.
+3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met ([[apps/pwa/src/domain/selectors.ts#lockReason]] says which; enrolment outranks spend).
 4. `missed` when the window has closed.
 5. `use_soon` when the window closes within `settings.useSoonDays` (default [[apps/pwa/src/domain/types.ts#USE_SOON_DAYS]], 30), otherwise `available`.
 
@@ -104,6 +105,19 @@ Consequences elsewhere:
 - The Credits screen keeps `lockedCents` as its own figure ([[domain#The four totals]]).
 - Reminders only mention locked credits when the user has opted into enrolment reminders, and then lead with the blocker rather than the spend ([[reminders#Schedule construction#Notification copy]]).
 - The detail sheet offers "I've enrolled — unlock this credit" instead of a spend action. Confirming sets `enrolledAt`; revoking clears it.
+
+### A spend threshold is the other lock
+
+A credit gated behind a year's spend (Business Platinum's $250K credits, the Dell $1,000 bonus, IHG's $20K credit) is money most cardholders will never see, so it is locked and left out of every value figure until the user says the spend is reached.
+
+`lockReason` returns `spend` when `spendThresholdCents` is set and `spendMetAt` does not fall inside the credit's current year. "Current year" follows the anchor: the calendar year for `calendar`, the cardmember year for `anniversary`, found by running `cycleFor` with an annual cadence. Stated assumption: the credit unlocks in the year the spend is met, not the year after.
+
+Consequences:
+
+- Today's locked section says which lock applies: "Locked behind enrolment", "Locked behind a spend threshold", or both.
+- The detail sheet reads "Unlocks after $250,000 spend this year" and offers "I've reached it — unlock", which sets `spendMetAt`; revoking clears it.
+- `summarizeCard` counts nothing for a spend-locked credit in `annualValueCents`, and [[apps/pwa/src/domain/catalog.ts#templateAnnualValueCents]] leaves gated entries out of the catalogue price.
+- Reminders never mention a spend-locked credit, whatever the enrolment-reminder setting: no notification can reach a spend threshold ([[reminders#Schedule construction]]).
 
 ## The four totals
 
@@ -161,4 +175,4 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 `packages/domain/lib/src/catalog.dart` is generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`, so there is one catalogue. Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
-`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
