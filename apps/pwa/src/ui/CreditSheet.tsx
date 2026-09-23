@@ -135,6 +135,9 @@ export function CreditSheet(props: CreditSheetProps) {
                     &middot; {formatDate(current().cycle.start)} &ndash;{' '}
                     {formatDate(current().cycle.end)}
                   </Show>
+                  <Show when={current().benefit.endsOn}>
+                    {(endsOn) => <> &middot; ends {formatDate(endsOn())}</>}
+                  </Show>
                 </p>
               </div>
               <button

@@ -268,6 +268,24 @@ void main() {
       expect(reminder.totalCents, 1500);
     });
 
+    test(
+      'reminds against the clamped end of a credit that ends on a date, then stops',
+      () {
+        final data = withNotifications(
+          makeData(
+            benefits: [makeBenefit(Cadence.monthly, endsOn: '2026-09-20')],
+          ),
+        );
+        final reminders = buildSchedule(data, now).reminders;
+        expect(reminders.map((r) => r.id), ['2026-09-20|urgent']);
+        expect(reminders.first.items.first.endsOn, '2026-09-20');
+        expect(
+          buildSchedule(data, DateTime(2026, 9, 21, 8, 0, 0)).reminders,
+          isEmpty,
+        );
+      },
+    );
+
     test('ignores untracked credits, which have no deadline to warn about', () {
       final data = withNotifications(
         makeData(benefits: [makeBenefit(Cadence.manual)]),

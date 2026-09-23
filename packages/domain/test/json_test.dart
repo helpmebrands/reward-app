@@ -43,4 +43,29 @@ void main() {
     expect(statusToJson(BenefitStatus.useSoon), 'use_soon');
     expect(statusFromJson('use_soon'), BenefitStatus.useSoon);
   });
+
+  // @lat: [[tests#Snapshot JSON#An end date round-trips and is omitted when absent]]
+  test('round-trips endsOn and omits it when the credit has no end', () {
+    final benefit = benefitFromJson({
+      'id': 'b',
+      'cardId': 'c',
+      'name': 'Grubhub',
+      'category': 'dining',
+      'valueCents': 1000,
+      'cadence': 'monthly',
+      'anchor': 'calendar',
+      'enrollmentRequired': false,
+      'endsOn': '2026-12-31',
+      'muted': false,
+      'lastCallOnly': false,
+      'active': true,
+      'createdAt': 't',
+      'updatedAt': 't',
+    });
+    expect(benefit.endsOn, '2026-12-31');
+    expect(benefitToJson(benefit)['endsOn'], '2026-12-31');
+    final open = benefit.copyWith(endsOn: null);
+    expect(open.endsOn, isNull);
+    expect(benefitToJson(open).containsKey('endsOn'), isFalse);
+  });
 }

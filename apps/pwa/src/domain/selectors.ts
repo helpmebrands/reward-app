@@ -4,6 +4,7 @@ import {
   cycleFor,
   cycleProgress,
   daysRemainingIn,
+  hasEnded,
 } from './cycles.ts'
 import { compareIsoDate, daysBetween, todayIso } from './dates.ts'
 import type {
@@ -104,7 +105,7 @@ export function currentInstances(data: AppData, on: IsoDate = todayIso()): Benef
   const instances: BenefitInstance[] = []
 
   for (const benefit of data.benefits) {
-    if (!benefit.active) continue
+    if (!benefit.active || hasEnded(benefit, on)) continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived) continue
     const cycle = cycleFor(benefit, card, on) ?? untrackedCycle(on)

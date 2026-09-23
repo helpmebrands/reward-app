@@ -354,6 +354,28 @@ void main() {
       expect(benefitOf(app, uber).lastCallOnly, isTrue);
     });
 
+    // @lat: [[mobile-tests#Editors#An end date is optional and validated]]
+    testWidgets('an end date is optional, validated, and written when real', (
+      tester,
+    ) async {
+      final app = await pumpAt(tester, benefitPath(uber));
+      expect(benefitOf(app, uber).endsOn, isNull);
+      const sentence =
+          'Enter the last day it can be used as a date, or leave it blank.';
+
+      await type(tester, 'field-ends-on', '2026-13-40');
+      await blurTo(tester, 'field-merchant');
+      expect(find.text(sentence), findsOneWidget);
+      expect(benefitOf(app, uber).endsOn, isNull);
+
+      await type(tester, 'field-ends-on', '2026-12-31');
+      expect(benefitOf(app, uber).endsOn, '2026-12-31');
+      expect(find.text(sentence), findsNothing);
+
+      await type(tester, 'field-ends-on', '');
+      expect(benefitOf(app, uber).endsOn, isNull);
+    });
+
     // @lat: [[mobile-tests#Editors#Deleting a benefit takes its claims and returns to the card]]
     testWidgets('delete removes the credit and its claims, back to the card', (
       tester,

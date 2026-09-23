@@ -30,6 +30,9 @@ import type {
 } from '../domain/types.ts'
 import { emptyData, loadData, migrate, saveData } from '../services/db.ts'
 
+/** Fields to change on a benefit; `undefined` removes an optional field. */
+export type BenefitPatch = { [K in keyof Benefit]?: Benefit[K] | undefined }
+
 export function newId(): string {
   return crypto.randomUUID()
 }
@@ -84,7 +87,8 @@ export interface AppStore {
   deleteCard(id: string): void
 
   addBenefit(benefit: Omit<Benefit, 'id' | 'createdAt' | 'updatedAt'>): Benefit
-  updateBenefit(id: string, patch: Partial<Benefit>): void
+  /** Merges `patch` into the benefit; a key set to `undefined` is removed. */
+  updateBenefit(id: string, patch: BenefitPatch): void
   toggleBenefitMute(id: string): void
   /** Records that the user has ticked the issuer's enrolment box. */
   confirmEnrollment(id: string): void
@@ -225,7 +229,11 @@ export function AppProvider(props: ParentProps) {
       write(
         produce((draft) => {
           const benefit = draft.benefits.find((b) => b.id === id)
-          if (benefit) Object.assign(benefit, patch, { updatedAt: nowIso() })
+          if (!benefit) return
+          Object.assign(benefit, patch, { updatedAt: nowIso() })
+          for (const key of Object.keys(patch) as (keyof Benefit)[]) {
+            if (patch[key] === undefined) delete benefit[key]
+          }
         }),
       )
     },

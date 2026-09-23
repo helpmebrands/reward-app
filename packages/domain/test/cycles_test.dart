@@ -280,4 +280,62 @@ void main() {
       );
     });
   });
+
+  group('a credit that ends on a date', () {
+    final card = makeCard();
+    final benefit = makeBenefit(Cadence.monthly, endsOn: '2026-09-20');
+
+    test('clamps the final window to endsOn', () {
+      expect(
+        cycleFor(benefit, card, '2026-09-16'),
+        const Cycle(
+          key: '2026-09-01',
+          start: '2026-09-01',
+          end: '2026-09-20',
+          label: 'Sep 2026',
+        ),
+      );
+    });
+
+    test('has no window after endsOn, so nothing follows the final one', () {
+      expect(cycleFor(benefit, card, '2026-09-21'), isNull);
+      final last = expectCycle(cycleFor(benefit, card, '2026-09-16'));
+      expect(nextCycle(benefit, card, last), isNull);
+      expect(
+        cyclesBetween(
+          benefit,
+          card,
+          '2026-08-01',
+          '2026-12-31',
+        ).map((c) => c.end),
+        ['2026-08-31', '2026-09-20'],
+      );
+    });
+
+    test(
+      'still lists the final window among the closed ones once it has passed',
+      () {
+        expect(
+          closedCyclesBefore(benefit, card, '2026-09-25', 2).map((c) => c.end),
+          ['2026-09-20', '2026-08-31'],
+        );
+      },
+    );
+
+    test(
+      'does not prorate the annual value of a credit that ends mid-year',
+      () {
+        expect(
+          annualValueCents(
+            makeBenefit(
+              Cadence.monthly,
+              valueCents: 1500,
+              endsOn: '2026-09-20',
+            ),
+          ),
+          18000,
+        );
+      },
+    );
+  });
 }

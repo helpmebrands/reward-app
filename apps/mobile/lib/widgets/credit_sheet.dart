@@ -178,7 +178,8 @@ class _SheetBodyState extends State<_SheetBody> {
                     ),
                     Text(
                       '${cadenceLabel(benefit.cadence)} · ${instance.cycle.label}'
-                      '${manual ? '' : ' · ${formatRange(instance.cycle.start, instance.cycle.end, today)}'}',
+                      '${manual ? '' : ' · ${formatRange(instance.cycle.start, instance.cycle.end, today)}'}'
+                      '${benefit.endsOn == null ? '' : ' · ends ${formatDate(benefit.endsOn!, today)}'}',
                       style: note,
                     ),
                   ],

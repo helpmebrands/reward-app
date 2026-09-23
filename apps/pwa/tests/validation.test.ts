@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   anniversaryError,
+  endsOnError,
   enrollmentUrlError,
   moneyError,
   positiveMoneyError,
@@ -40,6 +41,15 @@ describe('form rules', () => {
     expect(anniversaryError('2026-13-01')).toMatch(/date/)
     expect(anniversaryError('14/03/2021')).toMatch(/date/)
     expect(anniversaryError('2021-03-14')).toBeNull()
+  })
+
+  // @lat: [[tests#Form rules#An end date is optional but must be a calendar date]]
+  it('allows no end date, and rejects one that is not a calendar date', () => {
+    expect(endsOnError('')).toBeNull()
+    expect(endsOnError('   ')).toBeNull()
+    expect(endsOnError('2026-13-01')).toMatch(/date/)
+    expect(endsOnError('31/12/2026')).toMatch(/date/)
+    expect(endsOnError('2026-12-31')).toBeNull()
   })
 
   // @lat: [[tests#Form rules#An enrolment page must be a web address]]

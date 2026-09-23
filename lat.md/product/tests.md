@@ -20,6 +20,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - Anniversary anchors run a cardmember year from the open date, place the day before the anniversary in the prior year, and do not drift for a 31st anniversary across short months.
 - The invariant: consecutive cycles have no gaps and no overlaps, each starting the day after the last ends.
 - Manual benefits have no window and never recur. `daysRemainingIn` is 0 on the final day and negative after. `annualValueCents` counts an untracked credit once.
+- A credit with `endsOn` clamps its final window to that day, has no window after it, still lists the final window among the closed ones once it has passed, and keeps its unprorated annual value.
 
 ## Statuses, totals and ledgers
 
@@ -31,6 +32,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - Overlaps: one credit on two cards is flagged with `sameProduct`; different issuers match by merchant; two credits on the same card do not overlap; the group totals what is still unclaimed.
 - The missed ledger counts closed windows with nothing claimed, counts only the shortfall for partial use, never blames windows before tracking began, and ignores manual credits. Leaks group repeats and rank by money lost. Monthly totals bin claims by when logged and misses by when the window shut.
 - `summarizeCard` reports net against the fee; `cardLabel` names the holder and prefers a nickname.
+- A credit with `endsOn` goes Use soon against the clamped end, is absent the day after it ends, and leaves its final shortfall in the missed ledger.
 
 ## Ladder and schedule
 
@@ -40,6 +42,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - The schedule is empty while reminders are off, fires a rung at the reminder time on the right day, never schedules in the past, and returns reminders in firing order.
 - Same-day credits group into one notification led by the biggest loss; a mostly-locked group leads with the blocker; locked credits are silent when enrolment reminders are off.
 - Muted credits, muted cards, fully claimed cycles, manual credits and sub-floor values are skipped; a partly used credit is reminded about for its balance.
+- A credit that ends on a date is reminded against the clamped end and never after it.
 - Ids are stable and unique across recomputes, so the delivery layer's dedupe holds.
 - `dueReminders` returns only what has come due and not been shown, and drops anything the device slept through for days.
 
@@ -65,6 +68,10 @@ Empty, non-numeric and negative amounts fail the money rule; zero passes it. The
 
 Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
 
+### An end date is optional but must be a calendar date
+
+Blank and whitespace-only pass, since most credits have no end; an impossible (month 13) or non-ISO date fails; an ISO date passes.
+
 ### An enrolment page must be a web address
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
@@ -80,6 +87,10 @@ The PWA's sample household decodes to two cards, twenty-four benefits and twenty
 ### Enums use the PWA's spellings
 
 `fee_credit` and `use_soon` decode to `BenefitCategory.feeCredit` and `BenefitStatus.useSoon` and encode back to the same strings; absent optionals decode to null and are omitted on encode, and a missing `redemptionSteps` reads as empty.
+
+### An end date round-trips and is omitted when absent
+
+`endsOn` decodes to the same string and encodes back to it; clearing it through `copyWith` drops the key on encode, so an open-ended credit writes no `endsOn`.
 
 ## Card catalogue
 
@@ -100,6 +111,12 @@ Every credit in every template has an icon name and a value above zero, so a tem
 ### Template credits become ordinary benefits
 
 `benefitsFromTemplate` stamps every entry into a benefit with a fresh id, the new card's id, the given timestamps, active and unmuted, keeping `enrollmentRequired` so the credit lands locked or spendable as the template says.
+
+### A template credit that has already ended lands inactive
+
+`benefitsFromTemplate` copies `endsOn`; an entry whose date is before the day the card is added lands `active: false`, one still ahead lands active, and one without a date is unchanged.
+
+Covered in both languages: the PWA's `catalog.test.ts` and the Dart port stamp the same synthetic template.
 
 ### Every template icon is a Phosphor glyph
 

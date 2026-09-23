@@ -37,6 +37,7 @@ Fields with behaviour behind them:
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
 - `muted` silences reminders for this credit only; `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]).
 - `active: false` keeps history but stops tracking.
+- `endsOn` is the last day the credit can be used, for credits the issuer has announced an end to (Grubhub, Instacart). The final window is clamped to it and nothing follows ([[domain#Cycle]]); afterwards the credit is skipped the way an inactive one is, while its final shortfall stays in the [[domain#Missed ledger]]. `annualValueCents` is not prorated for a credit ending mid-year.
 
 ### Cadence
 
@@ -60,6 +61,8 @@ A cycle is the concrete window in which a benefit can be used: inclusive `start`
 [[apps/pwa/src/domain/cycles.ts#cycleFor]] finds the cycle containing a date by walking from the anchor in whole cycle-lengths. Because month arithmetic clamps, the naive `(years * 12 + months) / span` step count can land in the wrong window at month ends, so the step is corrected by comparison, bounded to at most one correction in each direction.
 
 The invariant that matters, and that the tests assert: every day belongs to exactly one cycle, with no gaps and no overlaps, even for an anniversary on the 31st across short months.
+
+A credit with `endsOn` has its final window's `end` clamped to that day, and `cycleFor` returns null once the day is past ([[apps/pwa/src/domain/cycles.ts#hasEnded]]), so `nextCycle`, `cyclesBetween` and the reminder schedule stop on their own. `closedCyclesBefore` still starts from the final window once it has passed, which is how the ledger keeps its shortfall.
 
 Helpers: [[apps/pwa/src/domain/cycles.ts#nextCycle]], [[apps/pwa/src/domain/cycles.ts#previousCycle]], [[apps/pwa/src/domain/cycles.ts#cyclesBetween]] (for reminder scheduling and history), and [[apps/pwa/src/domain/cycles.ts#closedCyclesBefore]] (for the missed ledger). [[apps/pwa/src/domain/cycles.ts#daysRemainingIn]] returns 0 on the final day and negative once closed.
 
@@ -127,7 +130,7 @@ Each group reports `sameProduct` (the same issuer and product held twice) and th
 
 A closed cycle with less claimed than its value is a miss for the shortfall. The ledger is computed from claims rather than stored, so it is always consistent with what the user actually logged.
 
-[[apps/pwa/src/domain/selectors.ts#missedCycles]] walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss.
+[[apps/pwa/src/domain/selectors.ts#missedCycles]] walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss. A credit that has ended keeps its final, clamped window in the ledger.
 
 Two views are built on it:
 
@@ -149,6 +152,7 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 - [[apps/pwa/src/domain/validation.ts#requiredError]]: a text field must not be blank; the caller supplies the sentence.
 - [[apps/pwa/src/domain/validation.ts#moneyError]] and [[apps/pwa/src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[apps/pwa/src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
 - [[apps/pwa/src/domain/validation.ts#anniversaryError]]: the cardmember year start is a real calendar date.
+- [[apps/pwa/src/domain/validation.ts#endsOnError]]: a credit's end date, if given, is a real calendar date; blank means it has none.
 - [[apps/pwa/src/domain/validation.ts#enrollmentUrlError]]: an enrolment page, if given, is an http or https URL.
 
 ## Card catalogue

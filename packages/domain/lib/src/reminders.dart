@@ -124,7 +124,11 @@ ReminderSchedule buildSchedule(
   final groups = <String, _Group>{};
 
   for (final benefit in data.benefits) {
-    if (!benefit.active || benefit.cadence == Cadence.manual) continue;
+    if (!benefit.active ||
+        benefit.cadence == Cadence.manual ||
+        hasEnded(benefit, from)) {
+      continue;
+    }
     if (benefit.muted) continue;
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived || card.muted) continue;
