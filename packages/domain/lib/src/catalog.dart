@@ -10,6 +10,7 @@
 /// `apps/pwa/scripts/emit-catalog.ts`; edit there and regenerate.
 library;
 
+import 'cycles.dart';
 import 'types.dart';
 
 class BenefitTemplate {
@@ -22,6 +23,7 @@ class BenefitTemplate {
     required this.valueCents,
     required this.cadence,
     required this.anchor,
+    this.intervalMonths,
     this.enrollmentRequired = false,
     this.spendThresholdCents,
     this.endsOn,
@@ -39,6 +41,9 @@ class BenefitTemplate {
   final int valueCents;
   final Cadence cadence;
   final CycleAnchor anchor;
+
+  /// Months between claims for a rolling credit.
+  final int? intervalMonths;
   final bool enrollmentRequired;
 
   /// Spend the issuer asks for in a year before the credit opens, in cents.
@@ -1578,16 +1583,12 @@ CardTemplate? findTemplate(String id) {
 int templateAnnualValueCents(CardTemplate template) {
   return template.benefits
       .where((b) => b.spendThresholdCents == null)
-      .fold(0, (sum, b) => sum + b.valueCents * _perYear(b.cadence));
+      .fold(
+        0,
+        (sum, b) =>
+            sum + annualValueOf(b.valueCents, b.cadence, b.intervalMonths),
+      );
 }
-
-int _perYear(Cadence cadence) => switch (cadence) {
-  Cadence.monthly => 12,
-  Cadence.quarterly => 4,
-  Cadence.semiannual => 2,
-  Cadence.annual => 1,
-  Cadence.manual => 1,
-};
 
 /// Credits in a template that are stuck behind an enrolment box.
 List<String> templateEnrollmentNames(CardTemplate template) {
@@ -1617,6 +1618,7 @@ List<Benefit> benefitsFromTemplate(
           valueCents: entry.valueCents,
           cadence: entry.cadence,
           anchor: entry.anchor,
+          intervalMonths: entry.intervalMonths,
           enrollmentRequired: entry.enrollmentRequired,
           spendThresholdCents: entry.spendThresholdCents,
           endsOn: entry.endsOn,

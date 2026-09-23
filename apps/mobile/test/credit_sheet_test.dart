@@ -37,6 +37,7 @@ Benefit _benefit(
   String name,
   int valueCents, {
   Cadence cadence = Cadence.quarterly,
+  int? intervalMonths,
   bool enrollmentRequired = false,
   int? spendThresholdCents,
   List<String> steps = const [],
@@ -48,6 +49,7 @@ Benefit _benefit(
   valueCents: valueCents,
   cadence: cadence,
   anchor: CycleAnchor.calendar,
+  intervalMonths: intervalMonths,
   enrollmentRequired: enrollmentRequired,
   spendThresholdCents: spendThresholdCents,
   redemptionSteps: steps,
@@ -93,6 +95,13 @@ AppData _household() => AppData(
       100000,
       cadence: Cadence.annual,
       spendThresholdCents: 500000,
+    ),
+    _benefit(
+      'ge',
+      'Global Entry',
+      12000,
+      cadence: Cadence.rolling,
+      intervalMonths: 48,
     ),
   ],
   claims: [
@@ -344,6 +353,27 @@ void main() {
       expect(inSheet('Mark the full \$300 used'), findsOneWidget);
     });
 
+    // @lat: [[mobile-tests#Credit sheet#A rolling credit is eligible now and restarts when claimed]]
+    testWidgets('a rolling credit reads Eligible now, then names its return', (
+      tester,
+    ) async {
+      final app = await pumpApp(tester, phone);
+      app.ui.openCredit('ge');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Eligible now — the clock restarts when you claim it'),
+        findsOneWidget,
+      );
+      await tester.tap(inSheet('Mark the full \$120 used'));
+      await tester.pumpAndSettle();
+
+      app.ui.openCredit('ge');
+      await tester.pumpAndSettle();
+      expect(find.text('Eligible again Sep 16, 2030'), findsOneWidget);
+      expect(inSheet('Mark the full \$120 used'), findsNothing);
+    });
+
     // @lat: [[mobile-tests#Credit sheet#A spend-gated credit unlocks from the sheet]]
     testWidgets('a spend-gated credit shows the spend copy and unlocks', (
       tester,
@@ -362,7 +392,10 @@ void main() {
       await tester.tap(find.text('I’ve reached it — unlock'));
       await tester.pumpAndSettle();
 
-      expect(app.store.data!.benefits.last.spendMetAt, isNotNull);
+      expect(
+        app.store.data!.benefits.firstWhere((b) => b.id == 'dell').spendMetAt,
+        isNotNull,
+      );
       expect(app.ui.snackbar.current!.text, 'Dell Bonus unlocked.');
       expect(inSheet('Mark the full \$1,000 used'), findsOneWidget);
     });

@@ -281,6 +281,69 @@ void main() {
     });
   });
 
+  group('a rolling credit', () {
+    final card = makeCard(createdAt: '2026-01-01T00:00:00.000Z');
+    final benefit = makeBenefit(
+      Cadence.rolling,
+      valueCents: 12000,
+      intervalMonths: 48,
+    );
+
+    test('is eligible now, with no deadline, until it is claimed', () {
+      final open = expectCycle(cycleFor(benefit, card, '2026-09-16'));
+      expect(
+        open,
+        const Cycle(
+          key: '2026-01-01',
+          start: '2026-01-01',
+          end: '2999-12-31',
+          label: 'Eligible now',
+        ),
+      );
+      expect(nextCycle(benefit, card, open), isNull);
+    });
+
+    test(
+      'closes a window from the claim date and reopens the day after it ends',
+      () {
+        final claims = [
+          makeClaim(
+            cycleKey: '2026-01-01',
+            amountCents: 12000,
+            claimedAt: '2026-09-16T12:00:00.000Z',
+          ),
+        ];
+        expect(
+          cycleFor(benefit, card, '2026-09-16', claims: claims),
+          const Cycle(
+            key: '2026-01-01',
+            start: '2026-09-16',
+            end: '2030-09-15',
+            label: 'until Sep 2030',
+          ),
+        );
+        expect(
+          cycleFor(benefit, card, '2030-09-15', claims: claims)?.key,
+          '2026-01-01',
+        );
+        expect(
+          cycleFor(benefit, card, '2030-09-16', claims: claims),
+          const Cycle(
+            key: '2030-09-16',
+            start: '2030-09-16',
+            end: '2999-12-31',
+            label: 'Eligible now',
+          ),
+        );
+      },
+    );
+
+    test('amortises its value over the interval', () {
+      // $120 every 48 months is $30 a year, not $120.
+      expect(annualValueCents(benefit), 3000);
+    });
+  });
+
   group('a credit that ends on a date', () {
     final card = makeCard();
     final benefit = makeBenefit(Cadence.monthly, endsOn: '2026-09-20');

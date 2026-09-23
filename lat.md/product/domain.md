@@ -42,9 +42,11 @@ Fields with behaviour behind them:
 
 ### Cadence
 
-Five cadences: `monthly`, `quarterly`, `semiannual`, `annual`, and `manual`. The first four span 1, 3, 6 and 12 months. `manual` never recurs.
+Six cadences: `monthly`, `quarterly`, `semiannual`, `annual`, `rolling` and `manual`. The first four span 1, 3, 6 and 12 months from an anchor; `rolling` spans `intervalMonths` from the last claim; `manual` never recurs.
 
-`manual` covers credits no cycle can track, such as Global Entry every four years. They are listed, given a stand-in "Untracked" window, and never counted as at risk, never reminded about, and never entered in the missed ledger. [[apps/pwa/src/domain/cycles.ts#annualValueCents]] counts them once rather than once per notional year.
+`rolling` is for credits the issuer counts from the last reimbursement, such as Global Entry every 48 months. The anchor is ignored: the window is open ("Eligible now") until a claim closes it for `intervalMonths`, so the app never suggests a credit the issuer would refuse ([[domain#Cycle]]). It is never at risk, never reminded about and never in the missed ledger, and [[apps/pwa/src/domain/cycles.ts#annualValueOf]] amortises it: $120 every 48 months is $30 a year.
+
+`manual` covers credits no cycle can track at all. They are listed, given a stand-in "Untracked" window, and never counted as at risk, never reminded about, and never entered in the missed ledger. `annualValueOf` counts them once rather than once per notional year.
 
 ### Cycle anchors
 
@@ -62,6 +64,8 @@ A cycle is the concrete window in which a benefit can be used: inclusive `start`
 [[apps/pwa/src/domain/cycles.ts#cycleFor]] finds the cycle containing a date by walking from the anchor in whole cycle-lengths. Because month arithmetic clamps, the naive `(years * 12 + months) / span` step count can land in the wrong window at month ends, so the step is corrected by comparison, bounded to at most one correction in each direction.
 
 The invariant that matters, and that the tests assert: every day belongs to exactly one cycle, with no gaps and no overlaps, even for an anniversary on the 31st across short months.
+
+A rolling credit's window comes from the claim ledger, which [[apps/pwa/src/domain/cycles.ts#cycleFor]] takes as its last argument. The open window is keyed by the day the card was added, or the day after the last closed window; the first claim recorded under that key closes it to the claim day plus `intervalMonths` less a day, labelled "until Sep 2030", and a new open window keys from the day after. Keys never move, so a claim always finds its window. `nextCycle` and `previousCycle` are null for it, since only a claim opens the next.
 
 A credit with `endsOn` has its final window's `end` clamped to that day, and `cycleFor` returns null once the day is past ([[apps/pwa/src/domain/cycles.ts#hasEnded]]), so `nextCycle`, `cyclesBetween` and the reminder schedule stop on their own. `closedCyclesBefore` still starts from the final window once it has passed, which is how the ledger keeps its shortfall.
 
@@ -88,8 +92,9 @@ Precedence, from `statusFor` in `apps/pwa/src/domain/selectors.ts`:
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
 3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met ([[apps/pwa/src/domain/selectors.ts#lockReason]] says which; enrolment outranks spend).
-4. `missed` when the window has closed.
-5. `use_soon` when the window closes within `settings.useSoonDays` (default [[apps/pwa/src/domain/types.ts#USE_SOON_DAYS]], 30), otherwise `available`.
+4. `available` for a `rolling` credit, whatever the day: its window has no deadline to miss, so it is never `use_soon` or `missed`.
+5. `missed` when the window has closed.
+6. `use_soon` when the window closes within `settings.useSoonDays` (default [[apps/pwa/src/domain/types.ts#USE_SOON_DAYS]], 30), otherwise `available`.
 
 Instances sort by [[apps/pwa/src/domain/selectors.ts#compareByUrgency]]: status order (use soon, available, locked, manual, captured, missed), then soonest deadline, then most money at stake.
 
@@ -144,7 +149,7 @@ Each group reports `sameProduct` (the same issuer and product held twice) and th
 
 A closed cycle with less claimed than its value is a miss for the shortfall. The ledger is computed from claims rather than stored, so it is always consistent with what the user actually logged.
 
-[[apps/pwa/src/domain/selectors.ts#missedCycles]] walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss. A credit that has ended keeps its final, clamped window in the ledger.
+[[apps/pwa/src/domain/selectors.ts#missedCycles]] walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss, and rolling ones close only by claim, so neither appears. A credit that has ended keeps its final, clamped window in the ledger.
 
 Two views are built on it:
 
@@ -167,6 +172,7 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 - [[apps/pwa/src/domain/validation.ts#moneyError]] and [[apps/pwa/src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[apps/pwa/src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
 - [[apps/pwa/src/domain/validation.ts#anniversaryError]]: the cardmember year start is a real calendar date.
 - [[apps/pwa/src/domain/validation.ts#endsOnError]]: a credit's end date, if given, is a real calendar date; blank means it has none.
+- [[apps/pwa/src/domain/validation.ts#intervalMonthsError]]: a rolling credit's months between claims is a whole number above zero; every other cadence ignores it.
 - [[apps/pwa/src/domain/validation.ts#enrollmentUrlError]]: an enrolment page, if given, is an http or https URL.
 
 ## Card catalogue
@@ -175,4 +181,4 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 `packages/domain/lib/src/catalog.dart` is generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`, so there is one catalogue. Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
-`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.

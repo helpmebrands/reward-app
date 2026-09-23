@@ -10,7 +10,7 @@ import {
 } from '../src/domain/cycles.ts'
 import { addDays, daysBetween } from '../src/domain/dates.ts'
 import type { Cycle } from '../src/domain/types.ts'
-import { makeBenefit, makeCard } from './factories.ts'
+import { makeBenefit, makeCard, makeClaim } from './factories.ts'
 
 /** Narrows a nullable cycle, failing loudly rather than silently skipping. */
 function expectCycle(cycle: Cycle | null): Cycle {
@@ -206,6 +206,50 @@ describe('annualValueCents', () => {
     // Global Entry is $120 every four years; calling it $120 a year would
     // overstate what the card is worth.
     expect(annualValueCents(makeBenefit('manual', { valueCents: 12_000 }))).toBe(12_000)
+  })
+})
+
+describe('a rolling credit', () => {
+  const card = makeCard({ createdAt: '2026-01-01T00:00:00.000Z' })
+  const benefit = makeBenefit('rolling', { valueCents: 12_000, intervalMonths: 48 })
+
+  it('is eligible now, with no deadline, until it is claimed', () => {
+    const open = expectCycle(cycleFor(benefit, card, '2026-09-16'))
+    expect(open).toEqual({
+      key: '2026-01-01',
+      start: '2026-01-01',
+      end: '2999-12-31',
+      label: 'Eligible now',
+    })
+    expect(nextCycle(benefit, card, open)).toBeNull()
+  })
+
+  it('closes a window from the claim date and reopens the day after it ends', () => {
+    const claims = [
+      makeClaim({
+        cycleKey: '2026-01-01',
+        amountCents: 12_000,
+        claimedAt: '2026-09-16T12:00:00.000Z',
+      }),
+    ]
+    expect(cycleFor(benefit, card, '2026-09-16', claims)).toEqual({
+      key: '2026-01-01',
+      start: '2026-09-16',
+      end: '2030-09-15',
+      label: 'until Sep 2030',
+    })
+    expect(cycleFor(benefit, card, '2030-09-15', claims)?.key).toBe('2026-01-01')
+    expect(cycleFor(benefit, card, '2030-09-16', claims)).toEqual({
+      key: '2030-09-16',
+      start: '2030-09-16',
+      end: '2999-12-31',
+      label: 'Eligible now',
+    })
+  })
+
+  it('amortises its value over the interval', () => {
+    // $120 every 48 months is $30 a year, not $120.
+    expect(annualValueCents(benefit)).toBe(3000)
   })
 })
 

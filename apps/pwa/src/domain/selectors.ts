@@ -80,6 +80,9 @@ function statusFor(
   if (claimedCents >= benefit.valueCents) return 'captured'
   if (benefit.cadence === 'manual') return 'manual'
   if (locked) return 'locked'
+  // A rolling window has no deadline the user can miss: it is open until
+  // claimed, then closed until the interval runs out.
+  if (benefit.cadence === 'rolling') return 'available'
   if (daysRemaining < 0) return 'missed'
   return daysRemaining <= useSoonDays ? 'use_soon' : 'available'
 }
@@ -138,7 +141,7 @@ export function currentInstances(data: AppData, on: IsoDate = todayIso()): Benef
     if (!benefit.active || hasEnded(benefit, on)) continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived) continue
-    const cycle = cycleFor(benefit, card, on) ?? untrackedCycle(on)
+    const cycle = cycleFor(benefit, card, on, data.claims) ?? untrackedCycle(on)
     instances.push(resolveInstance(benefit, card, cycle, claims, on, data.settings.useSoonDays))
   }
 
@@ -291,7 +294,8 @@ export function missedCycles(
   // Only count windows that opened after the card was added — the app cannot
   // know whether a credit was used before it started tracking.
   for (const benefit of data.benefits) {
-    if (!benefit.active || benefit.cadence === 'manual') continue
+    // Manual credits have no window to miss; rolling ones close only by claim.
+    if (!benefit.active || benefit.cadence === 'manual' || benefit.cadence === 'rolling') continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived) continue
     const trackedFrom = card.createdAt.slice(0, 10)

@@ -68,6 +68,9 @@ BenefitStatus _statusFor(
   if (claimedCents >= benefit.valueCents) return BenefitStatus.captured;
   if (benefit.cadence == Cadence.manual) return BenefitStatus.manual;
   if (locked) return BenefitStatus.locked;
+  // A rolling window has no deadline the user can miss: it is open until
+  // claimed, then closed until the interval runs out.
+  if (benefit.cadence == Cadence.rolling) return BenefitStatus.available;
   if (daysRemaining < 0) return BenefitStatus.missed;
   return daysRemaining <= useSoonHorizon
       ? BenefitStatus.useSoon
@@ -137,7 +140,9 @@ List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
     if (!benefit.active || hasEnded(benefit, day)) continue;
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
-    final cycle = cycleFor(benefit, card, day) ?? _untrackedCycle(day);
+    final cycle =
+        cycleFor(benefit, card, day, claims: data.claims) ??
+        _untrackedCycle(day);
     instances.add(
       resolveInstance(
         benefit,
@@ -355,7 +360,12 @@ List<MissedCycle> missedCycles(
   // Only count windows that opened after the card was added: the app cannot
   // know whether a credit was used before it started tracking.
   for (final benefit in data.benefits) {
-    if (!benefit.active || benefit.cadence == Cadence.manual) continue;
+    // Manual credits have no window to miss; rolling ones close only by claim.
+    if (!benefit.active ||
+        benefit.cadence == Cadence.manual ||
+        benefit.cadence == Cadence.rolling) {
+      continue;
+    }
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
     final trackedFrom = card.createdAt.substring(0, 10);

@@ -48,6 +48,11 @@ describe('the ladder', () => {
     expect(currentRung(monthly, 0)?.tone).toBe('urgent')
   })
 
+  it('gives a rolling credit one unscheduled rung, like manual', () => {
+    expect(defaultLadder('rolling')).toHaveLength(1)
+    expect(defaultLadder('rolling')[0]?.daysBefore).toBe(0)
+  })
+
   it('summarises a cadence for the settings screen', () => {
     expect(ladderSummary('quarterly')).toBe('30 · 14 · 3')
     expect(ladderSummary('monthly')).toBe('23 · 7 · last day')
@@ -181,6 +186,13 @@ describe('buildSchedule', () => {
     const data = withNotifications(
       makeData({ benefits: [makeBenefit('monthly', { spendThresholdCents: 100 })] }),
       { enrollmentReminder: true },
+    )
+    expect(buildSchedule(data, NOW).reminders).toHaveLength(0)
+  })
+
+  it('never schedules a rolling credit, whose clock only the user can start', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('rolling', { intervalMonths: 48 })] }),
     )
     expect(buildSchedule(data, NOW).reminders).toHaveLength(0)
   })

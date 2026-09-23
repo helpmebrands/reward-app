@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
+import { addDays } from '../domain/dates.ts'
 import {
   formatDate,
   formatDaysRemaining,
@@ -40,6 +41,19 @@ export function CreditSheet(props: CreditSheetProps) {
   const reason = () => {
     const current = instance()
     return current ? lockReason(current.benefit, current.card, app.today()) : null
+  }
+
+  /** The deadline line under the meter, by what kind of window this is. */
+  function deadlineText(current: BenefitInstance): string {
+    const { cadence } = current.benefit
+    if (cadence === 'manual') return 'Tracked by hand — no deadline'
+    if (cadence === 'rolling') {
+      return current.status === 'captured'
+        ? `Eligible again ${formatDate(addDays(current.cycle.end, 1))}`
+        : 'Eligible now — the clock restarts when you claim it'
+    }
+    if (current.daysRemaining < 0) return `Expired ${formatDate(current.cycle.end)}`
+    return `${formatDaysRemaining(current.daysRemaining)} — closes ${formatDate(current.cycle.end)}`
   }
 
   /** What stands in the way of a locked credit, in the user's terms. */
@@ -147,7 +161,12 @@ export function CreditSheet(props: CreditSheetProps) {
                 <h2 class="sheet-head__title">{current().benefit.name}</h2>
                 <p class="muted" style={{ 'font-size': 'var(--type-note)' }}>
                   {cadenceLabel(current().benefit.cadence)} &middot; {current().cycle.label}
-                  <Show when={current().benefit.cadence !== 'manual'}>
+                  <Show
+                    when={
+                      current().benefit.cadence !== 'manual' &&
+                      current().benefit.cadence !== 'rolling'
+                    }
+                  >
                     {' '}
                     &middot; {formatDate(current().cycle.start)} &ndash;{' '}
                     {formatDate(current().cycle.end)}
@@ -195,16 +214,7 @@ export function CreditSheet(props: CreditSheetProps) {
               <div class="row" style={{ gap: 'var(--space-2)' }}>
                 <Ph name="clock-countdown" size={13} color="var(--color-accent-300)" />
                 <span style={{ 'font-size': 'var(--type-note)', color: 'var(--color-accent-300)' }}>
-                  <Show
-                    when={current().benefit.cadence !== 'manual'}
-                    fallback="Tracked by hand — no deadline"
-                  >
-                    {current().daysRemaining < 0
-                      ? `Expired ${formatDate(current().cycle.end)}`
-                      : `${formatDaysRemaining(current().daysRemaining)} — closes ${formatDate(
-                          current().cycle.end,
-                        )}`}
-                  </Show>
+                  {deadlineText(current())}
                 </span>
               </div>
             </section>

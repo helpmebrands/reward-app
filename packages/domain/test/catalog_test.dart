@@ -68,6 +68,48 @@ void main() {
       },
     );
 
+    // @lat: [[tests#Card catalogue#A template amortises a rolling credit]]
+    test(
+      'prices a rolling credit at its amortised value and copies the interval',
+      () {
+        const template = CardTemplate(
+          id: 't',
+          issuer: 'Issuer',
+          product: 'Product',
+          network: CardNetwork.visa,
+          annualFeeCents: 0,
+          benefits: [
+            BenefitTemplate(
+              name: 'Global Entry',
+              category: BenefitCategory.travel,
+              icon: 'x',
+              valueCents: 12000,
+              cadence: Cadence.rolling,
+              anchor: CycleAnchor.anniversary,
+              intervalMonths: 48,
+            ),
+            BenefitTemplate(
+              name: 'Open',
+              category: BenefitCategory.other,
+              icon: 'x',
+              valueCents: 1500,
+              cadence: Cadence.monthly,
+              anchor: CycleAnchor.calendar,
+            ),
+          ],
+        );
+        expect(templateAnnualValueCents(template), 21000);
+        final benefit = benefitsFromTemplate(
+          template,
+          'card-9',
+          '2026-09-16T00:00:00.000Z',
+          () => 'id',
+        ).first;
+        expect(benefit.cadence, Cadence.rolling);
+        expect(benefit.intervalMonths, 48);
+      },
+    );
+
     // @lat: [[tests#Card catalogue#A template prices its year without its spend-gated credits]]
     test('prices a template without its spend-gated credits', () {
       const template = CardTemplate(

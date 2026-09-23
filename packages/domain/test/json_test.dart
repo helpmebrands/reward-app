@@ -69,6 +69,37 @@ void main() {
     expect(benefitToJson(open).containsKey('endsOn'), isFalse);
   });
 
+  // @lat: [[tests#Snapshot JSON#A rolling cadence round-trips with its interval]]
+  test('round-trips cadence rolling and intervalMonths', () {
+    final benefit = benefitFromJson({
+      'id': 'b',
+      'cardId': 'c',
+      'name': 'Global Entry',
+      'category': 'travel',
+      'valueCents': 12000,
+      'cadence': 'rolling',
+      'anchor': 'anniversary',
+      'intervalMonths': 48,
+      'enrollmentRequired': false,
+      'muted': false,
+      'lastCallOnly': false,
+      'active': true,
+      'createdAt': 't',
+      'updatedAt': 't',
+    });
+    expect(benefit.cadence, Cadence.rolling);
+    expect(benefit.intervalMonths, 48);
+    final json = benefitToJson(benefit);
+    expect(json['cadence'], 'rolling');
+    expect(json['intervalMonths'], 48);
+    expect(
+      benefitToJson(
+        benefit.copyWith(intervalMonths: null),
+      ).containsKey('intervalMonths'),
+      isFalse,
+    );
+  });
+
   // @lat: [[tests#Snapshot JSON#A spend threshold round-trips with its met stamp]]
   test(
     'round-trips spendThresholdCents and spendMetAt, omitted when unset',

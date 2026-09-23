@@ -153,6 +153,7 @@ class AppStore extends ChangeNotifier {
       valueCents: draft.valueCents,
       cadence: draft.cadence,
       anchor: draft.anchor,
+      intervalMonths: draft.intervalMonths,
       enrollmentRequired: draft.enrollmentRequired,
       enrolledAt: draft.enrolledAt,
       enrollmentNote: draft.enrollmentNote,
