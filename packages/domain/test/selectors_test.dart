@@ -450,4 +450,34 @@ void main() {
       expect(cardLabel(makeCard(nickname: 'The travel one')), 'The travel one');
     });
   });
+
+  group('a credit that ends on a date', () {
+    test('fires Use soon against the clamped end', () {
+      final data = makeData(
+        benefits: [makeBenefit(Cadence.annual, endsOn: '2026-09-30')],
+      );
+      final instance = currentInstances(data, today).first;
+      expect(instance.status, BenefitStatus.useSoon);
+      expect(instance.cycle.end, '2026-09-30');
+      expect(instance.daysRemaining, 14);
+    });
+
+    test('is absent the day after it ends', () {
+      final data = makeData(
+        benefits: [makeBenefit(Cadence.monthly, endsOn: '2026-09-20')],
+      );
+      expect(currentInstances(data, '2026-09-20'), hasLength(1));
+      expect(currentInstances(data, '2026-09-21'), isEmpty);
+    });
+
+    test("reports the final window's shortfall in the missed ledger", () {
+      final data = makeData(
+        cards: [makeCard(createdAt: '2026-08-01T00:00:00.000Z')],
+        benefits: [makeBenefit(Cadence.monthly, endsOn: '2026-09-20')],
+      );
+      final missed = missedCycles(data, '2026-09-25');
+      expect(missed.map((m) => m.cycle.end), ['2026-09-20', '2026-08-31']);
+      expect(missed.first.missedCents, 2500);
+    });
+  });
 }

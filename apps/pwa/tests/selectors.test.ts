@@ -329,3 +329,29 @@ describe('cardLabel', () => {
     expect(cardLabel(makeCard({ nickname: 'The travel one' }))).toBe('The travel one')
   })
 })
+
+describe('a credit that ends on a date', () => {
+  it('fires Use soon against the clamped end', () => {
+    const data = makeData({ benefits: [makeBenefit('annual', { endsOn: '2026-09-30' })] })
+    const instance = currentInstances(data, TODAY)[0]
+    expect(instance?.status).toBe('use_soon')
+    expect(instance?.cycle.end).toBe('2026-09-30')
+    expect(instance?.daysRemaining).toBe(14)
+  })
+
+  it('is absent the day after it ends', () => {
+    const data = makeData({ benefits: [makeBenefit('monthly', { endsOn: '2026-09-20' })] })
+    expect(currentInstances(data, '2026-09-20')).toHaveLength(1)
+    expect(currentInstances(data, '2026-09-21')).toHaveLength(0)
+  })
+
+  it("reports the final window's shortfall in the missed ledger", () => {
+    const data = makeData({
+      cards: [makeCard({ createdAt: '2026-08-01T00:00:00.000Z' })],
+      benefits: [makeBenefit('monthly', { endsOn: '2026-09-20' })],
+    })
+    const missed = missedCycles(data, '2026-09-25')
+    expect(missed.map((m) => m.cycle.end)).toEqual(['2026-09-20', '2026-08-31'])
+    expect(missed[0]?.missedCents).toBe(2500)
+  })
+})

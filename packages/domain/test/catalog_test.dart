@@ -91,5 +91,55 @@ void main() {
           .toList();
       expect(locked, templateEnrollmentNames(template));
     });
+
+    // @lat: [[tests#Card catalogue#A template credit that has already ended lands inactive]]
+    test('copies the end date and lands an already-ended credit inactive', () {
+      const template = CardTemplate(
+        id: 't',
+        issuer: 'Issuer',
+        product: 'Product',
+        network: CardNetwork.visa,
+        annualFeeCents: 0,
+        benefits: [
+          BenefitTemplate(
+            name: 'Ended',
+            category: BenefitCategory.other,
+            icon: 'x',
+            valueCents: 1000,
+            cadence: Cadence.monthly,
+            anchor: CycleAnchor.calendar,
+            endsOn: '2026-06-30',
+          ),
+          BenefitTemplate(
+            name: 'Ending',
+            category: BenefitCategory.other,
+            icon: 'x',
+            valueCents: 1000,
+            cadence: Cadence.monthly,
+            anchor: CycleAnchor.calendar,
+            endsOn: '2026-12-31',
+          ),
+          BenefitTemplate(
+            name: 'Open',
+            category: BenefitCategory.other,
+            icon: 'x',
+            valueCents: 1000,
+            cadence: Cadence.monthly,
+            anchor: CycleAnchor.calendar,
+          ),
+        ],
+      );
+      final benefits = benefitsFromTemplate(
+        template,
+        'card-9',
+        '2026-09-16T00:00:00.000Z',
+        () => 'id',
+      );
+      expect(benefits.map((b) => (b.endsOn, b.active)), [
+        ('2026-06-30', false),
+        ('2026-12-31', true),
+        (null, true),
+      ]);
+    });
   });
 }

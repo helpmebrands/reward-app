@@ -167,6 +167,16 @@ describe('buildSchedule', () => {
     expect(reminder?.totalCents).toBe(1500)
   })
 
+  it('reminds against the clamped end of a credit that ends on a date, then stops', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('monthly', { endsOn: '2026-09-20' })] }),
+    )
+    const { reminders } = buildSchedule(data, NOW)
+    expect(reminders.map((r) => r.id)).toEqual(['2026-09-20|urgent'])
+    expect(reminders[0]?.items[0]?.endsOn).toBe('2026-09-20')
+    expect(buildSchedule(data, new Date(2026, 8, 21, 8, 0, 0)).reminders).toHaveLength(0)
+  })
+
   it('ignores untracked credits, which have no deadline to warn about', () => {
     const data = withNotifications(makeData({ benefits: [makeBenefit('manual')] }))
     expect(buildSchedule(data, NOW).reminders).toHaveLength(0)

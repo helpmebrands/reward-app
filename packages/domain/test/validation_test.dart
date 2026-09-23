@@ -41,6 +41,15 @@ void main() {
       expect(anniversaryError('2021-03-14'), isNull);
     });
 
+    // @lat: [[tests#Form rules#An end date is optional but must be a calendar date]]
+    test('allows no end date, and rejects one that is not a calendar date', () {
+      expect(endsOnError(''), isNull);
+      expect(endsOnError('   '), isNull);
+      expect(endsOnError('2026-13-01'), contains('date'));
+      expect(endsOnError('31/12/2026'), contains('date'));
+      expect(endsOnError('2026-12-31'), isNull);
+    });
+
     // @lat: [[tests#Form rules#An enrolment page must be a web address]]
     test(
       'rejects an enrolment page that is not an http(s) URL, and allows none',

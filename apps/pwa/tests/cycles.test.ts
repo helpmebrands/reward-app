@@ -208,3 +208,40 @@ describe('annualValueCents', () => {
     expect(annualValueCents(makeBenefit('manual', { valueCents: 12_000 }))).toBe(12_000)
   })
 })
+
+describe('a credit that ends on a date', () => {
+  const card = makeCard()
+  const benefit = makeBenefit('monthly', { endsOn: '2026-09-20' })
+
+  it('clamps the final window to endsOn', () => {
+    expect(cycleFor(benefit, card, '2026-09-16')).toEqual({
+      key: '2026-09-01',
+      start: '2026-09-01',
+      end: '2026-09-20',
+      label: 'Sep 2026',
+    })
+  })
+
+  it('has no window after endsOn, so nothing follows the final one', () => {
+    expect(cycleFor(benefit, card, '2026-09-21')).toBeNull()
+    const last = expectCycle(cycleFor(benefit, card, '2026-09-16'))
+    expect(nextCycle(benefit, card, last)).toBeNull()
+    expect(cyclesBetween(benefit, card, '2026-08-01', '2026-12-31').map((c) => c.end)).toEqual([
+      '2026-08-31',
+      '2026-09-20',
+    ])
+  })
+
+  it('still lists the final window among the closed ones once it has passed', () => {
+    expect(closedCyclesBefore(benefit, card, '2026-09-25', 2).map((c) => c.end)).toEqual([
+      '2026-09-20',
+      '2026-08-31',
+    ])
+  })
+
+  it('does not prorate the annual value of a credit that ends mid-year', () => {
+    expect(annualValueCents(makeBenefit('monthly', { valueCents: 1500, endsOn: '2026-09-20' }))).toBe(
+      18_000,
+    )
+  })
+})
