@@ -58,6 +58,39 @@ describe('benefitsFromTemplate', () => {
   })
 })
 
+describe('a rolling template credit', () => {
+  const rolling: CardTemplate = {
+    ...template,
+    benefits: [
+      {
+        name: 'Global Entry',
+        category: 'travel',
+        icon: 'x',
+        valueCents: 12_000,
+        cadence: 'rolling',
+        anchor: 'anniversary',
+        intervalMonths: 48,
+      },
+      {
+        name: 'Open',
+        category: 'other',
+        icon: 'x',
+        valueCents: 1500,
+        cadence: 'monthly',
+        anchor: 'calendar',
+      },
+    ],
+  }
+
+  // @lat: [[tests#Card catalogue#A template amortises a rolling credit]]
+  it('prices a rolling credit at its amortised value and copies the interval', () => {
+    expect(templateAnnualValueCents(rolling)).toBe(21_000)
+    const [benefit] = benefitsFromTemplate(rolling, 'card-9', '2026-09-16T00:00:00.000Z', () => 'id')
+    expect(benefit?.cadence).toBe('rolling')
+    expect(benefit?.intervalMonths).toBe(48)
+  })
+})
+
 describe('templateAnnualValueCents', () => {
   // @lat: [[tests#Card catalogue#A template prices its year without its spend-gated credits]]
   it('prices a template without its spend-gated credits', () => {

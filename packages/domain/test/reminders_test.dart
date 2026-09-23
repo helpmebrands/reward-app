@@ -89,6 +89,11 @@ void main() {
       expect(currentRung(monthly, 0)?.tone, Tone.urgent);
     });
 
+    test('gives a rolling credit one unscheduled rung, like manual', () {
+      expect(defaultLadder(Cadence.rolling), hasLength(1));
+      expect(defaultLadder(Cadence.rolling).single.daysBefore, 0);
+    });
+
     test('summarises a cadence for the settings screen', () {
       expect(ladderSummary(Cadence.quarterly), '30 · 14 · 3');
       expect(ladderSummary(Cadence.monthly), '23 · 7 · last day');
@@ -294,6 +299,18 @@ void main() {
             benefits: [makeBenefit(Cadence.monthly, spendThresholdCents: 100)],
           ),
           enrollmentReminder: true,
+        );
+        expect(buildSchedule(data, now).reminders, isEmpty);
+      },
+    );
+
+    test(
+      'never schedules a rolling credit, whose clock only the user can start',
+      () {
+        final data = withNotifications(
+          makeData(
+            benefits: [makeBenefit(Cadence.rolling, intervalMonths: 48)],
+          ),
         );
         expect(buildSchedule(data, now).reminders, isEmpty);
       },

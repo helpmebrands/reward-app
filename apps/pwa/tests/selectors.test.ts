@@ -357,6 +357,44 @@ describe('a credit that ends on a date', () => {
   })
 })
 
+describe('a rolling credit', () => {
+  const card = makeCard({ createdAt: '2026-01-01T00:00:00.000Z' })
+  const benefit = makeBenefit('rolling', { valueCents: 12_000, intervalMonths: 48 })
+  const claimed = makeClaim({
+    cycleKey: '2026-01-01',
+    amountCents: 12_000,
+    claimedAt: '2026-09-16T12:00:00.000Z',
+  })
+
+  it('is Available with no deadline until claimed, then Captured until the interval ends', () => {
+    const open = currentInstances(makeData({ cards: [card], benefits: [benefit] }), TODAY)[0]
+    expect(open?.status).toBe('available')
+    expect(open?.cycle.label).toBe('Eligible now')
+
+    const data = makeData({ cards: [card], benefits: [benefit], claims: [claimed] })
+    expect(currentInstances(data, TODAY)[0]?.status).toBe('captured')
+    expect(currentInstances(data, '2030-09-15')[0]?.status).toBe('captured')
+    const again = currentInstances(data, '2030-09-16')[0]
+    expect(again?.status).toBe('available')
+    expect(again?.cycle.key).toBe('2030-09-16')
+  })
+
+  it('is never Use soon and never missed', () => {
+    const partial = { ...claimed, amountCents: 5000 }
+    const data = makeData({ cards: [card], benefits: [benefit], claims: [partial] })
+    // A fortnight before the closed window ends, with money left in it.
+    expect(currentInstances(data, '2030-09-01')[0]?.status).toBe('available')
+    expect(missedCycles(data, '2031-01-01')).toHaveLength(0)
+  })
+
+  it('is worth its amortised value on the card', () => {
+    const data = makeData({ cards: [card], benefits: [benefit] })
+    expect(summarizeCard(card, data, currentInstances(data, TODAY), [], TODAY).annualValueCents).toBe(
+      3000,
+    )
+  })
+})
+
 describe('a spend-gated credit', () => {
   const card = makeCard()
 

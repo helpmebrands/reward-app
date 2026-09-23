@@ -481,6 +481,82 @@ void main() {
     });
   });
 
+  group('a rolling credit', () {
+    final card = makeCard(createdAt: '2026-01-01T00:00:00.000Z');
+    final benefit = makeBenefit(
+      Cadence.rolling,
+      valueCents: 12000,
+      intervalMonths: 48,
+    );
+    final claimed = makeClaim(
+      cycleKey: '2026-01-01',
+      amountCents: 12000,
+      claimedAt: '2026-09-16T12:00:00.000Z',
+    );
+
+    test(
+      'is Available with no deadline until claimed, then Captured until the interval ends',
+      () {
+        final open = currentInstances(
+          makeData(cards: [card], benefits: [benefit]),
+          today,
+        ).first;
+        expect(open.status, BenefitStatus.available);
+        expect(open.cycle.label, 'Eligible now');
+
+        final data = makeData(
+          cards: [card],
+          benefits: [benefit],
+          claims: [claimed],
+        );
+        expect(
+          currentInstances(data, today).first.status,
+          BenefitStatus.captured,
+        );
+        expect(
+          currentInstances(data, '2030-09-15').first.status,
+          BenefitStatus.captured,
+        );
+        final again = currentInstances(data, '2030-09-16').first;
+        expect(again.status, BenefitStatus.available);
+        expect(again.cycle.key, '2030-09-16');
+      },
+    );
+
+    test('is never Use soon and never missed', () {
+      final partial = makeClaim(
+        cycleKey: '2026-01-01',
+        amountCents: 5000,
+        claimedAt: '2026-09-16T12:00:00.000Z',
+      );
+      final data = makeData(
+        cards: [card],
+        benefits: [benefit],
+        claims: [partial],
+      );
+      // A fortnight before the closed window ends, with money left in it.
+      expect(
+        currentInstances(data, '2030-09-01').first.status,
+        BenefitStatus.available,
+      );
+      expect(missedCycles(data, '2031-01-01'), isEmpty);
+    });
+
+    test('is worth its amortised value on the card', () {
+      final data = makeData(cards: [card], benefits: [benefit]);
+      expect(
+        summarizeCard(
+          card,
+          data,
+          currentInstances(data, today),
+          const [],
+          today,
+        ).annualValueCents,
+        3000,
+      );
+    });
+  });
+
   group('a spend-gated credit', () {
     final card = makeCard();
 

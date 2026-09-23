@@ -3,6 +3,7 @@ import {
   anniversaryError,
   endsOnError,
   enrollmentUrlError,
+  intervalMonthsError,
   moneyError,
   positiveMoneyError,
   requiredError,
@@ -41,6 +42,16 @@ describe('form rules', () => {
     expect(anniversaryError('2026-13-01')).toMatch(/date/)
     expect(anniversaryError('14/03/2021')).toMatch(/date/)
     expect(anniversaryError('2021-03-14')).toBeNull()
+  })
+
+  // @lat: [[tests#Form rules#A rolling credit needs whole months between claims]]
+  it('requires a whole number of months for a rolling credit, and nothing otherwise', () => {
+    expect(intervalMonthsError('rolling', '')).toMatch(/months/)
+    expect(intervalMonthsError('rolling', '0')).toMatch(/months/)
+    expect(intervalMonthsError('rolling', '4.5')).toMatch(/months/)
+    expect(intervalMonthsError('rolling', 'four')).toMatch(/months/)
+    expect(intervalMonthsError('rolling', '48')).toBeNull()
+    expect(intervalMonthsError('monthly', '')).toBeNull()
   })
 
   // @lat: [[tests#Form rules#An end date is optional but must be a calendar date]]

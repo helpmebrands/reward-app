@@ -354,6 +354,44 @@ void main() {
       expect(benefitOf(app, uber).lastCallOnly, isTrue);
     });
 
+    // @lat: [[mobile-tests#Editors#A rolling credit asks for its interval and hides the anchor]]
+    testWidgets('choosing Rolling asks for the months and hides the anchor', (
+      tester,
+    ) async {
+      final app = await pumpAt(tester, benefitPath(uber));
+      expect(find.byKey(const Key('field-interval')), findsNothing);
+      expect(find.text('The calendar'), findsOneWidget);
+
+      await show(tester, find.byKey(const Key('field-cadence')));
+      await tester.tap(find.byKey(const Key('field-cadence')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Rolling').last);
+      await tester.pumpAndSettle();
+      expect(benefitOf(app, uber).cadence, Cadence.rolling);
+      expect(find.text('The calendar'), findsNothing);
+      expect(find.byKey(const Key('field-interval')), findsOneWidget);
+
+      await blurTo(tester, 'field-interval');
+      await blurTo(tester, 'field-merchant');
+      expect(
+        find.text('Enter how many months between claims.'),
+        findsOneWidget,
+      );
+      expect(benefitOf(app, uber).intervalMonths, isNull);
+
+      await type(tester, 'field-interval', '48');
+      expect(benefitOf(app, uber).intervalMonths, 48);
+      expect(find.text('Enter how many months between claims.'), findsNothing);
+
+      await type(tester, 'field-interval', '');
+      await blurTo(tester, 'field-merchant');
+      expect(benefitOf(app, uber).intervalMonths, 48);
+      expect(
+        find.text('Enter how many months between claims.'),
+        findsOneWidget,
+      );
+    });
+
     // @lat: [[mobile-tests#Editors#A spend threshold and its reached switch write the benefit]]
     testWidgets(
       'a spend threshold writes the benefit and reveals the reached switch',
