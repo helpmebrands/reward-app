@@ -140,6 +140,12 @@ void main() {
       expect(endsOn(quest, 'Instacart \$5 Monthly Credit'), '2027-12-31');
     });
 
+    // @lat: [[tests#Card catalogue#Every template names its kind]]
+    test('marks Business Platinum as business and blank as personal', () {
+      expect(findTemplate('amex-business-platinum')!.kind, CardKind.business);
+      expect(findTemplate('blank')!.kind, CardKind.personal);
+    });
+
     // @lat: [[tests#Card catalogue#The IHG spend credit is gated]]
     test('gates the IHG \$20K spend credit', () {
       final ihg = findTemplate(

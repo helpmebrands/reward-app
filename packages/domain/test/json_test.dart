@@ -36,6 +36,29 @@ void main() {
     expect(data.benefits.any((b) => b.cadence == Cadence.manual), isFalse);
   });
 
+  // @lat: [[tests#Snapshot JSON#A card without a kind loads as personal]]
+  test('reads a card saved before kinds existed as personal', () {
+    final legacy = {
+      'id': 'c',
+      'issuer': 'Chase',
+      'product': 'Ink',
+      'holder': 'Jim',
+      'network': 'visa',
+      'annualFeeCents': 0,
+      'anniversaryOn': '2021-03-14',
+      'muted': false,
+      'archived': false,
+      'createdAt': 't',
+      'updatedAt': 't',
+    };
+    expect(cardFromJson(legacy).kind, CardKind.personal);
+    expect(cardToJson(cardFromJson(legacy))['kind'], 'personal');
+    final business = cardFromJson({...legacy, 'kind': 'business'});
+    expect(business.kind, CardKind.business);
+    expect(cardToJson(business)['kind'], 'business');
+    expect(business.copyWith(kind: CardKind.personal).kind, CardKind.personal);
+  });
+
   // @lat: [[tests#Snapshot JSON#Enums use the PWA's spellings]]
   test('writes fee_credit and use_soon the way the PWA spells them', () {
     final benefit = benefitFromJson({
