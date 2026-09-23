@@ -701,3 +701,9 @@ At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centre
 ### A fresh install launches to the first-run screen
 
 Booting the app with an empty snapshot store on a device reaches the Today screen and shows "Start with one card", proving the shell, the store and the screen wire together outside the test harness.
+
+### The parity flow runs through every screen
+
+One pass from an empty store through adding a card, logging, undoing, swiping and reading every screen, on a real simulator or emulator.
+
+The steps: add the Platinum from the catalogue for Kathy and land on its editor; see Uber Cash on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $15 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.
