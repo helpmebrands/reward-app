@@ -28,6 +28,25 @@ String formatMoney(int cents) {
   return formatMoneyExact(cents);
 }
 
+/// A credit's value per cycle, as a catalogue tag shows it: "$15/mo",
+/// "$50/qtr", "$300/half", "$200/yr", "$120/48 mo" for a rolling credit, and
+/// the bare value for a manual one, which has no cycle.
+String formatValuePerCycle(
+  int valueCents,
+  Cadence cadence, [
+  int? intervalMonths,
+]) {
+  final value = formatMoney(valueCents);
+  return switch (cadence) {
+    Cadence.monthly => '$value/mo',
+    Cadence.quarterly => '$value/qtr',
+    Cadence.semiannual => '$value/half',
+    Cadence.annual => '$value/yr',
+    Cadence.rolling => '$value/${intervalMonths ?? 12} mo',
+    Cadence.manual => value,
+  };
+}
+
 /// Always shows cents. Use in inputs and totals where precision matters.
 String formatMoneyExact(int cents) {
   final magnitude = cents.abs();

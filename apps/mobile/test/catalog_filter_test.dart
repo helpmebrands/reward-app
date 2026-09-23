@@ -108,7 +108,8 @@ void main() {
   testWidgets('search narrows as you type and Clear all resets it all', (
     tester,
   ) async {
-    await pumpCatalogue(tester);
+    // Tall enough to build every tile once the search tags their credits.
+    await pumpCatalogue(tester, size: const Size(1280, 6000));
     final search = find.byKey(const Key('catalog-search'));
     expect(find.text('Clear all'), findsNothing);
     for (final typed in ['u', 'ub', 'ube', 'uber']) {

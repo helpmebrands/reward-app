@@ -510,6 +510,17 @@ Widget catalogFilterSheet() => _themed(
   Brightness.dark,
 );
 
+/// Uber selected: each listed card tags the credits that matched.
+@Preview(name: 'Add a card, matched credits', size: Size(1280, 800))
+Widget addCardMatched() => _themed(
+  AddCardScreen(
+    store: _store(),
+    ui: UiState(),
+    initialFilter: const CatalogFilter().toggleMerchant('Uber'),
+  ),
+  Brightness.dark,
+);
+
 /// Step two with the Business Platinum picked: the kind chips start on
 /// Business because the template says so.
 @Preview(name: 'Add a card, details', size: Size(402, 874))

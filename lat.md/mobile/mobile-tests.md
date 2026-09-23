@@ -288,6 +288,16 @@ The "N of 16 cards" text's semantics node carries the live-region flag, so a scr
 
 At 720 wide with a 2.0 text scale, and American Express and Adobe checked, no layout exception is raised and every text ends inside the width.
 
+### A selected merchant tags the benefits it matched
+
+No tile has a tag until Uber is checked. Then the Platinum shows "Uber Cash (monthly)" with an icon and "$15/mo", and "Uber Cash (December bonus)" with "$20/yr".
+
+Every listed tile's tags equal its `matchedBenefits`, and the Platinum's semantics label contains "Matches Uber Cash (monthly)".
+
+### The search tags only the benefits it matched
+
+Searching "resy" tags each listed tile with exactly its `matchedBenefits`, and every tag names a Resy credit.
+
 ### The Filters badge counts selections, not search text
 
 At 402 wide there is no panel, and the Filters button shows no badge. Checking $600+ and Visa in the sheet and typing search text gives a badge of "2".
