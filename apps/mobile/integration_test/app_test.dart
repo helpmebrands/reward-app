@@ -36,6 +36,9 @@ Future<void> tab(WidgetTester tester, String label) async {
   await settle(tester);
 }
 
+/// A monthly Platinum credit that needs no enrolment, so it lands spendable.
+const walmart = 'Walmart+ Membership Credit';
+
 Finder row(String name) =>
     find.ancestor(of: find.text(name), matching: find.byType(CreditRow)).first;
 
@@ -65,7 +68,10 @@ void main() {
     await show(tester, find.byKey(const Key('add-card')));
     await tester.tap(find.byKey(const Key('add-card')));
     await settle(tester);
-    await tester.tap(find.byKey(const Key('template-amex-platinum')));
+    final platinum = find.byKey(const Key('template-amex-platinum'));
+    await tester.scrollUntilVisible(platinum, 200);
+    await show(tester, platinum);
+    await tester.tap(platinum);
     await settle(tester);
     await tester.enterText(find.byKey(const Key('field-holder')), 'Kathy');
     await tester.tap(find.text('Add this card'));
@@ -77,47 +83,47 @@ void main() {
 
     // Its credits are on Today.
     await tab(tester, 'Today');
-    await showTop(tester, row('Uber Cash'));
-    expect(row('Uber Cash'), findsOneWidget);
+    await showTop(tester, row(walmart));
+    expect(row(walmart), findsOneWidget);
     expect(
-      tester.widget<CreditRow>(row('Uber Cash')).tone,
+      tester.widget<CreditRow>(row(walmart)).tone,
       isNot(RowTone.captured),
     );
 
     // Log it from the sheet, then undo from the snackbar.
-    await showTop(tester, row('Uber Cash'));
-    await tester.tap(row('Uber Cash'));
+    await showTop(tester, row(walmart));
+    await tester.tap(row(walmart));
     await settle(tester);
-    await tester.tap(find.text('Mark the full \$15 used'));
+    await tester.tap(find.text('Mark the full \$12.95 used'));
     await settle(tester);
-    expect(find.text('Logged \$15 on Uber Cash.'), findsOneWidget);
-    expect(tester.widget<CreditRow>(row('Uber Cash')).tone, RowTone.captured);
+    expect(find.text('Logged \$12.95 on $walmart.'), findsOneWidget);
+    expect(tester.widget<CreditRow>(row(walmart)).tone, RowTone.captured);
     await tester.tap(find.byKey(const Key('snackbar-action')));
     await settle(tester);
     expect(
-      tester.widget<CreditRow>(row('Uber Cash')).tone,
+      tester.widget<CreditRow>(row(walmart)).tone,
       isNot(RowTone.captured),
     );
 
     // Log it by swipe.
-    await showTop(tester, row('Uber Cash'));
-    await tester.drag(row('Uber Cash'), const Offset(80, 0));
+    await showTop(tester, row(walmart));
+    await tester.drag(row(walmart), const Offset(80, 0));
     await settle(tester);
     await tester.tap(find.text('Log it'));
     await settle(tester);
-    expect(tester.widget<CreditRow>(row('Uber Cash')).tone, RowTone.captured);
+    expect(tester.widget<CreditRow>(row(walmart)).tone, RowTone.captured);
 
     // It is under Credits > Captured, and on Value.
     await tab(tester, 'Credits');
     await tester.tap(find.widgetWithText(ChoiceChip, 'Captured'));
     await settle(tester);
-    await showTop(tester, row('Uber Cash'));
-    expect(row('Uber Cash'), findsOneWidget);
+    await showTop(tester, row(walmart));
+    expect(row(walmart), findsOneWidget);
     await tab(tester, 'Value');
     expect(
       find.descendant(
         of: find.byKey(const Key('value-captured')),
-        matching: find.text('\$15'),
+        matching: find.text('\$12.95'),
       ),
       findsOneWidget,
     );
