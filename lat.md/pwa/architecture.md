@@ -2,7 +2,7 @@
 
 HelpMe Reward is a static single-page PWA: a pure domain layer, a single Solid store snapshotted to IndexedDB, a thin services layer over browser APIs, and a hand-written service worker that shares the same database.
 
-There is no server. A deploy carries no migration and no data risk, which is why the rollback runbook is short ([[deployment]]).
+The PWA talks to no server. A deploy of it carries no migration and no data risk, which is why the rollback runbook is short ([[deployment]]).
 
 ## Layers
 
@@ -39,7 +39,7 @@ A PWA is resumed rather than reloaded, so a date captured at boot goes stale ove
 
 ### Import and export
 
-`exportJson` dumps the store; `importJson` refuses anything without a `cards` array and otherwise migrates and replaces everything. Since nothing is uploaded anywhere, this export is the only backup a user has.
+`exportJson` dumps the store; `importJson` refuses anything without a `cards` array and otherwise migrates and replaces everything. The PWA uploads nothing, so for a PWA user this export is the backup.
 
 ## UI state
 
@@ -65,7 +65,7 @@ On every route change after the first render, the shell focuses the new screen's
 
 The worker is hand-written and Workbox only injects the precache manifest (`injectManifest`), because reminder replay and push handling cannot be expressed by a generated worker.
 
-Reminders are time-critical: a tab left open for a week on an old worker would keep replaying a stale schedule. So a new worker takes over immediately, at both ends: the worker calls `skipWaiting` on install and `clients.claim` on activate, and [[apps/pwa/src/services/sw-register.ts#registerServiceWorker]] activates a waiting update straight away rather than waiting for every tab to close. There is no server-side state to be out of step with, and the app re-reads IndexedDB on load, so the immediate swap is safe.
+Reminders are time-critical: a tab left open for a week on an old worker would keep replaying a stale schedule. So a new worker takes over immediately, at both ends: the worker calls `skipWaiting` on install and `clients.claim` on activate, and [[apps/pwa/src/services/sw-register.ts#registerServiceWorker]] activates a waiting update straight away rather than waiting for every tab to close. The PWA holds no server-side state to be out of step with, and the app re-reads IndexedDB on load, so the immediate swap is safe.
 
 Other decisions in `vite.config.ts` and `apps/pwa/src/sw.ts`:
 
