@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:domain/domain.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
@@ -66,8 +66,14 @@ Future<void> type(WidgetTester tester, String key, String text) async {
   await tester.pumpAndSettle();
 }
 
+/// Scrolls [finder] into view and lets the list settle before a tap.
+Future<void> show(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
 Future<void> blurTo(WidgetTester tester, String key) async {
-  await tester.ensureVisible(find.byKey(Key(key)));
+  await show(tester, find.byKey(Key(key)));
   await tester.tap(find.byKey(Key(key)));
   await tester.pumpAndSettle();
 }
@@ -113,19 +119,19 @@ void main() {
     testWidgets('mute, archive and the network write the card', (tester) async {
       final app = await pumpAt(tester, cardPath(jim));
 
-      await tester.ensureVisible(find.bySemanticsLabel('Silence every credit'));
+      await show(tester, find.bySemanticsLabel('Silence every credit'));
       await tester.tap(find.bySemanticsLabel('Silence every credit'));
       await tester.pumpAndSettle();
       expect(cardOf(app, jim).muted, isTrue);
 
-      await tester.ensureVisible(find.byKey(const Key('field-network')));
+      await show(tester, find.byKey(const Key('field-network')));
       await tester.tap(find.byKey(const Key('field-network')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Visa').last);
       await tester.pumpAndSettle();
       expect(cardOf(app, jim).network, CardNetwork.visa);
 
-      await tester.ensureVisible(find.bySemanticsLabel('Archive this card'));
+      await show(tester, find.bySemanticsLabel('Archive this card'));
       await tester.tap(find.bySemanticsLabel('Archive this card'));
       await tester.pumpAndSettle();
       expect(cardOf(app, jim).archived, isTrue);
@@ -135,7 +141,11 @@ void main() {
     testWidgets('lists the credits by name, opens one, and adds a new one', (
       tester,
     ) async {
-      final app = await pumpAt(tester, cardPath(jim));
+      final app = await pumpAt(
+        tester,
+        cardPath(jim),
+        size: const Size(402, 3000),
+      );
       final names =
           app.store.data!.benefits
               .where((b) => b.cardId == jim)
@@ -159,17 +169,19 @@ void main() {
         );
       }
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('benefit-link-$uber')),
-      );
+      await show(tester, find.byKey(const ValueKey('benefit-link-$uber')));
       await tester.tap(find.byKey(const ValueKey('benefit-link-$uber')));
       await tester.pumpAndSettle();
       expect(find.byType(BenefitEditorScreen), findsOneWidget);
       expect(find.text('Uber Cash'), findsWidgets);
 
-      final app2 = await pumpAt(tester, cardPath(jim));
+      final app2 = await pumpAt(
+        tester,
+        cardPath(jim),
+        size: const Size(402, 3000),
+      );
       final before = app2.store.data!.benefits.length;
-      await tester.ensureVisible(find.text('Add'));
+      await show(tester, find.text('Add'));
       await tester.tap(find.text('Add'));
       await tester.pumpAndSettle();
       expect(app2.store.data!.benefits, hasLength(before + 1));
@@ -255,7 +267,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.ensureVisible(find.byKey(const Key('field-cadence')));
+      await show(tester, find.byKey(const Key('field-cadence')));
       await tester.tap(find.byKey(const Key('field-cadence')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Quarterly').last);
@@ -266,7 +278,7 @@ void main() {
       );
       expect(benefitOf(app, uber).cadence, Cadence.quarterly);
 
-      await tester.ensureVisible(find.text('Card anniversary'));
+      await show(tester, find.text('Card anniversary'));
       await tester.tap(find.text('Card anniversary'));
       await tester.pumpAndSettle();
       final card = cardOf(app, jim);
@@ -311,13 +323,13 @@ void main() {
     ) async {
       final app = await pumpAt(tester, benefitPath(uber));
 
-      await tester.ensureVisible(find.bySemanticsLabel('Needs enrolment'));
+      await show(tester, find.bySemanticsLabel('Needs enrolment'));
       await tester.tap(find.bySemanticsLabel('Needs enrolment'));
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).enrollmentRequired, isTrue);
       expect(find.text('Not yet — the credit is locked.'), findsOneWidget);
 
-      await tester.ensureVisible(find.bySemanticsLabel('Enrolled'));
+      await show(tester, find.bySemanticsLabel('Enrolled'));
       await tester.tap(find.bySemanticsLabel('Enrolled'));
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).enrolledAt, isNotNull);
@@ -331,12 +343,12 @@ void main() {
       await type(tester, 'field-url', 'https://amex.example/enrol');
       expect(benefitOf(app, uber).enrollmentUrl, 'https://amex.example/enrol');
 
-      await tester.ensureVisible(find.bySemanticsLabel('Track this credit'));
+      await show(tester, find.bySemanticsLabel('Track this credit'));
       await tester.tap(find.bySemanticsLabel('Track this credit'));
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).active, isFalse);
 
-      await tester.ensureVisible(find.bySemanticsLabel('Last call only'));
+      await show(tester, find.bySemanticsLabel('Last call only'));
       await tester.tap(find.bySemanticsLabel('Last call only'));
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).lastCallOnly, isTrue);

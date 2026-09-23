@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
 import '../screens/add_card_screen.dart';
+import '../screens/benefit_editor_screen.dart';
+import '../screens/card_editor_screen.dart';
 import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
 import '../screens/stub_screen.dart';
@@ -22,6 +24,9 @@ abstract final class Paths {
 
 /// The card editor's path for one card.
 String cardPath(String id) => '/cards/$id';
+
+/// The benefit editor's path for one credit.
+String benefitPath(String id) => '/benefit/$id';
 
 /// One of the four destinations the bar and the rail share, in the order
 /// both show them.
@@ -70,7 +75,19 @@ GoRouter appRouter(AppStore store, {String initialLocation = Paths.today}) =>
         ),
         GoRoute(
           path: '/cards/:id',
-          builder: (context, state) => const StubScreen('Card editor'),
+          builder: (context, state) => CardEditorScreen(
+            store: AppScope.of(context),
+            ui: UiScope.of(context),
+            id: state.pathParameters['id']!,
+          ),
+        ),
+        GoRoute(
+          path: '/benefit/:id',
+          builder: (context, state) => BenefitEditorScreen(
+            store: AppScope.of(context),
+            ui: UiScope.of(context),
+            id: state.pathParameters['id']!,
+          ),
         ),
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) =>
