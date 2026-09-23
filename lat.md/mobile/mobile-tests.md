@@ -174,6 +174,60 @@ Every button in the semantics tree has a label or a tooltip, and the menu is fou
 
 With no cards the screen says "Start with one card", draws no card and still offers the catalogue.
 
+## Field
+
+`field_test.dart` pumps one required `Field` around a text field with the domain's `requiredError` and a second field to blur into ([[mobile-architecture#Forms and the Field pattern]]).
+
+### The error waits for blur
+
+Typing and clearing the field shows no error; leaving it shows "Enter whose card this is."; typing a name clears it.
+
+### Submitting forces the error into view
+
+With `submitted` true the error shows before the field has been touched.
+
+### The label, the mark, the hint and the error reach the screen reader
+
+The label reads "Whose card is it? *", the hint is drawn under the control, and the error's semantics node carries the sentence as a live region.
+
+## Add a card
+
+`add_card_screen_test.dart` opens the app at `/cards/new` over the sample household and walks the two steps ([[mobile-architecture#Forms and the Field pattern#Add a card]]).
+
+### A template becomes a card with its credits
+
+The catalogue shows the Platinum with its annual value; picking it shows "Card details" and the required note; a holder and a date then "Add this card" adds the card and leaves the screen.
+
+The card carries that holder, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
+
+### An empty holder is named and focused on submit
+
+Clearing the holder shows nothing; Save shows "Enter whose card this is.", adds nothing and puts focus in the holder field; typing a name clears the error and Save adds the card.
+
+### Typing shows no error before blur
+
+Clearing the holder shows no error until the anniversary field is tapped.
+
+### A bad date shows the domain's sentence
+
+"2026-13-40" shows "Enter the date the cardmember year starts." after blur, and the Save button stays enabled.
+
+### Back with a draft asks first
+
+System back on an untouched form returns to the catalogue; with a holder typed it asks "Discard this card?", "Keep editing" stays, and "Discard" leaves to Cards.
+
+### Short fields pair from expanded
+
+At 402 the anniversary sits under the holder; at 1280 they share a top edge side by side and the Save button spans the row.
+
+### The form at 200% clips nothing
+
+At a 2.0 text scale the form raises no layout exception and every text ends inside the width.
+
+### The blank template asks for issuer and card
+
+"Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a card with no benefits and says "Card added. Add its credits next."
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../screens/add_card_screen.dart';
 import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
 import '../screens/stub_screen.dart';
@@ -53,55 +54,70 @@ const destinations = [
 /// The route table: the four destinations as branches of one stateful shell,
 /// each keeping its own navigator and scroll position. The store is the
 /// refresh listenable so a later redirect re-evaluates on every notification.
-GoRouter appRouter(AppStore store) => GoRouter(
-  refreshListenable: store,
-  routes: [
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) =>
-          AppShell(navigationShell: navigationShell),
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: Paths.today,
-              builder: (context, state) => TodayScreen(
-                store: AppScope.of(context),
-                ui: UiScope.of(context),
-              ),
-            ),
-          ],
+GoRouter appRouter(AppStore store, {String initialLocation = Paths.today}) =>
+    GoRouter(
+      refreshListenable: store,
+      initialLocation: initialLocation,
+      routes: [
+        // Full-screen routes above the shell. `/cards/new` is declared before
+        // `/cards/:id` so the literal wins the match.
+        GoRoute(
+          path: Paths.newCard,
+          builder: (context, state) => AddCardScreen(
+            store: AppScope.of(context),
+            ui: UiScope.of(context),
+          ),
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: Paths.credits,
-              builder: (context, state) => CreditsScreen(
-                store: AppScope.of(context),
-                ui: UiScope.of(context),
-              ),
-            ),
-          ],
+        GoRoute(
+          path: '/cards/:id',
+          builder: (context, state) => const StubScreen('Card editor'),
         ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: Paths.cards,
-              builder: (context, state) => CardsScreen(
-                store: AppScope.of(context),
-                ui: UiScope.of(context),
-              ),
+        StatefulShellRoute.indexedStack(
+          builder: (context, state, navigationShell) =>
+              AppShell(navigationShell: navigationShell),
+          branches: [
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: Paths.today,
+                  builder: (context, state) => TodayScreen(
+                    store: AppScope.of(context),
+                    ui: UiScope.of(context),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: Paths.value,
-              builder: (context, state) => const StubScreen('Value'),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: Paths.credits,
+                  builder: (context, state) => CreditsScreen(
+                    store: AppScope.of(context),
+                    ui: UiScope.of(context),
+                  ),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: Paths.cards,
+                  builder: (context, state) => CardsScreen(
+                    store: AppScope.of(context),
+                    ui: UiScope.of(context),
+                  ),
+                ),
+              ],
+            ),
+            StatefulShellBranch(
+              routes: [
+                GoRoute(
+                  path: Paths.value,
+                  builder: (context, state) => const StubScreen('Value'),
+                ),
+              ],
             ),
           ],
         ),
       ],
-    ),
-  ],
-);
+    );

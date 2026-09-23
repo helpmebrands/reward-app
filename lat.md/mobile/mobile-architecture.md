@@ -96,7 +96,8 @@ The Flutter team's architecture guidance recommends `go_router`, and the package
 
 The route table mirrors the PWA's nine routes, with the four tabs as branches of one shell route and the editors and Settings pushed above it.
 
-- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches, the constants in `lib/shell/router.dart`; `/cards/new` (`Paths.newCard`), `/cards/:id` (`cardPath`), `/benefit/:id` and `/settings` will be full-screen routes above the shell, and `errorBuilder` the not-found screen, when those screens arrive. Today, Credits and Cards are real screens; Value renders `StubScreen`, a heading and one line, so the branch is real before the screen is.
+- **Paths**: `/` Today, `/credits`, `/cards` and `/value` are the shell branches, the constants in `lib/shell/router.dart`. `/cards/new` (`Paths.newCard`) is a full-screen route above the shell, declared before `/cards/:id` (`cardPath`) so the literal wins; `/benefit/:id` and `/settings` follow with their screens, and `errorBuilder` the not-found screen. Today, Credits, Cards and Add a card are real screens; Value and the card editor render `StubScreen`, a heading and one line, so the routes are real before the screens are. `appRouter` takes an `initialLocation` so a test opens a screen directly.
+- **Full-screen routes** sit outside `AppShell`, so each computes its width class from the window and hands it down in a `WidthClassScope`, centres its own column, and hosts the snackbar itself, since the shell's host is not above it.
 - **The shell** is `StatefulShellRoute.indexedStack` whose builder renders `AppShell`: the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) around the content column, keeping each tab's scroll position across switches. The four `Destination`s are one list the bar and the rail both draw, so the order cannot differ.
 - **The credit sheet is not a route**: as in the PWA, the shell shows one sheet whichever tab opened it, driven by `UiState`, so the URL stays on the tab beneath ([[mobile-architecture#The credit sheet]]). Back closes it through the host's `PopScope` before the router sees the pop.
 - **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
@@ -167,6 +168,20 @@ From top to bottom: "All credits" with the open, locked and missed counts; the h
 The menu on each card offers Mute (or Unmute), Archive and Delete. Mute and Archive write the store and report through the snackbar with an Undo that names the card; Delete asks first in an `AlertDialog`, because deleting a card destroys its claim history, which no undo snackbar can honestly cover, and then cascades through `deleteCard` and says "Card deleted." The PWA had no archive or delete on this screen (its delete lives in the card editor); the menu is where the mobile app puts them.
 
 One column on a phone; two across at medium in a `Wrap`; one wide row per card at expanded, a `Row` of the head, figures, bar and percentage beside the verdict, tags and edit button. Each block carries an `OrdinalSortKey`, so the wide layout reads in the phone order. Pinned by [[mobile-tests#Cards]] against `apps/pwa/scripts/cards-snapshot.ts`; previews at compact in both modes, at medium and expanded, and empty.
+
+## Forms and the Field pattern
+
+`Field` is the PWA's `Field` ([[design#Screens#Forms and errors]]): a labelled control with a hint and an error slot, where the field owns *when* an error shows and the caller owns *whether* there is one.
+
+The caller passes the label, the hint, the current rule result from the domain's validation, whether the field is required, whether the form has been submitted, and a focus node it owns. `Field` watches the node and marks itself touched when focus leaves; the error shows once touched or once submitted, never on the first keystroke. The control is built by the caller from a `FieldControl`, the focus node and an `InputDecoration` carrying the label (with a `*` when required, which the form explains once with "Fields marked * are required.") and the invalid border. The hint and the error are drawn by `Field` under the control, not by the decorator, because the decorator hides the helper behind the error and its live region depends on the platform; the error slot is always present and a live region, so a message arriving in it is announced. Forms keep the focus nodes so a submit with errors can focus the first invalid field; Save is never disabled, since a disabled button never says why.
+
+### Add a card
+
+`AddCardScreen` is the PWA's two-step flow at `/cards/new`: pick the product, then say whose it is and when the cardmember year turns over.
+
+The holder is asked for rather than inferred, because the whole app turns on telling two identical Platinums apart.
+
+The catalogue lists every template but the blank one with its issuer, product, fee, annual value from `templateAnnualValueCents`, credit count and how many need enrolment, then "Set one up by hand" for the blank template. The form shows the picked template's summary, the required note, and the fields: Issuer and Card for the blank template, "Whose card is it?" (with the known holders in the hint), "Account opened / renews on" (a text field with a calendar button that opens Material's date picker), and the optional nickname. The rules are `requiredError` and `anniversaryError`. Save calls `addCardFromTemplate`, shows "Added with N credits. Check the terms — issuers change them." or "Card added. Add its credits next." and goes to the card's editor. A `PopScope` handles back: from the catalogue it leaves for Cards; from an untouched form it returns to the catalogue at once; from a draft it asks "Discard this card?" first. From expanded the short fields pair two to a row. Pinned by [[mobile-tests#Field]] and [[mobile-tests#Add a card]]; the Field and the catalogue have previews.
 
 ## The swipe row
 
