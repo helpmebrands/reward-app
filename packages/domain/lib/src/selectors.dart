@@ -101,7 +101,7 @@ List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
   final instances = <BenefitInstance>[];
 
   for (final benefit in data.benefits) {
-    if (!benefit.active) continue;
+    if (!benefit.active || hasEnded(benefit, day)) continue;
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
     final cycle = cycleFor(benefit, card, day) ?? _untrackedCycle(day);

@@ -106,6 +106,12 @@ export interface Benefit {
   /** Why it is blocked, shown on the locked rows. */
   enrollmentNote?: string
   enrollmentUrl?: string
+  /**
+   * The last day the credit can be used, for credits the issuer has announced
+   * an end to. The final window is clamped to this day and nothing follows
+   * it; afterwards the credit is skipped the way an inactive one is.
+   */
+  endsOn?: IsoDate
   /** Numbered "How to redeem" steps shown in the detail sheet. */
   redemptionSteps: string[]
   notes?: string

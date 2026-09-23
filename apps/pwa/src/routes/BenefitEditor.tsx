@@ -4,14 +4,15 @@ import { cadenceLabel, cycleFor } from '../domain/cycles.ts'
 import { formatDate } from '../domain/format.ts'
 import { ladderSummary } from '../domain/ladder.ts'
 import { categoryLabel } from '../domain/selectors.ts'
-import type { Benefit, BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
+import type { BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
 import {
+  endsOnError,
   enrollmentUrlError,
   parseMoney,
   positiveMoneyError,
   requiredError,
 } from '../domain/validation.ts'
-import { useApp } from '../stores/app.tsx'
+import { type BenefitPatch, useApp } from '../stores/app.tsx'
 import { Field } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
@@ -64,16 +65,19 @@ export function BenefitEditor() {
   const [nameDraft, setNameDraft] = createSignal<string | null>(null)
   const [valueDraft, setValueDraft] = createSignal<string | null>(null)
   const [urlDraft, setUrlDraft] = createSignal<string | null>(null)
+  const [endsOnDraft, setEndsOnDraft] = createSignal<string | null>(null)
   const nameText = () => nameDraft() ?? benefit()?.name ?? ''
   const valueText = () => valueDraft() ?? ((benefit()?.valueCents ?? 0) / 100).toString()
   const urlText = () => urlDraft() ?? benefit()?.enrollmentUrl ?? ''
+  const endsOnText = () => endsOnDraft() ?? benefit()?.endsOn ?? ''
   const errors = {
     name: () => requiredError(nameText(), 'Enter what the credit is called.'),
     value: () => positiveMoneyError(valueText()),
     url: () => enrollmentUrlError(urlText()),
+    endsOn: () => endsOnError(endsOnText()),
   }
 
-  function patch(changes: Partial<Benefit>) {
+  function patch(changes: BenefitPatch) {
     const current = benefit()
     if (current) app.updateBenefit(current.id, changes)
   }
@@ -195,6 +199,28 @@ export function BenefitEditor() {
                 )}
               </Show>
             </div>
+
+            <Field
+              id="benefit-ends-on"
+              label="Ends on (optional)"
+              hint="The last day it can be used, if the issuer has set one."
+              error={errors.endsOn()}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  class="input"
+                  type="date"
+                  value={endsOnText()}
+                  onInput={(e) => {
+                    setEndsOnDraft(e.currentTarget.value)
+                    if (!errors.endsOn()) {
+                      patch({ endsOn: e.currentTarget.value.trim() || undefined })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
             <div class="field">
               <label class="field__label" for="benefit-category">

@@ -28,7 +28,7 @@ The tone climbs along the rungs, from `permissive` ("You can use me") through `n
 
 [[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon. It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
 
-A credit is skipped when reminders are disabled, the credit is inactive or manual, the credit or its card is muted, the credit's value is below `minValueCents`, or it is locked and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
+A credit is skipped when reminders are disabled, the credit is inactive, manual or past its `endsOn`, the credit or its card is muted, the credit's value is below `minValueCents`, or it is locked and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
 
 ### Grouping
 

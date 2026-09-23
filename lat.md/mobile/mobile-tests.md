@@ -272,6 +272,10 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 "Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Track this credit" pauses it; "Last call only" sets it.
 
+### An end date is optional and validated
+
+Uber Cash has no end date; "2026-13-40" in "Ends on" shows "Enter the last day it can be used as a date, or leave it blank." after blur and writes nothing; "2026-12-31" writes it and clears the sentence; emptying the field clears the date.
+
 ### Deleting a benefit takes its claims and returns to the card
 
 "Delete this credit" then Delete removes the benefit and its claims, says "Credit deleted." and lands on the card editor.

@@ -31,19 +31,29 @@ final RegExp _isoDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
 
 /// The cardmember year start, as a calendar date.
 String? anniversaryError(String value) {
+  return _isCalendarDate(value)
+      ? null
+      : 'Enter the date the cardmember year starts.';
+}
+
+/// The last day a credit can be used, if it has one, as a calendar date.
+String? endsOnError(String value) {
+  if (value.trim().isEmpty) return null;
+  return _isCalendarDate(value)
+      ? null
+      : 'Enter the last day it can be used as a date, or leave it blank.';
+}
+
+bool _isCalendarDate(String value) {
   final match = _isoDate.firstMatch(value);
-  if (match != null) {
-    final year = int.parse(match[1]!);
-    final month = int.parse(match[2]!);
-    final day = int.parse(match[3]!);
-    if (month >= 1 &&
-        month <= 12 &&
-        day >= 1 &&
-        day <= daysInMonth(year, month)) {
-      return null;
-    }
-  }
-  return 'Enter the date the cardmember year starts.';
+  if (match == null) return false;
+  final year = int.parse(match[1]!);
+  final month = int.parse(match[2]!);
+  final day = int.parse(match[3]!);
+  return month >= 1 &&
+      month <= 12 &&
+      day >= 1 &&
+      day <= daysInMonth(year, month);
 }
 
 /// An enrolment page, if given, must be somewhere a browser can open.

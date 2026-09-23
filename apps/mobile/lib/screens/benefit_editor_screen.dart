@@ -40,11 +40,13 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
   final _value = TextEditingController();
   final _merchant = TextEditingController();
   final _url = TextEditingController();
+  final _endsOn = TextEditingController();
   final _steps = TextEditingController();
   final _nameFocus = FocusNode(debugLabel: 'name');
   final _valueFocus = FocusNode(debugLabel: 'value');
   final _merchantFocus = FocusNode(debugLabel: 'merchant');
   final _urlFocus = FocusNode(debugLabel: 'url');
+  final _endsOnFocus = FocusNode(debugLabel: 'endsOn');
   final _stepsFocus = FocusNode(debugLabel: 'steps');
 
   AppStore get store => widget.store;
@@ -72,16 +74,17 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       _value.text = (current.valueCents / 100).toString();
       _merchant.text = current.merchant ?? '';
       _url.text = current.enrollmentUrl ?? '';
+      _endsOn.text = current.endsOn ?? '';
       _steps.text = current.redemptionSteps.join('\n');
     }
-    for (final c in [_name, _value, _merchant, _url, _steps]) {
+    for (final c in [_name, _value, _merchant, _url, _endsOn, _steps]) {
       c.addListener(_changed);
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_name, _value, _merchant, _url, _steps]) {
+    for (final c in [_name, _value, _merchant, _url, _endsOn, _steps]) {
       c.dispose();
     }
     for (final f in [
@@ -89,6 +92,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       _valueFocus,
       _merchantFocus,
       _urlFocus,
+      _endsOnFocus,
       _stepsFocus,
     ]) {
       f.dispose();
@@ -100,8 +104,12 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       requiredError(_name.text, 'Enter what the credit is called.');
   String? get _valueError => positiveMoneyError(_value.text);
   String? get _urlError => enrollmentUrlError(_url.text);
+  String? get _endsOnError => endsOnError(_endsOn.text);
   bool get _unsaved =>
-      _nameError != null || _valueError != null || _urlError != null;
+      _nameError != null ||
+      _valueError != null ||
+      _urlError != null ||
+      _endsOnError != null;
 
   /// Writes every valid draft; the invalid ones wait, showing their error.
   void _changed() {
@@ -111,6 +119,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     final cents = parseMoney(_value.text);
     final merchant = _merchant.text.trim();
     final url = _url.text.trim();
+    final endsOn = _endsOn.text.trim();
     final steps = _steps.text
         .split('\n')
         .map((line) => line.trim())
@@ -125,6 +134,8 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
         (b) => b.copyWith(merchant: merchant.isEmpty ? null : merchant),
       if (_urlError == null && (current.enrollmentUrl ?? '') != url)
         (b) => b.copyWith(enrollmentUrl: url.isEmpty ? null : url),
+      if (_endsOnError == null && (current.endsOn ?? '') != endsOn)
+        (b) => b.copyWith(endsOn: endsOn.isEmpty ? null : endsOn),
       if (steps.join('\n') != current.redemptionSteps.join('\n'))
         (b) => b.copyWith(redemptionSteps: steps),
     ];
@@ -331,6 +342,15 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
             ),
             cadence,
             anchor,
+            field(
+              'field-ends-on',
+              'Ends on (optional)',
+              hint: 'The last day it can be used, if the issuer has set one.',
+              error: _endsOnError,
+              controller: _endsOn,
+              focusNode: _endsOnFocus,
+              keyboardType: TextInputType.datetime,
+            ),
             DropdownButtonFormField<BenefitCategory>(
               key: const Key('field-category'),
               isExpanded: true,

@@ -56,6 +56,7 @@ Benefit _benefit(
   Cadence cadence = Cadence.monthly,
   bool enrollmentRequired = false,
   String? merchant,
+  IsoDate? endsOn,
 }) => Benefit(
   id: id,
   cardId: cardId,
@@ -66,6 +67,7 @@ Benefit _benefit(
   cadence: cadence,
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
+  endsOn: endsOn,
   redemptionSteps: const [],
   muted: false,
   lastCallOnly: false,
@@ -86,6 +88,7 @@ AppData _household() => AppData(
       'Resy Dining Credit',
       10000,
       cadence: Cadence.quarterly,
+      endsOn: '2026-12-31',
     ),
     _benefit(
       'e1',
@@ -520,6 +523,14 @@ Widget benefitEditor() => _themed(
 Widget benefitEditorLight() => _themed(
   BenefitEditorScreen(store: _store(), id: 'r1', ui: UiState()),
   Brightness.light,
+);
+
+/// A credit the issuer has given an end date: the "Ends on" field is filled
+/// and the window preview closes on it.
+@Preview(name: 'Benefit editor, ends on', size: Size(402, 1200))
+Widget benefitEditorEndsOn() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'r1', ui: UiState()),
+  Brightness.dark,
 );
 
 @Preview(name: 'Editor, not found', size: Size(402, 300))

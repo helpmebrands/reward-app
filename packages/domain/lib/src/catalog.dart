@@ -23,6 +23,7 @@ class BenefitTemplate {
     required this.cadence,
     required this.anchor,
     this.enrollmentRequired = false,
+    this.endsOn,
     this.redemptionSteps = const [],
     this.notes,
   });
@@ -38,6 +39,9 @@ class BenefitTemplate {
   final Cadence cadence;
   final CycleAnchor anchor;
   final bool enrollmentRequired;
+
+  /// The last day the credit can be used, when the issuer has announced one.
+  final IsoDate? endsOn;
   final List<String> redemptionSteps;
   final String? notes;
 }
@@ -1609,11 +1613,15 @@ List<Benefit> benefitsFromTemplate(
           cadence: entry.cadence,
           anchor: entry.anchor,
           enrollmentRequired: entry.enrollmentRequired,
+          endsOn: entry.endsOn,
           redemptionSteps: entry.redemptionSteps,
           notes: entry.notes,
           muted: false,
           lastCallOnly: false,
-          active: true,
+          // A credit the issuer has already retired lands as history.
+          active:
+              entry.endsOn == null ||
+              entry.endsOn!.compareTo(now.substring(0, 10)) >= 0,
           createdAt: now,
           updatedAt: now,
         ),

@@ -322,13 +322,20 @@ void main() {
       },
     );
 
-    test('does not prorate the annual value of a credit that ends mid-year', () {
-      expect(
-        annualValueCents(
-          makeBenefit(Cadence.monthly, valueCents: 1500, endsOn: '2026-09-20'),
-        ),
-        18000,
-      );
-    });
+    test(
+      'does not prorate the annual value of a credit that ends mid-year',
+      () {
+        expect(
+          annualValueCents(
+            makeBenefit(
+              Cadence.monthly,
+              valueCents: 1500,
+              endsOn: '2026-09-20',
+            ),
+          ),
+          18000,
+        );
+      },
+    );
   });
 }

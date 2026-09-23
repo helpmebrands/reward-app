@@ -177,6 +177,7 @@ class Benefit {
     this.enrolledAt,
     this.enrollmentNote,
     this.enrollmentUrl,
+    this.endsOn,
     required this.redemptionSteps,
     this.notes,
     required this.muted,
@@ -214,6 +215,11 @@ class Benefit {
   final String? enrollmentNote;
   final String? enrollmentUrl;
 
+  /// The last day the credit can be used, for credits the issuer has
+  /// announced an end to. The final window is clamped to this day and nothing
+  /// follows it; afterwards the credit is skipped the way an inactive one is.
+  final IsoDate? endsOn;
+
   /// Numbered "How to redeem" steps shown in the detail sheet.
   final List<String> redemptionSteps;
   final String? notes;
@@ -232,8 +238,8 @@ class Benefit {
 
   /// A copy with the given fields replaced. The nullable fields
   /// ([description], [icon], [merchant], [enrolledAt], [enrollmentNote],
-  /// [enrollmentUrl], [notes]) are cleared by passing null and kept by
-  /// leaving them out.
+  /// [enrollmentUrl], [endsOn], [notes]) are cleared by passing null and kept
+  /// by leaving them out.
   Benefit copyWith({
     String? cardId,
     String? name,
@@ -248,6 +254,7 @@ class Benefit {
     Object? enrolledAt = _unset,
     Object? enrollmentNote = _unset,
     Object? enrollmentUrl = _unset,
+    Object? endsOn = _unset,
     List<String>? redemptionSteps,
     Object? notes = _unset,
     bool? muted,
@@ -277,6 +284,7 @@ class Benefit {
     enrollmentUrl: identical(enrollmentUrl, _unset)
         ? this.enrollmentUrl
         : enrollmentUrl as String?,
+    endsOn: identical(endsOn, _unset) ? this.endsOn : endsOn as IsoDate?,
     redemptionSteps: redemptionSteps ?? this.redemptionSteps,
     notes: identical(notes, _unset) ? this.notes : notes as String?,
     muted: muted ?? this.muted,

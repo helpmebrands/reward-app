@@ -240,8 +240,8 @@ describe('a credit that ends on a date', () => {
   })
 
   it('does not prorate the annual value of a credit that ends mid-year', () => {
-    expect(annualValueCents(makeBenefit('monthly', { valueCents: 1500, endsOn: '2026-09-20' }))).toBe(
-      18_000,
-    )
+    expect(
+      annualValueCents(makeBenefit('monthly', { valueCents: 1500, endsOn: '2026-09-20' })),
+    ).toBe(18_000)
   })
 })

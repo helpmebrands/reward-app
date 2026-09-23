@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   anniversaryError,
+  endsOnError,
   enrollmentUrlError,
   moneyError,
   positiveMoneyError,

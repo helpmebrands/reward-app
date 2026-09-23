@@ -77,6 +77,7 @@ Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
   enrolledAt: json['enrolledAt'] as String?,
   enrollmentNote: json['enrollmentNote'] as String?,
   enrollmentUrl: json['enrollmentUrl'] as String?,
+  endsOn: json['endsOn'] as String?,
   redemptionSteps: ((json['redemptionSteps'] as List?) ?? const [])
       .cast<String>(),
   notes: json['notes'] as String?,
@@ -102,6 +103,7 @@ Map<String, Object?> benefitToJson(Benefit benefit) => _withoutNulls({
   'enrolledAt': benefit.enrolledAt,
   'enrollmentNote': benefit.enrollmentNote,
   'enrollmentUrl': benefit.enrollmentUrl,
+  'endsOn': benefit.endsOn,
   'redemptionSteps': benefit.redemptionSteps,
   'notes': benefit.notes,
   'muted': benefit.muted,

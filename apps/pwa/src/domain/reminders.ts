@@ -1,4 +1,4 @@
-import { cyclesBetween } from './cycles.ts'
+import { cyclesBetween, hasEnded } from './cycles.ts'
 import { addDays, atLocalTime, compareIsoDate, todayIso } from './dates.ts'
 import { formatMoney } from './format.ts'
 import { ladderFor } from './ladder.ts'
@@ -80,7 +80,7 @@ export function buildSchedule(
   const groups = new Map<string, Group>()
 
   for (const benefit of data.benefits) {
-    if (!benefit.active || benefit.cadence === 'manual') continue
+    if (!benefit.active || benefit.cadence === 'manual' || hasEnded(benefit, from)) continue
     if (benefit.muted) continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived || card.muted) continue

@@ -1,4 +1,11 @@
-import type { Benefit, BenefitCategory, Cadence, CardNetwork, CycleAnchor } from './types.ts'
+import type {
+  Benefit,
+  BenefitCategory,
+  Cadence,
+  CardNetwork,
+  CycleAnchor,
+  IsoDate,
+} from './types.ts'
 
 /**
  * The card catalogue behind "Add a card".
@@ -21,6 +28,8 @@ export interface BenefitTemplate {
   cadence: Cadence
   anchor: CycleAnchor
   enrollmentRequired?: boolean
+  /** The last day the credit can be used, when the issuer has announced one. */
+  endsOn?: IsoDate
   redemptionSteps?: string[]
   notes?: string
 }
@@ -1571,11 +1580,13 @@ export function benefitsFromTemplate(
     redemptionSteps: entry.redemptionSteps ?? [],
     muted: false,
     lastCallOnly: false,
-    active: true,
+    // A credit the issuer has already retired lands as history, not a chore.
+    active: !(entry.endsOn && entry.endsOn < now.slice(0, 10)),
     createdAt: now,
     updatedAt: now,
     ...(entry.description ? { description: entry.description } : {}),
     ...(entry.merchant ? { merchant: entry.merchant } : {}),
+    ...(entry.endsOn ? { endsOn: entry.endsOn } : {}),
     ...(entry.notes ? { notes: entry.notes } : {}),
   }))
 }

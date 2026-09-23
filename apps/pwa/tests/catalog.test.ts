@@ -40,7 +40,12 @@ const template: CardTemplate = {
 describe('benefitsFromTemplate', () => {
   // @lat: [[tests#Card catalogue#A template credit that has already ended lands inactive]]
   it('copies the end date and lands an already-ended credit inactive', () => {
-    const benefits = benefitsFromTemplate(template, 'card-9', '2026-09-16T00:00:00.000Z', () => 'id')
+    const benefits = benefitsFromTemplate(
+      template,
+      'card-9',
+      '2026-09-16T00:00:00.000Z',
+      () => 'id',
+    )
     expect(benefits.map((b) => [b.endsOn, b.active])).toEqual([
       ['2026-06-30', false],
       ['2026-12-31', true],

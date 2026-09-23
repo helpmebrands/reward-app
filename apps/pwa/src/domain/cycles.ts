@@ -80,6 +80,7 @@ export function cycleLabel(benefit: Benefit, start: IsoDate): string {
  */
 export function cycleFor(benefit: Benefit, card: Card, on: IsoDate): Cycle | null {
   if (benefit.cadence === 'manual') return null
+  if (hasEnded(benefit, on)) return null
 
   const span = MONTHS_PER_CYCLE[benefit.cadence]
   const anchor = anchorDateFor(benefit, card)
@@ -107,8 +108,16 @@ export function cycleFor(benefit: Benefit, card: Card, on: IsoDate): Cycle | nul
   }
 
   const start = addMonths(anchor, steps * span)
-  const end = addDays(addMonths(anchor, (steps + 1) * span), -1)
+  const natural = addDays(addMonths(anchor, (steps + 1) * span), -1)
+  // The final window of a credit that ends on a date closes on that date.
+  const end =
+    benefit.endsOn && compareIsoDate(benefit.endsOn, natural) < 0 ? benefit.endsOn : natural
   return { key: start, start, end, label: cycleLabel(benefit, start) }
+}
+
+/** True once `on` is past the credit's `endsOn`; never for an open-ended credit. */
+export function hasEnded(benefit: Benefit, on: IsoDate): boolean {
+  return benefit.endsOn !== undefined && compareIsoDate(on, benefit.endsOn) > 0
 }
 
 /** The cycle that follows `cycle`, or `null` for untracked benefits. */
@@ -154,9 +163,13 @@ export function closedCyclesBefore(
   count: number,
 ): Cycle[] {
   const current = cycleFor(benefit, card, on)
-  if (!current) return []
   const cycles: Cycle[] = []
-  let cycle = previousCycle(benefit, card, current)
+  // Once a credit has ended, its final window is itself a closed one.
+  let cycle = current
+    ? previousCycle(benefit, card, current)
+    : benefit.endsOn && hasEnded(benefit, on)
+      ? cycleFor(benefit, card, benefit.endsOn)
+      : null
   while (cycle && cycles.length < count) {
     cycles.push(cycle)
     cycle = previousCycle(benefit, card, cycle)
