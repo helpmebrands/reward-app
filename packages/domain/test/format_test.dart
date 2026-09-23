@@ -27,6 +27,19 @@ void main() {
     });
   });
 
+  group('value per cycle', () {
+    // @lat: [[tests#Formatting#A credit's value reads with its cadence]]
+    test('reads a credit as its value per cycle', () {
+      expect(formatValuePerCycle(1500, Cadence.monthly), r'$15/mo');
+      expect(formatValuePerCycle(5000, Cadence.quarterly), r'$50/qtr');
+      expect(formatValuePerCycle(30000, Cadence.semiannual), r'$300/half');
+      expect(formatValuePerCycle(20000, Cadence.annual), r'$200/yr');
+      expect(formatValuePerCycle(1295, Cadence.monthly), r'$12.95/mo');
+      expect(formatValuePerCycle(12000, Cadence.rolling, 48), r'$120/48 mo');
+      expect(formatValuePerCycle(5000, Cadence.manual), r'$50');
+    });
+  });
+
   group('dates', () {
     // @lat: [[tests#Formatting#Dates show the year only outside the current one]]
     test('shows the year only when the date is outside the current one', () {
