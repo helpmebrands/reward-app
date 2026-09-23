@@ -142,6 +142,10 @@ The fixture carries the fee and captured totals and each active card's figures, 
 
 "Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage and days to renewal, the verdict headline and body, every tag and the edit button, and the catalogue button follows.
 
+### A business card carries a Business mark
+
+With Jim's card made `business`, his card shows a "Business" tag and Kathy's shows none.
+
 ### The verdict is the PWA's, case by case
 
 `cardVerdict` over made-up summaries gives No fee, Keep with its body, Unlock first, Catch up with its body, and Decide with the lounge-access line.
@@ -230,7 +234,11 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 ### The blank template asks for issuer and card
 
-"Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a card with no benefits and says "Card added. Add its credits next."
+"Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a personal card with no benefits and says "Card added. Add its credits next."
+
+### A business template lands as a business card
+
+Picking the Business Platinum and saving with a holder and a date adds a card whose kind is `business`, copied from the template.
 
 ## Editors
 
@@ -245,6 +253,10 @@ The editor is titled by the card with "12 credits"; a typed holder reaches the s
 ### Mute, archive and network are on the card editor
 
 The "Silence every credit" switch mutes the card, choosing Visa writes the network, and "Archive this card" archives it.
+
+### The card kind is a choice on the card editor
+
+Jim's card starts personal; tapping the "Business" chip writes `CardKind.business` and "Personal" writes it back.
 
 ### The credit list opens each editor and adds a credit
 

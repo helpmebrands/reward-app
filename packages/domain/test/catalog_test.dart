@@ -42,6 +42,7 @@ void main() {
           issuer: 'Issuer',
           product: 'Product',
           network: CardNetwork.visa,
+          kind: CardKind.personal,
           annualFeeCents: 0,
           benefits: const [
             BenefitTemplate(
@@ -163,6 +164,7 @@ void main() {
           issuer: 'Issuer',
           product: 'Product',
           network: CardNetwork.visa,
+          kind: CardKind.personal,
           annualFeeCents: 0,
           benefits: [
             BenefitTemplate(
@@ -203,6 +205,7 @@ void main() {
         issuer: 'Issuer',
         product: 'Product',
         network: CardNetwork.visa,
+        kind: CardKind.personal,
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(
@@ -267,6 +270,7 @@ void main() {
         issuer: 'Issuer',
         product: 'Product',
         network: CardNetwork.visa,
+        kind: CardKind.personal,
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(

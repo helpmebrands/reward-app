@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "cards": [
     {
       "id": "card-0001",
@@ -7,6 +7,7 @@
       "product": "Platinum",
       "holder": "Jim",
       "network": "amex",
+      "kind": "personal",
       "annualFeeCents": 89500,
       "anniversaryOn": "2021-03-14",
       "muted": false,
@@ -20,6 +21,7 @@
       "product": "Platinum",
       "holder": "Kathy",
       "network": "amex",
+      "kind": "personal",
       "annualFeeCents": 89500,
       "anniversaryOn": "2022-07-02",
       "muted": false,

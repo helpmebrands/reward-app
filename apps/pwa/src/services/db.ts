@@ -16,8 +16,12 @@ export const DATA_KEY = 'app-data'
 /** Reminder schedule, written by the app and read by the service worker. */
 export const SCHEDULE_KEY = 'reminder-schedule'
 
-/** Bump when a migration is needed; see {@link migrate}. */
-export const DATA_VERSION = 1
+/**
+ * Bump when a migration is needed; see {@link migrate}.
+ *
+ * 1: the launch shape. 2: `Card.kind`, defaulted to `personal`.
+ */
+export const DATA_VERSION = 2
 
 const store = createStore(DB_NAME, STORE_NAME)
 
@@ -55,7 +59,9 @@ export function migrate(raw: Partial<AppData> | undefined): AppData {
   const base = emptyData()
   return {
     version: DATA_VERSION,
-    cards: raw.cards ?? base.cards,
+    // Cards saved before version 2 have no kind; a card is personal unless
+    // the user says otherwise.
+    cards: (raw.cards ?? base.cards).map((card) => ({ ...card, kind: card.kind ?? 'personal' })),
     benefits: raw.benefits ?? base.benefits,
     claims: raw.claims ?? base.claims,
     settings: {

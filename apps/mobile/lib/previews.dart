@@ -34,19 +34,21 @@ import 'widgets/snackbar_host.dart';
 
 const _today = '2026-09-16';
 
-Card _card(String id, String holder) => Card(
-  id: id,
-  issuer: 'American Express',
-  product: 'Platinum',
-  holder: holder,
-  network: CardNetwork.amex,
-  annualFeeCents: 89500,
-  anniversaryOn: '2021-03-14',
-  muted: false,
-  archived: false,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-);
+Card _card(String id, String holder, {CardKind kind = CardKind.personal}) =>
+    Card(
+      id: id,
+      issuer: 'American Express',
+      product: 'Platinum',
+      holder: holder,
+      network: CardNetwork.amex,
+      kind: kind,
+      annualFeeCents: 89500,
+      anniversaryOn: '2021-03-14',
+      muted: false,
+      archived: false,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    );
 
 Benefit _benefit(
   String id,
@@ -82,7 +84,12 @@ Benefit _benefit(
 
 AppData _household() => AppData(
   version: 1,
-  cards: [_card('jim', 'Jim'), _card('kathy', 'Kathy')],
+  // Kathy's is a business card, so the Cards screen and the card editor
+  // previews show the kind.
+  cards: [
+    _card('jim', 'Jim'),
+    _card('kathy', 'Kathy', kind: CardKind.business),
+  ],
   benefits: [
     _benefit('u1', 'jim', 'Uber Cash', 1500, merchant: 'Uber'),
     _benefit('u2', 'kathy', 'Uber Cash', 1500, merchant: 'Uber'),
@@ -472,6 +479,18 @@ Widget cardsEmpty() {
 @Preview(name: 'Add a card, catalogue', size: Size(402, 874))
 Widget addCardCatalogue() =>
     _themed(AddCardScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+/// Step two with the Business Platinum picked: the kind chips start on
+/// Business because the template says so.
+@Preview(name: 'Add a card, details', size: Size(402, 874))
+Widget addCardDetails() => _themed(
+  AddCardScreen(
+    store: _store(),
+    ui: UiState(),
+    initialTemplate: findTemplate('amex-business-platinum'),
+  ),
+  Brightness.dark,
+);
 
 /// The Field pattern in its three states: untouched, with a hint, and with
 /// an error forced into view by a submitted form.

@@ -13,6 +13,7 @@ const template: CardTemplate = {
   issuer: 'Issuer',
   product: 'Product',
   network: 'visa',
+  kind: 'personal',
   annualFeeCents: 0,
   benefits: [
     {

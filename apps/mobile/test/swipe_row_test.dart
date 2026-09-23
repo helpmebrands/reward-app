@@ -40,6 +40,7 @@ AppData _household() => AppData(
       product: 'Platinum',
       holder: 'Jim',
       network: CardNetwork.amex,
+      kind: CardKind.personal,
       annualFeeCents: 89500,
       anniversaryOn: '2021-03-14',
       muted: false,

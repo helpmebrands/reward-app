@@ -93,6 +93,10 @@ Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
 The PWA's sample household decodes to two cards, twenty-four benefits and twenty claims, and encodes back to JSON equal to the file, so nothing is dropped or renamed in either direction.
 
+### A card without a kind loads as personal
+
+A card record with no `kind` decodes as `CardKind.personal` and encodes `kind: personal`; `business` round-trips and `copyWith` can change it, so a snapshot from before the field existed loads with every card personal.
+
 ### The sample household rolls its Global Entry credits
 
 The sample's two Global Entry credits are `rolling` with `intervalMonths` 48 and nothing in it is `manual`, so the fixtures dumped from it exercise the rolling window.
@@ -140,6 +144,10 @@ Every shipped credit named "Global Entry…" is `rolling` with `intervalMonths` 
 ### Dated credits carry their end
 
 The Sapphire Reserve's StubHub, Peloton and two DoorDash credits end on 2027-12-31 and its Lyft credit on 2027-09-30; the United Quest's two Instacart credits end on 2027-12-31. Covered in both languages.
+
+### Every template names its kind
+
+The Business Platinum template is `business`, the blank one `personal`, and every template carries one of the two. Covered in both languages.
 
 ### The IHG spend credit is gated
 

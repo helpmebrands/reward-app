@@ -127,8 +127,14 @@ describe('card kind', () => {
     const business = findTemplate('amex-business-platinum')
     const blank = findTemplate('blank')
     if (!business || !blank) throw new Error('missing template')
-    const first = store.addCardFromTemplate(business, { holder: 'Jim', anniversaryOn: '2021-03-14' })
-    const second = store.addCardFromTemplate(blank, { holder: 'Kathy', anniversaryOn: '2021-03-14' })
+    const first = store.addCardFromTemplate(business, {
+      holder: 'Jim',
+      anniversaryOn: '2021-03-14',
+    })
+    const second = store.addCardFromTemplate(blank, {
+      holder: 'Kathy',
+      anniversaryOn: '2021-03-14',
+    })
     expect(first.kind).toBe('business')
     expect(second.kind).toBe('personal')
 

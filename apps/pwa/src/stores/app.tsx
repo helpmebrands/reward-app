@@ -174,6 +174,7 @@ export function AppProvider(props: ParentProps) {
         issuer: template.issuer,
         product: template.product,
         network: template.network,
+        kind: template.kind,
         annualFeeCents: template.annualFeeCents,
         anniversaryOn: todayIso(),
         muted: false,

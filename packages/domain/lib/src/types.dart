@@ -51,6 +51,11 @@ enum BenefitCategory {
 
 enum CardNetwork { amex, visa, mastercard, discover, other }
 
+/// Whether the card is a personal or a business product. Classification only:
+/// the Cards screen marks business cards, and filtering by kind is left to a
+/// later epic.
+enum CardKind { personal, business }
+
 /// The status ladder, taken from the design.
 ///
 /// [locked] and [manual] are deliberately *not* variants of "unclaimed":
@@ -93,6 +98,7 @@ class Card {
     required this.holder,
     this.nickname,
     required this.network,
+    required this.kind,
     this.last4,
     required this.annualFeeCents,
     required this.anniversaryOn,
@@ -117,6 +123,7 @@ class Card {
   /// User-supplied label that wins over `issuer product` in the UI.
   final String? nickname;
   final CardNetwork network;
+  final CardKind kind;
 
   /// Display only; never a full PAN.
   final String? last4;
@@ -140,6 +147,7 @@ class Card {
     String? holder,
     Object? nickname = _unset,
     CardNetwork? network,
+    CardKind? kind,
     Object? last4 = _unset,
     int? annualFeeCents,
     IsoDate? anniversaryOn,
@@ -153,6 +161,7 @@ class Card {
     holder: holder ?? this.holder,
     nickname: identical(nickname, _unset) ? this.nickname : nickname as String?,
     network: network ?? this.network,
+    kind: kind ?? this.kind,
     last4: identical(last4, _unset) ? this.last4 : last4 as String?,
     annualFeeCents: annualFeeCents ?? this.annualFeeCents,
     anniversaryOn: anniversaryOn ?? this.anniversaryOn,

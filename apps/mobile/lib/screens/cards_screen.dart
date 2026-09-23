@@ -482,6 +482,8 @@ class _CardStat extends StatelessWidget {
                 palette: tokens.missed,
               ),
             _Tag('$count credit${count == 1 ? '' : 's'}'),
+            if (summary.card.kind == CardKind.business)
+              const _Tag('Business', icon: Icons.work_outline),
           ],
         ),
       ),

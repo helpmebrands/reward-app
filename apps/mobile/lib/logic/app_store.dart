@@ -73,6 +73,7 @@ class AppStore extends ChangeNotifier {
     IsoDate? anniversaryOn,
     String? issuer,
     String? product,
+    CardKind? kind,
   }) async {
     final now = _now;
     final card = Card(
@@ -82,6 +83,7 @@ class AppStore extends ChangeNotifier {
       holder: holder,
       nickname: nickname,
       network: template.network,
+      kind: kind ?? template.kind,
       last4: last4,
       annualFeeCents: template.annualFeeCents,
       anniversaryOn: anniversaryOn ?? today,

@@ -3,6 +3,7 @@ import type {
   Benefit,
   BenefitCategory,
   Cadence,
+  CardKind,
   CardNetwork,
   CycleAnchor,
   IsoDate,
@@ -44,6 +45,8 @@ export interface CardTemplate {
   issuer: string
   product: string
   network: CardNetwork
+  /** Copied onto the card the template creates. */
+  kind: CardKind
   annualFeeCents: number
   benefits: BenefitTemplate[]
 }
@@ -54,6 +57,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Business Platinum',
     network: 'amex',
+    kind: 'business',
     annualFeeCents: 89500,
     benefits: [
       {
@@ -271,6 +275,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Delta SkyMiles Reserve',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 65000,
     benefits: [
       {
@@ -353,6 +358,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Gold',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 32500,
     benefits: [
       {
@@ -428,6 +434,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Hilton Honors Aspire',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 55000,
     benefits: [
       {
@@ -482,6 +489,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Hilton Honors Surpass',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 15000,
     benefits: [
       {
@@ -509,6 +517,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Marriott Bonvoy Brilliant',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 65000,
     benefits: [
       {
@@ -555,6 +564,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Platinum',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 89500,
     benefits: [
       {
@@ -772,6 +782,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Bank of America',
     product: 'Premium Rewards Elite',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 55000,
     benefits: [
       {
@@ -832,6 +843,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Capital One',
     product: 'Venture X',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 39500,
     benefits: [
       {
@@ -878,6 +890,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'IHG One Rewards Premier',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 9900,
     benefits: [
       {
@@ -941,6 +954,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'Sapphire Preferred',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 9500,
     benefits: [
       {
@@ -1005,6 +1019,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'Sapphire Reserve',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 79500,
     benefits: [
       {
@@ -1176,6 +1191,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'United Quest',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 35000,
     benefits: [
       {
@@ -1341,6 +1357,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Citi',
     product: 'AAdvantage Executive',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 69500,
     benefits: [
       {
@@ -1458,6 +1475,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Citi',
     product: 'Strata Elite',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 59500,
     benefits: [
       {
@@ -1536,6 +1554,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Wells Fargo',
     product: 'Autograph Journey',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 9500,
     benefits: [
       {
@@ -1562,6 +1581,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: '',
     product: '',
     network: 'other',
+    kind: 'personal',
     annualFeeCents: 0,
     benefits: [],
   },
