@@ -227,6 +227,10 @@ With no merchant and no search, the Platinum has no matched benefits. With Uber 
 
 `parseMoneyToCents` strips currency symbols and commas before parsing and refuses blanks, words and negatives; `parseMoney` (the form rule) accepts a sign, rejects commas and rounds to whole cents.
 
+### A credit's value reads with its cadence
+
+`formatValuePerCycle` gives "$15/mo", "$50/qtr", "$300/half", "$200/yr" and "$12.95/mo". A rolling credit reads "$120/48 mo", and a manual one is the bare "$50". Dart only; the catalogue's matched-credit tags use it.
+
 ### Dates show the year only outside the current one
 
 `formatDate` gives `Sep 30` inside the current year and `Mar 13, 2027` outside it; `formatRange` joins two with an en dash; the header reads `Tue, 15 Sep` and a reset date `30 September`.

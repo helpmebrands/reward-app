@@ -8,6 +8,7 @@ import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/benefit_icon.dart';
 import '../widgets/catalog_filter_panel.dart';
 import '../widgets/field.dart';
 import '../widgets/screen_title.dart';
@@ -27,11 +28,16 @@ class AddCardScreen extends StatefulWidget {
     required this.store,
     this.ui,
     this.initialTemplate,
+    this.initialFilter,
   });
 
   /// A template already picked, which opens the screen on step two. For the
   /// Widget Preview; the route always starts on the catalogue.
   final CardTemplate? initialTemplate;
+
+  /// A filter already applied to the catalogue. For the Widget Preview; the
+  /// route always starts unfiltered.
+  final CatalogFilter? initialFilter;
 
   final AppStore store;
   final UiState? ui;
@@ -71,6 +77,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
     _today = store.today;
     final initial = widget.initialTemplate;
     if (initial != null) _apply(initial);
+    final filter = widget.initialFilter;
+    if (filter != null) _filter.update((_) => filter);
     _holder.text = _initialHolder;
     _anniversary.text = _today;
     for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
@@ -445,6 +453,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
               child: _TemplateTile(
                 key: ValueKey('template-${template.id}'),
                 template: template,
+                matched: matchedBenefits(template, filter),
                 onTap: () => _pick(template),
               ),
             ),
@@ -638,9 +647,18 @@ class _AddCardScreenState extends State<AddCardScreen> {
 }
 
 class _TemplateTile extends StatelessWidget {
-  const _TemplateTile({super.key, required this.template, required this.onTap});
+  const _TemplateTile({
+    super.key,
+    required this.template,
+    this.matched = const [],
+    required this.onTap,
+  });
 
   final CardTemplate template;
+
+  /// The credits a selected merchant or the search matched, tagged so the
+  /// row says why it is listed.
+  final List<BenefitTemplate> matched;
   final VoidCallback onTap;
 
   @override
@@ -668,6 +686,19 @@ class _TemplateTile extends StatelessWidget {
                   children: [
                     Text(template.issuer, style: note),
                     Text(template.product, style: text.titleSmall),
+                    if (matched.isNotEmpty) ...[
+                      const SizedBox(height: Space.s2),
+                      Semantics(
+                        label:
+                            'Matches ${matched.map((b) => '${b.name}, ${_perCycle(b)}').join('; ')}',
+                        excludeSemantics: true,
+                        child: Wrap(
+                          spacing: Space.s2,
+                          runSpacing: Space.s2,
+                          children: [for (final b in matched) _MatchTag(b)],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: Space.s2),
                     Wrap(
                       spacing: Space.s3,
@@ -697,6 +728,57 @@ class _TemplateTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+String _perCycle(BenefitTemplate b) =>
+    formatValuePerCycle(b.valueCents, b.cadence, b.intervalMonths);
+
+/// One matched credit: its category icon, name and value per cycle, on the
+/// accent container.
+class _MatchTag extends StatelessWidget {
+  const _MatchTag(this.benefit);
+
+  final BenefitTemplate benefit;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
+    // The light ramp runs the other way, so these two are the container
+    // pair in both themes.
+    final ground = tokens.accentRamp[900]!;
+    final foreground = tokens.accentRamp[200]!;
+    final style = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: foreground);
+    return Container(
+      key: ValueKey('match-${benefit.name}'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.s3,
+        vertical: Space.s1,
+      ),
+      decoration: BoxDecoration(
+        color: ground,
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.sm)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            benefitCategoryIcon(benefit.category),
+            size: 14,
+            color: foreground,
+          ),
+          const SizedBox(width: Space.s2),
+          Flexible(child: Text(benefit.name, style: style)),
+          const SizedBox(width: Space.s2),
+          Text(
+            _perCycle(benefit),
+            style: style?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }

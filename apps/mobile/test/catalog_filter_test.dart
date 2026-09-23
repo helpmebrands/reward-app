@@ -108,7 +108,8 @@ void main() {
   testWidgets('search narrows as you type and Clear all resets it all', (
     tester,
   ) async {
-    await pumpCatalogue(tester);
+    // Tall enough to build every tile once the search tags their credits.
+    await pumpCatalogue(tester, size: const Size(1280, 6000));
     final search = find.byKey(const Key('catalog-search'));
     expect(find.text('Clear all'), findsNothing);
     for (final typed in ['u', 'ub', 'ube', 'uber']) {
@@ -207,6 +208,79 @@ void main() {
         reason: tester.widget<Text>(texts.at(i)).data,
       );
     }
+  });
+
+  group('matched benefits', () {
+    /// Every shown tile carries exactly the tags `matchedBenefits` names.
+    void expectTagsMatch(WidgetTester tester, CatalogFilter filter) {
+      for (final template in filterTemplates(cardTemplates, filter)) {
+        final names = matchedBenefits(template, filter).map((b) => b.name);
+        final tags = find.descendant(
+          of: find.byKey(ValueKey('template-${template.id}')),
+          matching: keyPrefix('match-'),
+        );
+        expect(
+          tags.evaluate().map(
+            (e) => (e.widget.key! as ValueKey<String>).value.substring(6),
+          ),
+          names,
+          reason: template.id,
+        );
+      }
+    }
+
+    // @lat: [[mobile-tests#Catalogue filter#A selected merchant tags the benefits it matched]]
+    testWidgets('selecting Uber tags the Platinum credits it matched', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: const Size(1280, 5000));
+      expect(keyPrefix('match-'), findsNothing);
+      await tester.enterText(find.byKey(const Key('merchant-search')), 'uber');
+      await tester.pumpAndSettle();
+      await tap(tester, facet('merchant-Uber'));
+
+      final platinum = find.byKey(const ValueKey('template-amex-platinum'));
+      Finder tag(String name) => find.descendant(
+        of: platinum,
+        matching: find.byKey(ValueKey('match-$name')),
+      );
+      final monthly = tag('Uber Cash (monthly)');
+      final bonus = tag('Uber Cash (December bonus)');
+      expect(monthly, findsOneWidget);
+      expect(bonus, findsOneWidget);
+      expect(
+        find.descendant(of: monthly, matching: find.text(r'$15/mo')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: bonus, matching: find.text(r'$20/yr')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: monthly, matching: find.byType(Icon)),
+        findsOneWidget,
+      );
+      expectTagsMatch(tester, const CatalogFilter().toggleMerchant('Uber'));
+
+      final handle = tester.ensureSemantics();
+      expect(
+        tester.getSemantics(platinum).label,
+        contains('Matches Uber Cash (monthly)'),
+      );
+      handle.dispose();
+    });
+
+    // @lat: [[mobile-tests#Catalogue filter#The search tags only the benefits it matched]]
+    testWidgets('searching "resy" tags only Resy credits', (tester) async {
+      await pumpCatalogue(tester, size: const Size(1280, 5000));
+      await tester.enterText(find.byKey(const Key('catalog-search')), 'resy');
+      await tester.pumpAndSettle();
+      expect(keyPrefix('match-'), findsWidgets);
+      expectTagsMatch(tester, const CatalogFilter(search: 'resy'));
+      for (final e in keyPrefix('match-').evaluate()) {
+        expect((e.widget.key! as ValueKey<String>).value, contains('Resy'));
+      }
+    });
   });
 
   group('compact', () {
