@@ -127,10 +127,8 @@ void main() {
 
     // @lat: [[tests#Card catalogue#Dated credits carry their end]]
     test('ends the credits the issuer has dated', () {
-      String? endsOn(String id, String name) => findTemplate(id)!
-          .benefits
-          .firstWhere((b) => b.name == name)
-          .endsOn;
+      String? endsOn(String id, String name) =>
+          findTemplate(id)!.benefits.firstWhere((b) => b.name == name).endsOn;
       const reserve = 'chase-sapphire-reserve';
       const quest = 'chase-united-quest';
       expect(endsOn(reserve, 'StubHub / viagogo Credit'), '2027-12-31');

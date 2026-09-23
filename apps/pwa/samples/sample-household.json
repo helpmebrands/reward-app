@@ -276,8 +276,9 @@
       "category": "travel",
       "icon": "identification-card",
       "valueCents": 12000,
-      "cadence": "manual",
+      "cadence": "rolling",
       "anchor": "calendar",
+      "intervalMonths": 48,
       "enrollmentRequired": false,
       "redemptionSteps": [
         "Pay the application fee with the card when you next become eligible.",
@@ -288,7 +289,7 @@
       "active": true,
       "createdAt": "2026-01-01T00:00:00.000Z",
       "updatedAt": "2026-01-01T00:00:00.000Z",
-      "notes": "No cycle tracks this — review it by hand when the membership nears expiry."
+      "notes": "Counted from your last credit: the clock restarts when you claim it."
     },
     {
       "id": "ben-0015",
@@ -535,8 +536,9 @@
       "category": "travel",
       "icon": "identification-card",
       "valueCents": 12000,
-      "cadence": "manual",
+      "cadence": "rolling",
       "anchor": "calendar",
+      "intervalMonths": 48,
       "enrollmentRequired": false,
       "redemptionSteps": [
         "Pay the application fee with the card when you next become eligible.",
@@ -547,7 +549,7 @@
       "active": true,
       "createdAt": "2026-01-01T00:00:00.000Z",
       "updatedAt": "2026-01-01T00:00:00.000Z",
-      "notes": "No cycle tracks this — review it by hand when the membership nears expiry."
+      "notes": "Counted from your last credit: the clock restarts when you claim it."
     }
   ],
   "claims": [

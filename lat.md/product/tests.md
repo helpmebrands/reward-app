@@ -93,6 +93,10 @@ Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
 The PWA's sample household decodes to two cards, twenty-four benefits and twenty claims, and encodes back to JSON equal to the file, so nothing is dropped or renamed in either direction.
 
+### The sample household rolls its Global Entry credits
+
+The sample's two Global Entry credits are `rolling` with `intervalMonths` 48 and nothing in it is `manual`, so the fixtures dumped from it exercise the rolling window.
+
 ### Enums use the PWA's spellings
 
 `fee_credit` and `use_soon` decode to `BenefitCategory.feeCredit` and `BenefitStatus.useSoon` and encode back to the same strings; absent optionals decode to null and are omitted on encode, and a missing `redemptionSteps` reads as empty.
@@ -124,6 +128,22 @@ Every credit in every template has an icon name and a value above zero, so a tem
 ### A template prices its year and names its locked credits
 
 `templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrolment box.
+
+### Business Platinum is priced at its unconditional credits
+
+The shipped `amex-business-platinum` template gates the Dell $5K bonus and the two $250K credits, and `templateAnnualValueCents` equals the sum of the rest, well under four times the fee. Covered in both languages.
+
+### Every Global Entry credit rolls every 48 months
+
+Every shipped credit named "Global Entry…" is `rolling` with `intervalMonths` 48 and amortises to $30 a year, and no shipped credit is `manual` any more. Covered in both languages.
+
+### Dated credits carry their end
+
+The Sapphire Reserve's StubHub, Peloton and two DoorDash credits end on 2027-12-31 and its Lyft credit on 2027-09-30; the United Quest's two Instacart credits end on 2027-12-31. Covered in both languages.
+
+### The IHG spend credit is gated
+
+The IHG Premier's "$20K Spend Statement Credit" carries a $20,000 threshold. Covered in both languages.
 
 ### A template amortises a rolling credit
 

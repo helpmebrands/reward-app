@@ -1,12 +1,12 @@
 {
   "on": "2026-09-16",
   "header": {
-    "open": 12,
+    "open": 14,
     "locked": 2,
     "missed": 48
   },
   "totals": {
-    "claimableCents": 165890,
+    "claimableCents": 189890,
     "lockedCents": 50000,
     "capturedCents": 97500,
     "missedCents": 167220
@@ -20,9 +20,9 @@
       "Hotel Credit (FHR / THC) · Kathy · H2 2026",
       "Airline Fee Credit · Kathy · 2026",
       "Uber One Membership Credit · Kathy · 2026",
+      "Global Entry / TSA PreCheck · Kathy · Eligible now",
       "Equinox Credit · Kathy · 2026",
       "Oura Ring Credit · Kathy · 2026",
-      "Global Entry / TSA PreCheck · Kathy · Untracked",
       "Uber Cash · Kathy · Sep 2026",
       "CLEAR+ Credit · Kathy · 2026",
       "Uber Cash · Kathy · Aug 2026",
@@ -58,7 +58,7 @@
       "Hotel Credit (FHR / THC) · Jim · H2 2026",
       "Equinox Credit · Jim · 2026",
       "Oura Ring Credit · Jim · 2026",
-      "Global Entry / TSA PreCheck · Jim · Untracked",
+      "Global Entry / TSA PreCheck · Jim · Eligible now",
       "Uber Cash · Jim · Sep 2026",
       "Resy Dining Credit · Jim · Q3 2026",
       "lululemon Credit · Jim · Q3 2026",
@@ -102,11 +102,13 @@
       "Hotel Credit (FHR / THC) · Kathy · H2 2026",
       "Airline Fee Credit · Kathy · 2026",
       "Uber One Membership Credit · Kathy · 2026",
+      "Global Entry / TSA PreCheck · Kathy · Eligible now",
       "Digital Entertainment Credit · Jim · Sep 2026",
       "Walmart+ Membership Credit · Jim · Sep 2026",
       "Hotel Credit (FHR / THC) · Jim · H2 2026",
       "Equinox Credit · Jim · 2026",
-      "Oura Ring Credit · Jim · 2026"
+      "Oura Ring Credit · Jim · 2026",
+      "Global Entry / TSA PreCheck · Jim · Eligible now"
     ],
     "locked": [
       "Equinox Credit · Kathy · 2026",
@@ -179,12 +181,12 @@
       {
         "label": "American Express Platinum — Kathy",
         "count": 40,
-        "figure": "$832.95 claimable"
+        "figure": "$952.95 claimable"
       },
       {
         "label": "American Express Platinum — Jim",
         "count": 32,
-        "figure": "$825.95 claimable"
+        "figure": "$945.95 claimable"
       }
     ],
     "cycle": [
@@ -209,9 +211,9 @@
         "figure": "$820 claimable"
       },
       {
-        "label": "Manual",
+        "label": "Rolling",
         "count": 2,
-        "figure": "$0 claimable"
+        "figure": "$240 claimable"
       }
     ],
     "status": [
@@ -222,16 +224,11 @@
       },
       {
         "label": "Available",
-        "count": 6,
-        "figure": "$1,420 claimable"
+        "count": 8,
+        "figure": "$1,660 claimable"
       },
       {
         "label": "Locked",
-        "count": 2,
-        "figure": "$0 claimable"
-      },
-      {
-        "label": "Manual",
         "count": 2,
         "figure": "$0 claimable"
       },

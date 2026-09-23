@@ -60,7 +60,7 @@ With no snapshot the screen shows "Start with one card" and no rows.
 
 ### A row opens the sheet and logging moves it to captured
 
-Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, drops the headline from $1,658.90 to $1,558.90, draws that row in the captured tone and shows the undo snackbar.
+Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, drops the headline from $1,898.90 to $1,798.90, draws that row in the captured tone and shows the undo snackbar.
 
 ### Swiping a row logs it with an undo
 
@@ -84,7 +84,7 @@ Tapping Kathy's side closes the compare and opens the credit sheet for Kathy's h
 
 ### Preview nudge shows the stand-in when nothing is scheduled
 
-With reminders off, "Preview nudge" shows "$1,658.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
+With reminders off, "Preview nudge" shows "$1,898.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
 
 ### Preview nudge shows the next scheduled reminder
 
@@ -98,7 +98,7 @@ The fixture carries the header counts, the four totals, every filter's rows as d
 
 ### The header carries the counts and the four totals
 
-"All credits" is headed by "12 open · 2 locked · 48 missed", and the Claimable, Locked, Captured and Missed tiles show the fixture's totals.
+"All credits" is headed by "14 open · 2 locked · 48 missed", and the Claimable, Locked, Captured and Missed tiles show the fixture's totals.
 
 ### Each filter shows the PWA's rows
 
