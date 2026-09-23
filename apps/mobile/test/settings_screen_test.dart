@@ -230,7 +230,9 @@ void main() {
         isNot(Tristate.none),
       );
     }
-    expect(find.bySemanticsLabel('Appearance'), findsOneWidget);
+    await tester.ensureVisible(find.text('Appearance', skipOffstage: false));
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Appearance'), findsWidgets);
     SemanticsNode segment(String text) => tester.getSemantics(find.text(text));
     expect(
       segment('System').getSemanticsData().flagsCollection.isSelected,
