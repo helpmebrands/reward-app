@@ -52,8 +52,18 @@ Future<App> pumpAdd(
   return App(store, ui);
 }
 
+Finder get platinum => find.byKey(const Key('template-amex-platinum'));
+
+/// The catalogue outgrows the screen, so scroll the Platinum into view first.
+Future<void> showPlatinum(WidgetTester tester) async {
+  await tester.scrollUntilVisible(platinum, 200);
+  await tester.ensureVisible(platinum);
+  await tester.pumpAndSettle();
+}
+
 Future<void> pickPlatinum(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('template-amex-platinum')));
+  await showPlatinum(tester);
+  await tester.tap(platinum);
   await tester.pumpAndSettle();
 }
 
@@ -70,6 +80,7 @@ void main() {
     expect(find.text('Add a card'), findsOneWidget);
     expect(find.text('1 of 2'), findsOneWidget);
     final template = findTemplate('amex-platinum')!;
+    await showPlatinum(tester);
     expect(find.text(template.product), findsWidgets);
     expect(
       find.text(

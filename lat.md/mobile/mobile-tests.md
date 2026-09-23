@@ -706,4 +706,4 @@ Booting the app with an empty snapshot store on a device reaches the Today scree
 
 One pass from an empty store through adding a card, logging, undoing, swiping and reading every screen, on a real simulator or emulator.
 
-The steps: add the Platinum from the catalogue for Kathy and land on its editor; see Uber Cash on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $15 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.
+The steps: add the Platinum from the catalogue for Kathy and land on its editor; see its Walmart+ Membership Credit, a monthly credit with no enrolment, on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $12.95 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.

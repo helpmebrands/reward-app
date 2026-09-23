@@ -101,6 +101,10 @@ Every credit in every template has an icon name and a value above zero, so a tem
 
 `benefitsFromTemplate` stamps every entry into a benefit with a fresh id, the new card's id, the given timestamps, active and unmuted, keeping `enrollmentRequired` so the credit lands locked or spendable as the template says.
 
+### Every template icon is a Phosphor glyph
+
+Every credit's icon names a class in the bundled Phosphor stylesheet (kebab-case, e.g. `device-mobile`), so imported catalogue data with PascalCase names cannot ship blank icons. PWA-only, since the stylesheet lives there.
+
 ## Formatting
 
 `packages/domain/test/format_test.dart` pins the display forms in `format.dart`. The PWA's equivalents are locale-driven `Intl` calls exercised only through components; the port hand-rolls them, so these specs are what the two must agree on.

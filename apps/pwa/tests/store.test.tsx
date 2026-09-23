@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { render } from '@solidjs/testing-library'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { CARD_TEMPLATES, findTemplate } from '../src/domain/catalog.ts'
@@ -212,6 +214,19 @@ describe('the catalogue', () => {
       for (const benefit of template.benefits) {
         expect(benefit.icon, `${template.id}/${benefit.name}`).toBeTruthy()
         expect(benefit.valueCents, `${template.id}/${benefit.name}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  // @lat: [[tests#Card catalogue#Every template icon is a Phosphor glyph]]
+  it('names only icons the bundled Phosphor stylesheet draws', () => {
+    const css = readFileSync(
+      createRequire(import.meta.url).resolve('@phosphor-icons/web/regular'),
+      'utf8',
+    )
+    for (const template of CARD_TEMPLATES) {
+      for (const benefit of template.benefits) {
+        expect(css, `${template.id}/${benefit.name}`).toContain(`.ph-${benefit.icon}:before`)
       }
     }
   })
