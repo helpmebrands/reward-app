@@ -61,6 +61,7 @@ class CardTemplate {
     required this.issuer,
     required this.product,
     required this.network,
+    required this.kind,
     required this.annualFeeCents,
     required this.benefits,
   });
@@ -69,6 +70,9 @@ class CardTemplate {
   final String issuer;
   final String product;
   final CardNetwork network;
+
+  /// Copied onto the card the template creates.
+  final CardKind kind;
   final int annualFeeCents;
   final List<BenefitTemplate> benefits;
 }
@@ -79,6 +83,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Business Platinum',
     network: CardNetwork.amex,
+    kind: CardKind.business,
     annualFeeCents: 89500,
     benefits: [
       BenefitTemplate(
@@ -307,6 +312,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Delta SkyMiles Reserve',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 65000,
     benefits: [
       BenefitTemplate(
@@ -387,6 +393,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Gold',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 32500,
     benefits: [
       BenefitTemplate(
@@ -464,6 +471,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Hilton Honors Aspire',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 55000,
     benefits: [
       BenefitTemplate(
@@ -519,6 +527,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Hilton Honors Surpass',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 15000,
     benefits: [
       BenefitTemplate(
@@ -546,6 +555,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Marriott Bonvoy Brilliant',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 65000,
     benefits: [
       BenefitTemplate(
@@ -591,6 +601,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Platinum',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 89500,
     benefits: [
       BenefitTemplate(
@@ -813,6 +824,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Bank of America',
     product: 'Premium Rewards Elite',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 55000,
     benefits: [
       BenefitTemplate(
@@ -871,6 +883,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Capital One',
     product: 'Venture X',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 39500,
     benefits: [
       BenefitTemplate(
@@ -915,6 +928,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'IHG One Rewards Premier',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 9900,
     benefits: [
       BenefitTemplate(
@@ -976,6 +990,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'Sapphire Preferred',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 9500,
     benefits: [
       BenefitTemplate(
@@ -1039,6 +1054,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'Sapphire Reserve',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 79500,
     benefits: [
       BenefitTemplate(
@@ -1212,6 +1228,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'United Quest',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 35000,
     benefits: [
       BenefitTemplate(
@@ -1373,6 +1390,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Citi',
     product: 'AAdvantage Executive',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 69500,
     benefits: [
       BenefitTemplate(
@@ -1486,6 +1504,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Citi',
     product: 'Strata Elite',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 59500,
     benefits: [
       BenefitTemplate(
@@ -1563,6 +1582,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Wells Fargo',
     product: 'Autograph Journey',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 9500,
     benefits: [
       BenefitTemplate(
@@ -1588,6 +1608,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: '',
     product: '',
     network: CardNetwork.other,
+    kind: CardKind.personal,
     annualFeeCents: 0,
     benefits: [],
   ),

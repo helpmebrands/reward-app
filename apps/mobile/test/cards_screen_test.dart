@@ -155,6 +155,24 @@ void main() {
     expect(find.text('Add a card from the catalogue'), findsOneWidget);
   });
 
+  // @lat: [[mobile-tests#Cards#A business card carries a Business mark]]
+  testWidgets('a business card shows a Business tag and a personal one none', (
+    tester,
+  ) async {
+    final sample = sampleHousehold();
+    await pumpCards(
+      tester,
+      data: sample.copyWith(
+        cards: [
+          for (final c in sample.cards)
+            c.id == 'card-0001' ? c.copyWith(kind: CardKind.business) : c,
+        ],
+      ),
+    );
+    expect(within('card-0001', 'Business'), findsOneWidget);
+    expect(within('card-0002', 'Business'), findsNothing);
+  });
+
   // @lat: [[mobile-tests#Cards#The verdict is the PWA's, case by case]]
   test('cardVerdict words each case as the PWA does', () {
     CardSummary summary({

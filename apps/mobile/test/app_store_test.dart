@@ -18,6 +18,7 @@ Card _card({String id = 'card-1', bool muted = false}) => Card(
   product: 'Platinum',
   holder: 'Jim',
   network: CardNetwork.amex,
+  kind: CardKind.personal,
   annualFeeCents: 89500,
   anniversaryOn: '2020-03-14',
   muted: muted,

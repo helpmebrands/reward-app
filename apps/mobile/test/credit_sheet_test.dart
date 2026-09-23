@@ -24,6 +24,7 @@ Card _card(String id, String holder) => Card(
   product: 'Platinum',
   holder: holder,
   network: CardNetwork.amex,
+  kind: CardKind.personal,
   annualFeeCents: 89500,
   anniversaryOn: '2021-03-14',
   muted: false,

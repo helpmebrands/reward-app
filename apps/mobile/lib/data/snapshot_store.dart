@@ -18,8 +18,9 @@ const Settings defaultSettings = Settings(
   holderFilter: '',
 );
 
-/// Bump when a migration is needed.
-const int dataVersion = 1;
+/// Bump when a migration is needed. 1: the launch shape. 2: `Card.kind`,
+/// which `cardFromJson` defaults to personal on an older record.
+const int dataVersion = 2;
 
 /// A fresh install's household: nothing but the defaults.
 AppData emptyAppData() => const AppData(

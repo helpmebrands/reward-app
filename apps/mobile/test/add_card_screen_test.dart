@@ -276,6 +276,25 @@ void main() {
   });
 
   // @lat: [[mobile-tests#Add a card#The blank template asks for issuer and card]]
+  // @lat: [[mobile-tests#Add a card#A business template lands as a business card]]
+  testWidgets('a business template is business, and the chips can change it', (
+    tester,
+  ) async {
+    final app = await pumpAdd(tester);
+    final business = find.byKey(const Key('template-amex-business-platinum'));
+    await tester.scrollUntilVisible(business, 200);
+    await tester.ensureVisible(business);
+    await tester.pumpAndSettle();
+    await tester.tap(business);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(holder, 'Kathy');
+    await tester.enterText(anniversary, '2024-05-01');
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(app.store.data!.cards.last.kind, CardKind.business);
+  });
+
   testWidgets('setting one up by hand asks for the issuer and the card', (
     tester,
   ) async {
@@ -303,6 +322,7 @@ void main() {
     final card = app.store.data!.cards.last;
     expect(card.issuer, 'Chase');
     expect(card.product, 'Sapphire');
+    expect(card.kind, CardKind.personal);
     expect(app.store.data!.benefits.where((b) => b.cardId == card.id), isEmpty);
     expect(app.ui.snackbar.current!.text, 'Card added. Add its credits next.');
   });

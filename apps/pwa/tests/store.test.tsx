@@ -121,6 +121,32 @@ describe('claiming', () => {
   })
 })
 
+describe('card kind', () => {
+  it('copies the kind from the template, and blank is personal', () => {
+    const store = mountStore()
+    const business = findTemplate('amex-business-platinum')
+    const blank = findTemplate('blank')
+    if (!business || !blank) throw new Error('missing template')
+    const first = store.addCardFromTemplate(business, {
+      holder: 'Jim',
+      anniversaryOn: '2021-03-14',
+    })
+    const second = store.addCardFromTemplate(blank, {
+      holder: 'Kathy',
+      anniversaryOn: '2021-03-14',
+    })
+    expect(first.kind).toBe('business')
+    expect(second.kind).toBe('personal')
+
+    store.updateCard(second.id, { kind: 'business' })
+    expect(store.data.cards.find((c) => c.id === second.id)?.kind).toBe('business')
+    expect(JSON.parse(store.exportJson()).cards.map((c: { kind: string }) => c.kind)).toEqual([
+      'business',
+      'business',
+    ])
+  })
+})
+
 describe('enrolment', () => {
   it('unlocks a credit and can be taken back', () => {
     const store = mountStore()

@@ -10,6 +10,7 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/field.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/snackbar_host.dart';
+import 'card_editor_screen.dart' show KindChoice;
 
 /// Add a card, in two steps: pick the product, then say whose it is and when
 /// the cardmember year turns over.
@@ -19,7 +20,16 @@ import '../widgets/snackbar_host.dart';
 /// invalid submit shows the errors and focuses the first, since a disabled
 /// button never says why. Back with a draft asks first.
 class AddCardScreen extends StatefulWidget {
-  const AddCardScreen({super.key, required this.store, this.ui});
+  const AddCardScreen({
+    super.key,
+    required this.store,
+    this.ui,
+    this.initialTemplate,
+  });
+
+  /// A template already picked, which opens the screen on step two. For the
+  /// Widget Preview; the route always starts on the catalogue.
+  final CardTemplate? initialTemplate;
 
   final AppStore store;
   final UiState? ui;
@@ -31,6 +41,7 @@ class AddCardScreen extends StatefulWidget {
 class _AddCardScreenState extends State<AddCardScreen> {
   CardTemplate? _picked;
   bool _submitted = false;
+  CardKind _kind = CardKind.personal;
 
   late final String _initialHolder;
   late final String _today;
@@ -54,6 +65,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
     final data = store.data;
     _initialHolder = data == null ? '' : (holders(data).firstOrNull ?? '');
     _today = store.today;
+    final initial = widget.initialTemplate;
+    if (initial != null) _apply(initial);
     _holder.text = _initialHolder;
     _anniversary.text = _today;
     for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
@@ -98,12 +111,15 @@ class _AddCardScreenState extends State<AddCardScreen> {
       (_isBlank && (_issuer.text.isNotEmpty || _product.text.isNotEmpty));
 
   void _pick(CardTemplate template) {
-    setState(() {
-      _picked = template;
-      _submitted = false;
-      _issuer.text = template.id == 'blank' ? '' : template.issuer;
-      _product.text = template.id == 'blank' ? '' : template.product;
-    });
+    setState(() => _apply(template));
+  }
+
+  void _apply(CardTemplate template) {
+    _picked = template;
+    _submitted = false;
+    _kind = template.kind;
+    _issuer.text = template.id == 'blank' ? '' : template.issuer;
+    _product.text = template.id == 'blank' ? '' : template.product;
   }
 
   void _leave() => context.go(Paths.cards);
@@ -163,6 +179,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
       nickname: nickname.isEmpty ? null : nickname,
       issuer: _isBlank ? _issuer.text.trim() : null,
       product: _isBlank ? _product.text.trim() : null,
+      kind: _kind,
     );
     final count = template.benefits.length;
     widget.ui?.snackbar.show(
@@ -374,6 +391,10 @@ class _AddCardScreenState extends State<AddCardScreen> {
         error: null,
         controller: _nickname,
         focusNode: _nicknameFocus,
+      ),
+      KindChoice(
+        kind: _kind,
+        onChanged: (kind) => setState(() => _kind = kind),
       ),
     ];
 

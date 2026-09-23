@@ -137,6 +137,23 @@ void main() {
       expect(cardOf(app, jim).archived, isTrue);
     });
 
+    // @lat: [[mobile-tests#Editors#The card kind is a choice on the card editor]]
+    testWidgets('the Personal and Business chips write the kind', (
+      tester,
+    ) async {
+      final app = await pumpAt(tester, cardPath(jim));
+      expect(cardOf(app, jim).kind, CardKind.personal);
+
+      await show(tester, find.text('Business'));
+      await tester.tap(find.text('Business'));
+      await tester.pumpAndSettle();
+      expect(cardOf(app, jim).kind, CardKind.business);
+
+      await tester.tap(find.text('Personal'));
+      await tester.pumpAndSettle();
+      expect(cardOf(app, jim).kind, CardKind.personal);
+    });
+
     // @lat: [[mobile-tests#Editors#The credit list opens each editor and adds a credit]]
     testWidgets('lists the credits by name, opens one, and adds a new one', (
       tester,

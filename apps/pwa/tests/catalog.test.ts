@@ -13,6 +13,7 @@ const template: CardTemplate = {
   issuer: 'Issuer',
   product: 'Product',
   network: 'visa',
+  kind: 'personal',
   annualFeeCents: 0,
   benefits: [
     {
@@ -149,6 +150,15 @@ describe('the shipped catalogue', () => {
     expect(endsOn('chase-sapphire-reserve', 'Lyft Credit')).toBe('2027-09-30')
     expect(endsOn('chase-united-quest', 'Instacart $10 Monthly Credit')).toBe('2027-12-31')
     expect(endsOn('chase-united-quest', 'Instacart $5 Monthly Credit')).toBe('2027-12-31')
+  })
+
+  // @lat: [[tests#Card catalogue#Every template names its kind]]
+  it('marks Business Platinum as business and everything else personal', () => {
+    expect(template('amex-business-platinum').kind).toBe('business')
+    expect(template('blank').kind).toBe('personal')
+    for (const t of CARD_TEMPLATES) {
+      expect(['personal', 'business'], t.id).toContain(t.kind)
+    }
   })
 
   // @lat: [[tests#Card catalogue#The IHG spend credit is gated]]

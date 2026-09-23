@@ -300,6 +300,11 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                 }
               },
             ),
+            KindChoice(
+              kind: current.kind,
+              onChanged: (kind) =>
+                  store.updateCard(current.id, (c) => c.copyWith(kind: kind)),
+            ),
           ],
           wide: [
             SwitchRow(
@@ -352,6 +357,57 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               onTap: () => context.go(benefitPath(benefit.id)),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Personal or business, as two choice chips. Classification only: business
+/// cards are marked on the Cards screen and nothing else changes yet.
+class KindChoice extends StatelessWidget {
+  const KindChoice({super.key, required this.kind, required this.onChanged});
+
+  final CardKind kind;
+  final ValueChanged<CardKind> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
+    final note = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: tokens.textSecondary);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Kind', style: note),
+        const SizedBox(height: Space.s2),
+        Semantics(
+          label: 'Kind',
+          container: true,
+          explicitChildNodes: true,
+          child: Wrap(
+            spacing: Space.s2,
+            runSpacing: Space.s2,
+            children: [
+              for (final (value, label) in const [
+                (CardKind.personal, 'Personal'),
+                (CardKind.business, 'Business'),
+              ])
+                ChoiceChip(
+                  label: Text(label),
+                  selected: kind == value,
+                  onSelected: (_) => onChanged(value),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: Space.s1),
+          child: Text(
+            'Business cards are marked on the Cards screen.',
+            style: note,
+          ),
+        ),
       ],
     );
   }

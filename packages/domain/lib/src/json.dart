@@ -37,6 +37,9 @@ Card cardFromJson(Map<String, dynamic> json) => Card(
   holder: json['holder'] as String,
   nickname: json['nickname'] as String?,
   network: CardNetwork.values.byName(json['network'] as String),
+  // Cards saved before version 2 have no kind; a card is personal unless the
+  // user says otherwise.
+  kind: CardKind.values.byName((json['kind'] as String?) ?? 'personal'),
   last4: json['last4'] as String?,
   annualFeeCents: json['annualFeeCents'] as int,
   anniversaryOn: json['anniversaryOn'] as String,
@@ -53,6 +56,7 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'holder': card.holder,
   'nickname': card.nickname,
   'network': card.network.name,
+  'kind': card.kind.name,
   'last4': card.last4,
   'annualFeeCents': card.annualFeeCents,
   'anniversaryOn': card.anniversaryOn,

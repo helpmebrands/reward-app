@@ -54,6 +54,13 @@ export type BenefitCategory =
 
 export type CardNetwork = 'amex' | 'visa' | 'mastercard' | 'discover' | 'other'
 
+/**
+ * Whether the card is a personal or a business product. Classification only:
+ * the Cards screen marks business cards, and filtering by kind is left to a
+ * later epic.
+ */
+export type CardKind = 'personal' | 'business'
+
 export interface Card {
   id: Uuid
   /** e.g. "American Express". */
@@ -68,6 +75,7 @@ export interface Card {
   /** User-supplied label that wins over `issuer product` in the UI. */
   nickname?: string
   network: CardNetwork
+  kind: CardKind
   /** Display only; never a full PAN. */
   last4?: string
   annualFeeCents: number
