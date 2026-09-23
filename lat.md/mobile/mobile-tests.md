@@ -312,6 +312,40 @@ At a 2.0 text scale on 402 the screen raises no layout exception and every text 
 
 An empty household shows the note about what will appear and neither the ranks nor the leaks.
 
+## Settings
+
+`settings_screen_test.dart` opens the app at `/settings` over the sample household and drives each section ([[mobile-architecture#Settings screen]]).
+
+### Each reminder control writes its field and reflects it
+
+"Send me reminders" turns reminders on and reveals the time, the minimum and the locked switch; "08:30" writes the time of day; the locked switch writes its flag.
+
+A fresh app over the same saved snapshot shows reminders on, the time, and the locked switch off.
+
+### A bad minimum shows the error and writes nothing
+
+"abc" shows "Enter the amount as a number, like 695." only after the field is left and leaves the minimum at $1; "5" writes $5 and clears the error.
+
+### Choosing Dark overrides the platform and System follows it again
+
+With the platform light, the app starts in system mode showing light; Dark writes the setting and switches the theme mode and the shown brightness to dark; System returns both to the platform; Light sets the light mode.
+
+### The ladder table lists the four cadences
+
+Monthly, Quarterly, Semi-annual and Annual each show their cadence label and `ladderSummary`; Manual is not listed.
+
+### Settings keeps one column and survives 200%
+
+At 1280 the minimum field spans the padded column and sits under the time field; at a 2.0 text scale on 402 nothing overflows and every text ends inside the width.
+
+### Every switch and segment has a label and a state
+
+Both switches are found by their labels and carry a toggled state; the appearance group is labelled and System is selected while Dark is not.
+
+### Today leads to Settings
+
+The gear labelled "Settings" on Today opens the Settings screen.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).

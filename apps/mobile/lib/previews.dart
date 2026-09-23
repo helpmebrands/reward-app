@@ -14,6 +14,7 @@ import 'screens/card_editor_screen.dart';
 import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
+import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/value_screen.dart';
 import 'shell/width_class.dart';
@@ -540,3 +541,18 @@ Widget valueExpanded() => _themed(
   ),
   Brightness.dark,
 );
+
+@Preview(name: 'Settings, reminders off', size: Size(402, 874))
+Widget settingsOff() =>
+    _themed(SettingsScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+@Preview(name: 'Settings, reminders on', size: Size(402, 1100))
+Widget settingsOn() {
+  final store = _store();
+  store.updateNotificationSettings((n) => n.copyWith(enabled: true));
+  return _themed(SettingsScreen(store: store, ui: UiState()), Brightness.dark);
+}
+
+@Preview(name: 'Settings, light', size: Size(402, 874))
+Widget settingsLight() =>
+    _themed(SettingsScreen(store: _store(), ui: UiState()), Brightness.light);
