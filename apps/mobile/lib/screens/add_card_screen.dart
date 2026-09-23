@@ -58,6 +58,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
   final _nicknameFocus = FocusNode(debugLabel: 'nickname');
   final _filter = CatalogFilterController();
+  final _filtersFocus = FocusNode(debugLabel: 'filters');
 
   AppStore get store => widget.store;
   bool get _isBlank => _picked?.id == 'blank';
@@ -92,6 +93,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
       f.dispose();
     }
     _filter.dispose();
+    _filtersFocus.dispose();
     super.dispose();
   }
 
@@ -277,6 +279,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
 
   void _pickBlank() => _pick(findTemplate('blank')!);
 
+  Future<void> _openFilters() async {
+    await showCatalogFilterSheet(context, _filter);
+    // Back to the button that opened it; gone if the window grew meanwhile.
+    if (mounted) _filtersFocus.requestFocus();
+  }
+
   Widget _catalogue(BuildContext context) {
     final widthClass = WidthClass.of(context);
     return ListenableBuilder(
@@ -349,6 +357,21 @@ class _AddCardScreenState extends State<AddCardScreen> {
               spacing: Space.s3,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
+                if (widthClass == WidthClass.compact)
+                  OutlinedButton.icon(
+                    key: const Key('filters-button'),
+                    focusNode: _filtersFocus,
+                    onPressed: _openFilters,
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.standard,
+                    ),
+                    icon: Badge(
+                      isLabelVisible: filter.activeCount > 0,
+                      label: Text('${filter.activeCount}'),
+                      child: const Icon(Icons.tune, size: 18),
+                    ),
+                    label: const Text('Filters'),
+                  ),
                 if (!filter.isEmpty)
                   TextButton(
                     key: const Key('clear-all'),

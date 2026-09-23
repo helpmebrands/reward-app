@@ -499,6 +499,17 @@ Widget catalogFilterPanel() => _themed(
   Brightness.dark,
 );
 
+/// The compact sheet's contents, with two values checked: "Show N" follows
+/// the live result count.
+@Preview(name: 'Catalogue filter sheet', size: Size(402, 700))
+Widget catalogFilterSheet() => _themed(
+  CatalogFilterSheet(
+    controller: CatalogFilterController()
+      ..update((f) => f.toggleIssuer('Chase').toggleFeeBand(FeeBand.from600)),
+  ),
+  Brightness.dark,
+);
+
 /// Step two with the Business Platinum picked: the kind chips start on
 /// Business because the template says so.
 @Preview(name: 'Add a card, details', size: Size(402, 874))

@@ -217,6 +217,28 @@ void main() {
     );
     final sheet = find.byKey(const Key('filter-sheet'));
 
+    /// The sheet builds only the rows near its viewport, so scroll first.
+    Future<void> inSheet(
+      WidgetTester tester,
+      Finder finder, {
+      double by = 100,
+    }) async {
+      await tester.scrollUntilVisible(
+        finder,
+        by,
+        scrollable: find
+            .descendant(of: sheet, matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> sheetTap(WidgetTester tester, Finder finder) async {
+      await inSheet(tester, finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
     Future<void> openSheet(WidgetTester tester) async {
       await tester.tap(filters);
       await tester.pumpAndSettle();
@@ -232,9 +254,11 @@ void main() {
       expect(badge(tester).isLabelVisible, isFalse);
 
       await openSheet(tester);
-      await tap(tester, facet('fee-from600'));
-      await tap(tester, facet('network-visa'));
-      await tester.enterText(find.byKey(const Key('catalog-search')), 'x');
+      await sheetTap(tester, facet('fee-from600'));
+      await sheetTap(tester, facet('network-visa'));
+      final search = find.byKey(const Key('catalog-search'));
+      await inSheet(tester, search, by: -100);
+      await tester.enterText(search, 'x');
       await tester.pumpAndSettle();
       await tester.tapAt(const Offset(200, 20));
       await tester.pumpAndSettle();
@@ -254,7 +278,7 @@ void main() {
       await pumpCatalogue(tester, size: phone);
       await openSheet(tester);
       expect(find.text('Show $total'), findsOneWidget);
-      await tap(tester, facet('issuer-Chase'));
+      await sheetTap(tester, facet('issuer-Chase'));
       expect(find.text('Show 4'), findsOneWidget);
 
       await tester.tap(find.text('Show 4'));
@@ -278,14 +302,14 @@ void main() {
     ) async {
       await pumpCatalogue(tester, size: phone);
       await openSheet(tester);
-      await tap(tester, facet('issuer-Chase'));
+      await sheetTap(tester, facet('issuer-Chase'));
       await tester.tapAt(const Offset(200, 20));
       await tester.pumpAndSettle();
       expect(sheet, findsNothing);
       expect(chip('Chase'), findsOneWidget);
 
       await openSheet(tester);
-      await tap(tester, facet('issuer-Citi'));
+      await sheetTap(tester, facet('issuer-Citi'));
       expect(await tester.binding.handlePopRoute(), isTrue);
       await tester.pumpAndSettle();
       expect(sheet, findsNothing);
@@ -300,7 +324,7 @@ void main() {
     ) async {
       await pumpCatalogue(tester, size: phone);
       await openSheet(tester);
-      await tap(tester, facet('issuer-Chase'));
+      await sheetTap(tester, facet('issuer-Chase'));
 
       tester.view.physicalSize = const Size(1280, 2000);
       await tester.pumpAndSettle();

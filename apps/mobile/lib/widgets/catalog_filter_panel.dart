@@ -180,3 +180,76 @@ class _Option extends StatelessWidget {
     );
   }
 }
+
+/// The compact catalogue's filters: the same panel in a modal bottom sheet
+/// at most 80% of the height. Filters apply behind the scrim as they are
+/// checked; "Show N" only closes the sheet.
+Future<void> showCatalogFilterSheet(
+  BuildContext context,
+  CatalogFilterController controller,
+) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  constraints: BoxConstraints(
+    maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+  ),
+  builder: (context) => CatalogFilterSheet(controller: controller),
+);
+
+class CatalogFilterSheet extends StatelessWidget {
+  const CatalogFilterSheet({super.key, required this.controller});
+
+  final CatalogFilterController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    // Growing past compact hands over to the side panel, which reads the
+    // same controller.
+    if (MediaQuery.sizeOf(context).width >= 600) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final route = context.mounted ? ModalRoute.of(context) : null;
+        if (route != null && route.isCurrent) Navigator.of(context).pop();
+      });
+    }
+    return Column(
+      key: const Key('filter-sheet'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, Space.s4, 20, Space.s2),
+          child: Row(
+            children: [
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    'Filters',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              ),
+              ListenableBuilder(
+                listenable: controller,
+                builder: (context, _) => FilledButton(
+                  key: const Key('show-results'),
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    visualDensity: VisualDensity.standard,
+                  ),
+                  child: Text('Show ${controller.results.length}'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Flexible(
+          child: CatalogFilterPanel(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          ),
+        ),
+      ],
+    );
+  }
+}
