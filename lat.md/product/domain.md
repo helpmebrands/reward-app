@@ -183,3 +183,16 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 `packages/domain/lib/src/catalog.dart` is generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`, so there is one catalogue. Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
 `enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value; every Global Entry entry is one, at 48 months. An entry whose terms name a last day carries `endsOn`. Each template names its `kind`, which the add-card flow copies onto the new card: Business Platinum is `business`, everything else including `blank` is `personal`. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+
+## Catalogue filter
+
+`packages/domain/lib/src/catalog_filter.dart` narrows and orders the catalogue on the add-card screen. It is Dart only, since the PWA is frozen. The blank template is never a result, because manual entry has its own buttons.
+
+A `CatalogFilter` holds the selected fee bands, networks, issuers and merchants, plus the search text. Its `activeCount` counts the selected values only, so the Filters badge ignores typing.
+
+- Values in one facet are OR-ed. Facets are AND-ed with each other and with the search.
+- The search is a case-insensitive substring match on issuer, product, benefit name and merchant.
+- `FeeBand` splits the annual fee, in cents, into No fee (0), Under $100 (1–9,999), $100–$399 (10,000–39,999), $400–$599 (40,000–59,999) and $600+ (60,000 and up).
+- `facetCounts` counts, for each option, the cards that selecting it would return. Every other facet and the search apply, but the option's own facet does not. An option stays listed at zero. The fee bands keep band order, networks keep enum order and appear only if the catalogue has them, and issuers and merchants are alphabetical.
+- `sortByValue` is the only order. It puts the highest `templateAnnualValueCents` first, and ties keep catalogue order. There is no sort control.
+- `matchedBenefits` names the benefits that a selected merchant or the search matched, so a row can say why it is listed.
