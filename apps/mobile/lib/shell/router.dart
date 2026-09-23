@@ -7,8 +7,8 @@ import '../screens/benefit_editor_screen.dart';
 import '../screens/card_editor_screen.dart';
 import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
-import '../screens/stub_screen.dart';
 import '../screens/today_screen.dart';
+import '../screens/value_screen.dart';
 import 'app_scope.dart';
 import 'app_shell.dart';
 import 'ui_scope.dart';
@@ -130,7 +130,8 @@ GoRouter appRouter(AppStore store, {String initialLocation = Paths.today}) =>
               routes: [
                 GoRoute(
                   path: Paths.value,
-                  builder: (context, state) => const StubScreen('Value'),
+                  builder: (context, state) =>
+                      ValueScreen(store: AppScope.of(context)),
                 ),
               ],
             ),
