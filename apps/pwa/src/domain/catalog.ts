@@ -57,8 +57,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Book a prepaid FHR or The Hotel Collection stay (2-night minimum for Hotel Collection) on AmexTravel.com',
           'Pay with the Business Platinum Card',
         ],
-        notes:
-          '$600/yr split $300 January-June and $300 July-December. Added in the Sept 2025 refresh.',
+        notes: '$600 a year: $300 for January–June and $300 for July–December.',
       },
       {
         name: 'Dell Technologies Credit (base)',
@@ -76,7 +75,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Buy directly from Dell Technologies (U.S.) with the card',
         ],
         notes:
-          'Dell benefit totals up to $1,150/yr: $150 base plus a separate $1,000 credit after $5,000+ Dell spend in the calendar year (split into two entries).',
+          'Dell credits total up to $1,150 a year: this $150, plus $1,000 more once you spend $5,000 with Dell in the calendar year.',
       },
       {
         name: 'Dell Technologies Credit ($5K spend bonus)',
@@ -93,7 +92,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the Dell benefit',
           'Spend $5,000+ on U.S. purchases directly with Dell in the calendar year',
         ],
-        notes: 'Conditional on $5,000 Dell spend within the calendar year.',
+        notes: 'Only earned after $5,000 of Dell purchases in the calendar year.',
       },
       {
         name: 'Adobe Credit',
@@ -121,7 +120,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         anchor: 'calendar',
         enrollmentRequired: true,
         redemptionSteps: ['Enroll in the benefit', 'Pay for Indeed services with the card'],
-        notes: '$360/yr.',
+        notes: '$360 a year.',
       },
       {
         name: 'Wireless Credit',
@@ -136,7 +135,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit',
           'Pay a U.S. wireless provider directly with the card',
         ],
-        notes: '$120/yr.',
+        notes: '$120 a year.',
       },
       {
         name: 'Hilton for Business Credit',
@@ -152,7 +151,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll the card in Hilton for Business',
           'Pay directly with a Hilton property with the card',
         ],
-        notes: '$200/yr. Requires a Hilton for Business membership.',
+        notes: '$200 a year. Needs a Hilton for Business membership.',
       },
       {
         name: 'ChatGPT Business Credit',
@@ -196,7 +195,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         anchor: 'calendar',
         enrollmentRequired: false,
         redemptionSteps: ['Pay for an auto-renewing CLEAR+ membership with the card'],
-        notes: 'Excludes taxes and fees.',
+        notes: 'Taxes and fees are not covered.',
       },
       {
         name: 'Global Entry / TSA PreCheck Credit',
@@ -211,7 +210,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         enrollmentRequired: false,
         redemptionSteps: ['Pay the Global Entry or TSA PreCheck application fee with the card'],
         notes:
-          'Global Entry $120 every 4 years or TSA PreCheck up to $85 every 4.5 years. Rolling interval from last use; no calendar/anniversary reset evidence, so anchor omitted.',
+          'Global Entry ($120) every 4 years, or TSA PreCheck (up to $85) every 4.5 years, counted from your last credit.',
       },
       {
         name: 'Amex Travel Flight Credit ($250K spend unlock)',
@@ -228,7 +227,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'In the following calendar year, book flights on AmexTravel.com with the card',
         ],
         notes:
-          'High-spend conditional benefit. Enrollment requirement not confirmed in sources, so enrollmentRequired is omitted.',
+          'Only unlocked by $250,000 of spending in a calendar year. Check your Amex account for any enrollment step.',
       },
       {
         name: 'American Express One AP Credit ($250K spend unlock)',
@@ -245,7 +244,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Use American Express One AP in the following calendar year; monthly fees are credited',
         ],
         notes:
-          'High-spend conditional benefit. Enrollment requirement not confirmed in sources, so enrollmentRequired is omitted.',
+          'Only unlocked by $250,000 of spending in a calendar year. Check your Amex account for any enrollment step.',
       },
     ],
   },
@@ -272,7 +271,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay at an eligible U.S. Resy restaurant with the Delta Reserve card',
           'Statement credit posts automatically',
         ],
-        notes: 'Monthly credit; Upgraded Points describes it as $240 per calendar year.',
+        notes: '$240 a year.',
       },
       {
         name: 'Rideshare Credit',
@@ -289,7 +288,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay for a U.S. ride with a select provider (e.g., Uber, Lyft, Curb, Revel, Alto) using the card',
           'Statement credit posts automatically',
         ],
-        notes: 'Eligible providers per Frequent Miler: Uber, Lyft, Curb, Revel, Alto.',
+        notes: 'Eligible providers include Uber, Lyft, Curb, Revel and Alto.',
       },
       {
         name: 'Delta Stays Credit',
@@ -308,7 +307,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit typically posts within 6-8 weeks',
         ],
         notes:
-          'Must be a prepaid booking via Delta Stays; Delta Vacations and direct hotel bookings do not qualify (Upgraded Points).',
+          "Must be a prepaid booking through Delta Stays; Delta Vacations and direct hotel bookings don't count.",
       },
       {
         name: 'Global Entry / TSA PreCheck Fee Credit',
@@ -326,7 +325,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts automatically',
         ],
         notes:
-          "Global Entry credit every 4 years ($120); TSA PreCheck up to $85 for a five-year membership through an official enrollment provider. Rolling window from last credit; 'anniversary' used as closest fit.",
+          'Global Entry ($120) or TSA PreCheck (up to $85). Once every 4 years, counted from your last credit.',
       },
     ],
   },
@@ -352,7 +351,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay with the Gold Card at an eligible dining partner (U.S.)',
         ],
         notes:
-          '$120/yr. Buffalo Wild Wings and Wonder added April 30, 2026; Goldbelly and Wine.com removed after June 30, 2026.',
+          '$120 a year. Buffalo Wild Wings and Wonder were added April 30, 2026; Goldbelly and Wine.com dropped out after June 30, 2026.',
       },
       {
         name: 'Uber Cash',
@@ -369,7 +368,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Use Uber Cash on U.S. rides or Uber Eats orders before month end',
         ],
         notes:
-          '$120/yr. enrollmentRequired=true because the card must be linked in the Uber app. Unused Uber Cash does not roll over.',
+          '$120 a year. The card must be added to your Uber account. Unused Uber Cash does not roll over.',
       },
       {
         name: 'Resy Credit',
@@ -385,7 +384,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit',
           'Dine at a qualifying U.S. Resy restaurant and pay with the Gold Card',
         ],
-        notes: '$100/yr split as $50 January-June and $50 July-December.',
+        notes: '$100 a year: $50 for January–June and $50 for July–December.',
       },
       {
         name: "Dunkin' Credit",
@@ -401,7 +400,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit',
           "Pay with the Gold Card at a U.S. Dunkin' location",
         ],
-        notes: '$84/yr.',
+        notes: '$84 a year.',
       },
     ],
   },
@@ -428,7 +427,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Charge room/incidentals to the room and pay at the property with the Aspire card',
         ],
         notes:
-          "$400/yr split $200 January-June and $200 July-December. Nonrefundable/advance-purchase prepaid rates do not count; only properties on Hilton's eligible list trigger the credit.",
+          "$400 a year: $200 for January–June and $200 for July–December. Only resorts on Hilton's eligible list count, and prepaid non-refundable rates don't.",
       },
       {
         name: 'Flight Credit',
@@ -443,8 +442,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         redemptionSteps: [
           'Buy airfare directly from an airline or on AmexTravel.com with the Aspire card',
         ],
-        notes:
-          '$200/yr. Quarters are Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec. Any airline. Anchor and enrollment rely on Upgraded Points (tier 3); Amex page shows no enrollment language; no DoC/FM/USCCG 2026 Aspire page was retrievable.',
+        notes: '$200 a year, on any airline. Quarters run Jan–Mar, Apr–Jun, Jul–Sep and Oct–Dec.',
       },
       {
         name: 'CLEAR+ Credit',
@@ -483,7 +481,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts automatically after the eligible charge',
         ],
         notes:
-          "Quarters are Jan-Mar, Apr-Jun, Jul-Sep, Oct-Dec. Third-party bookings do not qualify. Enrollment requirement not found in issuer or secondary sources; field omitted. Issuer page shows no enrollment language (unlike Amex credits it marks 'enrolled'), suggesting none is needed, but this is unconfirmed.",
+          "$200 a year. Quarters run Jan–Mar, Apr–Jun, Jul–Sep and Oct–Dec. Bookings through third-party sites don't count.",
       },
     ],
   },
@@ -510,7 +508,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           "Statement credit posts automatically; the month is based on the purchase's processed date",
         ],
         notes:
-          'Resets each calendar month; $300 annual max per calendar year. Rollover of unused monthly amount is not addressed by sources (assume none). Month assignment is by processing date and credits can take weeks to post (OMAAT).',
+          "$300 a year. Unused amounts don't carry into the next month. The month is set by when the charge processes, and credits can take a few weeks to post.",
       },
       {
         name: 'Global Entry / TSA PreCheck Fee Credit',
@@ -528,7 +526,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts automatically',
         ],
         notes:
-          "One credit per 4-year period for whichever program fee is charged first. $120 for Global Entry; up to $85 for TSA PreCheck. Anchor is a rolling 4-year window from the last credit, not calendar or cardmember year; 'anniversary' used as closest fit.",
+          'One credit every 4 years, for whichever fee you charge first: Global Entry ($120) or TSA PreCheck (up to $85).',
       },
     ],
   },
@@ -555,8 +553,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay with the Platinum Card',
           'Credit posts to statement; Hotel Collection requires a 2-night minimum',
         ],
-        notes:
-          '$600/yr total split as $300 January-June and $300 July-December. Represented as one semiannual entry because both halves are equal.',
+        notes: '$600 a year: $300 for January–June and $300 for July–December.',
       },
       {
         name: 'Resy Credit',
@@ -573,8 +570,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit in your Amex account',
           'Pay with the Platinum Card at U.S. Resy restaurants or eligible Resy purchases',
         ],
-        notes:
-          '$400/yr total. Quarters are calendar quarters per Frequent Miler / US Credit Card Guide.',
+        notes: '$400 a year, by calendar quarter.',
       },
       {
         name: 'Digital Entertainment Credit',
@@ -589,7 +585,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit',
           'Pay for Disney+, ESPN, Hulu, The New York Times, Paramount+, Peacock, Wall Street Journal, YouTube Premium or YouTube TV with the card',
         ],
-        notes: '$300/yr total.',
+        notes: '$300 a year.',
       },
       {
         name: 'lululemon Credit',
@@ -605,7 +601,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Enroll in the benefit',
           'Pay with the card at U.S. lululemon retail stores (excluding outlets) or lululemon.com',
         ],
-        notes: '$300/yr total.',
+        notes: '$300 a year.',
       },
       {
         name: 'Uber Cash (monthly)',
@@ -622,7 +618,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Uber Cash deposits monthly; use on U.S. rides or Uber Eats before month end',
         ],
         notes:
-          '$200/yr total split as $15 every month plus a $20 December bonus (see separate entry). enrollmentRequired=true because the card must be linked to the Uber account. Unused Uber Cash does not roll over.',
+          '$200 a year: $15 each month plus a $20 bonus in December. The card must be added to your Uber account. Unused Uber Cash does not roll over.',
       },
       {
         name: 'Uber Cash (December bonus)',
@@ -638,8 +634,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Keep the Platinum Card linked to your Uber account',
           'Bonus arrives with December Uber Cash; use by Dec 31',
         ],
-        notes:
-          'December-only bonus that brings December to $35; split from the $15 monthly entry per spec.',
+        notes: 'Brings December to $35.',
       },
       {
         name: 'Uber One Membership Credit',
@@ -656,7 +651,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Purchase an auto-renewing Uber One membership (monthly or annual) with the Platinum Card',
           'Statement credits post as charged, up to $120 per calendar year',
         ],
-        notes: 'Monthly Uber One billing is reimbursed as charged; cap is annual.',
+        notes: 'Monthly Uber One charges are credited as billed, up to the yearly cap.',
       },
       {
         name: 'Walmart+ Membership Credit',
@@ -672,8 +667,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay for a monthly Walmart+ membership with the Platinum Card',
           'Credit posts each month',
         ],
-        notes:
-          'Amex page states up to $12.95 per month (asterisked, plus applicable taxes per Frequent Miler); annual Walmart+ plans do not qualify. Value excludes tax.',
+        notes: "Up to $12.95 a month plus tax. The annual Walmart+ plan doesn't qualify.",
       },
       {
         name: 'Airline Fee Credit',
@@ -748,7 +742,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry or TSA PreCheck application fee with the Platinum Card',
         ],
         notes:
-          'Global Entry $120 once every 4 years, or TSA PreCheck up to $85 (five-year membership) once every 4.5 years. valueCents is the max (Global Entry). Interval is rolling from last use; no calendar/anniversary reset evidence, so anchor omitted.',
+          'Global Entry ($120) every 4 years, or TSA PreCheck (up to $85) every 4.5 years, counted from your last credit.',
       },
     ],
   },
@@ -773,7 +767,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay for qualifying airline incidentals (seat upgrades, bags, lounge fees, in-flight) with the card',
           'Statement credit posts automatically',
         ],
-        notes: 'No airline selection step reported. Airfare itself generally not eligible.',
+        notes: "No need to pick an airline. Airfare itself usually doesn't count.",
       },
       {
         name: 'Lifestyle Credit',
@@ -790,7 +784,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts in about 2-3 weeks',
         ],
         notes:
-          'Eligibility is by merchant category code (4899, 5399, 5411, 5422, 5499, 5691, 5734, 5815-5818, 5921, 5940, 5964, 5968-5969, 5999, 7032, 7299, 7372, 7841, 7997, 7999). Some merchants (Spotify, Instacart) reported not to trigger.',
+          'Eligibility depends on how the merchant is categorized, so some services (Spotify and Instacart, for example) may not trigger it.',
       },
       {
         name: 'Global Entry / TSA PreCheck Credit',
@@ -835,7 +829,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Use before the next account-open anniversary, when unused credit expires.',
         ],
         notes:
-          "Since Sept 2023 it works as a checkout credit rather than a post-purchase statement credit; no miles earned on the credited portion; restored if a refundable booking is cancelled before expiry (Doctor of Credit). Capital One's own pages say 'annual' without naming the reset date.",
+          "Applied at checkout rather than as a statement credit. You don't earn miles on the part the credit covers, and it's restored if you cancel a refundable booking before it expires.",
       },
       {
         name: 'Global Entry / TSA PreCheck Credit',
@@ -852,8 +846,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry or TSA PreCheck application fee with the Venture X card.',
           'Statement credit posts automatically.',
         ],
-        notes:
-          'Interval: once every 4 years, per Frequent Miler; the Capital One article excerpt stated the $120 amount but not the interval. Anchor omitted.',
+        notes: 'Once every 4 years.',
       },
     ],
   },
@@ -881,7 +874,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Apply TravelBank cash when booking on united.com or the United app.',
         ],
         notes:
-          'Chase card page gives deposit dates of Jan 5 and Jul 5; Doctor of Credit (2022 launch post) said around Jan 1 / Jul 1. DoC reports each deposit expires at the end of its six-month window; not confirmed on issuer page.',
+          'Deposited around January 5 and July 5. Each deposit may expire at the end of its six-month window.',
       },
       {
         name: '$20K Spend Statement Credit',
@@ -897,8 +890,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Spend at least $20,000 on purchases in a calendar year.',
           'The $100 statement credit and 10,000 bonus points post automatically.',
         ],
-        notes:
-          'Spend-conditional: only earned after $20,000 in calendar-year purchases. Included because it is a recurring dollar statement credit; downstream consumers may want to treat it separately from unconditional credits.',
+        notes: 'Only earned after $20,000 of purchases in a calendar year.',
       },
       {
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
@@ -915,8 +907,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the application fee with the IHG Premier card.',
           'Statement credit posts automatically (one every four years).',
         ],
-        notes:
-          'Interval: once every 4 years. Anchor omitted (no calendar/anniversary reset stated).',
+        notes: 'Once every 4 years.',
       },
     ],
   },
@@ -943,7 +934,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay with the Sapphire Preferred card; the statement credit posts automatically up to $100 per anniversary year.',
         ],
         notes:
-          'Increased from $50 to $100 effective June 15, 2026 for new and existing cardmembers (Chase press release). For bookings made on/after 6/15/2026, the credit is clawed back if the reservation is cancelled (Doctor of Credit, 2026-06-20).',
+          'Raised from $50 to $100 on June 15, 2026. For bookings made from that date, the credit is taken back if you cancel.',
       },
       {
         name: 'DoorDash Non-Restaurant Monthly Promo',
@@ -962,7 +953,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Select the $10 discount from the DoorDash promotion wallet at checkout.',
         ],
         notes:
-          'Applied as a checkout discount in DoorDash, not a Chase statement credit. Single-use per month; unused remainder is forfeited and does not roll over. Frequent Miler (2026-04-17) reports a $20 minimum order; that minimum was not visible in the Chase terms excerpt reviewed. Complimentary DashPass membership itself is listed under nonCreditPerks.',
+          "A discount in the DoorDash app, not a statement credit. One use a month; unused value doesn't roll over. A $20 minimum order may apply.",
       },
       {
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
@@ -979,8 +970,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry, TSA PreCheck, or NEXUS application fee with the Sapphire Preferred card.',
           'Statement credit posts automatically (one credit every four years).',
         ],
-        notes:
-          'New benefit added in the June 15, 2026 refresh. Interval: once every 4 years. Anchor omitted: the issuer ties the 4-year window to the prior credit and states no calendar or anniversary reset.',
+        notes: 'Added June 15, 2026. Once every 4 years, counted from your last credit.',
       },
     ],
   },
@@ -1005,7 +995,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Charge any travel purchase to the card',
           'Statement credits post automatically until $300 is reached for the account anniversary year',
         ],
-        notes: 'Broad travel category; applies automatically.',
+        notes: 'Covers a broad range of travel and applies automatically.',
       },
       {
         name: 'The Edit Hotel Credit',
@@ -1024,7 +1014,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Receive up to $250 statement credit per booking, maximum two bookings/$500 per calendar year',
         ],
         notes:
-          'Since 1/1/2026 the two $250 credits can be used any time in the calendar year (previously split Jan-Jun and Jul-Dec). Per-booking cap is $250, so $500 requires two separate prepaid bookings.',
+          'Since 2026 the two $250 credits can be used any time in the calendar year (they used to be split by half-year). Each booking is capped at $250, so the full $500 takes two separate prepaid bookings.',
       },
       {
         name: 'Dining Credit (Sapphire Reserve Exclusive Tables)',
@@ -1077,7 +1067,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Discount applies at checkout',
         ],
         notes:
-          'In-app promo (discount at checkout), not a statement credit. Available through 12/31/2027. Part of the $25/month DoorDash promo package ($5 restaurant + two $10 non-restaurant).',
+          'A discount in the DoorDash app, not a statement credit. Part of a $25 monthly DoorDash package: this $5 plus two $10 non-restaurant promos. Available through 12/31/2027.',
       },
       {
         name: 'DoorDash Non-Restaurant Promos',
@@ -1095,8 +1085,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Place a qualifying non-restaurant DoorDash order (grocery, retail) with the card',
           'Each $10 discount applies at checkout; two per calendar month',
         ],
-        notes:
-          'valueCents = two $10 promos combined ($20/month); each promo is a separate $10 discount on a separate order. Order minimums were not confirmed. Available through 12/31/2027.',
+        notes: 'Two separate $10 discounts, each on its own order. Available through 12/31/2027.',
       },
       {
         name: 'Lyft Credit',
@@ -1113,7 +1102,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'The $10 in-app credit is issued each calendar month and applied to rides',
         ],
         notes:
-          'In-app credit, not a statement credit. Available through 9/30/2027. Marked enrollmentRequired because the card must be linked in the Lyft app.',
+          'An in-app Lyft credit, not a statement credit. The card must be added in the Lyft app. Available through 9/30/2027.',
       },
       {
         name: 'Peloton Membership Credit',
@@ -1130,8 +1119,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay for an eligible Peloton membership with the Sapphire Reserve card',
           'Credit posts monthly, up to $10',
         ],
-        notes:
-          "Available through 12/31/2027; max $120 per year. Calendar-month anchor inferred from 'per month' language, not explicitly stated.",
+        notes: 'Up to $120 a year. Available through 12/31/2027.',
       },
       {
         name: 'Global Entry / TSA PreCheck / NEXUS Fee Credit',
@@ -1147,8 +1135,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry, TSA PreCheck or NEXUS application fee with the card',
           'Statement credit posts automatically',
         ],
-        notes:
-          "Once every 4 years. Rolling window from the last credit; 'anniversary' used as closest fit.",
+        notes: 'Once every 4 years, counted from your last credit.',
       },
     ],
   },
@@ -1175,7 +1162,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Apply TravelBank cash at checkout when booking a United- or United Express-operated flight on united.com or the United app.',
         ],
         notes:
-          'Deposited as TravelBank cash, not a statement credit. Frequent Miler reports it expires 12 months after deposit (not confirmed on issuer page).',
+          'Deposited as United TravelBank cash, not a statement credit. It may expire 12 months after deposit.',
       },
       {
         name: 'Renowned Hotels and Resorts Credit',
@@ -1225,7 +1212,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Receive $40 in United TravelBank cash for each of the 1st and 2nd rentals in the anniversary year.',
         ],
         notes:
-          'Released as two $40 TravelBank deposits (one per rental), capped at $80 per anniversary year; valueCents is the annual cap. Frequent Miler notes a 2-day minimum rental; not confirmed on issuer page.',
+          'Paid as two $40 TravelBank deposits, one per rental, up to $80 a year. A 2-day minimum rental may apply.',
       },
       {
         name: 'Rideshare Credit (monthly base)',
@@ -1241,7 +1228,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay for eligible rideshare with the United Quest card; up to $8 statement credit per month.',
         ],
         notes:
-          'Uneven schedule split per spec: Chase gives $8/month Jan-Nov and up to $12 in December ($100/calendar year). Modeled as $8 monthly (all 12 months) plus a separate $4 December top-up entry. Credits begin the month after enrollment, so re-enroll early each January (Frequent Miler).',
+          '$100 a year: $8 a month plus $4 more in December. You must re-enroll each calendar year and credits start the month after, so do it early in January.',
       },
       {
         name: 'Rideshare Credit (December top-up)',
@@ -1257,8 +1244,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Stay enrolled in the rideshare benefit for the calendar year.',
           'In December, spend up to $12 on eligible rideshare with the card; the $4 above the $8 base comes from this entry.',
         ],
-        notes:
-          'Companion to the $8 monthly entry; together they total $100 per calendar year ($8 x 11 + $12).',
+        notes: 'With the $8 monthly credit, $100 a calendar year.',
       },
       {
         name: 'Instacart $10 Monthly Credit',
@@ -1277,7 +1263,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'The $10 credit applies to the first order each month.',
         ],
         notes:
-          'Split from the $10 + $5 monthly structure ($180/calendar year total). Requires active Instacart+ membership. Benefits end 12/31/2027. Credit applied in Instacart, not as a Chase statement credit.',
+          'Part of $180 a year in Instacart credits ($10 + $5 each month). Needs an active Instacart+ membership. Applied in Instacart, not as a statement credit. Ends 12/31/2027.',
       },
       {
         name: 'Instacart $5 Monthly Credit',
@@ -1294,7 +1280,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Same setup as the $10 credit (registered card, active Instacart+).',
           'The $5 credit applies to the second order each month.',
         ],
-        notes: 'Second half of the $10 + $5 monthly Instacart benefit. Benefits end 12/31/2027.',
+        notes: 'Needs an active Instacart+ membership. Ends 12/31/2027.',
       },
       {
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
@@ -1311,8 +1297,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the application fee with the United Quest card.',
           'Statement credit posts automatically (one every four years).',
         ],
-        notes:
-          'Interval: once every 4 years. Anchor omitted (no calendar/anniversary reset stated).',
+        notes: 'Once every 4 years.',
       },
     ],
   },
@@ -1340,7 +1325,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Receive a $15 Lyft credit in the Lyft account (expires ~30 days after issue)',
         ],
         notes:
-          'Increased from $10 to $15 per month on Aug 23, 2026. This is a Lyft in-app credit, not a statement credit. Enrollment=true reflects the need to link/add the card in the Lyft account.',
+          'Raised from $10 to $15 a month on Aug 23, 2026. An in-app Lyft credit, not a statement credit; the card must be added in the Lyft app.',
       },
       {
         name: 'Avis / Budget Car Rental Credit',
@@ -1357,7 +1342,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Book a prepaid rental directly on avis.com or budget.com',
           'Pay with the card; statement credit posts afterward',
         ],
-        notes: 'Pay-later bookings and third-party bookings (including aa.com/cars) are excluded.',
+        notes: "Pay-later and third-party bookings (including aa.com/cars) don't count.",
       },
       {
         name: 'American Airlines Vacations Credit',
@@ -1375,7 +1360,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay with the card; statement credit posts automatically',
         ],
         notes:
-          'New Aug 23, 2026. Even split: up to $250 Jan-Jun and up to $250 Jul-Dec; unused amounts do not roll over.',
+          "New Aug 23, 2026. $250 for January–June and $250 for July–December; unused amounts don't roll over.",
       },
       {
         name: 'Inflight & Admirals Club Credit',
@@ -1393,7 +1378,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts automatically',
         ],
         notes:
-          'New Aug 23, 2026; replaces the 25% inflight food/beverage savings (which existing members keep through Sep 30, 2026).',
+          'New Aug 23, 2026. Replaces the 25% inflight food and drink savings, which existing cardmembers keep through Sep 30, 2026.',
       },
       {
         name: 'Grubhub Credit (existing cardmembers only)',
@@ -1411,7 +1396,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit up to $10 per billing statement posts automatically',
         ],
         notes:
-          'Removed in the Aug 23, 2026 refresh for new cardmembers; existing cardmembers retain it through Aug 31, 2027 (TPG). Terms tie it to monthly billing statements, so anchor is billing-cycle based and left out.',
+          'Not offered to new cardmembers from Aug 23, 2026; existing cardmembers keep it through Aug 31, 2027. Resets with each monthly statement rather than the calendar month.',
       },
       {
         name: 'Global Entry / TSA PreCheck Credit',
@@ -1428,7 +1413,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Credit posts within 1-2 billing cycles',
         ],
-        notes: 'One credit per account every 4 years (per Citi).',
+        notes: 'Once every 4 years.',
       },
     ],
   },
@@ -1453,8 +1438,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Book a hotel stay of 2 or more nights on cititravel.com',
           'Pay with the Strata Elite card; discount/credit applies to the booking',
         ],
-        notes:
-          'Minimum 2-night stay. Applied via the Citi Travel portal rather than as a merchant-agnostic statement credit.',
+        notes: 'Minimum 2-night stay, booked through Citi Travel.',
       },
       {
         name: 'Splurge Credit',
@@ -1472,7 +1456,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay at the selected brand(s) with the card; credit posts within 1-2 billing cycles',
         ],
         notes:
-          'Brands must be selected before purchase; selections can be changed online or by phone. Exclusions apply for American Airlines and Live Nation.',
+          'Pick your brands before you buy; you can change them online or by phone. Some American Airlines and Live Nation purchases are excluded.',
       },
       {
         name: 'Blacklane Credit',
@@ -1490,7 +1474,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Statement credit posts automatically (often at statement close)',
         ],
         notes:
-          'Even split: up to $100 Jan-Jun and up to $100 Jul-Dec, so recorded as one semiannual entry. Charge posts after the ride is completed, which determines which half it counts toward.',
+          "$100 for January–June and $100 for July–December. A ride counts toward the half-year in which it's completed.",
       },
       {
         name: 'Global Entry / TSA PreCheck Credit',
@@ -1506,7 +1490,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Statement credit posts automatically',
         ],
-        notes: 'Available once every 4 years. Anchor not applicable (interval-based).',
+        notes: 'Once every 4 years.',
       },
     ],
   },
@@ -1532,7 +1516,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
           'Credit posts within 60 days',
         ],
         notes:
-          'First year available at account opening; thereafter the 12-month period begins the first day of the month after the annual fee is assessed (e.g. fee Nov 10 -> period starts Dec 1). Anniversary-like, offset to month start.',
+          'The first year starts at account opening. After that, each year starts on the first day of the month after the annual fee posts (fee on Nov 10, year starts Dec 1).',
       },
     ],
   },
