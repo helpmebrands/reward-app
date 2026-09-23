@@ -9,6 +9,8 @@ import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
 import 'screens/add_card_screen.dart';
+import 'screens/benefit_editor_screen.dart';
+import 'screens/card_editor_screen.dart';
 import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
@@ -492,3 +494,33 @@ Widget fieldStates() {
     Brightness.dark,
   );
 }
+
+@Preview(name: 'Card editor', size: Size(402, 874))
+Widget cardEditor() => _themed(
+  CardEditorScreen(store: _store(), id: 'kathy', ui: UiState()),
+  Brightness.dark,
+);
+
+@Preview(name: 'Card editor, expanded', size: Size(1280, 800))
+Widget cardEditorExpanded() => _themed(
+  CardEditorScreen(store: _store(), id: 'kathy', ui: UiState()),
+  Brightness.dark,
+);
+
+@Preview(name: 'Benefit editor', size: Size(402, 1200))
+Widget benefitEditor() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'e1', ui: UiState()),
+  Brightness.dark,
+);
+
+@Preview(name: 'Benefit editor, light', size: Size(402, 1200))
+Widget benefitEditorLight() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'r1', ui: UiState()),
+  Brightness.light,
+);
+
+@Preview(name: 'Editor, not found', size: Size(402, 300))
+Widget editorNotFound() => _themed(
+  CardEditorScreen(store: _store(), id: 'gone', ui: UiState()),
+  Brightness.dark,
+);
