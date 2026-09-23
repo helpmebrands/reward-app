@@ -265,14 +265,44 @@ class _AddCardScreenState extends State<AddCardScreen> {
         : SnackbarHost(snackbar: snackbar, child: child);
   }
 
+  void _pickBlank() => _pick(findTemplate('blank')!);
+
   Widget _catalogue(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
+    final templates = sortByValue(
+      filterTemplates(cardTemplates, const CatalogFilter()),
+    );
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
+        // Manual entry leads, so a card the catalogue lacks is one tap away.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: Space.s4,
+          runSpacing: Space.s3,
+          children: [
+            Text('Card catalogue', style: text.titleMedium),
+            FilledButton.icon(
+              key: const Key('add-manually-top'),
+              onPressed: _pickBlank,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                visualDensity: VisualDensity.standard,
+              ),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(
+                widthClass == WidthClass.compact
+                    ? 'Add card'
+                    : 'Add card manually',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: Space.s4),
         Text(
           'Pick a card and its credits arrive pre-filled, including which ones '
           'need enrolment. Everything stays editable — treat the catalogue as '
@@ -280,20 +310,27 @@ class _AddCardScreenState extends State<AddCardScreen> {
           style: note,
         ),
         const SizedBox(height: Space.s6),
-        for (final template in cardTemplates)
-          if (template.id != 'blank')
-            Padding(
-              padding: const EdgeInsets.only(bottom: Space.s3),
-              child: _TemplateTile(
-                key: ValueKey('template-${template.id}'),
-                template: template,
-                onTap: () => _pick(template),
-              ),
+        for (final template in templates)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Space.s3),
+            child: _TemplateTile(
+              key: ValueKey('template-${template.id}'),
+              template: template,
+              onTap: () => _pick(template),
             ),
-        OutlinedButton.icon(
-          onPressed: () => _pick(findTemplate('blank')!),
-          icon: const Icon(Icons.edit_outlined, size: 16),
-          label: const Text('Set one up by hand'),
+          ),
+        const SizedBox(height: Space.s3),
+        Text("Don't see your card?", textAlign: TextAlign.center, style: note),
+        Center(
+          child: TextButton(
+            key: const Key('add-manually-end'),
+            onPressed: _pickBlank,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              visualDensity: VisualDensity.standard,
+            ),
+            child: const Text('Enter it manually'),
+          ),
         ),
       ],
     );

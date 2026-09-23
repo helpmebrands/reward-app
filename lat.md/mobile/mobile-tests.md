@@ -234,7 +234,23 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 ### The blank template asks for issuer and card
 
-"Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a personal card with no benefits and says "Card added. Add its credits next."
+The top "Add card" button then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a personal card with no benefits and says "Card added. Add its credits next."
+
+### Manual entry sits at the top, labelled by width
+
+On first render the top button is on screen without scrolling and at least 48dp tall. It reads "Add card" at 402 wide and "Add card manually" at 1280.
+
+### The end of the list offers manual entry
+
+The list ends with "Don't see your card?" and a 48dp "Enter it manually" button, and "Set one up by hand" is gone. The button opens the Issuer and Card fields, and saving adds a card with no credits.
+
+### The catalogue is ordered by annual value
+
+The first template tile is the first template from `sortByValue`, which is worth at least as much a year as any other template.
+
+### The catalogue at 200% clips nothing
+
+At a 2.0 text scale at 402 wide, the catalogue raises no layout exception. Every text ends inside the width, down to the end-of-list button.
 
 ### A business template lands as a business card
 
