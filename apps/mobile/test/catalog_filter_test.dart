@@ -81,6 +81,41 @@ void main() {
     expect(chip('Chase'), findsNothing);
   });
 
+  // @lat: [[mobile-tests#Catalogue filter#Business narrows to business cards in the panel and the sheet]]
+  testWidgets('checking Business in the panel and the sheet', (tester) async {
+    await pumpCatalogue(tester);
+    await tap(tester, facet('kind-business'));
+    expect(chip('Business'), findsOneWidget);
+    expect(tiles, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('template-amex-business-platinum')),
+      findsOneWidget,
+    );
+
+    await pumpCatalogue(tester, size: const Size(402, 874));
+    await tester.tap(find.byKey(const Key('filters-button')));
+    await tester.pumpAndSettle();
+    final kind = facet('kind-business');
+    await tester.scrollUntilVisible(
+      kind,
+      100,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('filter-sheet')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(kind);
+    await tester.pumpAndSettle();
+    expect(find.text('Show 1'), findsOneWidget);
+    await tester.tap(find.text('Show 1'));
+    await tester.pumpAndSettle();
+    expect(chip('Business'), findsOneWidget);
+    expect(tiles, findsOneWidget);
+  });
+
   // @lat: [[mobile-tests#Catalogue filter#Facets combine and counts follow the other facets]]
   testWidgets('Chase and \$600+ narrow together; fee counts follow Chase', (
     tester,

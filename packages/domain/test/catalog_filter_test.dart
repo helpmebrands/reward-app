@@ -216,6 +216,41 @@ void main() {
     });
   });
 
+  group('card kind', () {
+    // @lat: [[tests#Catalogue filter#The kind facet ORs its kinds and counts past its own selection]]
+    test('filters and counts by business or personal', () {
+      final business = const CatalogFilter().toggleKind(CardKind.business);
+      expect(_ids(filterTemplates(cardTemplates, business)), [
+        'amex-business-platinum',
+      ]);
+      final both = business.toggleKind(CardKind.personal);
+      expect(
+        _ids(filterTemplates(cardTemplates, both)),
+        _ids(filterTemplates(cardTemplates, const CatalogFilter())),
+      );
+      expect(both.activeCount, 2);
+
+      final none = facetCounts(cardTemplates, const CatalogFilter());
+      expect(none.kinds, {CardKind.personal: 15, CardKind.business: 1});
+      expect(facetCounts(cardTemplates, business).kinds, none.kinds);
+      expect(facetCounts(cardTemplates, business.toggleIssuer('Chase')).kinds, {
+        CardKind.personal: 4,
+        CardKind.business: 0,
+      });
+      expect(
+        facetCounts(cardTemplates, business).issuers['American Express'],
+        1,
+      );
+      // A kind no template has is not offered.
+      expect(
+        facetCounts([
+          _template('only-personal'),
+        ], const CatalogFilter()).kinds.keys,
+        [CardKind.personal],
+      );
+    });
+  });
+
   group('sortByValue', () {
     // @lat: [[tests#Catalogue filter#The catalogue sorts by annual value, ties in catalogue order]]
     test('puts the highest annual value first and keeps ties in order', () {
