@@ -85,7 +85,12 @@ describe('a rolling template credit', () => {
   // @lat: [[tests#Card catalogue#A template amortises a rolling credit]]
   it('prices a rolling credit at its amortised value and copies the interval', () => {
     expect(templateAnnualValueCents(rolling)).toBe(21_000)
-    const [benefit] = benefitsFromTemplate(rolling, 'card-9', '2026-09-16T00:00:00.000Z', () => 'id')
+    const [benefit] = benefitsFromTemplate(
+      rolling,
+      'card-9',
+      '2026-09-16T00:00:00.000Z',
+      () => 'id',
+    )
     expect(benefit?.cadence).toBe('rolling')
     expect(benefit?.intervalMonths).toBe(48)
   })

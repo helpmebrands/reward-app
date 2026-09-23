@@ -1,8 +1,11 @@
 import { addDays, addMonths, compareIsoDate, daysBetween, isWithin, parseIsoDate } from './dates.ts'
-import type { Benefit, Cadence, Card, Cycle, IsoDate } from './types.ts'
+import type { Benefit, Cadence, Card, Claim, Cycle, IsoDate } from './types.ts'
 
-/** How many months one cycle of each cadence spans. `manual` never recurs. */
-const MONTHS_PER_CYCLE: Record<Exclude<Cadence, 'manual'>, number> = {
+/**
+ * How many months one cycle of each calendar cadence spans. `manual` never
+ * recurs and `rolling` takes its span from the benefit.
+ */
+const MONTHS_PER_CYCLE: Record<Exclude<Cadence, 'manual' | 'rolling'>, number> = {
   monthly: 1,
   quarterly: 3,
   semiannual: 6,
@@ -10,8 +13,11 @@ const MONTHS_PER_CYCLE: Record<Exclude<Cadence, 'manual'>, number> = {
 }
 
 export function monthsPerCycle(cadence: Cadence): number | null {
-  return cadence === 'manual' ? null : MONTHS_PER_CYCLE[cadence]
+  return cadence === 'manual' || cadence === 'rolling' ? null : MONTHS_PER_CYCLE[cadence]
 }
+
+/** The end of a window that only a claim can close. */
+const OPEN_ENDED: IsoDate = '2999-12-31'
 
 /**
  * The date every cycle of a benefit is measured from.
@@ -64,23 +70,59 @@ export function cycleLabel(benefit: Benefit, start: IsoDate): string {
       return `H${month <= 6 ? 1 : 2} ${year}`
     case 'annual':
       return `${year}`
+    case 'rolling':
+      return 'Eligible now'
     case 'manual':
       return 'Untracked'
   }
 }
 
 /**
+ * A rolling credit's window comes from the claim ledger, not the calendar.
+ *
+ * The open window is keyed by the day the card was added, or the day after
+ * the last closed window. The first claim recorded under that key closes it
+ * to `[claim day, claim day + intervalMonths − 1]`, and a new open window
+ * keys from the day after. Keys never move, so a claim always finds its
+ * window and the app never offers a credit the issuer would refuse.
+ */
+function rollingCycleFor(benefit: Benefit, card: Card, on: IsoDate, claims: Claim[]): Cycle {
+  const interval = benefit.intervalMonths ?? 0
+  let key = card.createdAt.slice(0, 10)
+  const mine = claims
+    .filter((claim) => claim.benefitId === benefit.id)
+    .sort((a, b) => a.claimedAt.localeCompare(b.claimedAt))
+  for (const claim of mine) {
+    if (claim.cycleKey !== key || interval <= 0) continue
+    const start = claim.claimedAt.slice(0, 10)
+    const end = addDays(addMonths(start, interval), -1)
+    if (compareIsoDate(on, end) <= 0) {
+      const { year, month } = parseIsoDate(end)
+      return { key, start, end, label: `until ${MONTH_NAMES[month - 1]} ${year}` }
+    }
+    key = addDays(end, 1)
+  }
+  return { key, start: key, end: OPEN_ENDED, label: 'Eligible now' }
+}
+
+/**
  * The cycle containing `on`, for a recurring benefit. `manual` benefits have no
- * window and return `null`.
+ * window and return `null`; `rolling` ones read their window from `claims`.
  *
  * Walks from the anchor in whole cycle-lengths. Month arithmetic clamps
  * (Jan 31 + 1 month is Feb 28), so the step count is corrected by comparison
  * rather than derived from a month difference — clamping makes the naive
  * `(years * 12 + months)` formula land in the wrong window at month ends.
  */
-export function cycleFor(benefit: Benefit, card: Card, on: IsoDate): Cycle | null {
+export function cycleFor(
+  benefit: Benefit,
+  card: Card,
+  on: IsoDate,
+  claims: Claim[] = [],
+): Cycle | null {
   if (benefit.cadence === 'manual') return null
   if (hasEnded(benefit, on)) return null
+  if (benefit.cadence === 'rolling') return rollingCycleFor(benefit, card, on, claims)
 
   const span = MONTHS_PER_CYCLE[benefit.cadence]
   const anchor = anchorDateFor(benefit, card)
@@ -120,15 +162,18 @@ export function hasEnded(benefit: Benefit, on: IsoDate): boolean {
   return benefit.endsOn !== undefined && compareIsoDate(on, benefit.endsOn) > 0
 }
 
-/** The cycle that follows `cycle`, or `null` for untracked benefits. */
+/**
+ * The cycle that follows `cycle`, or `null` for untracked benefits and for
+ * rolling ones, whose next window exists only once a claim opens it.
+ */
 export function nextCycle(benefit: Benefit, card: Card, cycle: Cycle): Cycle | null {
-  if (benefit.cadence === 'manual') return null
+  if (benefit.cadence === 'manual' || benefit.cadence === 'rolling') return null
   return cycleFor(benefit, card, addDays(cycle.end, 1))
 }
 
 /** The cycle before `cycle`. */
 export function previousCycle(benefit: Benefit, card: Card, cycle: Cycle): Cycle | null {
-  if (benefit.cadence === 'manual') return null
+  if (benefit.cadence === 'manual' || benefit.cadence === 'rolling') return null
   return cycleFor(benefit, card, addDays(cycle.start, -1))
 }
 
@@ -199,6 +244,7 @@ const CADENCE_LABELS: Record<Cadence, string> = {
   quarterly: 'Quarterly',
   semiannual: 'Semi-annual',
   annual: 'Annual',
+  rolling: 'Rolling',
   manual: 'Manual',
 }
 
@@ -207,11 +253,26 @@ export function cadenceLabel(cadence: Cadence): string {
 }
 
 /**
- * Value released per year. Untracked credits are counted once: a Global Entry
- * fee every four years is not worth a quarter of itself on the Cards screen.
+ * Value released per year for a cadence. A rolling credit is amortised over
+ * its interval: $120 every 48 months is $30 a year. Untracked credits are
+ * counted once, since nothing says when they recur.
  */
+export function annualValueOf(
+  valueCents: number,
+  cadence: Cadence,
+  intervalMonths?: number,
+): number {
+  if (cadence === 'rolling') {
+    return intervalMonths && intervalMonths > 0
+      ? Math.round((valueCents * 12) / intervalMonths)
+      : valueCents
+  }
+  const span = monthsPerCycle(cadence)
+  if (span === null) return valueCents
+  return valueCents * (12 / span)
+}
+
+/** Value a benefit releases per year; see {@link annualValueOf}. */
 export function annualValueCents(benefit: Benefit): number {
-  const span = monthsPerCycle(benefit.cadence)
-  if (span === null) return benefit.valueCents
-  return benefit.valueCents * (12 / span)
+  return annualValueOf(benefit.valueCents, benefit.cadence, benefit.intervalMonths)
 }

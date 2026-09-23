@@ -54,6 +54,7 @@ Benefit _benefit(
   String name,
   int valueCents, {
   Cadence cadence = Cadence.monthly,
+  int? intervalMonths,
   bool enrollmentRequired = false,
   String? merchant,
   int? spendThresholdCents,
@@ -67,6 +68,7 @@ Benefit _benefit(
   valueCents: valueCents,
   cadence: cadence,
   anchor: CycleAnchor.calendar,
+  intervalMonths: intervalMonths,
   enrollmentRequired: enrollmentRequired,
   spendThresholdCents: spendThresholdCents,
   endsOn: endsOn,
@@ -107,6 +109,14 @@ AppData _household() => AppData(
       100000,
       cadence: Cadence.annual,
       spendThresholdCents: 500000,
+    ),
+    _benefit(
+      'g1',
+      'jim',
+      'Global Entry',
+      12000,
+      cadence: Cadence.rolling,
+      intervalMonths: 48,
     ),
   ],
   claims: const [
@@ -286,6 +296,10 @@ Widget creditSheetCaptured() => _sheetContent('u1', Brightness.dark);
 
 @Preview(name: 'Credit sheet, untouched', size: Size(420, 700))
 Widget creditSheetUntouched() => _sheetContent('u2', Brightness.dark);
+
+/// A rolling credit with no claim yet: "Eligible now", no window range.
+@Preview(name: 'Credit sheet, rolling', size: Size(420, 700))
+Widget creditSheetRolling() => _sheetContent('g1', Brightness.dark);
 
 /// The undo snackbar over Today, as logging a credit shows it.
 Widget _snackbarAt(Size size) {
@@ -533,6 +547,14 @@ Widget benefitEditor() => _themed(
 Widget benefitEditorLight() => _themed(
   BenefitEditorScreen(store: _store(), id: 'r1', ui: UiState()),
   Brightness.light,
+);
+
+/// A rolling credit: the cadence picker on Rolling, the months field in
+/// place of the anchor chips and the window preview.
+@Preview(name: 'Benefit editor, rolling', size: Size(402, 1200))
+Widget benefitEditorRolling() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'g1', ui: UiState()),
+  Brightness.dark,
 );
 
 /// A credit gated behind a spend threshold: the "Unlocks after spending"

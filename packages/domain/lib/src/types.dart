@@ -20,9 +20,11 @@ typedef Uuid = String;
 
 /// How often a credit refreshes.
 ///
-/// [manual] covers credits no cycle can track (Global Entry every four to four
-/// and a half years), which are listed but never counted as at risk.
-enum Cadence { monthly, quarterly, semiannual, annual, manual }
+/// [rolling] restarts from the last claim rather than the calendar (Global
+/// Entry every four years), with the gap in [Benefit.intervalMonths].
+/// [manual] covers credits no cycle can track at all, which are listed but
+/// never counted as at risk.
+enum Cadence { monthly, quarterly, semiannual, annual, rolling, manual }
 
 /// What a recurring cycle is measured from.
 ///
@@ -173,6 +175,7 @@ class Benefit {
     required this.valueCents,
     required this.cadence,
     required this.anchor,
+    this.intervalMonths,
     required this.enrollmentRequired,
     this.enrolledAt,
     this.enrollmentNote,
@@ -205,6 +208,10 @@ class Benefit {
   final int valueCents;
   final Cadence cadence;
   final CycleAnchor anchor;
+
+  /// Months between claims for a [Cadence.rolling] credit, which ignores the
+  /// anchor. Required when rolling; the editors refuse to save without it.
+  final int? intervalMonths;
 
   /// True when the credit must be activated on the issuer's benefits page
   /// before a cent of it can be spent. Until [enrolledAt] is set the credit is
@@ -248,9 +255,10 @@ class Benefit {
   final IsoInstant updatedAt;
 
   /// A copy with the given fields replaced. The nullable fields
-  /// ([description], [icon], [merchant], [enrolledAt], [enrollmentNote],
-  /// [enrollmentUrl], [spendThresholdCents], [spendMetAt], [endsOn], [notes])
-  /// are cleared by passing null and kept by leaving them out.
+  /// ([description], [icon], [merchant], [intervalMonths], [enrolledAt],
+  /// [enrollmentNote], [enrollmentUrl], [spendThresholdCents], [spendMetAt],
+  /// [endsOn], [notes]) are cleared by passing null and kept by leaving them
+  /// out.
   Benefit copyWith({
     String? cardId,
     String? name,
@@ -261,6 +269,7 @@ class Benefit {
     int? valueCents,
     Cadence? cadence,
     CycleAnchor? anchor,
+    Object? intervalMonths = _unset,
     bool? enrollmentRequired,
     Object? enrolledAt = _unset,
     Object? enrollmentNote = _unset,
@@ -287,6 +296,9 @@ class Benefit {
     valueCents: valueCents ?? this.valueCents,
     cadence: cadence ?? this.cadence,
     anchor: anchor ?? this.anchor,
+    intervalMonths: identical(intervalMonths, _unset)
+        ? this.intervalMonths
+        : intervalMonths as int?,
     enrollmentRequired: enrollmentRequired ?? this.enrollmentRequired,
     enrolledAt: identical(enrolledAt, _unset)
         ? this.enrolledAt

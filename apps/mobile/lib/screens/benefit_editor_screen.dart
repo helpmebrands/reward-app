@@ -40,6 +40,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
   final _value = TextEditingController();
   final _merchant = TextEditingController();
   final _url = TextEditingController();
+  final _interval = TextEditingController();
   final _spend = TextEditingController();
   final _endsOn = TextEditingController();
   final _steps = TextEditingController();
@@ -47,6 +48,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
   final _valueFocus = FocusNode(debugLabel: 'value');
   final _merchantFocus = FocusNode(debugLabel: 'merchant');
   final _urlFocus = FocusNode(debugLabel: 'url');
+  final _intervalFocus = FocusNode(debugLabel: 'interval');
   final _spendFocus = FocusNode(debugLabel: 'spend');
   final _endsOnFocus = FocusNode(debugLabel: 'endsOn');
   final _stepsFocus = FocusNode(debugLabel: 'steps');
@@ -76,19 +78,31 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       _value.text = (current.valueCents / 100).toString();
       _merchant.text = current.merchant ?? '';
       _url.text = current.enrollmentUrl ?? '';
+      _interval.text = current.intervalMonths?.toString() ?? '';
       final threshold = current.spendThresholdCents;
       _spend.text = threshold == null ? '' : (threshold / 100).toString();
       _endsOn.text = current.endsOn ?? '';
       _steps.text = current.redemptionSteps.join('\n');
     }
-    for (final c in [_name, _value, _merchant, _url, _spend, _endsOn, _steps]) {
+    for (final c in _controllers) {
       c.addListener(_changed);
     }
   }
 
+  List<TextEditingController> get _controllers => [
+    _name,
+    _value,
+    _merchant,
+    _url,
+    _interval,
+    _spend,
+    _endsOn,
+    _steps,
+  ];
+
   @override
   void dispose() {
-    for (final c in [_name, _value, _merchant, _url, _spend, _endsOn, _steps]) {
+    for (final c in _controllers) {
       c.dispose();
     }
     for (final f in [
@@ -96,6 +110,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       _valueFocus,
       _merchantFocus,
       _urlFocus,
+      _intervalFocus,
       _spendFocus,
       _endsOnFocus,
       _stepsFocus,
@@ -112,10 +127,13 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
   String? get _endsOnError => endsOnError(_endsOn.text);
   String? get _spendError =>
       _spend.text.trim().isEmpty ? null : moneyError(_spend.text);
+  String? get _intervalError =>
+      intervalMonthsError(benefit?.cadence ?? Cadence.monthly, _interval.text);
   bool get _unsaved =>
       _nameError != null ||
       _valueError != null ||
       _urlError != null ||
+      _intervalError != null ||
       _spendError != null ||
       _endsOnError != null;
 
@@ -127,6 +145,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     final cents = parseMoney(_value.text);
     final merchant = _merchant.text.trim();
     final url = _url.text.trim();
+    final interval = int.tryParse(_interval.text.trim());
     final spend = _spend.text.trim();
     final spendCents = spend.isEmpty ? null : parseMoney(spend);
     final endsOn = _endsOn.text.trim();
@@ -144,6 +163,10 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
         (b) => b.copyWith(merchant: merchant.isEmpty ? null : merchant),
       if (_urlError == null && (current.enrollmentUrl ?? '') != url)
         (b) => b.copyWith(enrollmentUrl: url.isEmpty ? null : url),
+      if (_intervalError == null &&
+          interval != null &&
+          interval != current.intervalMonths)
+        (b) => b.copyWith(intervalMonths: interval),
       if (_spendError == null && spendCents != current.spendThresholdCents)
         (b) => b.copyWith(spendThresholdCents: spendCents),
       if (_endsOnError == null && (current.endsOn ?? '') != endsOn)
@@ -274,12 +297,28 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
             }
           },
         ),
-        if (current.cadence != Cadence.manual)
+        if (current.cadence != Cadence.manual &&
+            current.cadence != Cadence.rolling)
           Padding(
             padding: const EdgeInsets.only(top: Space.s1),
             child: Text(
               'Reminders at ${ladderSummary(current.cadence)} days out.',
               style: note,
+            ),
+          ),
+        if (current.cadence == Cadence.rolling)
+          Padding(
+            padding: const EdgeInsets.only(top: Space.s3),
+            child: field(
+              'field-interval',
+              'Months between claims',
+              hint:
+                  'Counted from the day you claim it. Global Entry is every 48.',
+              required: true,
+              error: _intervalError,
+              controller: _interval,
+              focusNode: _intervalFocus,
+              keyboardType: TextInputType.number,
             ),
           ),
       ],
@@ -353,7 +392,8 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
               ),
             ),
             cadence,
-            anchor,
+            // A rolling credit measures from its last claim, not an anchor.
+            if (current.cadence != Cadence.rolling) anchor,
             field(
               'field-ends-on',
               'Ends on (optional)',

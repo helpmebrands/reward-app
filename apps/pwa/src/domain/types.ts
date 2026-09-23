@@ -22,10 +22,12 @@ export type Uuid = string
 /**
  * How often a credit refreshes.
  *
- * `manual` covers credits no cycle can track — Global Entry every four to four
- * and a half years — which are listed but never counted as at risk.
+ * `rolling` restarts from the last claim rather than the calendar — Global
+ * Entry every four years — with the gap in {@link Benefit.intervalMonths}.
+ * `manual` covers credits no cycle can track at all, which are listed but
+ * never counted as at risk.
  */
-export type Cadence = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'manual'
+export type Cadence = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'rolling' | 'manual'
 
 /**
  * What a recurring cycle is measured from.
@@ -95,6 +97,11 @@ export interface Benefit {
   valueCents: number
   cadence: Cadence
   anchor: CycleAnchor
+  /**
+   * Months between claims for a `rolling` credit, which ignores the anchor.
+   * Required when rolling; the editors refuse to save without it.
+   */
+  intervalMonths?: number
   /**
    * True when the credit must be activated on the issuer's benefits page
    * before a cent of it can be spent. Until {@link enrolledAt} is set the

@@ -1,3 +1,4 @@
+import { annualValueOf } from './cycles.ts'
 import type {
   Benefit,
   BenefitCategory,
@@ -27,6 +28,8 @@ export interface BenefitTemplate {
   valueCents: number
   cadence: Cadence
   anchor: CycleAnchor
+  /** Months between claims for a `rolling` credit. */
+  intervalMonths?: number
   enrollmentRequired?: boolean
   /** Spend the issuer asks for in a year before the credit opens, in cents. */
   spendThresholdCents?: number
@@ -1551,16 +1554,9 @@ export function findTemplate(id: string): CardTemplate | undefined {
  * promises money most cardholders will never see.
  */
 export function templateAnnualValueCents(template: CardTemplate): number {
-  const perYear: Record<Cadence, number> = {
-    monthly: 12,
-    quarterly: 4,
-    semiannual: 2,
-    annual: 1,
-    manual: 1,
-  }
   return template.benefits
     .filter((b) => b.spendThresholdCents === undefined)
-    .reduce((sum, b) => sum + b.valueCents * perYear[b.cadence], 0)
+    .reduce((sum, b) => sum + annualValueOf(b.valueCents, b.cadence, b.intervalMonths), 0)
 }
 
 /** Credits in a template that are stuck behind an enrolment box. */
@@ -1594,6 +1590,7 @@ export function benefitsFromTemplate(
     updatedAt: now,
     ...(entry.description ? { description: entry.description } : {}),
     ...(entry.merchant ? { merchant: entry.merchant } : {}),
+    ...(entry.intervalMonths !== undefined ? { intervalMonths: entry.intervalMonths } : {}),
     ...(entry.spendThresholdCents !== undefined
       ? { spendThresholdCents: entry.spendThresholdCents }
       : {}),

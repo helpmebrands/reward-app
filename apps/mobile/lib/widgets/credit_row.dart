@@ -77,6 +77,8 @@ class CreditRow extends StatelessWidget {
     final status = instance.status;
     if (status == BenefitStatus.manual) return 'No deadline';
     if (status == BenefitStatus.captured) return 'Captured';
+    // A rolling credit's clock starts only when it is claimed.
+    if (instance.benefit.cadence == Cadence.rolling) return 'Eligible now';
     if (instance.daysRemaining < 0) return 'Expired';
     return formatDaysRemaining(instance.daysRemaining);
   }

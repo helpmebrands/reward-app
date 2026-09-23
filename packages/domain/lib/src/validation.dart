@@ -7,6 +7,7 @@
 library;
 
 import 'dates.dart';
+import 'types.dart';
 
 /// A text field that must not be blank. [message] says what to enter.
 String? requiredError(String value, String message) {
@@ -34,6 +35,18 @@ String? anniversaryError(String value) {
   return _isCalendarDate(value)
       ? null
       : 'Enter the date the cardmember year starts.';
+}
+
+final RegExp _wholeNumber = RegExp(r'^\d+$');
+
+/// Months between claims: a whole number for a rolling credit, nothing
+/// otherwise.
+String? intervalMonthsError(Cadence cadence, String raw) {
+  if (cadence != Cadence.rolling) return null;
+  final trimmed = raw.trim();
+  return _wholeNumber.hasMatch(trimmed) && int.parse(trimmed) > 0
+      ? null
+      : 'Enter how many months between claims.';
 }
 
 /// The last day a credit can be used, if it has one, as a calendar date.

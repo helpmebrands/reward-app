@@ -389,9 +389,9 @@ describe('a rolling credit', () => {
 
   it('is worth its amortised value on the card', () => {
     const data = makeData({ cards: [card], benefits: [benefit] })
-    expect(summarizeCard(card, data, currentInstances(data, TODAY), [], TODAY).annualValueCents).toBe(
-      3000,
-    )
+    expect(
+      summarizeCard(card, data, currentInstances(data, TODAY), [], TODAY).annualValueCents,
+    ).toBe(3000)
   })
 })
 

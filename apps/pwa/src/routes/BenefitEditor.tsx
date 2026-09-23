@@ -8,6 +8,7 @@ import type { BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
 import {
   endsOnError,
   enrollmentUrlError,
+  intervalMonthsError,
   moneyError,
   parseMoney,
   positiveMoneyError,
@@ -21,7 +22,7 @@ import { Switch } from '../ui/Switch.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
-const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'manual']
+const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'rolling', 'manual']
 const CATEGORIES: BenefitCategory[] = [
   'travel',
   'dining',
@@ -68,7 +69,9 @@ export function BenefitEditor() {
   const [urlDraft, setUrlDraft] = createSignal<string | null>(null)
   const [endsOnDraft, setEndsOnDraft] = createSignal<string | null>(null)
   const [spendDraft, setSpendDraft] = createSignal<string | null>(null)
+  const [intervalDraft, setIntervalDraft] = createSignal<string | null>(null)
   const nameText = () => nameDraft() ?? benefit()?.name ?? ''
+  const intervalText = () => intervalDraft() ?? benefit()?.intervalMonths?.toString() ?? ''
   const valueText = () => valueDraft() ?? ((benefit()?.valueCents ?? 0) / 100).toString()
   const urlText = () => urlDraft() ?? benefit()?.enrollmentUrl ?? ''
   const endsOnText = () => endsOnDraft() ?? benefit()?.endsOn ?? ''
@@ -82,6 +85,7 @@ export function BenefitEditor() {
     url: () => enrollmentUrlError(urlText()),
     endsOn: () => endsOnError(endsOnText()),
     spend: () => (spendText().trim() === '' ? null : moneyError(spendText())),
+    interval: () => intervalMonthsError(benefit()?.cadence ?? 'monthly', intervalText()),
   }
 
   function patch(changes: BenefitPatch) {
@@ -170,42 +174,73 @@ export function BenefitEditor() {
                   {(cadence) => <option value={cadence}>{cadenceLabel(cadence)}</option>}
                 </For>
               </select>
-              <Show when={current().cadence !== 'manual'}>
+              <Show when={current().cadence !== 'manual' && current().cadence !== 'rolling'}>
                 <p class="section-note">
                   Reminders at {ladderSummary(current().cadence)} days out.
                 </p>
               </Show>
             </div>
 
-            <div class="field">
-              <span class="field__label">Measured from</span>
-              <div class="seg">
-                <button
-                  type="button"
-                  class="seg__opt"
-                  aria-pressed={current().anchor === 'calendar'}
-                  onClick={() => patch({ anchor: 'calendar' as CycleAnchor })}
-                >
-                  The calendar
-                </button>
-                <button
-                  type="button"
-                  class="seg__opt"
-                  aria-pressed={current().anchor === 'anniversary'}
-                  onClick={() => patch({ anchor: 'anniversary' as CycleAnchor })}
-                >
-                  Card anniversary
-                </button>
-              </div>
-              <Show when={preview()}>
-                {(cycle) => (
-                  <p class="section-note">
-                    This period runs {formatDate(cycle().start)} &ndash; {formatDate(cycle().end)} (
-                    {cycle().label}).
-                  </p>
+            <Show when={current().cadence === 'rolling'}>
+              <Field
+                id="benefit-interval"
+                label="Months between claims"
+                hint="Counted from the day you claim it. Global Entry is every 48."
+                required
+                error={errors.interval()}
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    class="input numeric"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    step="1"
+                    value={intervalText()}
+                    onInput={(e) => {
+                      setIntervalDraft(e.currentTarget.value)
+                      if (!errors.interval()) {
+                        patch({ intervalMonths: Number(e.currentTarget.value.trim()) })
+                      }
+                    }}
+                  />
                 )}
-              </Show>
-            </div>
+              </Field>
+            </Show>
+
+            {/* A rolling credit measures from its last claim, not an anchor. */}
+            <Show when={current().cadence !== 'rolling'}>
+              <div class="field">
+                <span class="field__label">Measured from</span>
+                <div class="seg">
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={current().anchor === 'calendar'}
+                    onClick={() => patch({ anchor: 'calendar' as CycleAnchor })}
+                  >
+                    The calendar
+                  </button>
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={current().anchor === 'anniversary'}
+                    onClick={() => patch({ anchor: 'anniversary' as CycleAnchor })}
+                  >
+                    Card anniversary
+                  </button>
+                </div>
+                <Show when={preview()}>
+                  {(cycle) => (
+                    <p class="section-note">
+                      This period runs {formatDate(cycle().start)} &ndash; {formatDate(cycle().end)}{' '}
+                      ({cycle().label}).
+                    </p>
+                  )}
+                </Show>
+              </div>
+            </Show>
 
             <Field
               id="benefit-ends-on"

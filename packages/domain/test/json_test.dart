@@ -93,9 +93,9 @@ void main() {
     expect(json['cadence'], 'rolling');
     expect(json['intervalMonths'], 48);
     expect(
-      benefitToJson(benefit.copyWith(intervalMonths: null)).containsKey(
-        'intervalMonths',
-      ),
+      benefitToJson(
+        benefit.copyWith(intervalMonths: null),
+      ).containsKey('intervalMonths'),
       isFalse,
     );
   });

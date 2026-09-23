@@ -80,7 +80,16 @@ export function buildSchedule(
   const groups = new Map<string, Group>()
 
   for (const benefit of data.benefits) {
-    if (!benefit.active || benefit.cadence === 'manual' || hasEnded(benefit, from)) continue
+    // A rolling credit has no deadline to warn about until the user claims
+    // it, and then nothing to do until the interval runs out.
+    if (
+      !benefit.active ||
+      benefit.cadence === 'manual' ||
+      benefit.cadence === 'rolling' ||
+      hasEnded(benefit, from)
+    ) {
+      continue
+    }
     if (benefit.muted) continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived || card.muted) continue

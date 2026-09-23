@@ -21,6 +21,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - The invariant: consecutive cycles have no gaps and no overlaps, each starting the day after the last ends.
 - Manual benefits have no window and never recur. `daysRemainingIn` is 0 on the final day and negative after. `annualValueCents` counts an untracked credit once.
 - A credit with `endsOn` clamps its final window to that day, has no window after it, still lists the final window among the closed ones once it has passed, and keeps its unprorated annual value.
+- A rolling credit is eligible now with no deadline and no next cycle until claimed; a claim closes a window from the claim day for `intervalMonths` and the next opens the day after; its annual value is amortised.
 
 ## Statuses, totals and ledgers
 
@@ -34,6 +35,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - `summarizeCard` reports net against the fee; `cardLabel` names the holder and prefers a nickname.
 - A credit with `endsOn` goes Use soon against the clamped end, is absent the day after it ends, and leaves its final shortfall in the missed ledger.
 - A spend-gated credit is locked for `spend` until `spendMetAt` falls in the current year (calendar or cardmember, by anchor), enrolment is named first when both apply, and `summarizeCard` counts nothing for it while gated.
+- A rolling credit is Available until claimed, Captured until its interval ends, Available again under a new key, never Use soon or missed even with a partial claim, and worth its amortised value on the card.
 
 ## Ladder and schedule
 
@@ -45,6 +47,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 - Muted credits, muted cards, fully claimed cycles, manual credits and sub-floor values are skipped; a partly used credit is reminded about for its balance.
 - A credit that ends on a date is reminded against the clamped end and never after it.
 - A spend-locked credit is never scheduled, even with enrolment reminders on.
+- A rolling credit has one unscheduled rung and is never scheduled.
 - Ids are stable and unique across recomputes, so the delivery layer's dedupe holds.
 - `dueReminders` returns only what has come due and not been shown, and drops anything the device slept through for days.
 
@@ -70,6 +73,10 @@ Empty, non-numeric and negative amounts fail the money rule; zero passes it. The
 
 Empty, impossible (month 13) and non-ISO dates fail; an ISO date passes.
 
+### A rolling credit needs whole months between claims
+
+Blank, zero, a fraction and a word all fail for `rolling`; a whole number passes; any value passes for another cadence, which has no interval.
+
 ### An end date is optional but must be a calendar date
 
 Blank and whitespace-only pass, since most credits have no end; an impossible (month 13) or non-ISO date fails; an ISO date passes.
@@ -94,6 +101,10 @@ The PWA's sample household decodes to two cards, twenty-four benefits and twenty
 
 `endsOn` decodes to the same string and encodes back to it; clearing it through `copyWith` drops the key on encode, so an open-ended credit writes no `endsOn`.
 
+### A rolling cadence round-trips with its interval
+
+`cadence: rolling` and `intervalMonths` decode to the enum and the number and encode back; clearing the interval through `copyWith` drops the key.
+
 ### A spend threshold round-trips with its met stamp
 
 `spendThresholdCents` and `spendMetAt` decode to the same values and encode back; clearing both through `copyWith` drops both keys, so an ungated credit writes neither.
@@ -113,6 +124,10 @@ Every credit in every template has an icon name and a value above zero, so a tem
 ### A template prices its year and names its locked credits
 
 `templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrolment box.
+
+### A template amortises a rolling credit
+
+A $120 credit every 48 months beside a $15 monthly one prices at $210 a year, and `benefitsFromTemplate` carries the cadence and the interval onto the benefit. Covered in both languages.
 
 ### A template prices its year without its spend-gated credits
 

@@ -276,6 +276,12 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 "Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Track this credit" pauses it; "Last call only" sets it.
 
+### A rolling credit asks for its interval and hides the anchor
+
+Choosing Rolling writes the cadence, removes the anchor chips and shows "Months between claims"; blank shows "Enter how many months between claims." and writes nothing; "48" writes it.
+
+Emptying the field again keeps 48 and shows the sentence, so an invalid interval is never saved.
+
 ### A spend threshold and its reached switch write the benefit
 
 "abc" in "Unlocks after spending" shows the money sentence after blur and writes nothing; "5000" writes $5,000 and reveals "Spend reached this year", which stamps `spendMetAt`; emptying the field clears the threshold.
@@ -542,7 +548,7 @@ The overlap label and the nudge reminder are opened and cleared the same way, on
 
 ## Credit sheet
 
-`credit_sheet_test.dart` opens the sheet through `UiState` on a household with a $100 Resy credit ($10 then $20 logged), a locked Equinox credit, a captured Uber credit and a spend-gated Dell bonus, dated 16 September 2026 ([[mobile-architecture#The credit sheet]]).
+`credit_sheet_test.dart` opens the sheet through `UiState` on a household with a $100 Resy credit ($10 then $20 logged), locked Equinox, captured Uber, spend-gated Dell and rolling Global Entry credits, dated 16 September 2026 ([[mobile-architecture#The credit sheet]]).
 
 It checks the content, the actions and the presentation at 402, 800 and 1280.
 
@@ -581,6 +587,10 @@ The switch labelled "Silence reminders for …" mutes the benefit and "Last call
 ### A locked credit unlocks from the sheet
 
 A locked credit shows the "Not enrolled." note and no logging; "I've enrolled — unlock this credit" stamps `enrolledAt` and the full-amount button appears.
+
+### A rolling credit is eligible now and restarts when claimed
+
+Global Entry reads "Eligible now — the clock restarts when you claim it"; marking the full $120 used closes the sheet, and reopening it reads "Eligible again Sep 16, 2030" with no logging.
 
 ### A spend-gated credit unlocks from the sheet
 

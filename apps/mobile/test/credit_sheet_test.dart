@@ -392,7 +392,10 @@ void main() {
       await tester.tap(find.text('I’ve reached it — unlock'));
       await tester.pumpAndSettle();
 
-      expect(app.store.data!.benefits.last.spendMetAt, isNotNull);
+      expect(
+        app.store.data!.benefits.firstWhere((b) => b.id == 'dell').spendMetAt,
+        isNotNull,
+      );
       expect(app.ui.snackbar.current!.text, 'Dell Bonus unlocked.');
       expect(inSheet('Mark the full \$1,000 used'), findsOneWidget);
     });

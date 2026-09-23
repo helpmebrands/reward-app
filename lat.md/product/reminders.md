@@ -16,6 +16,7 @@ Warn about the monthly one 90 days out and it is noise; warn about the annual on
 | Quarterly | 30 · 14 · 3 |
 | Semi-annual | 60 · 21 · 7 |
 | Annual | 180 · 90 · 30 · 7 |
+| Rolling | one rung, "Restarts when claimed", never scheduled |
 | Manual | one rung, "Tracked manually", never scheduled |
 
 The tone climbs along the rungs, from `permissive` ("You can use me") through `notice` to `urgent` (last call). Tone drives both the row styling and the notification copy; Nocturne carries urgency as a saturated ground and a filled glyph, never an alarm colour.
@@ -28,7 +29,7 @@ The tone climbs along the rungs, from `permissive` ("You can use me") through `n
 
 [[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon. It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
 
-A credit is skipped when reminders are disabled, the credit is inactive, manual or past its `endsOn`, the credit or its card is muted, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
+A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the credit or its card is muted, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
 
 ### Grouping
 

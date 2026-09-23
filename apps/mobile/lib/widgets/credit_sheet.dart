@@ -142,7 +142,19 @@ class _SheetBodyState extends State<_SheetBody> {
     final status = instance.status;
     final today = store.today;
     final manual = benefit.cadence == Cadence.manual;
+    final rolling = benefit.cadence == Cadence.rolling;
     final claims = store.claimsFor(benefit.id, instance.cycle.key);
+    // The deadline line under the meter, by what kind of window this is.
+    final deadline = manual
+        ? 'Tracked by hand — no deadline'
+        : rolling
+        ? status == BenefitStatus.captured
+              ? 'Eligible again ${formatDate(addDays(instance.cycle.end, 1), today)}'
+              : 'Eligible now — the clock restarts when you claim it'
+        : instance.daysRemaining < 0
+        ? 'Expired ${formatDate(instance.cycle.end, today)}'
+        : '${formatDaysRemaining(instance.daysRemaining)} — closes '
+              '${formatDate(instance.cycle.end, today)}';
     final ladder = ladderFor(benefit);
     final rung = currentRung(benefit, instance.daysRemaining);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
@@ -178,7 +190,7 @@ class _SheetBodyState extends State<_SheetBody> {
                     ),
                     Text(
                       '${cadenceLabel(benefit.cadence)} · ${instance.cycle.label}'
-                      '${manual ? '' : ' · ${formatRange(instance.cycle.start, instance.cycle.end, today)}'}'
+                      '${manual || rolling ? '' : ' · ${formatRange(instance.cycle.start, instance.cycle.end, today)}'}'
                       '${benefit.endsOn == null ? '' : ' · ends ${formatDate(benefit.endsOn!, today)}'}',
                       style: note,
                     ),
@@ -225,12 +237,7 @@ class _SheetBodyState extends State<_SheetBody> {
               const SizedBox(width: Space.s2),
               Expanded(
                 child: Text(
-                  manual
-                      ? 'Tracked by hand — no deadline'
-                      : instance.daysRemaining < 0
-                      ? 'Expired ${formatDate(instance.cycle.end, today)}'
-                      : '${formatDaysRemaining(instance.daysRemaining)} — closes '
-                            '${formatDate(instance.cycle.end, today)}',
+                  deadline,
                   style: text.bodySmall?.copyWith(
                     color: tokens.accentRamp[300],
                   ),
