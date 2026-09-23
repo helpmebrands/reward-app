@@ -346,6 +346,28 @@ Both switches are found by their labels and carry a toggled state; the appearanc
 
 The gear labelled "Settings" on Today opens the Settings screen.
 
+## Routing
+
+`routing_test.dart` opens the app at a path over the sample household and checks the not-found screen, the headings and titles, focus on navigation and the notification handler ([[mobile-architecture#Navigation#Routes and the shell]]).
+
+### An unknown path shows the not-found screen with a way back
+
+`/nowhere` renders "That screen does not exist." with the window title "Not found · HelpMe Reward"; "Back to Today" leaves for Today.
+
+### Every route has exactly one heading and its title
+
+Each of the nine routes has exactly one level-one heading in its semantics, labelled with the screen's name, and the window title is that name followed by " · HelpMe Reward".
+
+The names are Today, All credits, Cards, Value, Add a card, the card's label, the credit's name, Settings and the not-found line, whose window title is "Not found".
+
+### Navigation moves focus to the heading, a tab press keeps it
+
+After `go` to Credits the Credits heading's node has primary focus; after a press on the Cards destination the Cards heading does not, and no heading holds it.
+
+### A notification payload opens its screen
+
+A payload naming `/benefit/ben-0003` opens that editor above the shell and back leaves it; a payload with a web address, or none, changes nothing.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).
