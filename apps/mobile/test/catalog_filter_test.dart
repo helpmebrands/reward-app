@@ -208,4 +208,164 @@ void main() {
       );
     }
   });
+
+  group('compact', () {
+    const phone = Size(402, 874);
+    final filters = find.byKey(const Key('filters-button'));
+    Badge badge(WidgetTester tester) => tester.widget<Badge>(
+      find.descendant(of: filters, matching: find.byType(Badge)),
+    );
+    final sheet = find.byKey(const Key('filter-sheet'));
+
+    /// The sheet builds only the rows near its viewport, so scroll first.
+    Future<void> inSheet(
+      WidgetTester tester,
+      Finder finder, {
+      double by = 100,
+    }) async {
+      await tester.scrollUntilVisible(
+        finder,
+        by,
+        scrollable: find
+            .descendant(of: sheet, matching: find.byType(Scrollable))
+            .first,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> sheetTap(WidgetTester tester, Finder finder) async {
+      await inSheet(tester, finder);
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openSheet(WidgetTester tester) async {
+      await tester.tap(filters);
+      await tester.pumpAndSettle();
+      expect(sheet, findsOneWidget);
+    }
+
+    // @lat: [[mobile-tests#Catalogue filter#The Filters badge counts selections, not search text]]
+    testWidgets('the badge counts checked values and ignores the search', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: phone);
+      expect(find.byKey(const Key('catalog-search')), findsNothing);
+      expect(badge(tester).isLabelVisible, isFalse);
+
+      await openSheet(tester);
+      await sheetTap(tester, facet('fee-from600'));
+      await sheetTap(tester, facet('network-visa'));
+      final search = find.byKey(const Key('catalog-search'));
+      await inSheet(tester, search, by: -100);
+      await tester.enterText(search, 'x');
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(200, 20));
+      await tester.pumpAndSettle();
+
+      expect(sheet, findsNothing);
+      expect(badge(tester).isLabelVisible, isTrue);
+      expect(
+        find.descendant(of: filters, matching: find.text('2')),
+        findsOneWidget,
+      );
+    });
+
+    // @lat: [[mobile-tests#Catalogue filter#Show N reports the live count and closes the sheet]]
+    testWidgets('"Show 4" follows the Chase check and closes onto 4 tiles', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: phone);
+      await openSheet(tester);
+      expect(find.text('Show $total'), findsOneWidget);
+      await sheetTap(tester, facet('issuer-Chase'));
+      expect(find.text('Show 4'), findsOneWidget);
+
+      await tester.tap(find.text('Show 4'));
+      await tester.pumpAndSettle();
+      expect(sheet, findsNothing);
+      expect(chip('Chase'), findsOneWidget);
+      expect(find.text('4 of $total cards'), findsOneWidget);
+      final focused = FocusManager.instance.primaryFocus!;
+      expect(
+        find.ancestor(
+          of: find.byWidget(focused.context!.widget),
+          matching: filters,
+        ),
+        findsOneWidget,
+      );
+    });
+
+    // @lat: [[mobile-tests#Catalogue filter#The scrim and system back close the sheet and keep the selection]]
+    testWidgets('the scrim and system back both close and keep the selection', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: phone);
+      await openSheet(tester);
+      await sheetTap(tester, facet('issuer-Chase'));
+      await tester.tapAt(const Offset(200, 20));
+      await tester.pumpAndSettle();
+      expect(sheet, findsNothing);
+      expect(chip('Chase'), findsOneWidget);
+
+      await openSheet(tester);
+      await sheetTap(tester, facet('issuer-Citi'));
+      expect(await tester.binding.handlePopRoute(), isTrue);
+      await tester.pumpAndSettle();
+      expect(sheet, findsNothing);
+      expect(find.text('Add a card'), findsOneWidget);
+      expect(chip('Chase'), findsOneWidget);
+      expect(chip('Citi'), findsOneWidget);
+    });
+
+    // @lat: [[mobile-tests#Catalogue filter#Growing past compact swaps the sheet for the panel]]
+    testWidgets('widening with the sheet open shows the panel, same state', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: phone);
+      await openSheet(tester);
+      await sheetTap(tester, facet('issuer-Chase'));
+
+      tester.view.physicalSize = const Size(1280, 2000);
+      await tester.pumpAndSettle();
+      expect(sheet, findsNothing);
+      expect(filters, findsNothing);
+      expect(
+        tester.widget<CheckboxListTile>(facet('issuer-Chase')).value,
+        isTrue,
+      );
+      expect(find.text('4 of $total cards'), findsOneWidget);
+
+      tester.view.physicalSize = phone;
+      await tester.pumpAndSettle();
+      expect(chip('Chase'), findsOneWidget);
+      expect(find.text('4 of $total cards'), findsOneWidget);
+    });
+
+    // @lat: [[mobile-tests#Catalogue filter#The sheet keeps 48dp targets and clips nothing at 200%]]
+    testWidgets('the sheet keeps 48dp targets and clips nothing at 200%', (
+      tester,
+    ) async {
+      await pumpCatalogue(tester, size: phone, textScale: 2);
+      expect(tester.getSize(filters).height, greaterThanOrEqualTo(48));
+      await openSheet(tester);
+      expect(tester.takeException(), isNull);
+      expect(
+        tester.getSize(find.byKey(const Key('show-results'))).height,
+        greaterThanOrEqualTo(48),
+      );
+      final options = keyPrefix('facet-');
+      for (var i = 0; i < options.evaluate().length; i++) {
+        expect(tester.getSize(options.at(i)).height, greaterThanOrEqualTo(48));
+      }
+      final texts = find.descendant(of: sheet, matching: find.byType(Text));
+      for (var i = 0; i < texts.evaluate().length; i++) {
+        expect(
+          tester.getRect(texts.at(i)).right,
+          lessThanOrEqualTo(402.5),
+          reason: tester.widget<Text>(texts.at(i)).data,
+        );
+      }
+    });
+  });
 }

@@ -258,7 +258,7 @@ Picking the Business Platinum and saving with a holder and a date adds a card wh
 
 ## Catalogue filter
 
-`catalog_filter_test.dart` opens the app at `/cards/new`, 1280 wide unless a case says otherwise, and drives the side panel ([[mobile-architecture#Forms and the Field pattern#Add a card#Catalogue filter]]).
+`catalog_filter_test.dart` opens the app at `/cards/new`, 1280 wide unless a case says otherwise, and drives the side panel and, at 402, the compact sheet ([[mobile-architecture#Forms and the Field pattern#Add a card#Catalogue filter]]).
 
 ### Checking an issuer narrows the list and adds a chip
 
@@ -287,6 +287,26 @@ The "N of 16 cards" text's semantics node carries the live-region flag, so a scr
 ### The panel at 200% clips nothing
 
 At 720 wide with a 2.0 text scale, and American Express and Adobe checked, no layout exception is raised and every text ends inside the width.
+
+### The Filters badge counts selections, not search text
+
+At 402 wide there is no panel, and the Filters button shows no badge. Checking $600+ and Visa in the sheet and typing search text gives a badge of "2".
+
+### Show N reports the live count and closes the sheet
+
+The sheet opens on "Show 16". Checking Chase turns it into "Show 4", and tapping it closes the sheet onto the Chase chip, "4 of 16 cards" and focus on the Filters button.
+
+### The scrim and system back close the sheet and keep the selection
+
+A scrim tap closes the sheet with Chase still chosen. Reopening, checking Citi and pressing system back closes only the sheet, leaving both chips on the catalogue.
+
+### Growing past compact swaps the sheet for the panel
+
+With the sheet open and Chase checked, widening to 1280 closes the sheet, removes the Filters button and shows the panel with Chase checked. Narrowing back keeps the chip and the count.
+
+### The sheet keeps 48dp targets and clips nothing at 200%
+
+At a 2.0 text scale the Filters button, "Show N" and every facet option are at least 48dp tall, the sheet raises no exception, and its text ends inside 402.
 
 ## Editors
 
