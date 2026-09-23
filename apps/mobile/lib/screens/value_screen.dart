@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../logic/app_store.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/screen_title.dart';
 
 /// Value: what the household actually got, and what leaked away.
 ///
@@ -70,13 +71,16 @@ class _ValueScreenState extends State<ValueScreen> {
         ? cardLabel(summaries.single.card)
         : '${summaries.length} cards';
 
-    Widget sectionTitle(String title) =>
-        Semantics(header: true, child: Text(title, style: text.titleSmall));
+    Widget sectionTitle(String title) => Semantics(
+      header: true,
+      headingLevel: 2,
+      child: Text(title, style: text.titleSmall),
+    );
 
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
-        Semantics(header: true, child: Text('Value', style: text.titleMedium)),
+        ScreenTitle(label: 'Value', style: text.titleMedium),
         const SizedBox(height: Space.s2),
         Text('Last $_monthsBack months · $scope', style: note),
         const SizedBox(height: Space.s6),

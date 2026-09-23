@@ -8,6 +8,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
 import '../widgets/holder_filter.dart';
+import '../widgets/screen_title.dart';
 
 /// The six filters, in the PWA's order.
 enum CreditsFilter {
@@ -190,10 +191,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          header: true,
-          child: Text('All credits', style: text.titleMedium),
-        ),
+        ScreenTitle(label: 'All credits', style: text.titleMedium),
         const SizedBox(height: Space.s2),
         Text(
           '${live.where(isClaimable).length} open · '
@@ -420,6 +418,7 @@ class _Group extends StatelessWidget {
                   children: [
                     Semantics(
                       header: true,
+                      headingLevel: 2,
                       child: Text(
                         group.label,
                         key: ValueKey('group-label-${group.key}'),

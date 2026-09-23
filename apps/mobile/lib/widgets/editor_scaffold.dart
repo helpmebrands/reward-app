@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/snackbar_state.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import 'screen_title.dart';
 import 'snackbar_host.dart';
 
 /// The frame of a full-screen editor: the app bar with a title, a subtitle,
@@ -51,7 +52,7 @@ class EditorScaffold extends StatelessWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Semantics(header: true, child: Text(title)),
+            ScreenTitle(label: title),
             if (subtitle != null)
               Text(subtitle!, style: Theme.of(context).textTheme.bodySmall),
           ],

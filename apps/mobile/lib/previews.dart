@@ -14,6 +14,7 @@ import 'screens/card_editor_screen.dart';
 import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
+import 'screens/not_found_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/value_screen.dart';
@@ -556,3 +557,6 @@ Widget settingsOn() {
 @Preview(name: 'Settings, light', size: Size(402, 874))
 Widget settingsLight() =>
     _themed(SettingsScreen(store: _store(), ui: UiState()), Brightness.light);
+
+@Preview(name: 'Not found', size: Size(402, 500))
+Widget notFound() => _themed(const NotFoundScreen(), Brightness.dark);

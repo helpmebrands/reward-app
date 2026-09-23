@@ -254,7 +254,7 @@ void main() {
     await pumpAdd(tester, textScale: 2, size: const Size(402, 4000));
     await pickPlatinum(tester);
     expect(tester.takeException(), isNull);
-    final texts = find.byType(Text, skipOffstage: false);
+    final texts = find.byType(Text);
     for (var i = 0; i < texts.evaluate().length; i++) {
       expect(
         tester.getRect(texts.at(i)).right,

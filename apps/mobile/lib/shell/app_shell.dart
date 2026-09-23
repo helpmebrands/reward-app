@@ -106,7 +106,10 @@ class _Scaffold extends StatelessWidget {
         body: SafeArea(child: column),
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
-          onDestinationSelected: navigationShell.goBranch,
+          onDestinationSelected: (index) {
+            UiScope.of(context).keepFocusOnDestination = true;
+            navigationShell.goBranch(index);
+          },
           destinations: [
             for (final d in destinations)
               NavigationDestination(
@@ -131,7 +134,10 @@ class _Scaffold extends StatelessWidget {
             width: railWidth,
             child: NavigationRail(
               selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: navigationShell.goBranch,
+              onDestinationSelected: (index) {
+                UiScope.of(context).keepFocusOnDestination = true;
+                navigationShell.goBranch(index);
+              },
               extended: extended,
               labelType: extended
                   ? NavigationRailLabelType.none
