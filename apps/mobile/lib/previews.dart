@@ -15,6 +15,7 @@ import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
 import 'screens/today_screen.dart';
+import 'screens/value_screen.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
@@ -522,5 +523,20 @@ Widget benefitEditorLight() => _themed(
 @Preview(name: 'Editor, not found', size: Size(402, 300))
 Widget editorNotFound() => _themed(
   CardEditorScreen(store: _store(), id: 'gone', ui: UiState()),
+  Brightness.dark,
+);
+
+@Preview(name: 'Value, dark', size: Size(402, 1100))
+Widget valueDark() => _themed(ValueScreen(store: _store()), Brightness.dark);
+
+@Preview(name: 'Value, light', size: Size(402, 1100))
+Widget valueLight() => _themed(ValueScreen(store: _store()), Brightness.light);
+
+@Preview(name: 'Value, expanded', size: Size(720, 900))
+Widget valueExpanded() => _themed(
+  WidthClassScope(
+    widthClass: WidthClass.expanded,
+    child: ValueScreen(store: _store()),
+  ),
   Brightness.dark,
 );

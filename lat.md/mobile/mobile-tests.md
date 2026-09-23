@@ -280,6 +280,38 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 At 1280 the name and value fields share a top edge side by side; at a 2.0 text scale on 402 the benefit editor raises no layout exception and every text ends inside the width.
 
+## Value
+
+`value_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-value.json`, dumped by `apps/pwa/scripts/value-snapshot.ts` ([[mobile-architecture#Value screen]]).
+
+The fixture carries the nine-month totals and peak, each month's bars, the ranks and the leaks.
+
+### The totals, the bars, the ranks and the leaks are the PWA's
+
+Every figure on the screen equals the fixture: the scope line, the two totals, the expired lead, the tallest bar, the months, the ranks and the leaks.
+
+That is "Last 9 months · 2 cards", the captured and missed totals, the lead naming the biggest leak, "Tallest bar = …", the month labels in order, the painter's months and peak with its scaling of the peak to the full height and of zero to nothing, the ranked labels and percentages, and the leaks' labels, spans and amounts.
+
+### The chart reads every month's figures aloud
+
+The chart's semantics label carries "Captured against missed, by month" and, for every month, "Jan: captured $453, missed $90.90" in that shape.
+
+### The months segment re-bins the chart
+
+Nine month labels by default; 6m shows six and retitles the screen "Last 6 months · 2 cards"; 12m shows twelve.
+
+### The chart grows with the column
+
+At each width class the chart is exactly the column's width less the padding.
+
+### Value at 200% clips nothing
+
+At a 2.0 text scale on 402 the screen raises no layout exception and every text ends inside the width.
+
+### No cards shows the empty note
+
+An empty household shows the note about what will appear and neither the ranks nor the leaks.
+
 ## Shell
 
 `shell_test.dart` pumps the app at 402, 768 and 1280 logical pixels wide over the sample household and checks the width class the shell realises ([[mobile-architecture#Responsive layout]], [[mobile-architecture#Navigation]]).
@@ -337,6 +369,10 @@ The tone lines around rows and the surface lines are decorative and are not asse
 ### Each tone's text holds on its own ground
 
 The soon, available, locked, captured and missed foregrounds each clear 4.5:1 on their own ground in both modes.
+
+### The missed bar reaches 3:1 on the page
+
+`chartMissed` clears 3:1 on the page background in both modes, so the Value chart's missed bar and its swatch stay visible.
 
 ### The overlap card's text holds on the section ground
 

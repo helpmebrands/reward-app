@@ -16,7 +16,6 @@ AppData sampleHousehold() => appDataFromJson(
 );
 
 const order = ['Today', 'Credits', 'Cards', 'Value'];
-const stubBody = 'This screen arrives with a later issue.';
 
 Future<void> pumpShell(WidgetTester tester, Size size) async {
   final store = AppStore(
@@ -125,7 +124,7 @@ void main() {
     await pumpShell(tester, const Size(768, 1024));
     await tester.tap(find.text('Value'));
     await tester.pumpAndSettle();
-    expect(find.text(stubBody), findsOneWidget);
+    expect(find.text('Cards against their own fee'), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
       3,
