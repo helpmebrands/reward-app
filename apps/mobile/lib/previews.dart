@@ -8,6 +8,7 @@ import 'logic/credit_actions.dart';
 import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
+import 'screens/add_card_screen.dart';
 import 'screens/cards_screen.dart';
 import 'screens/credits_screen.dart';
 import 'screens/stub_screen.dart';
@@ -17,6 +18,7 @@ import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
 import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
+import 'widgets/field.dart';
 import 'widgets/holder_filter.dart';
 import 'widgets/nudge_preview.dart';
 import 'widgets/sheet_host.dart';
@@ -433,4 +435,60 @@ Widget cardsEmpty() {
   );
   store.load();
   return _themed(CardsScreen(store: store, ui: UiState()), Brightness.dark);
+}
+
+@Preview(name: 'Add a card, catalogue', size: Size(402, 874))
+Widget addCardCatalogue() =>
+    _themed(AddCardScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+/// The Field pattern in its three states: untouched, with a hint, and with
+/// an error forced into view by a submitted form.
+@Preview(name: 'Field', size: Size(402, 420))
+Widget fieldStates() {
+  final a = FocusNode();
+  final b = FocusNode();
+  final c = FocusNode();
+  return _themed(
+    Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Field(
+            label: 'Nickname (optional)',
+            focusNode: a,
+            builder: (context, control) => TextField(
+              focusNode: control.focusNode,
+              decoration: control.decoration,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Field(
+            label: 'Whose card is it?',
+            required: true,
+            hint: 'The name is how their credits stay apart.',
+            focusNode: b,
+            builder: (context, control) => TextField(
+              focusNode: control.focusNode,
+              decoration: control.decoration,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Field(
+            label: 'Account opened / renews on',
+            required: true,
+            error: anniversaryError('2026-13-40'),
+            submitted: true,
+            focusNode: c,
+            builder: (context, control) => TextField(
+              controller: TextEditingController(text: '2026-13-40'),
+              focusNode: control.focusNode,
+              decoration: control.decoration,
+            ),
+          ),
+        ],
+      ),
+    ),
+    Brightness.dark,
+  );
 }
