@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
@@ -144,7 +143,8 @@ void main() {
   testWidgets(
     'merchants show six, all on request, and every sub-search match',
     (tester) async {
-      await pumpCatalogue(tester);
+      // Tall enough that the panel builds every merchant row.
+      await pumpCatalogue(tester, size: const Size(1280, 5000));
       final merchants = facetCounts(
         cardTemplates,
         const CatalogFilter(),
@@ -189,7 +189,7 @@ void main() {
     final handle = tester.ensureSemantics();
     await pumpCatalogue(tester);
     final node = tester.getSemantics(find.text('$total of $total cards'));
-    expect(node.hasFlag(SemanticsFlag.isLiveRegion), isTrue);
+    expect(node.flagsCollection.isLiveRegion, isTrue);
     handle.dispose();
   });
 

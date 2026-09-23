@@ -4,6 +4,7 @@ import 'package:flutter/widget_previews.dart';
 
 import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
+import 'logic/catalog_filter_controller.dart';
 import 'logic/credit_actions.dart';
 import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
@@ -21,6 +22,7 @@ import 'screens/value_screen.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/credit_row.dart';
+import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/field.dart';
@@ -479,6 +481,23 @@ Widget cardsEmpty() {
 @Preview(name: 'Add a card, catalogue', size: Size(402, 874))
 Widget addCardCatalogue() =>
     _themed(AddCardScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+/// From expanded the catalogue puts the filter panel beside the list.
+@Preview(name: 'Add a card, catalogue, expanded', size: Size(1280, 800))
+Widget addCardCatalogueExpanded() =>
+    _themed(AddCardScreen(store: _store(), ui: UiState()), Brightness.dark);
+
+/// The filter panel alone, with Chase checked so the counts follow it and
+/// the zero-count options dim.
+@Preview(name: 'Catalogue filter panel', size: Size(260, 1200))
+Widget catalogFilterPanel() => _themed(
+  CatalogFilterPanel(
+    controller: CatalogFilterController()
+      ..update((f) => f.toggleIssuer('Chase')),
+    padding: const EdgeInsets.all(16),
+  ),
+  Brightness.dark,
+);
 
 /// Step two with the Business Platinum picked: the kind chips start on
 /// Business because the template says so.

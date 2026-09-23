@@ -3,14 +3,16 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../logic/catalog_filter_controller.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/catalog_filter_panel.dart';
 import '../widgets/field.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/snackbar_host.dart';
-import 'card_editor_screen.dart' show KindChoice;
+import 'card_editor_screen.dart' show KindChoice, networkLabel;
 
 /// Add a card, in two steps: pick the product, then say whose it is and when
 /// the cardmember year turns over.
@@ -55,6 +57,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
   final _holderFocus = FocusNode(debugLabel: 'holder');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
   final _nicknameFocus = FocusNode(debugLabel: 'nickname');
+  final _filter = CatalogFilterController();
 
   AppStore get store => widget.store;
   bool get _isBlank => _picked?.id == 'blank';
@@ -88,6 +91,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     ]) {
       f.dispose();
     }
+    _filter.dispose();
     super.dispose();
   }
 
@@ -242,7 +246,13 @@ class _AddCardScreenState extends State<AddCardScreen> {
               child: Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: widthClass.column),
+                  // From medium up the catalogue breaks out of the column
+                  // to put the filter panel beside the list.
+                  constraints: BoxConstraints(
+                    maxWidth: picked == null && widthClass != WidthClass.compact
+                        ? 1080
+                        : widthClass.column,
+                  ),
                   child: Builder(
                     builder: (context) =>
                         picked == null ? _catalogue(context) : _form(context),
@@ -268,14 +278,50 @@ class _AddCardScreenState extends State<AddCardScreen> {
   void _pickBlank() => _pick(findTemplate('blank')!);
 
   Widget _catalogue(BuildContext context) {
+    final widthClass = WidthClass.of(context);
+    return ListenableBuilder(
+      listenable: _filter,
+      builder: (context, _) {
+        final list = _results(context);
+        if (widthClass == WidthClass.compact) return list;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: widthClass == WidthClass.medium ? 200 : 240,
+              child: CatalogFilterPanel(
+                controller: _filter,
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  widthClass.padding,
+                  widthClass.padding,
+                  0,
+                  widthClass.padding,
+                ),
+              ),
+            ),
+            Expanded(child: list),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _results(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
-    final templates = sortByValue(
-      filterTemplates(cardTemplates, const CatalogFilter()),
-    );
+    final filter = _filter.filter;
+    final templates = _filter.results;
+    final chips = <(String, CatalogFilter Function(CatalogFilter))>[
+      for (final b in filter.feeBands) (b.label, (f) => f.toggleFeeBand(b)),
+      for (final n in filter.networks)
+        (networkLabel(n), (f) => f.toggleNetwork(n)),
+      for (final i in filter.issuers) (i, (f) => f.toggleIssuer(i)),
+      for (final m in filter.merchants) (m, (f) => f.toggleMerchant(m)),
+    ];
     return ListView(
+      key: const Key('catalog-results'),
       padding: EdgeInsets.all(widthClass.padding),
       children: [
         // Manual entry leads, so a card the catalogue lacks is one tap away.
@@ -285,23 +331,67 @@ class _AddCardScreenState extends State<AddCardScreen> {
           spacing: Space.s4,
           runSpacing: Space.s3,
           children: [
-            Text('Card catalogue', style: text.titleMedium),
-            FilledButton.icon(
-              key: const Key('add-manually-top'),
-              onPressed: _pickBlank,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                visualDensity: VisualDensity.standard,
-              ),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(
-                widthClass == WidthClass.compact
-                    ? 'Add card'
-                    : 'Add card manually',
-              ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Card catalogue', style: text.titleMedium),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    '${templates.length} of ${_filter.total} cards',
+                    style: note,
+                  ),
+                ),
+              ],
+            ),
+            Wrap(
+              spacing: Space.s3,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (!filter.isEmpty)
+                  TextButton(
+                    key: const Key('clear-all'),
+                    onPressed: _filter.clear,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      visualDensity: VisualDensity.standard,
+                    ),
+                    child: const Text('Clear all'),
+                  ),
+                FilledButton.icon(
+                  key: const Key('add-manually-top'),
+                  onPressed: _pickBlank,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    visualDensity: VisualDensity.standard,
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(
+                    widthClass == WidthClass.compact
+                        ? 'Add card'
+                        : 'Add card manually',
+                  ),
+                ),
+              ],
             ),
           ],
         ),
+        if (chips.isNotEmpty) ...[
+          const SizedBox(height: Space.s4),
+          Wrap(
+            spacing: Space.s3,
+            runSpacing: Space.s3,
+            children: [
+              for (final (label, remove) in chips)
+                InputChip(
+                  label: Text(label),
+                  onDeleted: () => _filter.update(remove),
+                  deleteButtonTooltipMessage: 'Remove $label filter',
+                ),
+            ],
+          ),
+        ],
         const SizedBox(height: Space.s4),
         Text(
           'Pick a card and its credits arrive pre-filled, including which ones '
@@ -310,28 +400,49 @@ class _AddCardScreenState extends State<AddCardScreen> {
           style: note,
         ),
         const SizedBox(height: Space.s6),
-        for (final template in templates)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Space.s3),
-            child: _TemplateTile(
-              key: ValueKey('template-${template.id}'),
-              template: template,
-              onTap: () => _pick(template),
+        if (templates.isEmpty) ...[
+          Text(
+            'No cards match. Try removing a filter, or add your card manually.',
+            style: text.bodyMedium,
+          ),
+          const SizedBox(height: Space.s4),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              key: const Key('add-manually-empty'),
+              onPressed: _pickBlank,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add card manually'),
             ),
           ),
-        const SizedBox(height: Space.s3),
-        Text("Don't see your card?", textAlign: TextAlign.center, style: note),
-        Center(
-          child: TextButton(
-            key: const Key('add-manually-end'),
-            onPressed: _pickBlank,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(48, 48),
-              visualDensity: VisualDensity.standard,
+        ] else ...[
+          for (final template in templates)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Space.s3),
+              child: _TemplateTile(
+                key: ValueKey('template-${template.id}'),
+                template: template,
+                onTap: () => _pick(template),
+              ),
             ),
-            child: const Text('Enter it manually'),
+          const SizedBox(height: Space.s3),
+          Text(
+            "Don't see your card?",
+            textAlign: TextAlign.center,
+            style: note,
           ),
-        ),
+          Center(
+            child: TextButton(
+              key: const Key('add-manually-end'),
+              onPressed: _pickBlank,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                visualDensity: VisualDensity.standard,
+              ),
+              child: const Text('Enter it manually'),
+            ),
+          ),
+        ],
       ],
     );
   }
