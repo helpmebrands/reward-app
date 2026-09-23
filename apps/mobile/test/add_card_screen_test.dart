@@ -43,6 +43,8 @@ Future<App> pumpAdd(
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   addTearDown(tester.view.reset);
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  // A fresh app each time, not a reused state with an old router.
+  await tester.pumpWidget(const SizedBox());
   await tester.pumpWidget(
     RewardApp(store: store, ui: ui, initialLocation: Paths.newCard),
   );
@@ -267,6 +269,12 @@ void main() {
     tester,
   ) async {
     final app = await pumpAdd(tester);
+    await tester.dragUntilVisible(
+      find.text('Set one up by hand'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Set one up by hand'));
     await tester.pumpAndSettle();
 

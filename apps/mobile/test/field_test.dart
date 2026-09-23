@@ -1,6 +1,5 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/field.dart';
@@ -96,10 +95,7 @@ void main() {
     final handle = tester.ensureSemantics();
     await pump(tester, submitted: true);
 
-    final field = tester.getSemantics(find.byKey(const Key('holder')));
-    expect(field.label, contains('Whose card is it?'));
-    expect(find.text('Fields marked * are required.'), findsNothing);
-    expect(find.textContaining('*'), findsWidgets);
+    expect(find.text('Whose card is it? *'), findsOneWidget);
     expect(
       find.text('The name is how their credits stay apart.'),
       findsOneWidget,

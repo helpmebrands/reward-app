@@ -19,9 +19,17 @@ void main() {
 /// store and the ui state in scope above the router, and the router owning
 /// the shell.
 class RewardApp extends StatefulWidget {
-  const RewardApp({super.key, required this.store, this.ui});
+  const RewardApp({
+    super.key,
+    required this.store,
+    this.ui,
+    this.initialLocation = Paths.today,
+  });
 
   final AppStore store;
+
+  /// Where the router starts; tests open a screen directly.
+  final String initialLocation;
 
   /// The transient ui state; created here when not injected by a test.
   final UiState? ui;
@@ -31,7 +39,10 @@ class RewardApp extends StatefulWidget {
 }
 
 class _RewardAppState extends State<RewardApp> {
-  late final GoRouter _router = appRouter(widget.store);
+  late final GoRouter _router = appRouter(
+    widget.store,
+    initialLocation: widget.initialLocation,
+  );
   late final UiState _ui = widget.ui ?? UiState();
 
   @override
