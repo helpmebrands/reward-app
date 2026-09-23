@@ -1,16 +1,19 @@
 import 'package:domain/domain.dart';
 import 'package:test/test.dart';
 
-BenefitTemplate _credit(String name, {String? merchant, int valueCents = 1000}) =>
-    BenefitTemplate(
-      name: name,
-      category: BenefitCategory.other,
-      icon: 'gift',
-      merchant: merchant,
-      valueCents: valueCents,
-      cadence: Cadence.annual,
-      anchor: CycleAnchor.calendar,
-    );
+BenefitTemplate _credit(
+  String name, {
+  String? merchant,
+  int valueCents = 1000,
+}) => BenefitTemplate(
+  name: name,
+  category: BenefitCategory.other,
+  icon: 'gift',
+  merchant: merchant,
+  valueCents: valueCents,
+  cadence: Cadence.annual,
+  anchor: CycleAnchor.calendar,
+);
 
 CardTemplate _template(
   String id, {
@@ -56,10 +59,26 @@ void main() {
 
   group('filterTemplates', () {
     final templates = [
-      _template('chase-a', issuer: 'Chase', benefits: [_credit('DoorDash', merchant: 'DoorDash')]),
-      _template('citi-a', issuer: 'Citi', benefits: [_credit('Uber Cash', merchant: 'Uber')]),
-      _template('amex-a', issuer: 'American Express', benefits: [_credit('Resy', merchant: 'Resy')]),
-      _template('chase-b', issuer: 'Chase', benefits: [_credit('Uber One', merchant: 'Uber')]),
+      _template(
+        'chase-a',
+        issuer: 'Chase',
+        benefits: [_credit('DoorDash', merchant: 'DoorDash')],
+      ),
+      _template(
+        'citi-a',
+        issuer: 'Citi',
+        benefits: [_credit('Uber Cash', merchant: 'Uber')],
+      ),
+      _template(
+        'amex-a',
+        issuer: 'American Express',
+        benefits: [_credit('Resy', merchant: 'Resy')],
+      ),
+      _template(
+        'chase-b',
+        issuer: 'Chase',
+        benefits: [_credit('Uber One', merchant: 'Uber')],
+      ),
     ];
 
     // @lat: [[tests#Catalogue filter#Values OR within a facet and facets AND together]]
@@ -77,11 +96,21 @@ void main() {
         ['citi-a', 'chase-b'],
       );
       expect(
-        _ids(filterTemplates(templates, const CatalogFilter().toggleNetwork(CardNetwork.amex))),
+        _ids(
+          filterTemplates(
+            templates,
+            const CatalogFilter().toggleNetwork(CardNetwork.amex),
+          ),
+        ),
         isEmpty,
       );
       expect(
-        _ids(filterTemplates(templates, const CatalogFilter().toggleFeeBand(FeeBand.none))),
+        _ids(
+          filterTemplates(
+            templates,
+            const CatalogFilter().toggleFeeBand(FeeBand.none),
+          ),
+        ),
         _ids(templates),
       );
     });
@@ -92,7 +121,10 @@ void main() {
       final uber = filterTemplates(real, const CatalogFilter(search: 'UbEr'));
       expect(uber, isNotEmpty);
       for (final t in uber) {
-        expect('${t.issuer} ${t.product}'.toLowerCase(), isNot(contains('uber')));
+        expect(
+          '${t.issuer} ${t.product}'.toLowerCase(),
+          isNot(contains('uber')),
+        );
         expect(
           t.benefits.any(
             (b) =>
@@ -113,8 +145,14 @@ void main() {
 
     // @lat: [[tests#Catalogue filter#The blank template never appears]]
     test('never returns or counts the blank template', () {
-      expect(_ids(filterTemplates(cardTemplates, const CatalogFilter())), isNot(contains('blank')));
-      expect(filterTemplates(cardTemplates, const CatalogFilter()), hasLength(cardTemplates.length - 1));
+      expect(
+        _ids(filterTemplates(cardTemplates, const CatalogFilter())),
+        isNot(contains('blank')),
+      );
+      expect(
+        filterTemplates(cardTemplates, const CatalogFilter()),
+        hasLength(cardTemplates.length - 1),
+      );
       final counts = facetCounts(cardTemplates, const CatalogFilter());
       expect(counts.feeBands[FeeBand.none], 0);
       expect(counts.networks.keys, isNot(contains(CardNetwork.other)));
@@ -171,7 +209,8 @@ void main() {
       expect(merchants.toSet(), hasLength(merchants.length));
       expect(
         merchants,
-        [...merchants]..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase())),
+        [...merchants]
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase())),
       );
       expect(counts.merchants['Uber'], 0);
     });

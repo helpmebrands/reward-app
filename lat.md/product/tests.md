@@ -175,6 +175,46 @@ Covered in both languages: the PWA's `catalog.test.ts` and the Dart port stamp t
 
 Every credit's icon names a class in the bundled Phosphor stylesheet (kebab-case, e.g. `device-mobile`), so imported catalogue data with PascalCase names cannot ship blank icons. PWA-only, since the stylesheet lives there.
 
+## Catalogue filter
+
+`packages/domain/test/catalog_filter_test.dart` pins [[domain#Catalogue filter]]. Dart only. The cases use synthetic templates for the semantics and the shipped catalogue for the counts.
+
+### Fee bands split at their cent boundaries
+
+0 is No fee, 1 and 9,999 are Under $100, 10,000 and 39,999 are $100–$399, 40,000 and 59,999 are $400–$599, and 60,000 is $600+. The labels are fixed.
+
+### Values OR within a facet and facets AND together
+
+Two selected issuers return their union, adding a merchant intersects that union, a network no card has returns nothing, and results keep the given order.
+
+### Search matches issuer, product, benefit name and merchant
+
+"UbEr" matches cards only through a benefit name or merchant, including the Platinum. "chase" matches through the issuer, and "sapphire p" matches only the Sapphire Preferred.
+
+### The blank template never appears
+
+Neither `filterTemplates` nor `facetCounts` returns `blank`, so no empty issuer, no "other" network and no zero-fee card is counted.
+
+### A facet's counts ignore its own selection
+
+With Chase selected, the issuer counts equal the unfiltered ones (Chase is 4). Each merchant count equals the number of Chase cards carrying that merchant, and the fee band counts add up to 4.
+
+### Options stay listed at zero and follow a fixed order
+
+With Wells Fargo selected, all five fee bands are listed and $600+ reads 0. Networks are Amex, Visa and Mastercard, with Amex at 0. The six issuers are alphabetical. The merchants are unique and alphabetical ignoring case, and Uber reads 0.
+
+### The catalogue sorts by annual value, ties in catalogue order
+
+`sortByValue` puts the highest `templateAnnualValueCents` first and keeps equal values in their given order, for both synthetic templates and the shipped catalogue.
+
+### The active count leaves out the search text
+
+An empty filter is empty with a count of 0. Two selected values plus search text count 2, toggling one off counts 1, and search text alone makes the filter non-empty.
+
+### Matched benefits come from the merchant or the search
+
+With no merchant and no search, the Platinum has no matched benefits. With Uber selected it has only Uber benefits, "resy" matches only its Resy credits, and "platinum" matches the card but none of its benefits.
+
 ## Formatting
 
 `packages/domain/test/format_test.dart` pins the display forms in `format.dart`. The PWA's equivalents are locale-driven `Intl` calls exercised only through components; the port hand-rolls them, so these specs are what the two must agree on.
