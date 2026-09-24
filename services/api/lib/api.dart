@@ -10,6 +10,7 @@ import 'package:shelf/shelf.dart';
 
 import 'auth.dart';
 import 'devices.dart';
+import 'households.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
@@ -33,21 +34,36 @@ class Api {
 /// `Connection` in tests and a `Pool` in the server; without one they
 /// answer 503 while `/health` still serves. [verifier] checks the bearer
 /// token on every signed-in route; without one those answer 503 too.
-Api buildApi({Session? db, TokenVerifier? verifier}) {
+Api buildApi({Session? db, TokenVerifier? verifier, Uri? inviteLinkBase}) {
   final signedIn = SignedIn(verifier, db);
   final table = RouteTable()
     ..add('GET', '/health', _health)
     ..add('GET', '/v1/me', signedIn(_me));
   addDeviceRoutes(table, db);
+  addHouseholdRoutes(
+    table,
+    signedIn,
+    inviteLinkBase: inviteLinkBase ?? defaultInviteLinkBase,
+  );
   return Api(
     const Pipeline().addMiddleware(_jsonErrors()).addHandler(table.router.call),
     List.unmodifiable(table.routes),
   );
 }
 
+/// Where an invite's link points unless the server is told otherwise.
+final Uri defaultInviteLinkBase = Uri.parse('https://helpmereward.com/invite/');
+
 /// [buildApi]'s handler.
-Handler buildHandler({Session? db, TokenVerifier? verifier}) =>
-    buildApi(db: db, verifier: verifier).handler;
+Handler buildHandler({
+  Session? db,
+  TokenVerifier? verifier,
+  Uri? inviteLinkBase,
+}) => buildApi(
+  db: db,
+  verifier: verifier,
+  inviteLinkBase: inviteLinkBase,
+).handler;
 
 /// The signed-in caller, as the api knows them.
 Future<Response> _me(Request request, Caller caller, Session db) async =>

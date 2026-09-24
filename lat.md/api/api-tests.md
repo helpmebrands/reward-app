@@ -76,6 +76,38 @@ A valid token for a new uid answers 200 with an id and the email and leaves one 
 
 An expired, a misaddressed and a forged token each answer 401 and no `users` row exists afterwards.
 
+## Households
+
+`households_integration_test.dart` drives the household routes as several signed-in users through `test/support/api.dart`, against `DATABASE_URL` in its own `households` schema ([[api-architecture#Households]]).
+
+### A new user owns a new empty household
+
+A first `GET /v1/household` answers 200 with the caller as sole owner, email included; a second call finds the same household.
+
+### An invite joins its household once, for seven days
+
+An owner's edit invite joins another user as editor, and the household lists both. The code used again answers 410, as does an invite whose `expires_at` has passed; an unknown code is 404; a created invite's link ends in `/invite/<code>`.
+
+### Readers cannot write
+
+A reader's `POST /v1/household/invites` and `DELETE /v1/household/members/{id}` answer 403, and so does an editor's invite, since members are the owner's to manage.
+
+### Leaving a household that holds cards needs confirmation
+
+A user whose household holds a card gets 409 `household holds cards` on accepting; with `confirmLeave: true` they join, and their old household and its card are gone.
+
+### An owner with members cannot leave
+
+An owner with an editor who accepts another household's invite gets 409 `owner has members`.
+
+### A removed member loses access at once
+
+After the owner removes an editor (204, and 404 a second time), the editor's next call finds them owner of a new household of one, and the owner's household has one member.
+
+### An invite names a role
+
+A role other than `read` or `edit` answers 400 `{"error":"invalid","field":"role"}`.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

@@ -10,7 +10,8 @@ import 'package:shelf/shelf_io.dart' as io;
 /// opens a connection pool for the storage-backed routes; without it only
 /// `/health` answers, which is what the container smoke test needs.
 /// `FIREBASE_PROJECT_ID` names the project whose ID tokens sign people in;
-/// without it the signed-in routes answer 503.
+/// without it the signed-in routes answer 503. `INVITE_LINK_BASE` is where
+/// invite links point, `https://helpmereward.com/invite/` by default.
 Future<void> main() async {
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
   final url = Platform.environment['DATABASE_URL'];
@@ -23,7 +24,13 @@ Future<void> main() async {
           certificates: GoogleCertificates(),
         );
   final server = await io.serve(
-    buildHandler(db: db, verifier: verifier),
+    buildHandler(
+      db: db,
+      verifier: verifier,
+      inviteLinkBase: Uri.tryParse(
+        Platform.environment['INVITE_LINK_BASE'] ?? '',
+      )?.takeIf((u) => u.hasScheme),
+    ),
     InternetAddress.anyIPv4,
     port,
   );
@@ -32,4 +39,8 @@ Future<void> main() async {
     '${db == null ? ' (no database)' : ''}'
     '${verifier == null ? ' (no sign-in)' : ''}',
   );
+}
+
+extension<T extends Object> on T {
+  T? takeIf(bool Function(T value) test) => test(this) ? this : null;
 }

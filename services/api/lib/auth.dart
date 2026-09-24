@@ -9,6 +9,8 @@ import 'dart:io';
 import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:postgres/postgres.dart';
 
+import 'src/database.dart';
+
 /// A token that failed verification, and why; the caller only ever sees 401.
 class InvalidToken implements Exception {
   const InvalidToken(this.reason);
@@ -154,9 +156,25 @@ class FirebaseTokenVerifier implements TokenVerifier {
   }
 }
 
-/// The signed-in user a request acts for.
+/// A member's role in their household: the owner manages members, editors
+/// change the data, readers only read it.
+enum Role {
+  owner,
+  editor,
+  reader;
+
+  bool get canWrite => this != reader;
+}
+
+/// The signed-in user a request acts for, and the household they are in.
 class Caller {
-  const Caller({required this.userId, required this.uid, this.email});
+  const Caller({
+    required this.userId,
+    required this.uid,
+    this.email,
+    required this.householdId,
+    required this.role,
+  });
 
   /// The `users.id` row.
   final String userId;
@@ -164,25 +182,53 @@ class Caller {
   /// The Firebase uid.
   final String uid;
   final String? email;
+  final String householdId;
+  final Role role;
 
   Map<String, Object?> toJson() => {'id': userId, 'email': email};
 }
 
-/// The user row for [token], created on its first authenticated call; a
-/// later call keeps the row and refreshes the email.
-Future<Caller> callerFor(Session db, VerifiedToken token) async {
-  final row = (await db.execute(
-    Sql.named('''
-      INSERT INTO users (firebase_uid, email) VALUES (@uid, @email)
-      ON CONFLICT (firebase_uid) DO UPDATE
-        SET email = COALESCE(EXCLUDED.email, users.email)
-      RETURNING id::text, email
-    '''),
-    parameters: {'uid': token.uid, 'email': token.email},
-  )).single;
-  return Caller(
-    userId: row[0]! as String,
-    uid: token.uid,
-    email: row[1] as String?,
-  );
-}
+/// The user row for [token] and their household. The first authenticated
+/// call creates both, the user owning a new, empty household; a later call
+/// keeps them and refreshes the email. One transaction: the upsert locks
+/// the user's row, so two first calls cannot make two households.
+Future<Caller> callerFor(Session db, VerifiedToken token) =>
+    inTransaction(db, (tx) async {
+      final user = (await tx.execute(
+        Sql.named('''
+          INSERT INTO users (firebase_uid, email) VALUES (@uid, @email)
+          ON CONFLICT (firebase_uid) DO UPDATE
+            SET email = COALESCE(EXCLUDED.email, users.email)
+          RETURNING id::text, email
+        '''),
+        parameters: {'uid': token.uid, 'email': token.email},
+      )).single;
+      final userId = user[0]! as String;
+      var membership = await tx.execute(
+        Sql.named(
+          'SELECT household_id::text, role FROM memberships '
+          'WHERE user_id = @user::uuid',
+        ),
+        parameters: {'user': userId},
+      );
+      if (membership.isEmpty) {
+        membership = await tx.execute(
+          Sql.named('''
+            WITH household AS (
+              INSERT INTO households DEFAULT VALUES RETURNING id
+            )
+            INSERT INTO memberships (household_id, user_id, role)
+            SELECT id, @user::uuid, 'owner' FROM household
+            RETURNING household_id::text, role
+          '''),
+          parameters: {'user': userId},
+        );
+      }
+      return Caller(
+        userId: userId,
+        uid: token.uid,
+        email: user[1] as String?,
+        householdId: membership.single[0]! as String,
+        role: Role.values.byName(membership.single[1]! as String),
+      );
+    });

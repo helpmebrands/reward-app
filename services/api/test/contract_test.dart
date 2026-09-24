@@ -171,6 +171,13 @@ final cases = <Case>[
   call(
     'DELETE',
     '/v1/household/members/{userId}',
+    409,
+    as: 'owner',
+    url: () => '/v1/household/members/${saved['owner']}',
+  ),
+  call(
+    'DELETE',
+    '/v1/household/members/{userId}',
     204,
     as: 'owner',
     url: () => '/v1/household/members/${saved['reader']}',

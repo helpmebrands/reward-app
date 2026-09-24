@@ -22,6 +22,8 @@ tags:
     description: Push-device registration.
   - name: me
     description: The signed-in caller.
+  - name: household
+    description: The caller's household, its members and invites.
 security:
   - firebase: []
 
@@ -63,6 +65,161 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household:
+    get:
+      tags: [household]
+      operationId: getHousehold
+      summary: The caller's household
+      description: |
+        Every person is in exactly one household. A new user owns a new,
+        empty one, made on their first authenticated call.
+      responses:
+        '200':
+          description: The household and its members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household/invites:
+    post:
+      tags: [household]
+      operationId: createInvite
+      summary: Invite someone to the household
+      description: |
+        Owner only. The code is single-use and expires after seven days; the
+        link carries the same code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+      responses:
+        '201':
+          description: The invite.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/invites/{code}/accept:
+    post:
+      tags: [household]
+      operationId: acceptInvite
+      summary: Join a household with an invite
+      description: |
+        Moves the caller into the invite's household with its role, leaving
+        their current one. The last member out takes that household, and
+        its data, with them. An owner cannot leave while other members
+        remain. When the current household holds cards, `confirmLeave: true`
+        is required.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptRequest'
+      responses:
+        '200':
+          description: The household joined.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            `household holds cards` without `confirmLeave`, `owner has
+            members`, or `already a member`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [household holds cards, owner has members, already a member]
+        '410':
+          description: The invite was used already (`invite used`) or has expired (`invite expired`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [invite used, invite expired]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household/members/{userId}:
+    delete:
+      tags: [household]
+      operationId: removeMember
+      summary: Remove a member
+      description: |
+        Owner only. The member loses access at once; on their next call they
+        start again in a new, empty household. They take nothing with them.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The owner cannot remove themselves (`owner cannot leave`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: owner cannot leave
         '500':
           $ref: '#/components/responses/Internal'
         '503':
@@ -178,6 +335,75 @@ components:
           minLength: 1
           description: An IANA zone name, such as `Europe/London`.
 
+    Role:
+      type: string
+      enum: [owner, editor, reader]
+      description: Owners manage members; editors change the data; readers only read it.
+
+    Member:
+      type: object
+      required: [userId, email, role, joinedAt]
+      additionalProperties: false
+      properties:
+        userId:
+          type: string
+        email:
+          type: [string, 'null']
+        role:
+          $ref: '#/components/schemas/Role'
+        joinedAt:
+          type: string
+          format: date-time
+
+    Household:
+      type: object
+      required: [id, role, members]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+          description: The caller's own role.
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+
+    InviteRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [read, edit]
+
+    Invite:
+      type: object
+      required: [code, link, role, expiresAt]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z2-9]{8}$'
+          description: Eight characters with no 0, O, 1, I, L or U.
+        link:
+          type: string
+          description: A web address ending in `/invite/<code>`.
+        role:
+          type: string
+          enum: [read, edit]
+        expiresAt:
+          type: string
+          format: date-time
+
+    AcceptRequest:
+      type: object
+      properties:
+        confirmLeave:
+          type: boolean
+          description: Required as true when the caller's current household holds cards.
+
     Error:
       type: object
       required: [error]
@@ -198,6 +424,16 @@ components:
           description: The first field that is missing, blank or malformed; `body` when the body is not a JSON object.
 
   responses:
+    Forbidden:
+      description: The caller's role does not allow this.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: forbidden
     Invalid:
       description: A field is missing, blank or malformed.
       content:
