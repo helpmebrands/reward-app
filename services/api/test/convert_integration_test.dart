@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:domain/domain.dart';
@@ -164,7 +165,11 @@ void main() {
                 'updatedAt',
               }.contains(k),
             );
-        expect(benefits.map(terms).toList(), resolved.map(terms).toList());
+        // Copies keep their creation time but get new ids, so the order in
+        // which they are listed is not the originals'.
+        List<String> sorted(List<Benefit> list) =>
+            [for (final b in list) jsonEncode(terms(b))]..sort();
+        expect(sorted(benefits), sorted(resolved));
         expect(benefits.every((b) => b.templateBenefitId == null), isTrue);
       });
 

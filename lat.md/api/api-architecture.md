@@ -95,6 +95,14 @@ A card linked to a template stores only the household's own fields (label, kind,
 
 Every write needs an editor or owner (403 for a reader), and an id from another household is 404, never a hint that it exists.
 
+## Conversion
+
+A household that wants to change a linked card's terms, or add a credit to it, converts it into a card it maintains itself; after that the catalogue no longer reaches it (`POST /v1/cards/{cardId}/convert` in `lib/household_data.dart`). Pinned by [[api-tests#Conversion]].
+
+One transaction, for an editor or owner. A new card copies the linked card's household fields, its creation time and the issuer, product, network and fee in force today. Each credit the snapshot resolves becomes a household credit with today's terms and all its household state, under a new id.
+
+The claims and every member's mutes of the card and its credits move to the new ids, and the linked card is deleted, taking any linked row that never resolved. The answer is the new card and credits, the id it replaces and a map from each old credit id to its new one, so a client can follow along. A card the household already maintains is 409 `user maintained`.
+
 ## Member preferences
 
 Notification settings and mutes belong to each member, not the household ([[domain#Member preferences]]), and the server keeps them so it can schedule that member's reminders (`lib/preferences.dart`, `0009_member_preferences.sql`). Pinned by [[api-tests#Member preferences]].

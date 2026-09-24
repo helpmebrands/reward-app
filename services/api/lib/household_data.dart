@@ -790,8 +790,100 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     return removed.affectedRows > 0 ? Response(204) : _notFound();
   }
 
+  /// Replaces a linked card with one the household maintains, in one
+  /// transaction: the new card and credits copy the terms resolved today
+  /// and every piece of household state, the claims and every member's
+  /// mutes move to the new ids, and the linked card is deleted.
+  Future<Response> convert(Request request, Caller caller, Session db) async {
+    final id = request.params['cardId']!;
+    return inTransaction(db, (tx) async {
+      final own = await ownCard(tx, caller, id);
+      if (own == null) return _notFound();
+      if (own.templateId == null) {
+        return jsonResponse({'error': 'user maintained'}, status: 409);
+      }
+      final today = await databaseToday(tx);
+      final household = await loadHousehold(tx, caller.householdId, today);
+      final card = household.data.cards.firstWhere((c) => c.id == id);
+      final created =
+          (await tx.execute(
+                Sql.named('''
+          INSERT INTO cards (household_id, label, issuer, product, network,
+            kind, last4, annual_fee_cents, anniversary_on, archived,
+            created_at)
+          SELECT household_id, label, @issuer, @product, @network, kind,
+            last4, @fee, anniversary_on, archived, created_at
+          FROM cards WHERE id = @id::uuid
+          RETURNING id::text
+        '''),
+                parameters: {
+                  'id': id,
+                  'issuer': card.issuer,
+                  'product': card.product,
+                  'network': card.network.name,
+                  'fee': card.annualFeeCents,
+                },
+              )).single[0]!
+              as String;
+
+      final benefitIds = <String, String>{};
+      for (final b in household.data.benefits.where((b) => b.cardId == id)) {
+        final terms = termColumns(benefitToJson(b));
+        final state = {
+          'enrolled_at': b.enrolledAt,
+          'enrollment_note': b.enrollmentNote,
+          'enrollment_url': b.enrollmentUrl,
+          'spend_met_at': b.spendMetAt,
+          'last_call_only': b.lastCallOnly,
+          'active': b.active,
+        };
+        final columns = {...terms, ...state};
+        final newId =
+            (await tx.execute(
+                  Sql.named('''
+            INSERT INTO benefits (household_id, card_id, created_at,
+              ${columns.keys.join(', ')})
+            SELECT household_id, @card::uuid, created_at,
+              ${columns.keys.map((c) => '@$c${_casts[c] ?? ''}').join(', ')}
+            FROM benefits WHERE id = @old::uuid
+            RETURNING id::text
+          '''),
+                  parameters: {...columns, 'card': created, 'old': b.id},
+                )).single[0]!
+                as String;
+        benefitIds[b.id] = newId;
+        for (final table in ['claims', 'member_mutes']) {
+          await tx.execute(
+            Sql.named(
+              'UPDATE $table SET benefit_id = @new::uuid '
+              'WHERE benefit_id = @old::uuid',
+            ),
+            parameters: {'new': newId, 'old': b.id},
+          );
+        }
+      }
+      await tx.execute(
+        Sql.named(
+          'UPDATE member_mutes SET card_id = @new::uuid '
+          'WHERE card_id = @old::uuid',
+        ),
+        parameters: {'new': created, 'old': id},
+      );
+      await tx.execute(
+        Sql.named('DELETE FROM cards WHERE id = @id::uuid'),
+        parameters: {'id': id},
+      );
+      return jsonResponse({
+        ...await cardView(tx, caller, created),
+        'replaces': id,
+        'benefitIds': benefitIds,
+      });
+    });
+  }
+
   routes
     ..add('GET', '/v1/household/data', signedIn(data))
+    ..add('POST', '/v1/cards/<cardId>/convert', writer(convert))
     ..add('POST', '/v1/cards', writer(addCard))
     ..add('PATCH', '/v1/cards/<cardId>', writer(editCard))
     ..add('DELETE', '/v1/cards/<cardId>', writer(deleteCard))
