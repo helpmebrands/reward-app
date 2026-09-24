@@ -199,6 +199,12 @@ The workflow calls both, so the store logic is reviewable code beside the app ra
 
 Play refuses a debug-signed bundle, and both the laptop build in runbook 08 and `release-mobile.yml` write `key.properties` and expect Gradle to read it (#115). The fallback keeps `flutter run --release` and the verify job working with no secrets.
 
+### Android app uses AGP built-in Kotlin
+
+`gradle.properties` sets `android.builtInKotlin=true`, `settings.gradle.kts` declares no `org.jetbrains.kotlin.android` plugin, and the app module keeps only the `kotlin { compilerOptions }` block.
+
+The template's `builtInKotlin=false` opt-out made `firebase_core` and `firebase_auth` apply the Kotlin Gradle Plugin themselves, which Flutter warns will stop building (#247).
+
 ### Runbook 07 describes the tag-driven release
 
 `07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
