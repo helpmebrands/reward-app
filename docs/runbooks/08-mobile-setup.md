@@ -335,8 +335,27 @@ rotating it there.
 | `-alias` | `upload` | `release-mobile.yml` writes this alias into `key.properties`; any other fails the build |
 | `-keyalg`, `-keysize` | `RSA`, `2048` | what Play and Flutter's own guide use |
 | `-validity` | `10000` | days, about 27 years; an upload key should outlive the app |
-| `-dname` | `CN=HelpMe Reward upload, O=HelpMe Brands` | the certificate's owner. Nobody sees it, Play does not check it, and giving it here skips the six name, city and country questions |
+| `-dname` | `CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands` | the certificate's owner, from the answers in the next table. Giving it here skips keytool's six questions |
 | password | 20 or more random characters (keytool's minimum is 6) | made below and kept in your password manager |
+
+**keytool's questions.** Without `-dname`, keytool asks six questions
+about who owns the certificate. These are the answers, and `-dname` above
+gives them all at once. Nobody sees them: the app installed from Play is
+signed with Google's key, not this one, and Play does not check the
+answers. They only have to be the same every time the runbook is followed.
+
+| keytool asks | Answer | `-dname` part |
+| --- | --- | --- |
+| What is your first and last name? | `HelpMe Reward upload` (what the key is, not a person, so it survives staff changes) | `CN=` |
+| What is the name of your organizational unit? | `Mobile` | `OU=` |
+| What is the name of your organization? | `HelpMe Brands` | `O=` |
+| What is the name of your City or Locality? | press Enter (recorded as `Unknown`) | left out |
+| What is the name of your State or Province? | press Enter | left out |
+| What is the two-letter country code for this unit? | press Enter | left out |
+| Is CN=… correct? | `yes` | not asked |
+
+If you would rather record the company's address, add `L=<city>, ST=<state>,
+C=<two-letter country code>` to `-dname`; it changes nothing else.
 
 **One password, not two.** A PKCS12 keystore cannot give the key a
 password of its own: keytool uses the keystore password for the key and
@@ -352,13 +371,13 @@ value.
    ```
 
 2. Make the keystore. keytool asks for the password twice; paste it both
-   times. It asks nothing else, because `-dname` answered the rest:
+   times. It asks nothing else, because `-dname` answered the six questions:
 
    ```sh
    $ cd ~/reward-signing
    $ keytool -genkeypair -v -keystore upload.jks -storetype PKCS12 \
        -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-       -dname "CN=HelpMe Reward upload, O=HelpMe Brands"
+       -dname "CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands"
    ```
 
 3. Check it. You should see `Keystore type: PKCS12`, `Alias name: upload`
