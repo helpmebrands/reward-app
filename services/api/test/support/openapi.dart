@@ -76,6 +76,14 @@ Map<String, dynamic>? responseFor(
   return response == null ? null : _deref(spec, response);
 }
 
+/// Whether [op] needs a bearer token: its own `security`, or the spec's.
+bool requiresSignIn(Map<String, dynamic> spec, Operation op) {
+  final operation =
+      (spec['paths'][op.path] as Map)[op.method.toLowerCase()] as Map;
+  final security = (operation['security'] ?? spec['security']) as List?;
+  return security != null && security.isNotEmpty;
+}
+
 /// Statuses [op] documents.
 Set<int> documentedStatuses(Map<String, dynamic> spec, Operation op) {
   final operation =
