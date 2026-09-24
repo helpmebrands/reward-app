@@ -61,7 +61,11 @@ class _TodayBody extends StatelessWidget {
     final now = store.now;
     final at = now.millisecondsSinceEpoch;
     Reminder? next;
-    for (final reminder in buildSchedule(data, now).reminders) {
+    for (final reminder in buildSchedule(
+      data,
+      store.preferences,
+      now,
+    ).reminders) {
       if (reminder.fireAt > at) {
         next = reminder;
         break;

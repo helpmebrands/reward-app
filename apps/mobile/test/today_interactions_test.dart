@@ -43,9 +43,13 @@ AppData labelledHousehold() {
   );
 }
 
-Future<App> pumpApp(WidgetTester tester, {AppData? data}) async {
+Future<App> pumpApp(
+  WidgetTester tester, {
+  AppData? data,
+  MemberPreferences? prefs,
+}) async {
   final store = AppStore(
-    store: MemorySnapshotStore(data ?? labelledHousehold()),
+    store: MemorySnapshotStore(data ?? labelledHousehold(), prefs),
     clock: () => now,
   );
   await store.load();
@@ -226,16 +230,13 @@ void main() {
     tester,
   ) async {
     final data = sampleHousehold();
-    final enabled = data.copyWith(
-      settings: data.settings.copyWith(
-        notifications: data.settings.notifications.copyWith(enabled: true),
-      ),
-    );
+    final enabled = defaultMemberPreferences.copyWith(enabled: true);
     final expected = buildSchedule(
+      data,
       enabled,
       now,
     ).reminders.firstWhere((r) => r.fireAt > now.millisecondsSinceEpoch);
-    final app = await pumpApp(tester, data: enabled);
+    final app = await pumpApp(tester, data: data, prefs: enabled);
 
     await tester.tap(find.text('Preview nudge'));
     await tester.pumpAndSettle();

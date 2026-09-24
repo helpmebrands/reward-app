@@ -101,7 +101,6 @@ class Card {
     this.last4,
     required this.annualFeeCents,
     required this.anniversaryOn,
-    required this.muted,
     required this.archived,
     required this.createdAt,
     required this.updatedAt,
@@ -129,9 +128,6 @@ class Card {
   /// Account open / renewal date. Anchors [CycleAnchor.anniversary] cycles and
   /// the annual fee countdown. Only the month and day matter for recurrence.
   final IsoDate anniversaryOn;
-
-  /// Silences every credit on this card without losing their state.
-  final bool muted;
   final bool archived;
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
@@ -147,7 +143,6 @@ class Card {
     Object? last4 = _unset,
     int? annualFeeCents,
     IsoDate? anniversaryOn,
-    bool? muted,
     bool? archived,
     IsoInstant? updatedAt,
   }) => Card(
@@ -160,7 +155,6 @@ class Card {
     last4: identical(last4, _unset) ? this.last4 : last4 as String?,
     annualFeeCents: annualFeeCents ?? this.annualFeeCents,
     anniversaryOn: anniversaryOn ?? this.anniversaryOn,
-    muted: muted ?? this.muted,
     archived: archived ?? this.archived,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -189,7 +183,6 @@ class Benefit {
     this.endsOn,
     required this.redemptionSteps,
     this.notes,
-    required this.muted,
     required this.lastCallOnly,
     required this.active,
     required this.createdAt,
@@ -246,9 +239,6 @@ class Benefit {
   final List<String> redemptionSteps;
   final String? notes;
 
-  /// Silences this credit's reminders; the bell on every row toggles it.
-  final bool muted;
-
   /// Opts this credit out of its cadence's default reminder ladder in favour
   /// of a single alert on the last day.
   final bool lastCallOnly;
@@ -283,7 +273,6 @@ class Benefit {
     Object? endsOn = _unset,
     List<String>? redemptionSteps,
     Object? notes = _unset,
-    bool? muted,
     bool? lastCallOnly,
     bool? active,
     IsoInstant? updatedAt,
@@ -322,7 +311,6 @@ class Benefit {
     endsOn: identical(endsOn, _unset) ? this.endsOn : endsOn as IsoDate?,
     redemptionSteps: redemptionSteps ?? this.redemptionSteps,
     notes: identical(notes, _unset) ? this.notes : notes as String?,
-    muted: muted ?? this.muted,
     lastCallOnly: lastCallOnly ?? this.lastCallOnly,
     active: active ?? this.active,
     createdAt: createdAt,
@@ -421,7 +409,8 @@ class BenefitInstance {
   /// 0..1 progress through the cycle window, for the period bars.
   final double cycleProgress;
 
-  /// True when reminders are silenced, by the credit or by its card.
+  /// True when the member reading it has silenced the credit or its card
+  /// ([MemberPreferences.isMuted]).
   final bool muted;
 }
 
@@ -441,13 +430,18 @@ class LadderRung {
   final Tone tone;
 }
 
-class NotificationSettings {
-  const NotificationSettings({
+/// One member's reminder settings and mutes. The household's data is
+/// shared between its members; these are not, so one member silencing a
+/// card silences it for nobody else.
+class MemberPreferences {
+  const MemberPreferences({
     required this.enabled,
     required this.timeOfDay,
     required this.minValueCents,
     required this.annualFeeReminder,
     required this.enrollmentReminder,
+    this.mutedCardIds = const {},
+    this.mutedBenefitIds = const {},
   });
 
   final bool enabled;
@@ -464,40 +458,56 @@ class NotificationSettings {
   /// Remind about credits that are locked behind enrolment.
   final bool enrollmentReminder;
 
-  NotificationSettings copyWith({
+  /// Cards whose every credit this member has silenced.
+  final Set<Uuid> mutedCardIds;
+
+  /// Credits this member has silenced; the bell on every row toggles one.
+  final Set<Uuid> mutedBenefitIds;
+
+  /// Whether this member hears nothing about [benefit], by its own mute or
+  /// its card's.
+  bool isMuted(Benefit benefit) =>
+      mutedBenefitIds.contains(benefit.id) ||
+      mutedCardIds.contains(benefit.cardId);
+
+  MemberPreferences copyWith({
     bool? enabled,
     String? timeOfDay,
     int? minValueCents,
     bool? annualFeeReminder,
     bool? enrollmentReminder,
-  }) => NotificationSettings(
+    Set<Uuid>? mutedCardIds,
+    Set<Uuid>? mutedBenefitIds,
+  }) => MemberPreferences(
     enabled: enabled ?? this.enabled,
     timeOfDay: timeOfDay ?? this.timeOfDay,
     minValueCents: minValueCents ?? this.minValueCents,
     annualFeeReminder: annualFeeReminder ?? this.annualFeeReminder,
     enrollmentReminder: enrollmentReminder ?? this.enrollmentReminder,
+    mutedCardIds: mutedCardIds ?? this.mutedCardIds,
+    mutedBenefitIds: mutedBenefitIds ?? this.mutedBenefitIds,
   );
 }
 
-class Settings {
-  const Settings({
-    required this.notifications,
-    required this.useSoonDays,
-    required this.theme,
-  });
+/// A new member's preferences, the PWA's defaults: reminders off at 09:00,
+/// early enough to act on the day and late enough not to wake anyone, a $1
+/// floor, both reminder kinds on, nothing muted.
+const MemberPreferences defaultMemberPreferences = MemberPreferences(
+  enabled: false,
+  timeOfDay: '09:00',
+  minValueCents: 100,
+  annualFeeReminder: true,
+  enrollmentReminder: true,
+);
 
-  final NotificationSettings notifications;
+class Settings {
+  const Settings({required this.useSoonDays, required this.theme});
 
   /// Horizon in days for Today's "Use soon" band.
   final int useSoonDays;
   final ThemeSetting theme;
 
-  Settings copyWith({
-    NotificationSettings? notifications,
-    int? useSoonDays,
-    ThemeSetting? theme,
-  }) => Settings(
-    notifications: notifications ?? this.notifications,
+  Settings copyWith({int? useSoonDays, ThemeSetting? theme}) => Settings(
     useSoonDays: useSoonDays ?? this.useSoonDays,
     theme: theme ?? this.theme,
   );

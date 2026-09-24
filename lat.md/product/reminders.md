@@ -27,9 +27,9 @@ The tone climbs along the rungs, from `permissive` ("You can use me") through `n
 
 ## Schedule construction
 
-[[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon. It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
+[[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon, for one member: the Dart port takes that member's preferences ([[domain#Member preferences]]). It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
 
-A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the credit or its card is muted, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
+A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the member has muted the credit or its card, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
 
 ### Grouping
 

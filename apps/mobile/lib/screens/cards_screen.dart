@@ -236,7 +236,7 @@ class _CardStat extends StatelessWidget {
   Future<void> _act(BuildContext context, _CardAction action) async {
     switch (action) {
       case _CardAction.mute:
-        final wasMuted = card.muted;
+        final wasMuted = store.isCardMuted(card.id);
         await store.toggleCardMute(card.id);
         snackbar?.show(
           wasMuted
@@ -339,7 +339,7 @@ class _CardStat extends StatelessWidget {
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     value: _CardAction.mute,
-                    child: Text(card.muted ? 'Unmute' : 'Mute'),
+                    child: Text(store.isCardMuted(card.id) ? 'Unmute' : 'Mute'),
                   ),
                   const PopupMenuItem(
                     value: _CardAction.archive,
@@ -351,11 +351,13 @@ class _CardStat extends StatelessWidget {
                   ),
                 ],
                 icon: Icon(
-                  card.muted
+                  store.isCardMuted(card.id)
                       ? Icons.notifications_off_outlined
                       : Icons.more_vert,
                   size: 18,
-                  color: card.muted ? tokens.accent : tokens.textSecondary,
+                  color: store.isCardMuted(card.id)
+                      ? tokens.accent
+                      : tokens.textSecondary,
                 ),
               ),
             ),

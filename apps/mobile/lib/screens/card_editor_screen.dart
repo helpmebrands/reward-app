@@ -154,7 +154,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         anchor: CycleAnchor.calendar,
         enrollmentRequired: false,
         redemptionSteps: const [],
-        muted: false,
         lastCallOnly: false,
         active: true,
         createdAt: '',
@@ -304,7 +303,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               title: 'Silence every credit',
               note: 'Keeps tracking them, sends nothing.',
               label: 'Silence every credit',
-              value: current.muted,
+              value: store.isCardMuted(current.id),
               onChanged: (_) => store.toggleCardMute(current.id),
             ),
             SwitchRow(

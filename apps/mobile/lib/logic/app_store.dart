@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import '../data/snapshot_store.dart';
 import 'ids.dart';
 
-/// The app store: the one `AppData` snapshot, today's date, the derived views
-/// the screens read, and the PWA's mutations. Every mutation replaces the
+/// The app store: the one `AppData` snapshot, this member's preferences,
+/// today's date, the derived views the screens read, and the PWA's mutations. Every mutation replaces the
 /// snapshot, notifies once, then writes it through the [SnapshotStore];
 /// screens never touch storage.
 class AppStore extends ChangeNotifier {
@@ -18,7 +18,9 @@ class AppStore extends ChangeNotifier {
   final DateTime Function() _clock;
 
   AppData? _data;
+  MemberPreferences _preferences = defaultMemberPreferences;
   bool _loading = true;
+  bool _hasLocalPreferences = false;
 
   /// Set by any mutation. In the app the UI is gated on [loading], but a
   /// caller that writes before the snapshot arrives must not have its change
@@ -28,6 +30,10 @@ class AppStore extends ChangeNotifier {
   /// The snapshot, or null before [load] completes or on a fresh install.
   AppData? get data => _data;
   bool get loading => _loading;
+
+  /// This member's reminder settings and mutes, kept on the device until the
+  /// api holds them. Never part of [data], which the household shares.
+  MemberPreferences get preferences => _preferences;
 
   /// The user's local calendar date. Re-read on every access so an app
   /// resumed the next morning shows that morning's deadlines.
@@ -40,7 +46,11 @@ class AppStore extends ChangeNotifier {
 
   Future<void> load() async {
     final loaded = await _store.load();
+    final preferences = await _store.loadPreferences();
     if (!_hasLocalChanges) _data = loaded;
+    if (!_hasLocalPreferences && preferences != null) {
+      _preferences = preferences;
+    }
     _loading = false;
     notifyListeners();
   }
@@ -85,7 +95,6 @@ class AppStore extends ChangeNotifier {
       last4: last4,
       annualFeeCents: template.annualFeeCents,
       anniversaryOn: anniversaryOn ?? today,
-      muted: false,
       archived: false,
       createdAt: now,
       updatedAt: now,
@@ -113,8 +122,12 @@ class AppStore extends ChangeNotifier {
     );
   }
 
-  Future<void> toggleCardMute(String id) =>
-      updateCard(id, (card) => card.copyWith(muted: !card.muted));
+  /// Silences or unsilences every credit on a card, for this member only.
+  Future<void> toggleCardMute(String id) => updatePreferences(
+    (p) => p.copyWith(mutedCardIds: _toggled(p.mutedCardIds, id)),
+  );
+
+  bool isCardMuted(String id) => _preferences.mutedCardIds.contains(id);
 
   Future<void> archiveCard(String id) =>
       updateCard(id, (card) => card.copyWith(archived: true));
@@ -163,7 +176,6 @@ class AppStore extends ChangeNotifier {
       endsOn: draft.endsOn,
       redemptionSteps: draft.redemptionSteps,
       notes: draft.notes,
-      muted: draft.muted,
       lastCallOnly: draft.lastCallOnly,
       active: draft.active,
       createdAt: now,
@@ -191,8 +203,15 @@ class AppStore extends ChangeNotifier {
     );
   }
 
-  Future<void> toggleBenefitMute(String id) =>
-      updateBenefit(id, (b) => b.copyWith(muted: !b.muted));
+  /// Silences or unsilences one credit, for this member only.
+  Future<void> toggleBenefitMute(String id) => updatePreferences(
+    (p) => p.copyWith(mutedBenefitIds: _toggled(p.mutedBenefitIds, id)),
+  );
+
+  bool isBenefitMuted(String id) => _preferences.mutedBenefitIds.contains(id);
+
+  static Set<String> _toggled(Set<String> ids, String id) =>
+      ids.contains(id) ? ({...ids}..remove(id)) : {...ids, id};
 
   /// Records that the user has ticked the issuer's enrolment box.
   Future<void> confirmEnrollment(String id) =>
@@ -269,9 +288,16 @@ class AppStore extends ChangeNotifier {
     return _commit(data.copyWith(settings: patch(data.settings)));
   }
 
-  Future<void> updateNotificationSettings(
-    NotificationSettings Function(NotificationSettings notifications) patch,
-  ) => updateSettings((s) => s.copyWith(notifications: patch(s.notifications)));
+  /// Replaces this member's preferences, notifies once, then saves them
+  /// apart from the household's snapshot.
+  Future<void> updatePreferences(
+    MemberPreferences Function(MemberPreferences preferences) patch,
+  ) {
+    _hasLocalPreferences = true;
+    _preferences = patch(_preferences);
+    notifyListeners();
+    return _store.savePreferences(_preferences);
+  }
 
   // Derived views
 
@@ -279,14 +305,14 @@ class AppStore extends ChangeNotifier {
   List<BenefitInstance> get instances {
     final data = _data;
     if (data == null) return const [];
-    return currentInstances(data, today);
+    return currentInstances(data, today, _preferences);
   }
 
   /// One credit resolved against today, or null when it is not tracked.
   BenefitInstance? instanceFor(String benefitId) {
     final data = _data;
     if (data == null) return null;
-    for (final instance in currentInstances(data, today)) {
+    for (final instance in currentInstances(data, today, _preferences)) {
       if (instance.benefit.id == benefitId) return instance;
     }
     return null;

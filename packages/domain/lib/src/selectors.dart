@@ -89,6 +89,7 @@ BenefitInstance resolveInstance(
   ClaimIndex claims,
   IsoDate on, {
   int useSoonHorizon = useSoonDays,
+  MemberPreferences? prefs,
 }) {
   final claimedCents = claimedIn(claims, benefit.id, cycle.key);
   final daysRemaining = daysRemainingIn(cycle, on);
@@ -108,7 +109,7 @@ BenefitInstance resolveInstance(
     ),
     daysRemaining: daysRemaining,
     cycleProgress: cycleProgress(cycle, on),
-    muted: benefit.muted || card.muted,
+    muted: prefs?.isMuted(benefit) ?? false,
   );
 }
 
@@ -129,8 +130,13 @@ List<T> _stableSorted<T>(Iterable<T> items, int Function(T a, T b) compare) {
 }
 
 /// Every active benefit resolved against its current cycle, ordered by what
-/// the user is closest to losing.
-List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
+/// the user is closest to losing. [prefs] are the reading member's, which
+/// decide [BenefitInstance.muted]; without them nothing is muted.
+List<BenefitInstance> currentInstances(
+  AppData data, [
+  IsoDate? on,
+  MemberPreferences? prefs,
+]) {
   final day = on ?? todayIso();
   final claims = indexClaims(data.claims);
   final cardsById = {for (final card in data.cards) card.id: card};
@@ -151,6 +157,7 @@ List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
         claims,
         day,
         useSoonHorizon: data.settings.useSoonDays,
+        prefs: prefs,
       ),
     );
   }
@@ -605,7 +612,6 @@ Benefit _cardYearBenefit(Card card) {
     anchor: CycleAnchor.anniversary,
     enrollmentRequired: false,
     redemptionSteps: const [],
-    muted: false,
     lastCallOnly: false,
     active: true,
     createdAt: card.createdAt,

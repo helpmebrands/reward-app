@@ -542,7 +542,7 @@ class _SheetBodyState extends State<_SheetBody> {
                 'Keeps tracking it, sends nothing. Status stays '
                 '${statusLabel(status).toLowerCase()}.',
             label: 'Silence reminders for ${benefit.name}',
-            value: benefit.muted,
+            value: store.isBenefitMuted(benefit.id),
             onChanged: (_) => actions.toggleMute(instance),
           ),
           const SizedBox(height: Space.s6),
