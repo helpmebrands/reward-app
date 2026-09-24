@@ -36,6 +36,7 @@ copy. Update it when an environment is added or moved.
 | First deployed | PWA 2026-09-17; api 2026-09-18 |
 | GitHub token | fine-grained, this repository only, minted by `oravecz` on 2026-09-21, **no expiry**; held as `github:token` on the `staging` and `repo` stacks. Rotate by hand and update this row |
 | iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `F43PSVY32N` (with Sign in with Apple and Associated Domains), team `LMFUSVPCDH`, both **expire 2027-09-21**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [08](08-mobile-setup.md#later-renewing-the-certificate) and update this row |
+| Android signing | Play app `HelpMe Reward` (`com.helpmebrands.reward`) on developer account `HelpMe Brands LLC`, Play App Signing on; upload keystore alias `upload` (owner `CN=HelpMe Reward Upload`, SHA-256 `CA:30:…:4C:DC`) held only in Secret Manager as `reward-app-android-*-staging`; the app signing key's SHA-256 is `androidSha256Fingerprints` on the stack. First internal-track build: version code 3 on 2026-09-24 |
 
 ## What owns what
 

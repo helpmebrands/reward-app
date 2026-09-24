@@ -38,6 +38,12 @@ With both pinned, the stack can never fall back to the empty passphrase it start
 
 `githubRepo` is `helpmebrands/reward-app`. The WIF attribute condition and the impersonation binding are built from it, so a wrong value rejects every deploy.
 
+### Staging lists the Play app signing fingerprint
+
+`Pulumi.staging.yaml` sets `androidSha256Fingerprints` to one or more colon-separated SHA-256 fingerprints, which `infra/index.ts` passes to the api for `assetlinks.json` ([[api-architecture#Invite links]]).
+
+The value is the app signing key Play generated when the first bundle was uploaded (#115), not the upload keystore in Secret Manager; with the wrong one Android never opens invite links in the app.
+
 ### No stale repository or project names
 
 Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `helpme-rewards-`.
@@ -216,6 +222,12 @@ Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository na
 `08-mobile-setup.md` replaces `08-sign-in-providers.md` in the README and everywhere under `docs/`. It has a part for Apple, one for Google Play and one for both platforms, with the auth handler URL and the `appleSignInConfig` PATCH.
 
 The setup steps used to be split over 07 and 08 in the order they were written, and following them made three provisioning profiles, the last still missing an entitlement.
+
+### Runbook 08 Part 2 says what the first Android release taught
+
+Part 2 of `08-mobile-setup.md` says it was rehearsed on 2026-09-24, names the `403` symptom of a missing invite, gives the *Protected with Play* path to the *Classical key* fingerprint, and matches the keystore's `HelpMe Reward Upload` owner.
+
+Step 3.3 also names the `invalid_rapt` reauth error and points at runbook 05. Each of these cost a round trip during #115: the 403 read as an IAM problem, the *App integrity* path no longer exists in the console, and the runbook's lower-case `upload` did not match the keytool output.
 
 ### Runbook 08 turns on every capability before the profile
 
