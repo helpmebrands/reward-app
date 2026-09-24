@@ -302,6 +302,10 @@ The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.
 
 Each provider is declared only once its keys are set, so the preview passes before the hand steps are done.
 
+### The app is registered with Firebase on both platforms
+
+`infra/index.ts` declares a Firebase Apple app and Android app for `com.helpmebrands.reward` and exports each app id, each API key read from the app's config file, and the iOS URL scheme, which the app's Firebase options are copied from ([[mobile-architecture#Sign-in]]).
+
 ### The sign-in credentials are the runbook's keys
 
 `Pulumi.yaml` declares every key runbook 08 sets, and the runbook names each one; the staging stack commits `appleTeamId: LMFUSVPCDH`, which is not secret.

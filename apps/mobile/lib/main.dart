@@ -1,19 +1,38 @@
 import 'package:domain/domain.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'data/firebase_auth_service.dart';
 import 'data/snapshot_store.dart';
+import 'firebase_options.dart';
 import 'logic/app_store.dart';
+import 'logic/session.dart';
 import 'logic/ui_state.dart';
 import 'shell/app_scope.dart';
 import 'shell/router.dart';
 import 'shell/ui_scope.dart';
 import 'theme/theme.dart';
 
-void main() {
+/// Firebase first, when this build has an app for the platform; the
+/// intro flag before the first frame, so the redirect never shows the wrong
+/// screen for a moment.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final options = FirebaseConfig.currentPlatform;
+  AuthService auth = UnconfiguredAuth();
+  if (options != null) {
+    await Firebase.initializeApp(options: options);
+    auth = FirebaseAuthService();
+  }
+  final session = Session(
+    auth: auth,
+    intro: const SharedPreferencesIntroStore(),
+  );
+  await session.load();
   final store = AppStore(store: const SharedPreferencesSnapshotStore());
   store.load();
-  runApp(RewardApp(store: store));
+  runApp(RewardApp(store: store, session: session));
 }
 
 /// The app: Material on Nocturne's tokens, following the system theme, the
@@ -24,10 +43,15 @@ class RewardApp extends StatefulWidget {
     super.key,
     required this.store,
     this.ui,
+    this.session,
     this.initialLocation = Paths.today,
   });
 
   final AppStore store;
+
+  /// Sign-in and the welcome slideshow; without one there is no redirect,
+  /// which is how tests reach the screens behind sign-in directly.
+  final Session? session;
 
   /// Where the router starts; tests open a screen directly.
   final String initialLocation;
@@ -43,6 +67,7 @@ class _RewardAppState extends State<RewardApp> {
   late final GoRouter _router = appRouter(
     widget.store,
     initialLocation: widget.initialLocation,
+    session: widget.session,
   );
   late final UiState _ui = widget.ui ?? UiState();
   String? _location;

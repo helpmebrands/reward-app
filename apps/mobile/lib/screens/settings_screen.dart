@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../logic/session.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
@@ -19,10 +20,13 @@ import '../widgets/switch_row.dart';
 /// into the app's theme mode, so an override takes effect at once. One
 /// column at every width, because the ladder table needs it.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.store, this.ui});
+  const SettingsScreen({super.key, required this.store, this.ui, this.session});
 
   final AppStore store;
   final UiState? ui;
+
+  /// Who is signed in, for the account section and sign-out.
+  final Session? session;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -274,6 +278,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'rather than inventing a second palette.',
           style: note,
         ),
+        if (widget.session case final session?) ...[
+          const SizedBox(height: Space.s8),
+          title('Account'),
+          const SizedBox(height: Space.s2),
+          Text(session.user?.email ?? 'Signed in', style: text.bodyMedium),
+          const SizedBox(height: Space.s3),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton(
+              key: const Key('sign-out'),
+              onPressed: session.auth.signOut,
+              child: const Text('Sign out'),
+            ),
+          ),
+        ],
       ],
     );
   }

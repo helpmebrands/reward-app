@@ -874,6 +874,23 @@ describe('sign-in', () => {
     }
   })
 
+  // @lat: [[infra-tests#Infrastructure config#The app is registered with Firebase on both platforms]]
+  it('registers the iOS and Android apps and exports their options', () => {
+    const p = program()
+    expect(p).toMatch(/new gcp\.firebase\.AppleApp\(/)
+    expect(p).toMatch(/new gcp\.firebase\.AndroidApp\(/)
+    expect(p).toMatch(/const appId = 'com\.helpmebrands\.reward'/)
+    for (const output of [
+      'firebaseIosAppId',
+      'firebaseAndroidAppId',
+      'firebaseIosApiKey',
+      'firebaseAndroidApiKey',
+      'firebaseIosUrlScheme',
+    ]) {
+      expect(p, output).toMatch(new RegExp(`^export const ${output} = `, 'm'))
+    }
+  })
+
   // @lat: [[infra-tests#Infrastructure config#The sign-in credentials are the runbook's keys]]
   it('declares the runbook 08 keys and commits the Apple team id', () => {
     const project = read('infra/Pulumi.yaml')

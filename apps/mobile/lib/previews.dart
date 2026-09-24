@@ -29,6 +29,9 @@ import 'widgets/field.dart';
 import 'widgets/nudge_preview.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
+import 'logic/session.dart';
+import 'screens/sign_in_screen.dart';
+import 'screens/welcome_screen.dart';
 
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
@@ -164,6 +167,25 @@ AppStore _store() {
 Widget _themed(Widget child, Brightness brightness) => MaterialApp(
   theme: nocturneTheme(brightness),
   home: Scaffold(body: SafeArea(child: child)),
+);
+
+@Preview(name: 'Welcome slideshow, dark', size: Size(402, 874))
+Widget welcomeDark() => _themed(WelcomeScreen(onDone: () {}), Brightness.dark);
+
+@Preview(name: 'Welcome slideshow, light', size: Size(402, 874))
+Widget welcomeLight() =>
+    _themed(WelcomeScreen(onDone: () {}), Brightness.light);
+
+@Preview(name: 'Sign-in, dark', size: Size(402, 874))
+Widget signInDark() => _themed(
+  SignInScreen(auth: UnconfiguredAuth(), onLearnMore: () {}),
+  Brightness.dark,
+);
+
+@Preview(name: 'Sign-in, expanded', size: Size(1280, 800))
+Widget signInExpanded() => _themed(
+  SignInScreen(auth: UnconfiguredAuth(), onLearnMore: () {}),
+  Brightness.light,
 );
 
 @Preview(name: 'Today, dark', size: Size(402, 874))

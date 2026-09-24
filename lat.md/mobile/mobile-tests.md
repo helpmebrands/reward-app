@@ -828,6 +828,38 @@ At 1280 with the sample household, the bar's centre is the content column's cent
 
 At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centred on the phone column.
 
+## Sign-in
+
+`sign_in_test.dart` launches the app with a `Session` over a fake `AuthService` and a `MemoryIntroStore`, and follows the router's redirect ([[mobile-architecture#Sign-in]]).
+
+### First launch shows the slideshow
+
+Signed out with the intro unseen, the app opens on `WelcomeScreen`; Skip goes to `SignInScreen` and sets `introSeen`.
+
+### Finishing the slideshow leads to sign-in
+
+Next through the slides to "Get started" goes to sign-in and sets `introSeen`.
+
+### A returning signed-out launch goes to sign-in
+
+With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow, and Skip returns to sign-in.
+
+### A signed-in launch opens Today
+
+Signed in, the app opens on Today with no sign-in screen.
+
+### Signing in opens Today
+
+"Continue with Google" and "Continue with Apple" each call their provider once on the auth and land on Today.
+
+### Signing out returns to sign-in
+
+"Sign out" in Settings calls the auth once and returns to sign-in, not the slideshow.
+
+### A failed sign-in says so
+
+With `UnconfiguredAuth`, "Continue with Google" stays on sign-in and shows that sign-in is not set up.
+
 ## Api config
 
 `api_config_test.dart` covers the build-time define ([[mobile-architecture#Api config]]). Each case skips itself in the run it does not apply to, so the verify gate and `make check` run the file a second time with the define.
