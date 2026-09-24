@@ -5,6 +5,8 @@
 /// fields are omitted rather than written as null, as the PWA writes them.
 library;
 
+import 'catalog.dart';
+import 'catalog_versions.dart';
 import 'types.dart';
 
 const Map<BenefitCategory, String> _categoryNames = {
@@ -197,4 +199,76 @@ Map<String, Object?> appDataToJson(AppData data) => {
   'benefits': data.benefits.map(benefitToJson).toList(),
   'claims': data.claims.map(claimToJson).toList(),
   'settings': settingsToJson(data.settings),
+};
+
+/// One catalogue credit, as the service tier's catalogue serves it.
+BenefitTemplate benefitTemplateFromJson(Map<String, dynamic> json) =>
+    BenefitTemplate(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      description: json['description'] as String?,
+      category: _categoryFromJson(json['category'] as String),
+      icon: json['icon'] as String,
+      merchant: json['merchant'] as String?,
+      valueCents: json['valueCents'] as int,
+      cadence: Cadence.values.byName(json['cadence'] as String),
+      anchor: CycleAnchor.values.byName(json['anchor'] as String),
+      intervalMonths: json['intervalMonths'] as int?,
+      enrollmentRequired: json['enrollmentRequired'] as bool? ?? false,
+      spendThresholdCents: json['spendThresholdCents'] as int?,
+      endsOn: json['endsOn'] as String?,
+      redemptionSteps: ((json['redemptionSteps'] as List?) ?? const [])
+          .cast<String>(),
+      notes: json['notes'] as String?,
+    );
+
+Map<String, Object?> benefitTemplateToJson(BenefitTemplate credit) =>
+    _withoutNulls({
+      'id': credit.id,
+      'name': credit.name,
+      'description': credit.description,
+      'category': _categoryToJson(credit.category),
+      'icon': credit.icon,
+      'merchant': credit.merchant,
+      'valueCents': credit.valueCents,
+      'cadence': credit.cadence.name,
+      'anchor': credit.anchor.name,
+      'intervalMonths': credit.intervalMonths,
+      'enrollmentRequired': credit.enrollmentRequired,
+      'spendThresholdCents': credit.spendThresholdCents,
+      'endsOn': credit.endsOn,
+      'redemptionSteps': credit.redemptionSteps,
+      'notes': credit.notes,
+    });
+
+/// A whole template as of one version: the template's own fields, the
+/// version and its date, and every credit.
+TemplateVersion templateVersionFromJson(Map<String, dynamic> json) =>
+    TemplateVersion(
+      version: json['version'] as int,
+      effectiveFrom: json['effectiveFrom'] as String,
+      template: CardTemplate(
+        id: json['id'] as String,
+        issuer: json['issuer'] as String,
+        product: json['product'] as String,
+        network: CardNetwork.values.byName(json['network'] as String),
+        kind: CardKind.values.byName(json['kind'] as String),
+        annualFeeCents: json['annualFeeCents'] as int,
+        benefits: (json['credits'] as List)
+            .cast<Map<String, dynamic>>()
+            .map(benefitTemplateFromJson)
+            .toList(),
+      ),
+    );
+
+Map<String, Object?> templateVersionToJson(TemplateVersion version) => {
+  'id': version.template.id,
+  'version': version.version,
+  'effectiveFrom': version.effectiveFrom,
+  'issuer': version.template.issuer,
+  'product': version.template.product,
+  'network': version.template.network.name,
+  'kind': version.template.kind.name,
+  'annualFeeCents': version.template.annualFeeCents,
+  'credits': version.template.benefits.map(benefitTemplateToJson).toList(),
 };
