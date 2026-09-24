@@ -78,15 +78,15 @@ Push notifications will need the *Push Notifications* capability and an APNs
 key uploaded to Firebase, which is part of wiring FCM and not of this runbook.
 
 **Android** needs an upload keystore and a Play Console record. The keystore
-is generated once and stored only in Secret Manager; [08, step
-2.3](08-mobile-setup.md#23-the-upload-keystore) has the exact commands. For a local signed build, fetch it and write
-`android/key.properties` the way `release-mobile.yml` does. `android/key.properties` names them and is
-gitignored by the Flutter template; `android/app/build.gradle.kts` needs the
-standard `signingConfigs.release` block reading it before the next command
-produces a signed bundle.
+is generated once and stored only in Secret Manager ([08, step
+2.3](08-mobile-setup.md#23-the-upload-keystore)). A signed build on a laptop
+needs `android/key.properties` written first; [08, step
+2.4](08-mobile-setup.md#24-the-first-bundle-by-hand) has the numbered steps,
+including the check that `android/app/build.gradle.kts` reads that file,
+which it does not yet (#115). Without it:
 
 ```sh
-$ fvm flutter build appbundle --release  # writes build/app/outputs/bundle/release/app-release.aab
+$ fvm flutter build appbundle --release  # writes build/app/outputs/bundle/release/app-release.aab, debug-signed
 ```
 
 ## Getting it to testers

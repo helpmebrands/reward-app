@@ -1,19 +1,14 @@
 # 08 — Mobile setup
 
-Everything a person has to do by hand before the first mobile release can
-reach testers and people can sign in: the store records, the signing
-material, the sign-in credentials and the invite-link domain. **Do it once,
-top to bottom, in this order.** Each step says where to click, what to type
-and what you should have at the end. The order matters: a step that needs
-something made earlier comes after it.
+Everything a person has to do by hand so that the mobile app can reach
+testers and people can sign in: the store records, the signing material,
+the sign-in credentials and the invite-link domain. **Do it once, top to
+bottom, in this order.** Every numbered step can be done as soon as the step
+above it is finished; nothing depends on a step further down.
 
-Releasing a build after setup is [07 — Mobile release](07-mobile-release.md).
-The sections at the end (*Later: …*) cover what to do when something changes:
+Releasing a build is [07 — Mobile release](07-mobile-release.md). The
+sections at the end (*Later: …*) cover what to do when something changes:
 a new capability, a certificate that is about to expire, or a key to rotate.
-
-Start this runbook after [01 — Initial deployment](01-initial-deployment.md):
-the stack must exist, because it creates the empty Secret Manager containers
-and the Play publisher identity used below.
 
 ## What you will end up with
 
@@ -66,6 +61,7 @@ Two kinds of storage, for a reason:
 
 | Need | Check |
 | --- | --- |
+| [01 — Initial deployment](01-initial-deployment.md) is done: the stack exists and made the empty secret containers and the Play publisher identity | the last command in the block below lists nine ids |
 | Apple Developer Program membership, team `LMFUSVPCDH`, with the *Admin* or *Account Holder* role | you can open <https://developer.apple.com/account> and <https://appstoreconnect.apple.com> |
 | Google Play developer account | you can open <https://play.google.com/console> |
 | Owner on the Google Cloud project | `gcloud projects get-iam-policy helpme-reward-staging` lists you |
@@ -79,8 +75,11 @@ $ export PROJECT_ID=helpme-reward-staging
 $ export STACK=staging
 $ mkdir -p ~/reward-signing && cd ~/reward-signing
 $ gcloud secrets list --project "$PROJECT_ID" --filter="name~reward-app-.*-$STACK" \
-    --format='value(name)'          # the nine ids from the table; if not, apply the stack first
+    --format='value(name)'
 ```
+
+The last command must print the nine ids from the table above. Fewer means
+the stack is not applied: stop here and finish runbook 01.
 
 Every Secret Manager id is `reward-app-<name>-<stack>`, the `secretId` the
 stack declares in `infra/index.ts`, so the commands name them through
@@ -92,12 +91,12 @@ House rules for the whole runbook:
 - Work in `~/reward-signing`. Downloads go there too. Delete the folder at
   the end (Part 4).
 - Never type a password or key on a command line, where shell history keeps
-  it. The commands use `read -rs`, which takes the value from the keyboard
-  without showing or recording it; press Enter after typing.
+  it. The commands use `read -rs`: it waits, you paste the value (nothing
+  shows), you press Enter.
 - Binary files (`.jks`, `.p12`, `.p8`, `.mobileprovision`) go into Secret
   Manager as they are. It stores bytes.
-- Apple lets you download a `.p8` key **only once**. Store it before you do
-  anything else.
+- Apple lets you download a `.p8` key **only once**. The step that
+  downloads one stores it in its very next numbered step.
 
 ## Part 1 — Apple (iOS)
 
@@ -115,27 +114,30 @@ Go to *Identifiers*. Look for `com.helpmebrands.reward`.
   register a second id under a friendlier name. A profile made for any other
   identifier fails the build at signing time, and an earlier pass of this
   runbook did exactly that.
-- If it is genuinely missing, click **+**, choose *App IDs*, then *App*,
-  and register an **explicit** id: `com.helpmebrands.reward`.
+- If it is genuinely missing, register it:
+  1. Click **+**.
+  2. Choose *App IDs* → *Continue*.
+  3. Choose *App* → *Continue*.
+  4. Description `HelpMe Reward`, *Explicit*, Bundle ID `com.helpmebrands.reward`.
+  5. Click *Continue*, then *Register*. Leave the capabilities for 1.2.
 
 ### 1.2 Turn on every capability
 
-Open the app id. Tick all three of these, then **Save**:
+A profile records the capabilities its app id had on the day it was made,
+and never learns about new ones. That is why this step comes long before
+the profile (1.7).
 
-- [ ] **Push Notifications**. Push delivery is not built yet; turning it on
-  now means the profile will not need re-making when it is.
-- [ ] **Sign in with Apple**. Keep *Enable as a primary App ID*.
-- [ ] **Associated Domains**. Invite links open the app through it.
+1. Open the app id from 1.1.
+2. Tick **Push Notifications**. Push delivery is not built yet; turning it
+   on now means the profile will not need re-making when it is.
+3. Tick **Sign in with Apple**. Keep *Enable as a primary App ID*.
+4. Tick **Associated Domains**. Invite links open the app through it.
+5. Click **Save**, and confirm if asked.
 
-These must match the app. `apps/mobile/ios/Runner/Runner.entitlements`
+These must match the app: `apps/mobile/ios/Runner/Runner.entitlements`
 declares `com.apple.developer.applesignin` and
-`com.apple.developer.associated-domains`; if a later change adds an
-entitlement there, tick it here and follow *Later: re-making the iOS
-profile*.
-
-**This is the step that must come before the profile (1.7).** A profile
-records the capabilities its app id had on the day it was made, and never
-learns about new ones.
+`com.apple.developer.associated-domains`. A later change that adds an
+entitlement there is handled by *Later: re-making the iOS profile*.
 
 ### 1.3 The Sign in with Apple Services ID
 
@@ -146,21 +148,22 @@ handler, which every provider sends people back to:
 https://helpme-reward-staging.firebaseapp.com/__/auth/handler
 ```
 
-That address only answers after the stack has added Firebase to the project
-(Part 3). You can still enter it now: the portal stores it as text and does
-not call it.
+That address does not answer yet; Part 3 makes it. Enter it anyway: the
+portal stores it as text and does not call it.
 
-1. *Identifiers* → **+** → *Services IDs*:
-   - Description: `HelpMe Reward sign-in`
-   - Identifier: `com.helpmebrands.reward.signin`
-2. Register it, open it again, tick **Sign in with Apple**, then
-   *Configure*:
-   - Primary App ID: `com.helpmebrands.reward`
-   - Domains and subdomains: `helpme-reward-staging.firebaseapp.com`
-   - Return URLs: `https://helpme-reward-staging.firebaseapp.com/__/auth/handler`
-3. Click *Save*, then *Continue*, then *Save* again. Apple discards the
-   configuration unless you save the Services ID page as well.
-4. Store the id:
+1. *Identifiers* → **+** → *Services IDs* → *Continue*.
+2. Description `HelpMe Reward sign-in`, Identifier
+   `com.helpmebrands.reward.signin`.
+3. Click *Continue*, then *Register*.
+4. Open `com.helpmebrands.reward.signin` from the list.
+5. Tick **Sign in with Apple** and click its *Configure* button.
+6. Primary App ID: `com.helpmebrands.reward`.
+7. Domains and subdomains: `helpme-reward-staging.firebaseapp.com`.
+8. Return URLs: `https://helpme-reward-staging.firebaseapp.com/__/auth/handler`.
+9. Click *Next*, then *Done*.
+10. Click *Continue*, then *Save*. Apple discards the configuration unless
+    this last *Save* on the Services ID page happens.
+11. Store the id:
 
    ```sh
    $ cd <your checkout>/infra && pulumi stack select $STACK
@@ -172,12 +175,15 @@ The Apple team id is already committed as `reward-app:appleTeamId` in
 
 ### 1.4 The Sign in with Apple key
 
-1. *Keys* → **+**. Name it `reward-app sign-in`, tick **Sign in with
-   Apple**, *Configure* it with the primary App ID `com.helpmebrands.reward`,
-   and register it.
-2. Note the ten-character **Key ID** and download `AuthKey_<KEYID>.p8` into
-   `~/reward-signing`. **This is the only chance to download it.**
-3. Store both, still in `infra/`:
+1. *Keys* → **+**.
+2. Key name `reward-app sign-in`.
+3. Tick **Sign in with Apple** and click *Configure*.
+4. Primary App ID `com.helpmebrands.reward`, then *Save*.
+5. Click *Continue*, then *Register*.
+6. Note the ten-character **Key ID**.
+7. Download `AuthKey_<KEYID>.p8` into `~/reward-signing`. **This is the only
+   chance to download it.**
+8. Store both, still in `infra/`. The last command deletes the local copy:
 
    ```sh
    $ pulumi config set reward-app:appleKeyId ABCDE12345
@@ -195,11 +201,11 @@ This key lets the release workflow upload to TestFlight without anyone
 signed in to Apple.
 
 1. At <https://appstoreconnect.apple.com>: *Users and Access → Integrations
-   → App Store Connect API → Team Keys → Generate API Key*. Name it
-   `reward-app release`, role **App Manager**.
-2. Download the `.p8` into `~/reward-signing`. **Only once**, as before.
-3. On the same page, note the key's **Key ID** and the page's **Issuer ID**.
-4. Store all three. Each `read -r` waits for you to paste the value and
+   → App Store Connect API → Team Keys → Generate API Key*.
+2. Name `reward-app release`, access **App Manager**, *Generate*.
+3. Download the `.p8` into `~/reward-signing`. **Only once**, as before.
+4. On the same page, note the key's **Key ID** and the page's **Issuer ID**.
+5. Store all three. Each `read -r` waits for you to paste the value and
    press Enter:
 
    ```sh
@@ -213,9 +219,9 @@ signed in to Apple.
    ```
 
 The key id and issuer id are not secret in themselves, but they travel with
-the key so the workflow reads all three from one place. Keep the `.p8` until
-Part 4 if you want to use the command-line route in the appendix; Secret
-Manager is its only other copy.
+the key so the workflow reads all three from one place. The `.p8` stays in
+`~/reward-signing` for the appendix route; Part 4 deletes it, and Secret
+Manager keeps the only other copy.
 
 ### 1.6 The distribution certificate
 
@@ -225,18 +231,21 @@ password-protected `.p12`. The Fastfile signs with the identity name
 Distribution*.
 
 1. On the Mac, open *Keychain Access → Certificate Assistant → Request a
-   Certificate From a Certificate Authority*. Enter your email and the
-   common name `HelpMe Reward release`, choose *Saved to disk*. This puts
-   a private key in your login keychain and a `.certSigningRequest` file in
-   the folder you pick.
-2. In the portal, *Certificates* → **+** → **Apple Distribution**. Upload
-   the request and download `distribution.cer`. Double-click it so it pairs
-   with the private key in Keychain Access.
-3. In Keychain Access, *My Certificates*, right-click `Apple Distribution:
-   HelpMe Brands …` → *Export*. Choose `.p12`, save it as
-   `~/reward-signing/distribution.p12`, and set a password when asked. That
-   is the certificate password.
-4. Store both:
+   Certificate From a Certificate Authority*.
+2. Your email, common name `HelpMe Reward release`, *Saved to disk*,
+   *Continue*, and save it in `~/reward-signing`. This puts a private key in
+   your login keychain and a `.certSigningRequest` file in the folder.
+3. In the portal, *Certificates* → **+** → **Apple Distribution** →
+   *Continue*.
+4. Upload the `.certSigningRequest` → *Continue*.
+5. Download `distribution.cer` and double-click it. Keychain Access pairs it
+   with the private key from step 2.
+6. In Keychain Access, *My Certificates*, right-click `Apple Distribution:
+   HelpMe Brands …` → *Export*.
+7. Format `.p12`, save as `~/reward-signing/distribution.p12`.
+8. Set a password when asked; save it in your password manager. That is
+   the certificate password.
+9. Store both:
 
    ```sh
    $ gcloud secrets versions add reward-app-ios-distribution-cert-$STACK \
@@ -245,78 +254,87 @@ Distribution*.
        reward-app-ios-cert-password-$STACK --project "$PROJECT_ID" --data-file -
    ```
 
-Keep `CERT_PASSWORD` set in this terminal; Part 4 uses it. Note the
-certificate's id (the ten characters in its portal URL) and its expiry date
-for Part 5. It lasts a year.
+10. Note the certificate's id (the ten characters in its portal URL) and its
+    expiry date, a year from today. Part 5 records them.
+
+Leave this terminal open: Part 4 uses `CERT_PASSWORD`.
 
 ### 1.7 The provisioning profile
 
-Only now, with every capability from 1.2 on the app id and the certificate
-from 1.6 in place, make the profile. It is made once and carries all of
-them.
+The profile carries every capability ticked in 1.2 and the certificate
+from 1.6. It is made once.
 
-1. In the portal, *Profiles* → **+**. Under *Distribution* choose **App
-   Store Connect**.
-2. App ID: `com.helpmebrands.reward` (the `XC com helpmebrands reward` entry).
-3. Certificate: the one from 1.6.
-4. Name: `HelpMe Reward App Store`. The Fastfile reads the name from inside
-   the file, so any name works, but keeping this one keeps the history
-   readable.
-5. Generate, then download `HelpMe_Reward_App_Store.mobileprovision` into
-   `~/reward-signing`. Note the profile's id (in its portal URL) and its
-   expiry date for Part 5.
+1. In the portal, *Profiles* → **+**.
+2. Under *Distribution* choose **App Store Connect** → *Continue*.
+3. App ID: `com.helpmebrands.reward` (the `XC com helpmebrands reward`
+   entry) → *Continue*.
+4. Certificate: the one from 1.6 → *Continue*.
+5. Name: `HelpMe Reward App Store` → *Generate*. The Fastfile reads the name
+   from inside the file, so any name works, but keeping this one keeps the
+   history readable.
+6. Download `HelpMe_Reward_App_Store.mobileprovision` into
+   `~/reward-signing`.
+7. Note the profile's id (in its portal URL) and its expiry date. Part 5
+   records them.
+8. Check it:
 
-**Check it before it goes anywhere near Secret Manager:**
+   ```sh
+   $ cd ~/reward-signing
+   $ security cms -D -i HelpMe_Reward_App_Store.mobileprovision | plutil -p - \
+       | grep -E 'application-identifier|aps-environment|com.apple.developer.applesignin|com.apple.developer.associated-domains|ExpirationDate'
+   ```
 
-```sh
-$ security cms -D -i HelpMe_Reward_App_Store.mobileprovision | plutil -p - \
-    | grep -E 'application-identifier|aps-environment|com.apple.developer.applesignin|com.apple.developer.associated-domains|ExpirationDate'
-```
+   You must see **all five** of these. The values after `=>` for the last
+   three entitlements do not matter; the names must be there.
 
-You must see **all five** of these. The values after `=>` for the last
-three entitlements do not matter; the names must be there.
+   - [ ] `"application-identifier" => "LMFUSVPCDH.com.helpmebrands.reward"`
+   - [ ] `"aps-environment"` (Push Notifications)
+   - [ ] `"com.apple.developer.applesignin"` (Sign in with Apple)
+   - [ ] `"com.apple.developer.associated-domains"` (Associated Domains)
+   - [ ] `"ExpirationDate"`, a year from now
 
-- [ ] `"application-identifier" => "LMFUSVPCDH.com.helpmebrands.reward"`.
-  Anything else means the profile was made for another app id: delete it
-  and make it again from the right one.
-- [ ] `"aps-environment"` (Push Notifications)
-- [ ] `"com.apple.developer.applesignin"` (Sign in with Apple)
-- [ ] `"com.apple.developer.associated-domains"` (Associated Domains)
-- [ ] `"ExpirationDate"`, a year from now
+   **Stop if any line is wrong or missing. Do not store this profile.**
+   - A different `application-identifier` means the profile was made for
+     another app id. Delete it in the portal and start this step again at 1,
+     choosing the right id in 3.
+   - A missing entitlement means that capability was not ticked in 1.2.
+     Go to *Later: re-making the iOS profile* and start at its step 1.
 
-A missing entitlement means that capability was not ticked in 1.2 when the
-profile was made. Tick it, then follow *Later: re-making the iOS profile*;
-do not store this one.
+9. All five are there. Store it:
 
-When all five are there:
-
-```sh
-$ gcloud secrets versions add reward-app-ios-provisioning-profile-$STACK \
-    --project "$PROJECT_ID" --data-file HelpMe_Reward_App_Store.mobileprovision
-```
+   ```sh
+   $ gcloud secrets versions add reward-app-ios-provisioning-profile-$STACK \
+       --project "$PROJECT_ID" --data-file HelpMe_Reward_App_Store.mobileprovision
+   ```
 
 ### 1.8 The App Store Connect app record
 
-At <https://appstoreconnect.apple.com>, *Apps* → **+** → *New App*:
-platform iOS, name `HelpMe Reward`, bundle id `com.helpmebrands.reward`, a
-SKU of your choosing. This is the only Apple step that only the web UI can
-do, and `upload_to_testflight` fails without it.
+`upload_to_testflight` fails without this record, and only the web UI can
+make it.
 
-Then add testers under *TestFlight → Internal Testing*: members of the
-App Store Connect team get builds without review. The workflow never touches
-tester lists.
+1. At <https://appstoreconnect.apple.com>, *Apps* → **+** → *New App*.
+2. Platform iOS, name `HelpMe Reward`, primary language, bundle id
+   `com.helpmebrands.reward`, SKU `helpme-reward`, *Full Access* → *Create*.
+3. Open the app → *TestFlight* → *Internal Testing* → **+** to make a
+   group, and add testers. Members of the App Store Connect team get builds
+   without review. The workflow never touches tester lists.
 
 ## Part 2 — Google Play (Android)
 
-> **Not rehearsed yet.** Android's first release is #115. The steps are the
-> intended procedure; correct them here when #115 runs them for real. If you
-> are not doing Android yet, skip this part, then come back and apply the
-> stack again after 2.5.
+> **Not rehearsed yet.** Android's first release is #115. These steps are
+> the intended procedure; #115 corrects them here as it runs them.
+>
+> Not doing Android yet? Skip to Part 3. Later:
+> 1. Do 2.1 to 2.5.
+> 2. Apply the stack as in 3.3, so `assetlinks.json` gets the fingerprint.
 
 ### 2.1 The Play Console app record
 
-At <https://play.google.com/console>, *Create app*: name `HelpMe Reward`,
-app, free. The package name is set by the first upload (2.4) and is
+1. At <https://play.google.com/console>, *Create app*.
+2. App name `HelpMe Reward`, default language, *App*, *Free*.
+3. Tick the declarations → *Create app*.
+
+The package name is not asked for here: the first bundle (2.4) sets it to
 `com.helpmebrands.reward`. Play App Signing is on by default for a new app:
 Google holds the key that signs what people install, and your keystore is
 only the **upload** key that proves a bundle came from you.
@@ -324,18 +342,24 @@ only the **upload** key that proves a bundle came from you.
 ### 2.2 Link the Play publisher identity
 
 The release workflow uploads as a Google Cloud service account that it
-assumes keylessly, so no key file exists. The stack created it:
+assumes keylessly, so no key file exists. The stack created it. This step
+needs only the app record from 2.1, not a release.
 
-```sh
-$ gcloud iam service-accounts list --project "$PROJECT_ID" \
-    --filter='email~^reward-app-play-' --format='value(email)'
-```
+1. Print its email:
 
-In Play Console, *Users and permissions → Invite new users*: that email, with
-*Release to testing tracks* on this app. It needs only the app record from
-2.1, not a release. The email is also on the GitHub environment as
-`PLAY_SERVICE_ACCOUNT`, and every secret id as `SECRET_<NAME>`, for the
-workflow to read.
+   ```sh
+   $ gcloud iam service-accounts list --project "$PROJECT_ID" \
+       --filter='email~^reward-app-play-' --format='value(email)'
+   ```
+
+2. In Play Console, *Users and permissions → Invite new users*.
+3. Paste the email.
+4. *App permissions* → *Add app* → `HelpMe Reward`, and tick *Release to
+   testing tracks*.
+5. *Invite user*. A service account accepts at once.
+
+The email is also on the GitHub environment as `PLAY_SERVICE_ACCOUNT`, and
+every secret id as `SECRET_<NAME>`, for the workflow to read.
 
 ### 2.3 The upload keystore
 
@@ -403,8 +427,8 @@ value.
    $ keytool -list -v -keystore upload.jks | grep -E 'Keystore type|Alias name|Owner|until'
    ```
 
-4. Store the keystore, then the password **into both password secrets**.
-   `read -rs` waits for you to paste it and press Enter:
+4. Store the keystore and the password. The password goes **into both
+   password secrets**. `read -rs` waits for you to paste it and press Enter:
 
    ```sh
    $ gcloud secrets versions add reward-app-android-upload-keystore-$STACK \
@@ -418,34 +442,144 @@ value.
 
 ### 2.4 The first bundle, by hand
 
-The Play Developer API cannot create an app's first release, and the
-console may insist that the very first bundle arrives through its own upload
-page, which is where Play App Signing enrolment happens. Build once on the
-Mac with this keystore (`fvm flutter build appbundle --release` in
-`apps/mobile`, after writing `android/key.properties` the way
-`release-mobile.yml` does) and upload the `.aab` under *Testing → Internal
-testing → Create new release*. Every release after that goes through the
-workflow. Add testers on the same page.
+The Play Developer API cannot create an app's first release, and the console
+may insist that the very first bundle arrives through its own upload page,
+which is where Play App Signing enrolment happens. So the first bundle is
+built and signed on the Mac and uploaded in the browser. Every release after
+it goes through the workflow.
+
+Signing on the Mac works the way it does in the workflow. The build reads
+one small file, `apps/mobile/android/key.properties`, that says where the
+keystore is and what its password is. The file is gitignored and never
+committed. It has exactly four lines:
+
+```properties
+storeFile=/Users/<you>/reward-signing/upload.jks
+storePassword=<the keystore password>
+keyPassword=<the same password again>
+keyAlias=upload
+```
+
+| Line | What it is |
+| --- | --- |
+| `storeFile` | the **absolute** path to the keystore; Gradle resolves a relative path from `android/app/`, not from where the file is |
+| `storePassword` | the password from 2.3 |
+| `keyPassword` | the same password (2.3, *One password, not two*) |
+| `keyAlias` | `upload`, the alias from 2.3 |
+
+The steps below write it from Secret Manager, so the passwords are never
+typed or shown, and they prove the stored secrets are right.
+
+1. **Check the build reads `key.properties`.** In the repository:
+
+   ```sh
+   $ cd <your checkout>/apps/mobile
+   $ grep -n 'key.properties' android/app/build.gradle.kts
+   ```
+
+   It must print at least one line. **No output means the release build
+   still signs with the debug key and Play will refuse the bundle: stop.**
+   The Gradle signing config is part of #115; that change has to be merged
+   first.
+
+2. **Fetch the keystore** into the signing folder:
+
+   ```sh
+   $ mkdir -p ~/reward-signing
+   $ gcloud secrets versions access latest --secret reward-app-android-upload-keystore-$STACK \
+       --project "$PROJECT_ID" --out-file ~/reward-signing/upload.jks
+   ```
+
+3. **Write `key.properties`.** This is the same block `release-mobile.yml`
+   runs, with the keystore path on your Mac. Run it from `apps/mobile`:
+
+   ```sh
+   $ {
+       echo "storeFile=$HOME/reward-signing/upload.jks"
+       echo "storePassword=$(gcloud secrets versions access latest --secret reward-app-android-keystore-password-$STACK --project "$PROJECT_ID")"
+       echo "keyPassword=$(gcloud secrets versions access latest --secret reward-app-android-key-password-$STACK --project "$PROJECT_ID")"
+       echo "keyAlias=upload"
+     } > android/key.properties
+   $ chmod 600 android/key.properties
+   ```
+
+   To write it in an editor instead:
+   1. `touch android/key.properties && open -e android/key.properties`
+   2. Paste the four lines from the example above, with your path and the
+      password from your password manager.
+   3. Save and close.
+   4. `chmod 600 android/key.properties`
+
+4. **Check the file** without showing the passwords. You should see the
+   four names, each followed by `=…`, and the second command prints the file
+   path, which means Git ignores it:
+
+   ```sh
+   $ sed 's/=.*/=…/' android/key.properties
+   $ git check-ignore android/key.properties
+   ```
+
+5. **Check the password opens the keystore.** It prints `Alias name: upload`:
+
+   ```sh
+   $ keytool -list -keystore ~/reward-signing/upload.jks \
+       -storepass "$(sed -n 's/^storePassword=//p' android/key.properties)" | grep -i alias
+   ```
+
+6. **Build the bundle.** Build number `1`: every workflow run uses its run
+   number, which is already higher, so later uploads never collide with it.
+
+   ```sh
+   $ fvm flutter build appbundle --release --build-name 0.1.0 --build-number 1
+   ```
+
+   It writes `build/app/outputs/bundle/release/app-release.aab`.
+
+7. **Check it is signed with the upload key, not the debug key.** The owner
+   must be `CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands`.
+   `CN=Android Debug` means step 1 was skipped:
+
+   ```sh
+   $ keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep Owner
+   ```
+
+8. **Upload it.** In Play Console, open `HelpMe Reward` → *Test and release
+   → Testing → Internal testing* → *Create new release*.
+9. If asked how to sign the app, choose Google's generated key (Play App
+   Signing).
+10. Drag in `app-release.aab`. The release name fills in as `0.1.0`.
+11. *Next* → *Save and publish* (the wording varies) and confirm.
+12. On the *Testers* tab of *Internal testing*, create an email list, add
+    the testers, and *Save*. The workflow never touches tester lists.
+13. **Delete the local signing files.** Secret Manager keeps the keystore
+    and passwords:
+
+    ```sh
+    $ rm android/key.properties ~/reward-signing/upload.jks
+    ```
 
 ### 2.5 The signing key fingerprint
 
 Android opens invite links in the app only if the api's domain lists the
-app's signing certificate in `/.well-known/assetlinks.json`. Once 2.4 has
-enrolled the app in Play App Signing, copy the **app signing key**
-certificate's SHA-256 fingerprint from *Test and release → App integrity*:
+app's signing certificate in `/.well-known/assetlinks.json`. The app signing
+key exists now, because 2.4's upload enrolled the app in Play App Signing.
 
-```sh
-$ pulumi config set reward-app:androidSha256Fingerprints AA:BB:…
-```
+1. In Play Console, *Test and release → App integrity → App signing*.
+2. Under *App signing key certificate*, copy the **SHA-256** fingerprint.
+3. Set it, in `infra/`. Several fingerprints go in comma separated:
 
-Several fingerprints go in comma separated. Part 3 applies it.
+   ```sh
+   $ pulumi config set reward-app:androidSha256Fingerprints AA:BB:…
+   ```
+
+Part 3 applies it.
 
 ## Part 3 — Sign-in and invite links, both platforms
 
 People sign in with Google or Apple through Firebase Authentication on
 Identity Platform in the stack's own project. The Pulumi stack turns
 Identity Platform on, registers the iOS and Android apps with Firebase, and
-declares both providers once their credentials are in the stack config.
+declares each provider whose credentials are in the stack config.
 This part supplies the last credential, the invite-link domain, and applies.
 
 ### 3.1 The Google OAuth client
@@ -457,19 +591,19 @@ through the handler, not through a platform client.
 1. **Branding.** In the Google Cloud console for the project, *Google Auth
    Platform → Branding*. App name `HelpMe Reward`, a support email you read,
    and the developer contact. Under *Authorised domains*, add
-   `helpme-reward-staging.firebaseapp.com`.
-2. **Audience.** Choose *External*. Staging can stay in *Testing*, but then
-   only the test users listed on this page can sign in, up to 100. Add every
-   tester's Google account. Production must be published, which may need
-   Google's verification of the branding.
+   `helpme-reward-staging.firebaseapp.com`. *Save*.
+2. **Audience.** Choose *External*. Staging stays in *Testing*: only the
+   test users listed on this page can sign in, up to 100. Add every tester's
+   Google account. Production must be published, which may need Google's
+   verification of the branding.
 3. **Client.** *Google Auth Platform → Clients → Create client*:
    - Application type: *Web application*
    - Name: `reward-app sign-in (staging)`
    - Authorised JavaScript origins: `https://helpme-reward-staging.firebaseapp.com`
    - Authorised redirect URIs: `https://helpme-reward-staging.firebaseapp.com/__/auth/handler`
-
-   The dialog shows the client id and the client secret once. Copy both.
-4. **Store them**, in `infra/`:
+4. Click *Create*. The dialog shows the client id and the client secret
+   once. Copy both.
+5. **Store them**, in `infra/`:
 
    ```sh
    $ pulumi config set reward-app:googleOAuthClientId 1234567890-abc.apps.googleusercontent.com
@@ -482,10 +616,15 @@ An invite link, `https://api.staging.helpmereward.com/invite/<code>`, opens
 the app only when that domain serves the association files for iOS and
 Android. The api serves them; the domain needs pointing at it.
 
-1. The parent domain must already be verified in Search Console by the
-   account that runs `pulumi up`
-   ([03, *Adding a custom domain*](03-infrastructure-change.md#adding-a-custom-domain),
-   step 2). `gcloud domains list-user-verified` lists it if so.
+1. Check the parent domain is verified for your account. This must list
+   `helpmereward.com`:
+
+   ```sh
+   $ gcloud domains list-user-verified
+   ```
+
+   Not listed: stop, and do step 2 of
+   [03, *Adding a custom domain*](03-infrastructure-change.md#adding-a-custom-domain).
 2. The stack config names the domain. For staging it is committed; for
    another stack:
 
@@ -504,23 +643,26 @@ both.
 
 ### 3.3 Apply the stack
 
-Commit the changed `Pulumi.<stack>.yaml` on a branch and open a pull
-request. CI's preview should show the two sign-in providers and the domain
-mapping. After the merge, apply it the way runbook 03 describes:
+1. Commit the changed `Pulumi.<stack>.yaml` on a branch and open a pull
+   request.
+2. Check CI's preview shows the two sign-in providers and the domain
+   mapping.
+3. Merge the pull request.
+4. Apply, the way runbook 03 describes:
 
-```sh
-$ git checkout develop && git pull
-$ cd infra
-$ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=$PROJECT_ID pulumi up --refresh
-```
+   ```sh
+   $ git checkout develop && git pull
+   $ cd infra
+   $ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=$PROJECT_ID pulumi up --refresh
+   ```
 
 ### 3.4 The Apple sign-in config
 
 The Pulumi provider (`@pulumi/gcp` 8.41) declares the `apple.com` provider
 with its Services ID only. It has no field for `appleSignInConfig`, which
 holds the bundle ids allowed to use native sign-in on iOS and the key that
-Android and the web flow need. Set it once after the first apply, and again
-whenever the key is rotated:
+Android and the web flow need. Run this now, in `infra/`. *Later: rotating
+keys and secrets* runs it again for a new key.
 
 ```sh
 $ jq -n \
@@ -543,8 +685,8 @@ in. Identity Platform does not return the private key.
 ### 3.5 The Firebase options (a new project only)
 
 For staging this is done: `apps/mobile/lib/firebase_options.dart` and the
-URL scheme in `Info.plist` carry staging's values. A new project has new
-Firebase app ids, so copy them in:
+URL scheme in `Info.plist` carry staging's values; skip to Part 4. A new
+project has new Firebase app ids. Print them:
 
 ```sh
 $ pulumi stack output firebaseIosAppId
@@ -606,17 +748,26 @@ $ curl -sS -H "Authorization: Bearer $(gcloud auth print-access-token)" \
   | jq '.defaultSupportedIdpConfigs[] | {name, enabled, clientId}'
 ```
 
-**The invite-link domain serves the association files.** The certificate
-takes up to an hour after the DNS record; `pulumi stack output
-apiCustomDomainStatus` names the record until it is done.
+**The invite-link domain serves the association files.** Google issues the
+domain's certificate up to an hour after the DNS record exists.
 
-```sh
-$ curl -sS https://api.staging.helpmereward.com/.well-known/apple-app-site-association
-$ curl -sS https://api.staging.helpmereward.com/.well-known/assetlinks.json
-```
+1. Check the certificate. While it is pending, this names the DNS record it
+   waits for:
 
-The first answers JSON naming `LMFUSVPCDH.com.helpmebrands.reward`; the
-second lists the fingerprint from 2.5.
+   ```sh
+   $ pulumi stack output apiCustomDomainStatus
+   ```
+
+2. Fetch both files:
+
+   ```sh
+   $ curl -sS https://api.staging.helpmereward.com/.well-known/apple-app-site-association
+   $ curl -sS https://api.staging.helpmereward.com/.well-known/assetlinks.json
+   ```
+
+   The first answers JSON naming `LMFUSVPCDH.com.helpmebrands.reward`; the
+   second lists the fingerprint from 2.5. A certificate error means step 1
+   is still pending.
 
 **Clean up.** The keystore and the `.p12` now exist only in Secret Manager
 and, if you choose, in a password manager; the `.p8` files exist only in
@@ -636,11 +787,15 @@ certificate expiry*), so change it there in the same pull request.
 
 ## Part 6 — The first release
 
-Tag `develop` as [07](07-mobile-release.md#getting-it-to-testers) describes.
-When the build arrives, sign in with Google and with Apple, and open an
-invite link on the device. A `redirect_uri_mismatch` from Google, or
-`invalid_client` from Apple, means the handler address in that console does
-not match the one in 1.3 exactly.
+1. Tag `develop` as [07](07-mobile-release.md#getting-it-to-testers)
+   describes.
+2. Wait for the build in TestFlight and on the internal track.
+3. Install it and sign in with Google.
+4. Sign out and sign in with Apple.
+5. Open an invite link on the device.
+
+A `redirect_uri_mismatch` from Google, or `invalid_client` from Apple, means
+the handler address in that console does not match the one in 1.3 exactly.
 
 ## Later: re-making the iOS profile
 
@@ -654,74 +809,99 @@ Do this when any of these happens:
   certificate.
 - The profile is about to expire.
 
-1. **Tick the capability.** If a capability is missing, open the app id
-   (1.2), tick it and save. Changing the app id makes existing profiles for
-   it invalid; that is expected.
+1. **Tick the capability.** Skip this if no capability is missing. Open
+   the app id (1.2), tick it and save. Changing the app id makes existing
+   profiles for it invalid; that is expected.
 2. **Delete the old profile.** In the portal, *Profiles*, open `HelpMe
    Reward App Store` and remove it, so only one profile carries the name.
-   Secret Manager still holds its copy until step 5.
-3. **Make the new one**: 1.7, steps 1 to 5, with the same name.
-4. **Check it**, with the `security cms -D` command in 1.7. All five lines
-   must be there before you go on.
+   Secret Manager keeps its copy until step 5.
+3. **Make the new one**: 1.7, steps 1 to 7, with the same name.
+4. **Check it.** All five lines of the 1.7, step 8 checklist must show:
+
+   ```sh
+   $ cd ~/reward-signing
+   $ security cms -D -i HelpMe_Reward_App_Store.mobileprovision | plutil -p - \
+       | grep -E 'application-identifier|aps-environment|com.apple.developer.applesignin|com.apple.developer.associated-domains|ExpirationDate'
+   ```
+
+   A wrong or missing line: stop, and go back to step 1 here.
 5. **Store it**, and disable the old version so only the new one is live:
 
    ```sh
    $ gcloud secrets versions add reward-app-ios-provisioning-profile-$STACK \
        --project "$PROJECT_ID" --data-file HelpMe_Reward_App_Store.mobileprovision
    $ gcloud secrets versions list reward-app-ios-provisioning-profile-$STACK \
-       --project "$PROJECT_ID"         # the newest is first; note the one below it
+       --project "$PROJECT_ID"         # newest first; the second line is the old version
    $ gcloud secrets versions disable <previous-version> \
        --secret reward-app-ios-provisioning-profile-$STACK --project "$PROJECT_ID"
    ```
 
-6. **Check the stored copy** with the profile lines of Part 4, then delete
-   the local file.
-7. **Write it down** as in Part 5: the new profile id and expiry in the
+6. **Check the stored copy** with the two profile commands at the end of
+   the Part 4 code block.
+7. **Delete the local file**: `rm ~/reward-signing/HelpMe_Reward_App_Store.mobileprovision`.
+8. **Write it down** as in Part 5: the new profile id and expiry in the
    *iOS signing* row of the README and, if the date changed, in its test.
    One pull request.
-8. **Release again.** If Apple never received a build from the failed run,
-   re-run its failed jobs; the run number, and so the build number, stay the
-   same:
+9. **Release again.** Pick one:
+   - Apple never received a build from the failed run: re-run its failed
+     jobs. The run number, and so the build number, stay the same.
 
-   ```sh
-   $ gh run rerun <run-id> --failed
-   ```
+     ```sh
+     $ gh run rerun <run-id> --failed
+     ```
 
-   Otherwise tag a new version (`git tag v…`, as in 07).
+   - Otherwise: tag a new version (`git tag v…`, as in 07).
 
 ## Later: renewing the certificate
 
 Distribution certificates last a year; the README row has the date. A few
 weeks before it:
 
-1. Make a new certificate and store it: 1.6, all four steps. The `.p12` and
+1. Make a new certificate and store it: 1.6, all ten steps. The `.p12` and
    its password are two new secret versions.
 2. Re-make the profile with the new certificate: *Later: re-making the iOS
-   profile*, steps 2 to 8.
-3. Once a release signed with the new pair reaches TestFlight, revoke the
-   old certificate in the portal.
+   profile*, steps 2 to 9. Choose the **new** certificate in 1.7, step 4.
+3. Wait for that release to reach TestFlight.
+4. Revoke the old certificate in the portal, *Certificates*.
 
 ## Later: rotating keys and secrets
 
-- **Google OAuth secret.** Add a new secret to the same client in *Clients*,
-  set it with the `--secret` command in 3.1, apply, then delete the old
-  secret in the console.
-- **Sign in with Apple key.** Make a new key (1.4), set `appleKeyId` and
-  `appleServicesKey`, apply, run the PATCH in 3.4 again, then revoke the old
-  key. Apple allows two Sign in with Apple keys per team at once.
-- **App Store Connect API key.** Generate a new one (1.5), add its `.p8`
-  and key id as new versions (the issuer id does not change), release once,
-  then revoke the old key.
-- **Upload keystore.** Rotation goes through Play support; follow their
-  instructions, then store the new keystore and passwords as in 2.3.
+**Google OAuth secret**
+
+1. In *Clients*, open the client and add a new secret.
+2. Store it with the `--secret` command in 3.1, step 5.
+3. Apply (3.3).
+4. Delete the old secret in the console.
+
+**Sign in with Apple key.** Apple allows two such keys per team at once.
+
+1. Make a new key and store it: 1.4, all eight steps.
+2. Apply (3.3).
+3. Run the PATCH in 3.4.
+4. Revoke the old key in the portal, *Keys*.
+
+**App Store Connect API key**
+
+1. Generate a new one and store its `.p8` and key id: 1.5. The issuer id
+   does not change; skip its line.
+2. Release once (07) and check the upload worked.
+3. Revoke the old key in App Store Connect.
+
+**Upload keystore**
+
+1. Make a new keystore: 2.3, steps 1 to 3.
+2. Ask Play support to reset the upload key, following their instructions.
+3. Store the new keystore and password: 2.3, step 4.
 
 ## Appendix: the profile from the command line
 
-Instead of the portal clicks in 1.7, the App Store Connect API key from 1.5
-can make the profile. It cannot pick the wrong app id. It still needs 1.2
-done first; it also turns on Push Notifications, which is harmless if that
-is already on. It needs only Ruby's standard library, and `ASC_KEY_PATH` is
-the `.p8`.
+Instead of the portal clicks in 1.7, steps 1 to 6, the App Store Connect
+API key from 1.5 can make the profile. It cannot pick the wrong app id. It
+needs 1.2 done, and it also turns on Push Notifications, which is harmless
+if that is already on. It needs only Ruby's standard library, and
+`ASC_KEY_PATH` is the `.p8`.
+
+1. Save the script as `~/reward-signing/asc-profile.rb`:
 
 ```ruby
 # Adds the Push Notifications capability to the app id and generates its App
@@ -749,12 +929,23 @@ profile = api.(:Post, '/v1/profiles', data: { type: 'profiles', attributes: { na
 File.binwrite(ARGV[2], Base64.decode64(profile.fetch('data').fetch('attributes').fetch('profileContent')))
 ```
 
-```sh
-$ export ASC_KEY_ID ASC_ISSUER_ID     # read in 1.5; if this is a new terminal, read -r them again first
-$ ASC_KEY_PATH=AuthKey_XXXXXXXXXX.p8 ruby asc-profile.rb com.helpmebrands.reward 'HelpMe Reward App Store' \
-    HelpMe_Reward_App_Store.mobileprovision
-```
+2. Make sure the key id and issuer id are set. In the terminal from 1.5
+   they are; in a new one, `read -r` each again:
 
-The script picks the first distribution certificate on the team; with two
-(during a renewal) make the profile in the portal instead. Then check and
-store it exactly as in 1.7.
+   ```sh
+   $ read -r ASC_KEY_ID; read -r ASC_ISSUER_ID
+   $ export ASC_KEY_ID ASC_ISSUER_ID
+   ```
+
+3. Run it:
+
+   ```sh
+   $ cd ~/reward-signing
+   $ ASC_KEY_PATH=AuthKey_XXXXXXXXXX.p8 ruby asc-profile.rb com.helpmebrands.reward \
+       'HelpMe Reward App Store' HelpMe_Reward_App_Store.mobileprovision
+   ```
+
+4. Continue at 1.7, step 7.
+
+The script picks the first distribution certificate on the team. With two,
+during a renewal, use the portal clicks instead.

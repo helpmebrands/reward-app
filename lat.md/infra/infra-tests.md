@@ -237,6 +237,12 @@ Its setup block exports `STACK=staging` beside `PROJECT_ID`, because every `vers
 It also names the Play App Signing first-upload quirk, so the first failed upload is not a mystery.
 
 The keystore step gives every `keytool` value, `-storetype PKCS12` and a `-dname` among them, and says a PKCS12 keystore has one password, which goes into both password secrets: keytool ignores a separate `-keypass`.
+### Runbook 08 writes key.properties step by step
+
+The first-bundle step of `08-mobile-setup.md` shows the four `key.properties` lines, writes them from Secret Manager, checks Gradle reads the file, proves the bundle is not debug-signed, and deletes the file.
+
+`build.gradle.kts` still signs releases with the debug key until #115, so the check comes first rather than after a rejected upload.
+
 ### Runbook 08 says store records are per app id
 
 `08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.

@@ -761,6 +761,18 @@ describe('signing material procedure and token record', () => {
     expect(keystore).toMatch(/one password/i)
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 writes key.properties step by step]]
+  it('writes key.properties from Secret Manager and checks the bundle is not debug-signed', () => {
+    const bundle = section(/^### .*first bundle.*$/im)
+    for (const line of ['storeFile=', 'storePassword=', 'keyPassword=', 'keyAlias=upload']) {
+      expect(bundle, line).toContain(line)
+    }
+    expect(bundle).toContain('build.gradle.kts')
+    expect(bundle).toContain('> android/key.properties')
+    expect(bundle).toContain('keytool -printcert -jarfile')
+    expect(bundle).toMatch(/rm android\/key\.properties/)
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 says store records are per app id]]
   it('states that store records are per app id, not per environment', () => {
     expect(runbook08()).toMatch(/one record\s+per app/i)
