@@ -11,8 +11,8 @@ when a change goes wrong.
 | [04 — Rollback](04-rollback.md) | Getting off a bad revision. Read this **before** you need it. |
 | [05 — Troubleshooting](05-troubleshooting.md) | Specific failures and what they actually mean. |
 | [06 — Database](06-database.md) | Migrations, backups, restore, and connecting to Cloud SQL from a laptop. |
-| [07 — Mobile release](07-mobile-release.md) | Versioning and signing the Flutter app; TestFlight and the Play internal track. |
-| [08 — Sign-in providers](08-sign-in-providers.md) | The Google and Apple credentials behind sign-in: the hand steps, and where they go. |
+| [07 — Mobile release](07-mobile-release.md) | Versioning and releasing the Flutter app to TestFlight and the Play internal track. |
+| [08 — Mobile setup](08-mobile-setup.md) | Store records, signing material, sign-in credentials and invite links, done once in order; re-making the iOS profile and renewing the certificate. |
 
 ## Environments
 
@@ -35,7 +35,7 @@ copy. Update it when an environment is added or moved.
 | Deployed from | `develop`: the PWA by `cd.yml`, the api by `cd-api.yml`, each on merges that touch it |
 | First deployed | PWA 2026-09-17; api 2026-09-18 |
 | GitHub token | fine-grained, this repository only, minted by `oravecz` on 2026-09-21, **no expiry**; held as `github:token` on the `staging` and `repo` stacks. Rotate by hand and update this row |
-| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `SHU9W3JD44`, team `LMFUSVPCDH`, both **expire 2027-09-24**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [07](07-mobile-release.md#signing-material) and update this row |
+| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `SHU9W3JD44`, team `LMFUSVPCDH`, both **expire 2027-09-24**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [08](08-mobile-setup.md#later-renewing-the-certificate) and update this row |
 
 ## What owns what
 

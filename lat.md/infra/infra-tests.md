@@ -166,10 +166,9 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 `environmentVariables` carries `PLAY_SERVICE_ACCOUNT` and one `SECRET_<NAME>` per signing secret, so the release workflow hard-codes no identity and no secret id.
 
-### Runbook 07 has the two hand steps
+### Runbook 08 has the store hand steps
 
-`07-mobile-release.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
-
+`08-mobile-setup.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
 ### Release workflow runs on version tags in the environment
 
 `release-mobile.yml` triggers on `v*` tags with an `android` job on `ubuntu-latest` and an `ios` job on `macos-latest`, both in the `staging` environment and both passing `--build-name` and `--build-number ${{ github.run_number }}` ([[deployment#Pipeline]]).
@@ -206,38 +205,51 @@ Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered
 
 Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository name without the owner, because the GitHub provider rejects `owner/name` and a bare id alike; an operator copying the block gets the form that works.
 
-### Runbook 08 lists the sign-in hand steps
+### Runbook 08 is the one mobile setup flow
 
-`08-sign-in-providers.md` is indexed in the README and has a Google and an Apple section. It names the Firebase auth handler URL, the Sign in with Apple capability, the provisioning profile that must be made again, and the `appleSignInConfig` PATCH.
+`08-mobile-setup.md` replaces `08-sign-in-providers.md` in the README and everywhere under `docs/`. It has a part for Apple, one for Google Play and one for both platforms, with the auth handler URL and the `appleSignInConfig` PATCH.
 
+The setup steps used to be split over 07 and 08 in the order they were written, and following them made three provisioning profiles, the last still missing an entitlement.
+
+### Runbook 08 turns on every capability before the profile
+
+The capabilities step of `08-mobile-setup.md` ticks Push Notifications, Sign in with Apple and Associated Domains, and comes before the provisioning-profile step, so one profile carries every entitlement the app declares.
 ### Runbook 08 stores credentials as stack secrets
 
-Runbook 08 sets the OAuth client secret and the Apple `.p8` key with `pulumi config set --secret`, and the three ids with plain `pulumi config set`. It never sends the credentials to Secret Manager, because only Pulumi and Identity Platform use them.
+Runbook 08 sets the OAuth client secret and the Apple `.p8` key with `pulumi config set --secret`, and the three ids with plain `pulumi config set`. The sign-in credentials never go to Secret Manager: only Pulumi and Identity Platform use them.
 
-### Runbook 07 walks through every piece of signing material
+### Runbook 08 re-makes the profile end to end
 
-The *Signing material* section of `07-mobile-release.md` has a subsection each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each ending in `gcloud secrets versions add`.
+*Later: re-making the iOS profile* in `08-mobile-setup.md` names the `doesn't include the … entitlement` failure, deletes the old profile, checks and stores the new one, updates the README *iOS signing* row and releases again.
+
+A changed capability is then one procedure rather than steps spread across runbooks.
+
+### Runbook 07 leaves setup to runbook 08
+
+`07-mobile-release.md` has no *Signing material* or *Play publisher identity* section and links to `08-mobile-setup.md`, so each hand step is written once.
+
+### Runbook 08 walks through every piece of signing material
+
+`08-mobile-setup.md` has a step each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each with its `gcloud secrets versions add`.
 
 Its setup block exports `STACK=staging` beside `PROJECT_ID`, because every `versions add` names its secret as `reward-app-<name>-$STACK` and a copied block with `STACK` unset targets an id that does not exist.
 
 It also names the Play App Signing first-upload quirk, so the first failed upload is not a mystery.
+### Runbook 08 says store records are per app id
 
-### Runbook 07 says store records are per app id
+`08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
+### Runbook 08 checks the profile's entitlements before storing it
 
-`07-mobile-release.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
+The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
 
-### Runbook 07 verifies the profile before storing it
+The API route stays as an appendix.
 
-The provisioning-profile subsection of `07-mobile-release.md` points at the Xcode-registered `XC com helpmebrands reward` id, offers the API route, and checks `application-identifier` before `gcloud secrets versions add`.
+The first pass of the runbook stored a profile made for a second, hand-registered app id, and a later one stored a profile without Associated Domains (release run 35960067543). Both fail only at signing, so the check comes before the version is added.
+### Runbook 08 reads binaries back with --out-file
 
-The first pass of the runbook stored a profile made for a second, hand-registered app id; the build would have failed at signing. The `security cms -D` check comes before the version is added so that cannot recur.
-
-### Runbook 07 reads binaries back with --out-file
-
-The *Check and clean up* subsection of `07-mobile-release.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.
+The *Check everything* part of `08-mobile-setup.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.
 
 The key id and issuer id are entered with `read -r` rather than inline placeholders, because the placeholder was once stored verbatim as a version.
-
 ### README records the iOS signing expiry
 
 The environment table in `docs/runbooks/README.md` has an *iOS signing* row naming the certificate and profile ids and their expiry date, so renewal is a dated task rather than a surprise.
