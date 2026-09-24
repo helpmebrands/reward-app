@@ -12,6 +12,7 @@ when a change goes wrong.
 | [05 — Troubleshooting](05-troubleshooting.md) | Specific failures and what they actually mean. |
 | [06 — Database](06-database.md) | Migrations, backups, restore, and connecting to Cloud SQL from a laptop. |
 | [07 — Mobile release](07-mobile-release.md) | Versioning and signing the Flutter app; TestFlight and the Play internal track. |
+| [08 — Sign-in providers](08-sign-in-providers.md) | The Google and Apple credentials behind sign-in: the hand steps, and where they go. |
 
 ## Environments
 

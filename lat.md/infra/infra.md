@@ -17,6 +17,7 @@ The operating procedures live outside this graph, in `docs/runbooks/`, because t
 - `05-troubleshooting.md` — including the reserved `/healthz` path, the gen1 socket stall, secret bindings and preview permissions.
 - `06-database.md` — migrations by job, backups, restore, the proxy, all rehearsed on staging on 2026-09-18 ([[infra-tests#Infrastructure config#Runbooks 06 and 07 exist with their rehearsed commands]]).
 - `07-mobile-release.md` — versioning, signing and the test tracks for the Flutter app, and the honest list of what is not set up.
+- `08-sign-in-providers.md` — the Google OAuth client and the Apple Services ID, key and profile that sign-in needs, stored as stack config, and the `appleSignInConfig` PATCH the Pulumi provider cannot express ([[infra-tests#Infrastructure config#Runbook 08 lists the sign-in hand steps]]).
 
 ## Local verify
 

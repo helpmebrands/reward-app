@@ -206,6 +206,14 @@ Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered
 
 Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository name without the owner, because the GitHub provider rejects `owner/name` and a bare id alike; an operator copying the block gets the form that works.
 
+### Runbook 08 lists the sign-in hand steps
+
+`08-sign-in-providers.md` is indexed in the README and has a Google and an Apple section. It names the Firebase auth handler URL, the Sign in with Apple capability, the provisioning profile that must be made again, and the `appleSignInConfig` PATCH.
+
+### Runbook 08 stores credentials as stack secrets
+
+Runbook 08 sets the OAuth client secret and the Apple `.p8` key with `pulumi config set --secret`, and the three ids with plain `pulumi config set`. It never sends the credentials to Secret Manager, because only Pulumi and Identity Platform use them.
+
 ### Runbook 07 walks through every piece of signing material
 
 The *Signing material* section of `07-mobile-release.md` has a subsection each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each ending in `gcloud secrets versions add`.
