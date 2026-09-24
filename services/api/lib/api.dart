@@ -10,6 +10,7 @@ import 'package:shelf/shelf.dart';
 
 import 'auth.dart';
 import 'catalog.dart';
+import 'catalog_admin.dart';
 import 'devices.dart';
 import 'households.dart';
 import 'src/responses.dart';
@@ -42,6 +43,7 @@ Api buildApi({Session? db, TokenVerifier? verifier, Uri? inviteLinkBase}) {
     ..add('GET', '/v1/me', signedIn(_me));
   addDeviceRoutes(table, db);
   addCatalogRoutes(table, signedIn);
+  addCatalogAdminRoutes(table, signedIn);
   addHouseholdRoutes(
     table,
     signedIn,
