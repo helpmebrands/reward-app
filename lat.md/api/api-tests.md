@@ -246,6 +246,22 @@ An outsider muting the household's card or credit, or an id that does not exist,
 
 A time of `25:00`, a negative floor or a switch that is not a boolean answers 400 naming the field.
 
+## Invite links
+
+`app_links_test.dart` drives the association files and the fallback page through the handler with a test `AppLinks` ([[api-architecture#Invite links]]).
+
+### The app claims the invite path on iOS
+
+The apple-app-site-association answers JSON whose one detail names the app id and the component `/invite/*`.
+
+### The app claims the invite path on Android
+
+`assetlinks.json` answers one statement handling all URLs for the package with its certificate fingerprints.
+
+### Without the app an invite shows its code
+
+`/invite/ABCD2345` answers an HTML page with the code and both store links, unmangled by escaping; a code with other characters is 404.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

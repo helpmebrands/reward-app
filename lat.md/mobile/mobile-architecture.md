@@ -165,6 +165,17 @@ The slideshow stays open while signed out, which is how "Learn more" on the sign
 
 Every screen has a Widget Preview: the slideshow in both themes and sign-in at compact and expanded.
 
+## Household sharing
+
+Members invite and join each other without typing ids: by a link shared through the system share sheet, or by an eight-character code. Pinned by [[mobile-tests#Household sharing]].
+
+- **Settings, Household** (service-tier mode only): every member with their role, "Invite someone" for the owner, a remove button per member for the owner with a confirmation, and "Have an invite code?". Inviting asks read or edit in a bottom sheet, calls `POST /v1/household/invites`, hands the link and the code to the share sheet (`share_plus`, a Flutter Favorite, behind `shareText` so tests see what was shared) and shows the code on the screen.
+- **Joining**: `/invite/:code` is a full-screen route to `JoinScreen`, reached from an invite link or from a code typed under "Have an invite code?" on sign-in or in Settings. A signed-out person who opens a link is sent to sign-in with `from`, and lands back on the join screen ([[mobile-architecture#Sign-in]]).
+- `AppStore.joinHousehold` first flushes the claims queued for the old household, then accepts. Leaving a household that holds cards asks "Leave your cards behind?" and repeats with `confirmLeave`; used, expired and unknown codes, an owner with members and an existing member each say why and stay. On success the cache is cleared, the household fetched, and the app goes to Today.
+- **Links on the device**: `Runner.entitlements` declares `applinks:api.staging.helpmereward.com`, and the Android manifest an `autoVerify` intent filter for `https://api.staging.helpmereward.com/invite/`; go_router's built-in deep linking routes them, with no `app_links` package ([[api-architecture#Invite links]]).
+
+Every new screen has a Widget Preview: the join screen in both themes.
+
 ## Today screen
 
 `TodayScreen` is the PWA's Today ([[design#Screens]]) as Material widgets: the number, the countdown, the rows behind them, and every interaction the PWA has.

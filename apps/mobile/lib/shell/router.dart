@@ -8,6 +8,7 @@ import '../screens/benefit_editor_screen.dart';
 import '../screens/card_editor_screen.dart';
 import '../screens/cards_screen.dart';
 import '../screens/credits_screen.dart';
+import '../screens/join_screen.dart';
 import '../screens/not_found_screen.dart';
 import '../screens/settings_screen.dart';
 import '../screens/sign_in_screen.dart';
@@ -29,6 +30,9 @@ abstract final class Paths {
   static const welcome = '/welcome';
   static const signIn = '/sign-in';
 }
+
+/// The join screen's path for one invite code, as the invite links spell it.
+String invitePath(String code) => '/invite/${Uri.encodeComponent(code)}';
 
 /// Where the redirect sends a signed-out launch, and where signing in
 /// returns to, from the session's two pieces of state:
@@ -148,9 +152,21 @@ GoRouter appRouter(
         builder: (context, state) => SignInScreen(
           auth: session.auth,
           onLearnMore: () => context.go(_keepFrom(Paths.welcome, state)),
+          // A code typed before signing in is kept as `from`, so signing in
+          // lands on the join screen.
+          onInviteCode: (code) => context.go(invitePath(code)),
         ),
       ),
     ],
+    GoRoute(
+      path: '/invite/:code',
+      parentNavigatorKey: rootNavigatorKey,
+      builder: (context, state) => JoinScreen(
+        store: AppScope.of(context),
+        ui: UiScope.of(context),
+        code: state.pathParameters['code']!.toUpperCase(),
+      ),
+    ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           AppShell(navigationShell: navigationShell),

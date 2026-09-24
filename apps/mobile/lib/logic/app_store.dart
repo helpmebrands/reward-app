@@ -54,6 +54,7 @@ class AppStore extends ChangeNotifier {
   List<PendingClaim> _pending = const [];
   Settings? _localSettings;
   MemberRole _role = MemberRole.editor;
+  HouseholdView? _household;
   bool _offline = false;
   String? _problem;
   Future<void>? _flushing;
@@ -63,6 +64,9 @@ class AppStore extends ChangeNotifier {
 
   /// The last request could not reach the api.
   bool get offline => remote && _offline;
+
+  /// The household's members and this member's role, once fetched.
+  HouseholdView? get household => _household;
 
   /// Whether this member may change the household at all.
   bool get canWrite => !remote || _role.canWrite;
@@ -83,6 +87,7 @@ class AppStore extends ChangeNotifier {
   /// last person's, and go.
   Future<void> forget() async {
     _server = null;
+    _household = null;
     _pending = const [];
     _role = MemberRole.editor;
     await _cache.clear();
@@ -167,9 +172,11 @@ class AppStore extends ChangeNotifier {
     final api = _api!;
     try {
       final data = await api.householdData();
-      final role = await api.memberRole();
+      final household = await api.household();
+      final role = household.role;
       final preferences = await api.preferences();
       _server = data;
+      _household = household;
       _role = role;
       _preferences = preferences;
       _offline = false;
@@ -283,6 +290,59 @@ class AppStore extends ChangeNotifier {
     }
     return true;
   }
+
+  // The household
+
+  /// Makes an invite with `read` or `edit`; null, with [problem] set, when
+  /// it cannot be made.
+  Future<Invite?> createInvite(String role) async {
+    Invite? invite;
+    final done = await _edit((api) async {
+      invite = await api.createInvite(role);
+    });
+    return done ? invite : null;
+  }
+
+  /// Joins the household of [code]. Leaving a household that holds cards
+  /// needs [confirmLeave]; the answer says which case this is.
+  Future<JoinOutcome> joinHousehold(
+    String code, {
+    bool confirmLeave = false,
+  }) async {
+    // Claims logged in this household are sent to it before leaving; if
+    // they cannot be, neither can the join.
+    await flush();
+    if (hasPending) return JoinOutcome.offline;
+    try {
+      await _api!.acceptInvite(code, confirmLeave: confirmLeave);
+    } on ApiOffline {
+      _offline = true;
+      notifyListeners();
+      return JoinOutcome.offline;
+    } on ApiError catch (e) {
+      return switch (e.error) {
+        'household holds cards' => JoinOutcome.holdsCards,
+        'owner has members' => JoinOutcome.ownerHasMembers,
+        'already a member' => JoinOutcome.alreadyMember,
+        'invite used' => JoinOutcome.used,
+        'invite expired' => JoinOutcome.expired,
+        'not found' => JoinOutcome.notFound,
+        _ => JoinOutcome.failed,
+      };
+    }
+    // The old household's cache is not this one's.
+    await _cache.clear();
+    try {
+      await refresh();
+    } on Object {
+      // Joined; the next refresh shows it.
+    }
+    return JoinOutcome.joined;
+  }
+
+  /// The owner removes a member, who loses access at once.
+  Future<bool> removeMember(String userId) =>
+      _edit((api) => api.removeMember(userId));
 
   /// Replaces the whole snapshot, as an import does.
   Future<void> replaceAll(AppData data) => _commit(data);
@@ -779,4 +839,17 @@ class AppStore extends ChangeNotifier {
   IsoDate? get nextResetOn => nextReset(instances);
   bool get hasCards => _data?.cards.any((card) => !card.archived) ?? false;
   int get cardCount => _data?.cards.where((card) => !card.archived).length ?? 0;
+}
+
+/// What joining a household by code came to.
+enum JoinOutcome {
+  joined,
+  holdsCards,
+  ownerHasMembers,
+  alreadyMember,
+  used,
+  expired,
+  notFound,
+  offline,
+  failed,
 }

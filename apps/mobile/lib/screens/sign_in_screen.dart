@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../logic/session.dart';
+import 'join_screen.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/screen_title.dart';
 
@@ -13,10 +14,14 @@ class SignInScreen extends StatefulWidget {
     super.key,
     required this.auth,
     required this.onLearnMore,
+    this.onInviteCode,
   });
 
   final AuthService auth;
   final VoidCallback onLearnMore;
+
+  /// A code typed under "Have an invite code?".
+  final ValueChanged<String>? onInviteCode;
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
@@ -104,6 +109,15 @@ class _SignInScreenState extends State<SignInScreen> {
                     ),
                   ],
                   const SizedBox(height: Space.s6),
+                  if (widget.onInviteCode case final onCode?)
+                    TextButton(
+                      key: const Key('sign-in-have-code'),
+                      onPressed: () async {
+                        final code = await askForInviteCode(context);
+                        if (code != null) onCode(code);
+                      },
+                      child: const Text('Have an invite code?'),
+                    ),
                   TextButton(
                     key: const Key('sign-in-learn-more'),
                     onPressed: widget.onLearnMore,

@@ -32,6 +32,7 @@ import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/join_screen.dart';
 
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
@@ -187,6 +188,14 @@ Widget signInExpanded() => _themed(
   SignInScreen(auth: UnconfiguredAuth(), onLearnMore: () {}),
   Brightness.light,
 );
+
+@Preview(name: 'Join a household, dark', size: Size(402, 874))
+Widget joinDark() =>
+    _themed(JoinScreen(store: _store(), code: 'ABCD2345'), Brightness.dark);
+
+@Preview(name: 'Join a household, light', size: Size(402, 874))
+Widget joinLight() =>
+    _themed(JoinScreen(store: _store(), code: 'ABCD2345'), Brightness.light);
 
 @Preview(name: 'Today, dark', size: Size(402, 874))
 Widget todayDark() => _themed(TodayScreen(store: _store()), Brightness.dark);

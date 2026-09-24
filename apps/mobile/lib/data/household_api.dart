@@ -35,11 +35,57 @@ enum MemberRole {
   bool get canWrite => this != reader;
 }
 
+/// One person in the household.
+class HouseholdMember {
+  const HouseholdMember({
+    required this.userId,
+    required this.email,
+    required this.role,
+  });
+
+  final String userId;
+  final String? email;
+  final MemberRole role;
+}
+
+/// The caller's household: who is in it and the caller's own role.
+class HouseholdView {
+  const HouseholdView({
+    required this.id,
+    required this.role,
+    required this.members,
+  });
+
+  final String id;
+  final MemberRole role;
+  final List<HouseholdMember> members;
+}
+
+/// An invite just made: the code to read out and the link to share.
+class Invite {
+  const Invite({
+    required this.code,
+    required this.link,
+    required this.role,
+    required this.expiresAt,
+  });
+
+  final String code;
+  final String link;
+
+  /// `read` or `edit`.
+  final String role;
+  final String expiresAt;
+}
+
 /// The service tier as the app uses it; `ApiClient` is the real one, tests
 /// stand in their own. Bodies are the domain's JSON spelling.
 abstract interface class HouseholdApi {
   Future<AppData> householdData();
-  Future<MemberRole> memberRole();
+  Future<HouseholdView> household();
+  Future<Invite> createInvite(String role);
+  Future<void> acceptInvite(String code, {bool confirmLeave = false});
+  Future<void> removeMember(String userId);
   Future<MemberPreferences> preferences();
   Future<void> putPreferences(MemberPreferences preferences);
   Future<void> setMute({
@@ -123,11 +169,45 @@ class ApiClient implements HouseholdApi {
   );
 
   @override
-  Future<MemberRole> memberRole() async {
-    final household =
-        (await _send('GET', '/v1/household'))! as Map<String, dynamic>;
-    return MemberRole.values.byName(household['role']! as String);
+  Future<HouseholdView> household() async {
+    final json = (await _send('GET', '/v1/household'))! as Map<String, dynamic>;
+    return HouseholdView(
+      id: json['id']! as String,
+      role: MemberRole.values.byName(json['role']! as String),
+      members: [
+        for (final m in (json['members']! as List).cast<Map<String, dynamic>>())
+          HouseholdMember(
+            userId: m['userId']! as String,
+            email: m['email'] as String?,
+            role: MemberRole.values.byName(m['role']! as String),
+          ),
+      ],
+    );
   }
+
+  @override
+  Future<Invite> createInvite(String role) async {
+    final json =
+        (await _send('POST', '/v1/household/invites', body: {'role': role}))!
+            as Map<String, dynamic>;
+    return Invite(
+      code: json['code']! as String,
+      link: json['link']! as String,
+      role: json['role']! as String,
+      expiresAt: json['expiresAt']! as String,
+    );
+  }
+
+  @override
+  Future<void> acceptInvite(String code, {bool confirmLeave = false}) => _send(
+    'POST',
+    '/v1/invites/${Uri.encodeComponent(code)}/accept',
+    body: {'confirmLeave': confirmLeave},
+  );
+
+  @override
+  Future<void> removeMember(String userId) =>
+      _send('DELETE', '/v1/household/members/$userId');
 
   @override
   Future<MemberPreferences> preferences() async => memberPreferencesFromJson(

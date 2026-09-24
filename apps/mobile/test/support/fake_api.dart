@@ -37,7 +37,7 @@ const benefit1 = Benefit(
   updatedAt: stamp,
 );
 
-AppData household({String label = 'Server'}) => AppData(
+AppData serverHousehold({String label = 'Server'}) => AppData(
   version: 2,
   cards: [card1.copyWith(label: label)],
   benefits: const [benefit1],
@@ -49,7 +49,7 @@ AppData household({String label = 'Server'}) => AppData(
 /// the real one does.
 class FakeApi implements HouseholdApi {
   FakeApi({AppData? data, this.role = MemberRole.editor})
-    : data = data ?? household();
+    : data = data ?? serverHousehold();
 
   AppData data;
   MemberRole role;

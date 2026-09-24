@@ -180,6 +180,22 @@ Then sign in once with each provider from a build of the app. A
 `redirect_uri_mismatch` from Google, or `invalid_client` from Apple, means the
 handler URL in that console does not match the one above exactly.
 
+## Invite links
+
+An invite link, `https://api.staging.helpmereward.com/invite/<code>`, opens the app only once three more hand steps are done. Until then it opens the fallback page in the browser, which still shows the code.
+
+1. **DNS.** Add a CNAME record `api.staging` pointing to `ghs.googlehosted.com`, *DNS only*, beside the existing `staging` record. `pulumi up` maps the domain, and `pulumi stack output apiCustomDomainStatus` names the record once Google has issued the certificate.
+2. **Associated Domains on the app id.** In the Apple Developer portal, open `XC com helpmebrands reward` and tick **Associated Domains**. Then make a new App Store provisioning profile, as in step 4 of *Apple* above, and check that the entitlements show `com.apple.developer.associated-domains`.
+3. **Android certificates.** Once the Play signing key exists (#115), copy its SHA-256 fingerprint from Play Console → *App integrity* and set it:
+
+   ```sh
+   $ pulumi config set reward-app:androidSha256Fingerprints AA:BB:…
+   ```
+
+   Then apply, so the api serves it in `assetlinks.json`.
+
+Check it with `curl -sS https://api.staging.helpmereward.com/.well-known/apple-app-site-association`, which answers JSON naming `LMFUSVPCDH.com.helpmebrands.reward`.
+
 ## Rotating
 
 - **Google secret.** Add a new secret to the same client in *Clients*, set it

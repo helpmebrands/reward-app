@@ -37,7 +37,7 @@ void main() {
     final cache = MemoryHouseholdCache()
       ..saved = CachedHousehold(
         version: householdCacheVersion,
-        data: household(label: 'Cached'),
+        data: serverHousehold(label: 'Cached'),
         role: MemberRole.editor,
       );
     final api = FakeApi()..online = false;
@@ -166,7 +166,7 @@ void main() {
     final cache = MemoryHouseholdCache()
       ..saved = CachedHousehold(
         version: householdCacheVersion - 1,
-        data: household(label: 'Old shape'),
+        data: serverHousehold(label: 'Old shape'),
         role: MemberRole.editor,
       );
     final outbox = MemoryClaimOutbox();

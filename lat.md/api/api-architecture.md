@@ -111,6 +111,18 @@ Notification settings and mutes belong to each member, not the household ([[doma
 
 `PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. Readers may do all of it, because nothing shared changes.
 
+## Invite links
+
+An invite's link, `https://api.staging.helpmereward.com/invite/<code>` on staging, opens the app's join screen when the app is installed and a page with the code otherwise (`lib/app_links.dart`). Pinned by [[api-tests#Invite links]].
+
+iOS and Android only hand a link to an app when the link's domain says so, so the api serves both association files from its own domain, mapped in Pulumi as `apiCustomDomain` ([[infra-tests#Infrastructure config#Invite links have the api's own domain]]):
+
+- `/.well-known/apple-app-site-association` claims `/invite/*` for `LMFUSVPCDH.com.helpmebrands.reward`.
+- `/.well-known/assetlinks.json` names `com.helpmebrands.reward` and the signing certificates in `ANDROID_SHA256_FINGERPRINTS`, empty until the Play signing key exists (#115).
+- `GET /invite/{code}` is a small HTML page with the code and links to both stores, for a browser without the app; a code outside `[A-Z0-9]{4,16}` is 404.
+
+None needs sign-in. `INVITE_LINK_BASE` on the service is `https://<apiCustomDomain>/invite/`, so the links `POST /v1/household/invites` answers point at the same domain.
+
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
