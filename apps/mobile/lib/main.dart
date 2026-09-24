@@ -1,9 +1,15 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'data/api_config.dart';
+import 'data/claim_outbox.dart';
 import 'data/firebase_auth_service.dart';
+import 'data/household_api.dart';
+import 'data/household_cache.dart';
 import 'data/snapshot_store.dart';
 import 'firebase_options.dart';
 import 'logic/app_store.dart';
@@ -30,8 +36,26 @@ Future<void> main() async {
     intro: const SharedPreferencesIntroStore(),
   );
   await session.load();
-  final store = AppStore(store: const SharedPreferencesSnapshotStore());
+  // With Firebase the household lives in the service tier; without it (a
+  // local run on a platform with no Firebase app) the snapshot stays on
+  // the device, as before sign-in existed.
+  final store = options == null
+      ? AppStore(store: const SharedPreferencesSnapshotStore())
+      : AppStore(
+          store: const SharedPreferencesSnapshotStore(),
+          api: ApiClient(baseUrl: ApiConfig.baseUrl, token: auth.idToken),
+          cache: const SharedPreferencesHouseholdCache(),
+          outbox: const SharedPreferencesClaimOutbox(),
+        );
   store.load();
+  // Signing in fetches the household; signing out forgets it, so the next
+  // person on this device never sees it or sends its queued claims.
+  var signedIn = session.signedIn;
+  session.addListener(() {
+    if (session.signedIn == signedIn) return;
+    signedIn = session.signedIn;
+    signedIn ? store.refresh().ignore() : store.forget().ignore();
+  });
   runApp(RewardApp(store: store, session: session));
 }
 
@@ -71,11 +95,34 @@ class _RewardAppState extends State<RewardApp> {
   );
   late final UiState _ui = widget.ui ?? UiState();
   String? _location;
+  AppLifecycleListener? _lifecycle;
+  Timer? _retry;
 
   @override
   void initState() {
     super.initState();
     _router.routerDelegate.addListener(_onNavigation);
+    widget.store.addListener(_onStore);
+    if (widget.store.remote) {
+      // Back from the background: fetch and send anything queued.
+      _lifecycle = AppLifecycleListener(
+        onResume: () => widget.store.refresh().ignore(),
+      );
+      // Offline, or with claims waiting, try again now and then; a success
+      // flushes the outbox in order.
+      _retry = Timer.periodic(const Duration(seconds: 30), (_) {
+        final store = widget.store;
+        if (store.offline || store.hasPending) store.refresh().ignore();
+      });
+    }
+  }
+
+  /// An edit the store could not make says why, in the snackbar.
+  void _onStore() {
+    final problem = widget.store.problem;
+    if (problem == null) return;
+    widget.store.clearProblem();
+    _ui.snackbar.show(problem);
   }
 
   /// Moving between screens never reloads anything, so focus would stay
@@ -107,6 +154,9 @@ class _RewardAppState extends State<RewardApp> {
 
   @override
   void dispose() {
+    _retry?.cancel();
+    _lifecycle?.dispose();
+    widget.store.removeListener(_onStore);
     _router.routerDelegate.removeListener(_onNavigation);
     _router.dispose();
     if (widget.ui == null) _ui.dispose();

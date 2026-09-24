@@ -84,7 +84,10 @@ class _TodayBody extends StatelessWidget {
       instance: instance,
       showCard: showCard,
       onOpen: ui == null ? null : () => ui.openCredit(instance.benefit.id),
-      onLogAll: actions == null ? null : () => actions.logAll(instance),
+      // A reader sees the household but logs nothing in it.
+      onLogAll: actions == null || !store.canWrite
+          ? null
+          : () => actions.logAll(instance),
       onToggleMute: actions == null ? null : () => actions.toggleMute(instance),
     );
   }

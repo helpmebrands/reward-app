@@ -257,6 +257,25 @@ void main() {
     expect(store.data!.cards.single.label, 'Renamed');
   });
 
+  testWidgets('the card editor shows the offline message', (tester) async {
+    final api = FakeApi();
+    final store = remoteStore(api);
+    await store.load();
+    api.online = false;
+    final ui = UiState();
+    tester.view.physicalSize = const Size(402, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      RewardApp(store: store, ui: ui, initialLocation: cardPath('card-1')),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('field-label')), 'Renamed');
+    await tester.pumpAndSettle();
+    expect(ui.snackbar.current?.text, offlineMessage);
+    expect(api.data.cards.single.label, 'Server');
+  });
+
   // @lat: [[mobile-tests#Api store#A cache of another version is discarded]]
   test('a cache of another version is discarded, queued claims kept', () async {
     final cache = MemoryHouseholdCache()

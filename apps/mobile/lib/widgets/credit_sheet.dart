@@ -278,7 +278,9 @@ class _SheetBodyState extends State<_SheetBody> {
                     ],
                   ),
                   const SizedBox(height: Space.s4),
-                  if (lockReason(benefit, instance.card, today) ==
+                  if (!store.canWrite)
+                    const SizedBox.shrink()
+                  else if (lockReason(benefit, instance.card, today) ==
                       LockReason.spend)
                     OutlinedButton(
                       onPressed: () => actions.confirmSpend(instance),
@@ -294,8 +296,9 @@ class _SheetBodyState extends State<_SheetBody> {
             ),
           ],
 
-          if (status == BenefitStatus.useSoon ||
-              status == BenefitStatus.available) ...[
+          if (store.canWrite &&
+              (status == BenefitStatus.useSoon ||
+                  status == BenefitStatus.available)) ...[
             const SizedBox(height: Space.s8),
             const _SectionTitle('Log what you spent'),
             Text(
@@ -386,15 +389,22 @@ class _SheetBodyState extends State<_SheetBody> {
                             ),
                           ),
                         ),
-                        OutlinedButton(
-                          onPressed: () => actions.removeClaim(instance, claim),
-                          child: Text(
-                            'Remove',
-                            semanticsLabel:
-                                'Remove the ${formatMoney(claim.amountCents)} logged on '
-                                '${formatDate(claim.claimedAt.substring(0, 10), today)}',
+                        if (store.isPending(claim.id))
+                          Padding(
+                            padding: const EdgeInsets.only(right: Space.s2),
+                            child: Text('Pending', style: note),
                           ),
-                        ),
+                        if (store.canWrite)
+                          OutlinedButton(
+                            onPressed: () =>
+                                actions.removeClaim(instance, claim),
+                            child: Text(
+                              'Remove',
+                              semanticsLabel:
+                                  'Remove the ${formatMoney(claim.amountCents)} logged on '
+                                  '${formatDate(claim.claimedAt.substring(0, 10), today)}',
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -414,10 +424,11 @@ class _SheetBodyState extends State<_SheetBody> {
                       'Fully captured. Reminders stay off until it resets.',
                     ),
                   ),
-                  OutlinedButton(
-                    onPressed: () => actions.unclaimAll(instance),
-                    child: const Text('Undo'),
-                  ),
+                  if (store.canWrite)
+                    OutlinedButton(
+                      onPressed: () => actions.unclaimAll(instance),
+                      child: const Text('Undo'),
+                    ),
                 ],
               ),
             ),
@@ -546,14 +557,15 @@ class _SheetBodyState extends State<_SheetBody> {
             onChanged: (_) => actions.toggleMute(instance),
           ),
           const SizedBox(height: Space.s6),
-          TextButton.icon(
-            onPressed: () {
-              widget.onClose();
-              context.go(benefitPath(benefit.id));
-            },
-            icon: const Icon(Icons.edit_outlined, size: 14),
-            label: const Text('Edit this credit'),
-          ),
+          if (store.canWrite)
+            TextButton.icon(
+              onPressed: () {
+                widget.onClose();
+                context.go(benefitPath(benefit.id));
+              },
+              icon: const Icon(Icons.edit_outlined, size: 14),
+              label: const Text('Edit this credit'),
+            ),
         ],
       ),
     );

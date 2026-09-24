@@ -149,7 +149,8 @@ class CompareSheet extends StatelessWidget {
           ),
           const SizedBox(height: Space.s6),
           for (final instance in overlap.instances)
-            if (instance.status != BenefitStatus.locked)
+            if (instance.status != BenefitStatus.locked &&
+                actions.store.canWrite)
               Padding(
                 padding: const EdgeInsets.only(bottom: Space.s2),
                 child: OutlinedButton.icon(

@@ -860,6 +860,32 @@ Signed in, the app opens on Today with no sign-in screen.
 
 With `UnconfiguredAuth`, "Continue with Google" stays on sign-in and shows that sign-in is not set up.
 
+## Api store
+
+`api_store_test.dart` drives the store in its service-tier mode over a fake api that dedupes claims by idempotency key as the real one does, with an in-memory cache and outbox ([[mobile-architecture#The store#The service tier]]).
+
+### Offline, the app starts from the cache
+
+With the api unreachable, `load` shows the cached household and reports offline; once it is back, `refresh` shows the server's and writes it to the cache.
+
+### An offline claim is pending, kept and sent once
+
+A claim logged offline shows at once and is pending, and a new store over the same cache and outbox still shows it pending. Three concurrent flushes once the api is back post it once, empty the outbox and swap in the server's claim.
+
+The same key queued and flushed again after it was stored leaves one claim on the server.
+
+### Offline edits are refused with a message
+
+Renaming a card offline returns false, sets `offlineMessage`, changes nothing locally or on the server, and makes `canEdit` false; online the same rename lands. In the app, typing into the card editor offline shows the message in the snackbar.
+
+### A cache of another version is discarded
+
+A cache written with the previous `householdCacheVersion` is cleared on load, leaving no household, while the queued claim stays in the outbox and is posted when the api is back.
+
+### A reader sees no claim or edit controls
+
+For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
+
 ## Api config
 
 `api_config_test.dart` covers the build-time define ([[mobile-architecture#Api config]]). Each case skips itself in the run it does not apply to, so the verify gate and `make check` run the file a second time with the define.

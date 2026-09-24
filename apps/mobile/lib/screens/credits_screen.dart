@@ -444,7 +444,7 @@ class _Group extends StatelessWidget {
                 onOpen: onOpen == null
                     ? null
                     : () => onOpen.call(instance.benefit.id),
-                onLogAll: actions == null
+                onLogAll: actions == null || !actions.store.canWrite
                     ? null
                     : () => actions.logAll(instance),
                 onToggleMute: actions == null
