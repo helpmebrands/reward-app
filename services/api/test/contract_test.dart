@@ -159,6 +159,7 @@ final cases = <Case>[
   ),
   ...dataCases,
   ...preferenceCases,
+  ...convertCases,
   call(
     'POST',
     '/v1/household/invites',
@@ -477,6 +478,21 @@ final dataCases = <Case>[
     url: () => '/v1/benefits/${saved['linkedBenefit']}',
   ),
   call(
+    'POST',
+    _convert,
+    403,
+    as: 'reader',
+    url: () => '/v1/cards/${saved['linkedCard']}/convert',
+  ),
+  call('POST', _convert, 404, as: 'owner', url: '/v1/cards/$_nobody/convert'),
+  call(
+    'POST',
+    _convert,
+    409,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['ownCard']}/convert',
+  ),
+  call(
     'DELETE',
     _benefit,
     403,
@@ -517,6 +533,19 @@ final dataCases = <Case>[
     404,
     as: 'owner',
     url: () => '/v1/cards/${saved['ownCard']}',
+  ),
+];
+
+const _convert = '/v1/cards/{cardId}/convert';
+
+/// Conversion last: it replaces `linkedCard`, which earlier cases use.
+final convertCases = <Case>[
+  call(
+    'POST',
+    _convert,
+    200,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['linkedCard']}/convert',
   ),
 ];
 
