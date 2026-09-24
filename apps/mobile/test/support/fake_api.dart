@@ -164,6 +164,130 @@ class FakeApi implements HouseholdApi {
     );
   }
 
+  int _ids = 0;
+  String _id(String kind) => '$kind-${++_ids}';
+  final converted = <String>[];
+
+  @override
+  Future<List<CardTemplate>> catalog() async {
+    _check();
+    return [
+      for (final t in cardTemplates)
+        if (t.id != 'blank') t,
+    ];
+  }
+
+  @override
+  Future<Card> addCard(Map<String, Object?> body) async {
+    _check();
+    final templateId = body['templateId'] as String?;
+    final template = templateId == null ? null : findTemplate(templateId)!;
+    final card = Card(
+      id: _id('card'),
+      templateId: templateId,
+      label: body['label'] as String?,
+      issuer: template?.issuer ?? body['issuer']! as String,
+      product: template?.product ?? body['product']! as String,
+      network: template?.network ?? CardNetwork.other,
+      kind: CardKind.values.byName(body['kind']! as String),
+      annualFeeCents: template?.annualFeeCents ?? 0,
+      anniversaryOn: body['anniversaryOn']! as String,
+      archived: false,
+      createdAt: stamp,
+      updatedAt: stamp,
+    );
+    final benefits = [
+      for (final credit in template?.benefits ?? const <BenefitTemplate>[])
+        benefitFromCredit(
+          credit,
+          LinkedBenefitState(
+            id: _id('benefit'),
+            cardId: card.id,
+            templateBenefitId: credit.id,
+            createdAt: stamp,
+            updatedAt: stamp,
+          ),
+        ),
+    ];
+    data = data.copyWith(
+      cards: [...data.cards, card],
+      benefits: [...data.benefits, ...benefits],
+    );
+    return card;
+  }
+
+  @override
+  Future<String> convertCard(String id) async {
+    _check();
+    converted.add(id);
+    final newId = _id('card');
+    final ids = <String, String>{};
+    data = data.copyWith(
+      cards: [
+        for (final c in data.cards)
+          c.id == id
+              ? Card(
+                  id: newId,
+                  label: c.label,
+                  issuer: c.issuer,
+                  product: c.product,
+                  network: c.network,
+                  kind: c.kind,
+                  annualFeeCents: c.annualFeeCents,
+                  anniversaryOn: c.anniversaryOn,
+                  archived: c.archived,
+                  createdAt: c.createdAt,
+                  updatedAt: c.updatedAt,
+                )
+              : c,
+      ],
+      benefits: [
+        for (final b in data.benefits)
+          if (b.cardId == id)
+            (() {
+              final nb = _id('benefit');
+              ids[b.id] = nb;
+              return Benefit(
+                id: nb,
+                cardId: newId,
+                name: b.name,
+                category: b.category,
+                icon: b.icon,
+                merchant: b.merchant,
+                valueCents: b.valueCents,
+                cadence: b.cadence,
+                anchor: b.anchor,
+                intervalMonths: b.intervalMonths,
+                enrollmentRequired: b.enrollmentRequired,
+                enrolledAt: b.enrolledAt,
+                redemptionSteps: b.redemptionSteps,
+                lastCallOnly: b.lastCallOnly,
+                active: b.active,
+                createdAt: b.createdAt,
+                updatedAt: b.updatedAt,
+              );
+            })()
+          else
+            b,
+      ],
+    );
+    data = data.copyWith(
+      claims: [
+        for (final c in data.claims)
+          ids.containsKey(c.benefitId)
+              ? Claim(
+                  id: c.id,
+                  benefitId: ids[c.benefitId]!,
+                  cycleKey: c.cycleKey,
+                  amountCents: c.amountCents,
+                  claimedAt: c.claimedAt,
+                )
+              : c,
+      ],
+    );
+    return newId;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
