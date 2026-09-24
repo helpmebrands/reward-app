@@ -321,8 +321,8 @@ make it.
 
 ## Part 2 — Google Play (Android)
 
-> **Not rehearsed yet.** Android's first release is #115. These steps are
-> the intended procedure; #115 corrects them here as it runs them.
+> Rehearsed on 2026-09-24 for #115: version code 3 reached the internal
+> track from a tagged run once every step below was done.
 >
 > Not doing Android yet? Skip to Part 3. Later:
 > 1. Do 2.1 to 2.5.
@@ -361,6 +361,12 @@ needs only the app record from 2.1, not a release.
 The email is also on the GitHub environment as `PLAY_SERVICE_ACCOUNT`, and
 every secret id as `SECRET_<NAME>`, for the workflow to read.
 
+Skipping this step does not fail the workflow's authentication: the token
+is minted fine, and the first Play API call, opening an edit, answers
+`403` with `The caller does not have permission`. That message is Play
+saying the service account is not on the *Users and permissions* page,
+not a Google Cloud IAM problem.
+
 ### 2.3 The upload keystore
 
 Losing this keystore is recoverable through Play support; leaking it means
@@ -375,7 +381,7 @@ rotating it there.
 | `-alias` | `upload` | `release-mobile.yml` writes this alias into `key.properties`; any other fails the build |
 | `-keyalg`, `-keysize` | `RSA`, `2048` | what Play and Flutter's own guide use |
 | `-validity` | `10000` | days, about 27 years; an upload key should outlive the app |
-| `-dname` | `CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands` | the certificate's owner, from the answers in the next table. Giving it here skips keytool's six questions |
+| `-dname` | `CN=HelpMe Reward Upload, OU=Mobile, O=HelpMe Brands` | the certificate's owner, from the answers in the next table. Giving it here skips keytool's six questions |
 | password | 20 or more random characters (keytool's minimum is 6) | made below and kept in your password manager |
 
 **keytool's questions.** Without `-dname`, keytool asks six questions
@@ -386,7 +392,7 @@ answers. They only have to be the same every time the runbook is followed.
 
 | keytool asks | Answer | `-dname` part |
 | --- | --- | --- |
-| What is your first and last name? | `HelpMe Reward upload` (what the key is, not a person, so it survives staff changes) | `CN=` |
+| What is your first and last name? | `HelpMe Reward Upload` (what the key is, not a person, so it survives staff changes) | `CN=` |
 | What is the name of your organizational unit? | `Mobile` | `OU=` |
 | What is the name of your organization? | `HelpMe Brands` | `O=` |
 | What is the name of your City or Locality? | press Enter (recorded as `Unknown`) | left out |
@@ -417,7 +423,7 @@ value.
    $ cd ~/reward-signing
    $ keytool -genkeypair -v -keystore upload.jks -storetype PKCS12 \
        -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
-       -dname "CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands"
+       -dname "CN=HelpMe Reward Upload, OU=Mobile, O=HelpMe Brands"
    ```
 
 3. Check it. You should see `Keystore type: PKCS12`, `Alias name: upload`
@@ -539,8 +545,10 @@ typed or shown, and they prove the stored secrets are right.
    It writes `build/app/outputs/bundle/release/app-release.aab`.
 
 7. **Check it is signed with the upload key, not the debug key.** The owner
-   must be `CN=HelpMe Reward upload, OU=Mobile, O=HelpMe Brands`.
-   `CN=Android Debug` means step 1 was skipped:
+   must start `CN=HelpMe Reward Upload, OU=Mobile, O=HelpMe Brands` (the
+   staging keystore also carries `L=Unknown, ST=Unknown, C=Unknown`, from
+   the questions answered with Enter). `CN=Android Debug` means step 1 was
+   skipped:
 
    ```sh
    $ keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep Owner
@@ -567,8 +575,13 @@ Android opens invite links in the app only if the api's domain lists the
 app's signing certificate in `/.well-known/assetlinks.json`. The app signing
 key exists now, because 2.4's upload enrolled the app in Play App Signing.
 
-1. In Play Console, *Test and release → App integrity → App signing*.
-2. Under *App signing key certificate*, copy the **SHA-256** fingerprint.
+1. In Play Console, open the app and choose *Protected with Play* in the
+   left sidebar; it opens the *App signing* page.
+2. On the *App signing key* card, under *Classical key*, click *SHA-256
+   certificate fingerprint*: the console copies it to the clipboard rather
+   than showing it. Not the *Post-quantum cryptography key* column, and not
+   the *Upload key certificate* card further down, whose fingerprint is the
+   keystore from 2.3.
 3. Set it, in `infra/`. Several fingerprints go in comma separated:
 
    ```sh
@@ -658,6 +671,12 @@ both.
    $ cd infra
    $ USER_PROJECT_OVERRIDE=true GOOGLE_BILLING_PROJECT=$PROJECT_ID pulumi up --refresh
    ```
+
+A `pulumi config set` or `pulumi up` that fails reading `.pulumi/meta.yaml`
+from the state bucket with `invalid_grant` and `reauth related error
+(invalid_rapt)` is your own expired application default credentials:
+`gcloud auth application-default login`, as
+[05](05-troubleshooting.md) says, then run the command again.
 
 ### 3.4 The Apple sign-in config
 
@@ -786,7 +805,9 @@ $ cd ~ && rm -rf ~/reward-signing
 Update the *iOS signing* row of the [README](README.md#environments) with
 the certificate id and profile id from 1.6 and 1.7 and their expiry date.
 `apps/pwa/tests/infra-config.test.ts` pins that date (*records the iOS
-certificate expiry*), so change it there in the same pull request.
+certificate expiry*), so change it there in the same pull request. The
+*Android signing* row records the Play app, the upload key's owner and
+fingerprint, and where the app signing fingerprint lives.
 
 ## Part 6 — The first release
 
