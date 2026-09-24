@@ -49,8 +49,7 @@ Future<AppStore> pumpSettings(
   return store;
 }
 
-NotificationSettings notifications(AppStore store) =>
-    store.data!.settings.notifications;
+MemberPreferences notifications(AppStore store) => store.preferences;
 
 Future<void> flip(WidgetTester tester, String label) async {
   await tester.ensureVisible(find.bySemanticsLabel(label));

@@ -147,13 +147,13 @@ void main() {
     // Mute the card from Cards.
     await tab(tester, 'Cards');
     await tester.tap(
-      find.bySemanticsLabel('Menu for American Express Platinum — Kathy'),
+      find.bySemanticsLabel('Menu for American Express Platinum'),
     );
     await settle(tester);
     await tester.tap(find.text('Mute'));
     await settle(tester);
     expect(
-      find.text('Silenced every credit on American Express Platinum — Kathy.'),
+      find.text('Silenced every credit on American Express Platinum.'),
       findsOneWidget,
     );
 

@@ -25,7 +25,6 @@ Benefit _benefit(
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
   redemptionSteps: const [],
-  muted: false,
   lastCallOnly: false,
   active: true,
   createdAt: _stamp,
@@ -43,7 +42,6 @@ AppData _household() => AppData(
       kind: CardKind.personal,
       annualFeeCents: 89500,
       anniversaryOn: '2021-03-14',
-      muted: false,
       archived: false,
       createdAt: _stamp,
       updatedAt: _stamp,
@@ -126,7 +124,7 @@ void main() {
       final h = await _Harness().loaded();
 
       await h.actions.toggleMute(h.instance('resy'));
-      expect(h.store.data!.benefits.first.muted, isTrue);
+      expect(h.store.isBenefitMuted(h.store.data!.benefits.first.id), isTrue);
       var message = h.snackbar.current!;
       expect(message.text, 'Silenced Resy Dining Credit. It is still tracked.');
       expect(
@@ -136,11 +134,11 @@ void main() {
 
       message.action!.onAct();
       await Future<void>.delayed(Duration.zero);
-      expect(h.store.data!.benefits.first.muted, isFalse);
+      expect(h.store.isBenefitMuted(h.store.data!.benefits.first.id), isFalse);
 
       await h.actions.toggleMute(h.instance('resy'));
       await h.actions.toggleMute(h.instance('resy'));
-      expect(h.store.data!.benefits.first.muted, isFalse);
+      expect(h.store.isBenefitMuted(h.store.data!.benefits.first.id), isFalse);
       message = h.snackbar.current!;
       expect(message.text, 'Reminders back on for Resy Dining Credit.');
       expect(
@@ -149,7 +147,7 @@ void main() {
       );
       message.action!.onAct();
       await Future<void>.delayed(Duration.zero);
-      expect(h.store.data!.benefits.first.muted, isTrue);
+      expect(h.store.isBenefitMuted(h.store.data!.benefits.first.id), isTrue);
     },
   );
 

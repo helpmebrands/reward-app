@@ -144,7 +144,7 @@ void main() {
       await show(tester, find.bySemanticsLabel('Silence every credit'));
       await tester.tap(find.bySemanticsLabel('Silence every credit'));
       await tester.pumpAndSettle();
-      expect(cardOf(app, jim).muted, isTrue);
+      expect(app.store.isCardMuted(jim), isTrue);
 
       await show(tester, find.byKey(const Key('field-network')));
       await tester.tap(find.byKey(const Key('field-network')));

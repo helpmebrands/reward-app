@@ -241,7 +241,7 @@ void main() {
     await tester.tap(find.text('Mute'));
     await tester.pumpAndSettle();
 
-    expect(p.store.data!.cards.first.muted, isTrue);
+    expect(p.store.isCardMuted(p.store.data!.cards.first.id), isTrue);
     final message = p.ui.snackbar.current!;
     expect(
       message.text,
@@ -253,7 +253,7 @@ void main() {
     );
     message.action!.onAct();
     await tester.pumpAndSettle();
-    expect(p.store.data!.cards.first.muted, isFalse);
+    expect(p.store.isCardMuted(p.store.data!.cards.first.id), isFalse);
 
     await openMenu(tester, 'American Express Platinum — Jim');
     expect(find.text('Mute'), findsOneWidget);
