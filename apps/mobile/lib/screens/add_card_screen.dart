@@ -63,7 +63,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
   final _productFocus = FocusNode(debugLabel: 'product');
   final _labelFocus = FocusNode(debugLabel: 'label');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
-  final _filter = CatalogFilterController();
+  late final _filter = CatalogFilterController(
+    templates: () => store.templates,
+  );
   final _filtersFocus = FocusNode(debugLabel: 'filters');
 
   AppStore get store => widget.store;

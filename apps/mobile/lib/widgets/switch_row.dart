@@ -20,7 +20,9 @@ class SwitchRow extends StatelessWidget {
   /// What the screen reader hears for the switch itself.
   final String label;
   final bool value;
-  final ValueChanged<bool> onChanged;
+
+  /// Null disables the switch, as for a term the catalogue owns.
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {

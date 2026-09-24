@@ -9,10 +9,15 @@ import 'package:flutter/widgets.dart';
 /// panel and the compact sheet share one caret and "Clear all" can empty
 /// them.
 class CatalogFilterController extends ChangeNotifier {
-  CatalogFilterController() {
+  /// [templates] is the catalogue to filter, read on every use so a fetch
+  /// that lands later shows; the built-in one by default.
+  CatalogFilterController({List<CardTemplate> Function()? templates})
+    : _templates = templates ?? (() => cardTemplates) {
     search.addListener(_searchChanged);
     merchantSearch.addListener(_merchantSearchChanged);
   }
+
+  final List<CardTemplate> Function() _templates;
 
   final search = TextEditingController();
 
@@ -27,12 +32,12 @@ class CatalogFilterController extends ChangeNotifier {
 
   /// The cards the filter keeps, highest annual value first.
   List<CardTemplate> get results =>
-      sortByValue(filterTemplates(cardTemplates, _filter));
+      sortByValue(filterTemplates(_templates(), _filter));
 
   /// Every card the catalogue lists, for "N of 16 cards".
-  int get total => filterTemplates(cardTemplates, const CatalogFilter()).length;
+  int get total => filterTemplates(_templates(), const CatalogFilter()).length;
 
-  FacetCounts get counts => facetCounts(cardTemplates, _filter);
+  FacetCounts get counts => facetCounts(_templates(), _filter);
 
   void update(CatalogFilter Function(CatalogFilter filter) change) {
     _filter = change(_filter);

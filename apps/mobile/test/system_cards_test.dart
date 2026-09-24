@@ -74,9 +74,13 @@ Finder key(String k) => find.byKey(Key(k));
 /// Which group a card's title sits in on Cards.
 String groupOf(WidgetTester tester, String title) {
   final y = tester.getTopLeft(find.text(title).first).dy;
-  final system = tester.getTopLeft(key('cards-system')).dy;
-  final user = tester.getTopLeft(key('cards-user')).dy;
-  return y > user ? 'user' : (y > system ? 'system' : 'none');
+  double? top(String k) =>
+      key(k).evaluate().isEmpty ? null : tester.getTopLeft(key(k)).dy;
+  final system = top('cards-system');
+  final user = top('cards-user');
+  if (user != null && y > user) return 'user';
+  if (system != null && y > system) return 'system';
+  return 'none';
 }
 
 void main() {

@@ -83,6 +83,12 @@ class Invite {
 abstract interface class HouseholdApi {
   Future<AppData> householdData();
   Future<HouseholdView> household();
+
+  /// Every template as it stands today, without `blank`.
+  Future<List<CardTemplate>> catalog();
+
+  /// Replaces a linked card with one the household maintains; the new id.
+  Future<String> convertCard(String cardId);
   Future<Invite> createInvite(String role);
   Future<void> acceptInvite(String code, {bool confirmLeave = false});
   Future<void> removeMember(String userId);
@@ -183,6 +189,20 @@ class ApiClient implements HouseholdApi {
           ),
       ],
     );
+  }
+
+  @override
+  Future<List<CardTemplate>> catalog() async => [
+    for (final v in (await _send('GET', '/v1/catalog'))! as List)
+      templateVersionFromJson(v as Map<String, dynamic>).template,
+  ];
+
+  @override
+  Future<String> convertCard(String cardId) async {
+    final json =
+        (await _send('POST', '/v1/cards/$cardId/convert'))!
+            as Map<String, dynamic>;
+    return (json['card']! as Map<String, dynamic>)['id']! as String;
   }
 
   @override

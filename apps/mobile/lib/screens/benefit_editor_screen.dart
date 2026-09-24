@@ -249,6 +249,10 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
     final today = store.today;
     final cycle = card == null ? null : cycleFor(current, card, today);
+    // A credit the catalogue keeps up to date: its terms are the
+    // catalogue's; enrolment, spend, tracking and the page are the
+    // household's.
+    final linked = current.templateBenefitId != null;
 
     Widget field(
       String key,
@@ -272,6 +276,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
         focusNode: control.focusNode,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        readOnly: linked && key != 'field-url',
         decoration: control.decoration,
       ),
     );
@@ -291,11 +296,13 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                 child: Text(cadenceLabel(cadence)),
               ),
           ],
-          onChanged: (cadence) {
-            if (cadence != null) {
-              _patch(current, (b) => b.copyWith(cadence: cadence));
-            }
-          },
+          onChanged: linked
+              ? null
+              : (cadence) {
+                  if (cadence != null) {
+                    _patch(current, (b) => b.copyWith(cadence: cadence));
+                  }
+                },
         ),
         if (current.cadence != Cadence.manual &&
             current.cadence != Cadence.rolling)
@@ -346,8 +353,10 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                 ChoiceChip(
                   label: Text(label),
                   selected: current.anchor == anchor,
-                  onSelected: (_) =>
-                      _patch(current, (b) => b.copyWith(anchor: anchor)),
+                  onSelected: linked
+                      ? null
+                      : (_) =>
+                            _patch(current, (b) => b.copyWith(anchor: anchor)),
                 ),
             ],
           ),
@@ -368,6 +377,24 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
+        if (linked && card != null) ...[
+          Text(
+            'The terms of this credit come from the catalogue and change '
+            'when the issuer changes them. Enrolment, spend, tracking and '
+            'reminders are yours.',
+            style: note,
+          ),
+          const SizedBox(height: Space.s2),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton(
+              key: const Key('change-terms'),
+              onPressed: () => context.go(convertPath(card.id)),
+              child: const Text('Change the terms'),
+            ),
+          ),
+          const SizedBox(height: Space.s4),
+        ],
         Text('Fields marked * are required.', style: note),
         const SizedBox(height: Space.s4),
         FieldGrid(
@@ -415,11 +442,13 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                     child: Text(categoryLabel(category)),
                   ),
               ],
-              onChanged: (category) {
-                if (category != null) {
-                  _patch(current, (b) => b.copyWith(category: category));
-                }
-              },
+              onChanged: linked
+                  ? null
+                  : (category) {
+                      if (category != null) {
+                        _patch(current, (b) => b.copyWith(category: category));
+                      }
+                    },
             ),
             field(
               'field-merchant',
@@ -437,8 +466,12 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                   'as money you are failing to spend.',
               label: 'Needs enrolment',
               value: current.enrollmentRequired,
-              onChanged: (next) =>
-                  _patch(current, (b) => b.copyWith(enrollmentRequired: next)),
+              onChanged: linked
+                  ? null
+                  : (next) => _patch(
+                      current,
+                      (b) => b.copyWith(enrollmentRequired: next),
+                    ),
             ),
             if (current.enrollmentRequired) ...[
               SwitchRow(

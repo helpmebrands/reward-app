@@ -165,6 +165,18 @@ The slideshow stays open while signed out, which is how "Learn more" on the sign
 
 Every screen has a Widget Preview: the slideshow in both themes and sign-in at compact and expanded.
 
+## System and user cards
+
+A card added from the catalogue is linked to its template and kept up to date by it; a card added blank, or converted, is the household's own ([[domain#Catalogue versions]], [[api-architecture#Conversion]]). Pinned by [[mobile-tests#System and user cards]].
+
+- **Cards** names two groups, "Kept up to date" (`cards-system`) and "Maintained by you" (`cards-user`), each shown when it has cards; a local household with no linked card shows its cards without names, as before sign-in existed.
+- **Add a card** lists the api's catalogue (`GET /v1/catalog`, `AppStore.templates`) in the service-tier mode, the built-in one until it is fetched, with `blank` last; `CatalogFilterController` reads its templates through a function so a fetch that lands later shows. A template adds a linked card, `blank` a household one, and a second card of a product gets the numbered label ([[domain#Card]]).
+- **A system card's terms are read-only**: in the card editor the fee is read-only, the network cannot change and "Add" is gone; in the benefit editor every term (name, value, cadence, anchor, category, merchant, ends on, spend threshold, enrolment needed, steps) is read-only, while the label, renewal date, kind, enrolment, spend met, tracking, last call and silences stay the household's.
+- **"Change the terms"** on either editor opens `ConvertScreen` at `/cards/:id/convert`, which says the card will be replaced by one the household maintains, will no longer update automatically, and keeps its claims, history, enrolment and everyone's silences. Nothing changes until "Make it mine", which calls `AppStore.convertCard` (`POST /v1/cards/{id}/convert`) and opens the new card's editor, now fully editable.
+- `SwitchRow` takes a null `onChanged` for a switch the catalogue owns.
+
+Widget Previews: Cards with both groups, and the conversion screen.
+
 ## Household sharing
 
 Members invite and join each other without typing ids: by a link shared through the system share sheet, or by an eight-character code. Pinned by [[mobile-tests#Household sharing]].
