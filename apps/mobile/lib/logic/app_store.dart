@@ -55,6 +55,7 @@ class AppStore extends ChangeNotifier {
   Settings? _localSettings;
   MemberRole _role = MemberRole.editor;
   HouseholdView? _household;
+  List<CardTemplate> _catalog = const [];
   bool _offline = false;
   String? _problem;
   Future<void>? _flushing;
@@ -64,6 +65,12 @@ class AppStore extends ChangeNotifier {
 
   /// The last request could not reach the api.
   bool get offline => remote && _offline;
+
+  /// The catalogue "Add a card" lists: the api's in the service-tier mode
+  /// (the built-in one until it has been fetched), with `blank` last.
+  List<CardTemplate> get templates => remote && _catalog.isNotEmpty
+      ? [..._catalog, findTemplate('blank')!]
+      : cardTemplates;
 
   /// The household's members and this member's role, once fetched.
   HouseholdView? get household => _household;
@@ -175,6 +182,7 @@ class AppStore extends ChangeNotifier {
       final household = await api.household();
       final role = household.role;
       final preferences = await api.preferences();
+      _catalog = await api.catalog();
       _server = data;
       _household = household;
       _role = role;
@@ -338,6 +346,17 @@ class AppStore extends ChangeNotifier {
       // Joined; the next refresh shows it.
     }
     return JoinOutcome.joined;
+  }
+
+  /// Turns a card the catalogue keeps up to date into one the household
+  /// maintains: claims, history, enrolment and every member's silences go
+  /// with it. The new card's id, or null with [problem] set.
+  Future<String?> convertCard(String id) async {
+    String? newId;
+    final done = await _edit((api) async {
+      newId = await api.convertCard(id);
+    });
+    return done ? newId : null;
   }
 
   /// The owner removes a member, who loses access at once.

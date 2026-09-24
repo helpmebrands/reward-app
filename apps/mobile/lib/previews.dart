@@ -33,6 +33,7 @@ import 'logic/session.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/join_screen.dart';
+import 'screens/convert_screen.dart';
 
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
@@ -196,6 +197,35 @@ Widget joinDark() =>
 @Preview(name: 'Join a household, light', size: Size(402, 874))
 Widget joinLight() =>
     _themed(JoinScreen(store: _store(), code: 'ABCD2345'), Brightness.light);
+
+/// The preview household with its first card linked to the Platinum
+/// template, so Cards shows both groups.
+AppStore _linkedStore() {
+  final household = _household();
+  final store = AppStore(
+    store: MemorySnapshotStore(
+      household.copyWith(
+        cards: [
+          household.cards.first.copyWith(templateId: 'amex-platinum'),
+          ...household.cards.skip(1),
+        ],
+      ),
+    ),
+    clock: () => DateTime(2026, 9, 16),
+  );
+  store.load();
+  return store;
+}
+
+@Preview(name: 'Cards, system and user groups', size: Size(402, 1400))
+Widget cardsGroups() =>
+    _themed(CardsScreen(store: _linkedStore()), Brightness.dark);
+
+@Preview(name: 'Change the terms', size: Size(402, 874))
+Widget convert() => _themed(
+  ConvertScreen(store: _linkedStore(), cardId: 'jim'),
+  Brightness.dark,
+);
 
 @Preview(name: 'Today, dark', size: Size(402, 874))
 Widget todayDark() => _themed(TodayScreen(store: _store()), Brightness.dark);

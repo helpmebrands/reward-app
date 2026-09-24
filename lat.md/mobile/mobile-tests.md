@@ -886,6 +886,26 @@ A cache written with the previous `householdCacheVersion` is cleared on load, le
 
 For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
 
+## System and user cards
+
+`system_cards_test.dart` drives Cards, the editors and the conversion over the fake api with a Gold from the catalogue, a claim on its Uber Cash, and a Freedom of the household's own ([[mobile-architecture#System and user cards]]).
+
+### Cards groups system and user cards
+
+Cards names "Kept up to date" with the Gold under it and "Maintained by you" with the Freedom under it.
+
+### A system card's terms are read-only
+
+The Gold's editor has a read-only fee, no "Add" and an editable label; "Change the terms" opens the conversion screen, which says it will no longer update automatically and keeps its claims, and nothing has been converted yet.
+
+### Conversion keeps the claims
+
+"Make it mine" converts the Gold once, opens its editor with an editable fee, and leaves the captured total and the claim as they were; back on Cards the Gold is under "Maintained by you".
+
+### A second card of a product is numbered
+
+Adding a Gold from the api's catalogue to a household holding one proposes "American Express Gold (1)"; the catalogue comes from the api with `blank` last.
+
 ## Household sharing
 
 `household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `shareText` captured ([[mobile-architecture#Household sharing]]).

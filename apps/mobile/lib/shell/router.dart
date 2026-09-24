@@ -7,6 +7,7 @@ import '../screens/add_card_screen.dart';
 import '../screens/benefit_editor_screen.dart';
 import '../screens/card_editor_screen.dart';
 import '../screens/cards_screen.dart';
+import '../screens/convert_screen.dart';
 import '../screens/credits_screen.dart';
 import '../screens/join_screen.dart';
 import '../screens/not_found_screen.dart';
@@ -76,6 +77,9 @@ String _keepFrom(String path, GoRouterState state) {
 
 /// The card editor's path for one card.
 String cardPath(String id) => '/cards/$id';
+
+/// "Change the terms" for one card the catalogue keeps up to date.
+String convertPath(String id) => '/cards/$id/convert';
 
 /// The benefit editor's path for one credit.
 String benefitPath(String id) => '/benefit/$id';
@@ -239,6 +243,17 @@ GoRouter appRouter(
                     ui: UiScope.of(context),
                     id: state.pathParameters['id']!,
                   ),
+                  routes: [
+                    GoRoute(
+                      path: 'convert',
+                      parentNavigatorKey: rootNavigatorKey,
+                      builder: (context, state) => ConvertScreen(
+                        store: AppScope.of(context),
+                        ui: UiScope.of(context),
+                        cardId: state.pathParameters['id']!,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
