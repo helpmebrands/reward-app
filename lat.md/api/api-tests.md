@@ -196,6 +196,32 @@ Another user's edit or delete of the card is 404, and their snapshot is empty.
 
 After a claim on a Gold's credit, deleting the card leaves no card, credit or claim.
 
+## Conversion
+
+`convert_integration_test.dart` converts a Gold with claims, enrolment and two members' mutes against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).
+
+### Conversion keeps totals and history
+
+After conversion the household has one card, maintained by the user, with the old label, last four and anniversary.
+
+Its claim history (credit name, cycle, amount) and its claimable, captured and missed totals equal the ones just before, and every claim points at the new credit.
+
+### The converted credits are the terms at conversion
+
+The converted card's credits equal the linked card's resolved credits apart from ids and timestamps, compared as sets because copies are listed in a new order, and none carries a template link.
+
+### A new version leaves a converted card alone
+
+Publishing a version 2 of the Gold with a new product name, fee and credits leaves the converted household's snapshot byte-for-byte the same.
+
+### Every member's mutes follow the card
+
+Both members who muted the Gold and its credit read mutes of the new card and the new credit id.
+
+### Only a linked card converts
+
+Adding a credit to a linked card is 409; converting the converted card is 409 `user maintained`; the old id is 404.
+
 ## Member preferences
 
 `preferences_integration_test.dart` drives the preference and mute routes as members of one household and an outsider, against `DATABASE_URL` in its own `preferences` schema ([[api-architecture#Member preferences]]).
