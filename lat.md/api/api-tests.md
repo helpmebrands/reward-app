@@ -46,6 +46,36 @@ Every case answers its status with a body that validates against the documented 
 
 Without a database that is the 503s and `/health`; against `DATABASE_URL`, in the suite's own `contract` schema, the 200, 204, 400 and 404 answers.
 
+## Sign-in
+
+`auth_test.dart` covers the verifier and the certificate cache without a database; `me_integration_test.dart` drives `GET /v1/me` through the handler, and against `DATABASE_URL` in its own `sign_in` schema ([[api-architecture#Sign-in]]).
+
+Tokens are signed with a throwaway RSA key made by `openssl` when the suite starts, published to the verifier as Google publishes Firebase's certificates, so no private key is committed.
+
+### A Firebase ID token is verified against Google's keys
+
+A token shaped as Firebase issues it, for this project and signed by the published key, verifies to its uid and email.
+
+### Expired, misaddressed and forged tokens are refused
+
+Expired, another project's audience or issuer, signed by another key under the same id, an unpublished key id, an empty subject, issued in the future, HS256, and not a token at all: each throws `InvalidToken`.
+
+### Google's certificates are cached for their max-age
+
+Two lookups within the max-age fetch once, one after it fetches again, and `max-age` is read out of a real `Cache-Control` value.
+
+### Without a token the caller gets 401
+
+No `Authorization`, a token that does not verify, and a non-bearer scheme all answer 401 `{"error":"unauthenticated"}`.
+
+### The first call creates the user and later calls reuse it
+
+A valid token for a new uid answers 200 with an id and the email and leaves one `users` row; the same uid again returns the same id and still one row; another uid adds a second.
+
+### Bad tokens create nobody
+
+An expired, a misaddressed and a forged token each answer 401 and no `users` row exists afterwards.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

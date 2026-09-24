@@ -2,12 +2,18 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:api/api.dart';
+import 'package:api/auth.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:test/test.dart';
 
 import 'support/database.dart';
 import 'support/openapi.dart';
+import 'support/tokens.dart';
+
+/// Signs the contract's tokens; made in `main`'s `setUpAll`.
+late TestKey key;
+late TokenVerifier verifier;
 
 /// The contract test: `openapi.yaml` and the router agree on which routes
 /// exist, and every documented status of every operation is driven through
@@ -27,6 +33,7 @@ Case call(
   int status, {
   String? url,
   Object? body,
+  bool signedIn = false,
   bool needsDatabase = true,
 }) => (
   op: (method: method, path: path),
@@ -36,7 +43,10 @@ Case call(
     method,
     Uri.parse('http://localhost${url ?? path}'),
     body: body == null ? null : (body is String ? body : jsonEncode(body)),
-    headers: body == null ? null : {'content-type': 'application/json'},
+    headers: {
+      if (body != null) 'content-type': 'application/json',
+      if (signedIn) 'authorization': 'Bearer ${key.sign()}',
+    },
   ),
 );
 
@@ -51,6 +61,9 @@ const device = {
 /// one's writes (the delete after the registration).
 final cases = <Case>[
   call('GET', '/health', 200, needsDatabase: false),
+  call('GET', '/v1/me', 200, signedIn: true),
+  call('GET', '/v1/me', 401, needsDatabase: false),
+  call('GET', '/v1/me', 503, signedIn: true, needsDatabase: false),
   call('POST', '/v1/devices', 200, body: device),
   call('POST', '/v1/devices', 400, body: {...device}..remove('platform')),
   call('POST', '/v1/devices', 400, body: 'not json'),
@@ -99,6 +112,17 @@ Future<List<String>> check(
 
 void main() {
   final spec = loadSpec();
+
+  setUpAll(() async {
+    key = await TestKey.generate();
+    verifier = FirebaseTokenVerifier(
+      projectId: testProject,
+      certificates: GoogleCertificates(
+        fetch: () async =>
+            (certs: {'key-1': key.certPem}, maxAge: const Duration(hours: 1)),
+      ),
+    );
+  });
 
   group('the spec and the router', () {
     // @lat: [[api-tests#Contract#The spec is OpenAPI 3.1]]
@@ -151,7 +175,7 @@ void main() {
 
   // @lat: [[api-tests#Contract#Responses match the documented schemas]]
   test('the cases without a database answer as documented', () async {
-    final handler = buildHandler();
+    final handler = buildHandler(verifier: verifier);
     final errors = <String>[];
     for (final c in cases.where((c) => !c.needsDatabase)) {
       errors.addAll(await check(spec, c, await handler(c.request())));
@@ -170,7 +194,7 @@ void main() {
       tearDownAll(() => dropSchema(db, 'contract'));
 
       test('every case with a database answers as documented', () async {
-        final handler = buildHandler(db: db);
+        final handler = buildHandler(db: db, verifier: verifier);
         final errors = <String>[];
         for (final c in cases.where((c) => c.needsDatabase)) {
           errors.addAll(await check(spec, c, await handler(c.request())));

@@ -20,6 +20,10 @@ tags:
     description: Liveness.
   - name: devices
     description: Push-device registration.
+  - name: me
+    description: The signed-in caller.
+security:
+  - firebase: []
 
 paths:
   /health:
@@ -41,6 +45,28 @@ paths:
                 $ref: '#/components/schemas/Health'
         '500':
           $ref: '#/components/responses/Internal'
+
+  /v1/me:
+    get:
+      tags: [me]
+      operationId: getMe
+      summary: The signed-in caller
+      description: |
+        The caller's user, created on their first authenticated call to any
+        route and reused after.
+      responses:
+        '200':
+          description: The caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
 
   /v1/devices:
     post:
@@ -70,7 +96,7 @@ paths:
         '500':
           $ref: '#/components/responses/Internal'
         '503':
-          $ref: '#/components/responses/NoDatabase'
+          $ref: '#/components/responses/Unavailable'
 
   /v1/devices/{token}:
     delete:
@@ -93,10 +119,33 @@ paths:
         '500':
           $ref: '#/components/responses/Internal'
         '503':
-          $ref: '#/components/responses/NoDatabase'
+          $ref: '#/components/responses/Unavailable'
 
 components:
+  securitySchemes:
+    firebase:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A Firebase ID token from Identity Platform (Google or Apple sign-in)
+        for this environment's project, verified against Google's published
+        keys: RS256, issuer `https://securetoken.google.com/<project>`,
+        audience the project, unexpired.
+
   schemas:
+    User:
+      type: object
+      required: [id, email]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The user's id in this service.
+        email:
+          type: [string, 'null']
+          description: The email on the sign-in account, when it shares one.
+
     Health:
       type: object
       required: [status, version]
@@ -165,8 +214,8 @@ components:
             properties:
               error:
                 const: not found
-    NoDatabase:
-      description: The process has no database, so storage-backed routes cannot answer.
+    Unauthenticated:
+      description: No bearer token, or one that does not verify.
       content:
         application/json:
           schema:
@@ -174,7 +223,20 @@ components:
               - $ref: '#/components/schemas/Error'
             properties:
               error:
-                const: no database
+                const: unauthenticated
+    Unavailable:
+      description: |
+        The process was started without what the route needs: a database
+        (`no database`) or, for a signed-in route, a Firebase project to
+        verify tokens against (`no auth`).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                enum: [no database, no auth]
     Internal:
       description: Anything uncaught; the detail goes to the log, never to the client.
       content:

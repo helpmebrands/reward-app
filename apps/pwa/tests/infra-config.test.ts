@@ -856,6 +856,48 @@ describe('local verify', () => {
   })
 })
 
+describe('sign-in', () => {
+  const program = () => read('infra/index.ts')
+
+  // @lat: [[infra-tests#Infrastructure config#Identity Platform signs people in with Google and Apple]]
+  it('turns on Firebase and Identity Platform with the Google and Apple providers', () => {
+    const p = program()
+    expect(p).toContain("'identitytoolkit.googleapis.com'")
+    expect(p).toContain("'firebase.googleapis.com'")
+    expect(p).toMatch(/new gcp\.firebase\.Project\(/)
+    expect(p).toMatch(/new gcp\.identityplatform\.Config\(/)
+    expect(p).toMatch(/idpId: 'google\.com'/)
+    expect(p).toMatch(/idpId: 'apple\.com'/)
+    expect(p).toMatch(/config\.getSecret\('googleOAuthClientSecret'\)/)
+    for (const key of ['googleOAuthClientId', 'appleServicesId']) {
+      expect(p, key).toMatch(new RegExp(`config\\.get\\('${key}'\\)`))
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The sign-in credentials are the runbook's keys]]
+  it('declares the runbook 08 keys and commits the Apple team id', () => {
+    const project = read('infra/Pulumi.yaml')
+    for (const key of [
+      'googleOAuthClientId',
+      'googleOAuthClientSecret',
+      'appleServicesId',
+      'appleKeyId',
+      'appleServicesKey',
+      'appleTeamId',
+    ]) {
+      expect(project, key).toMatch(new RegExp(`^  ${key}:$`, 'm'))
+      expect(read('docs/runbooks/08-sign-in-providers.md'), key).toContain(`reward-app:${key}`)
+    }
+    expect(read('infra/Pulumi.staging.yaml')).toMatch(/^ {2}reward-app:appleTeamId: LMFUSVPCDH$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The api knows its Firebase project]]
+  it('tells the api which Firebase project its tokens come from', () => {
+    const api = program().split("new gcp.cloudrunv2.Service(\n  'api',")[1]?.split('\n)\n')[0] ?? ''
+    expect(api).toMatch(/name: 'FIREBASE_PROJECT_ID'/)
+  })
+})
+
 describe('api contract', () => {
   // @lat: [[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]
   it('lints services/api/openapi.yaml with a pinned Redocly CLI in the api job and make api', () => {
