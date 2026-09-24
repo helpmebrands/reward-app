@@ -38,6 +38,7 @@ class TestApi {
     String path, {
     String? uid,
     Object? body,
+    Map<String, String> headers = const {},
   }) async {
     final response = await handler(
       Request(
@@ -45,6 +46,7 @@ class TestApi {
         Uri.parse('http://localhost$path'),
         body: body == null ? null : jsonEncode(body),
         headers: {
+          ...headers,
           if (body != null) 'content-type': 'application/json',
           if (uid != null)
             'authorization':
@@ -71,6 +73,21 @@ class Caller {
       _api.send('POST', path, uid: uid, body: body ?? const {});
   Future<Reply> put(String path, Object body) =>
       _api.send('PUT', path, uid: uid, body: body);
+  Future<Reply> patch(String path, Object body) =>
+      _api.send('PATCH', path, uid: uid, body: body);
+  Future<Reply> send(
+    String method,
+    String path, {
+    String? uid,
+    Object? body,
+    Map<String, String> headers = const {},
+  }) => _api.send(
+    method,
+    path,
+    uid: uid ?? this.uid,
+    body: body,
+    headers: headers,
+  );
   Future<Reply> delete(String path) => _api.send('DELETE', path, uid: uid);
 
   /// The caller's user id, from `GET /v1/me`.
