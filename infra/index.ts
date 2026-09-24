@@ -771,7 +771,17 @@ const androidConfig = gcp.firebase.getAndroidAppConfigOutput({
 
 const identityPlatform = new gcp.identityplatform.Config(
   'identity-platform',
-  { project, signIn: { allowDuplicateEmails: false } },
+  {
+    project,
+    // Google and Apple only: email and phone sign-in stay off, declared so
+    // the provider's defaults do not show as a change on every preview.
+    signIn: {
+      allowDuplicateEmails: false,
+      email: { enabled: false, passwordRequired: false },
+      phoneNumber: { enabled: false, testPhoneNumbers: {} },
+    },
+    multiTenant: { allowTenants: false },
+  },
   { dependsOn: [...services, firebaseProject] },
 )
 
