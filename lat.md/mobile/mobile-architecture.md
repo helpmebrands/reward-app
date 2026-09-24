@@ -104,7 +104,7 @@ The route table mirrors the PWA's nine routes, with the four tabs as branches of
 - **The shell** is `StatefulShellRoute.indexedStack` whose builder renders `AppShell`: the `NavigationBar` or `NavigationRail` for the width class ([[mobile-architecture#Responsive layout]]) around the content column, keeping each tab's scroll position across switches. The four `Destination`s are one list the bar and the rail both draw, so the order cannot differ.
 - **The credit sheet is not a route**: as in the PWA, the shell shows one sheet whichever tab opened it, driven by `UiState`, so the URL stays on the tab beneath ([[mobile-architecture#The credit sheet]]). Back closes it through the host's `PopScope` before the router sees the pop.
 - **Typed by hand, not by codegen**: paths are constants and each parameterised route has a helper such as `cardPath(id)`. `go_router_builder` is not added because it brings `build_runner` into a workspace with no code generation, and nine routes do not need it. Revisit if the table grows.
-- **Redirects read the store**: `refreshListenable` is the `AppStore`, so a `redirect` re-evaluates on every notification with no second state holder. There is no redirect today; the first will come with the api sign-in.
+- **Redirects read the store and the session**: `refreshListenable` merges the `AppStore` and the `Session`, so the sign-in redirect re-evaluates whenever either notifies, with no other state holder ([[mobile-architecture#Sign-in]]).
 - **Not added**: `app_links` (third-party, needs approval, and there are no associated domains or URL schemes to serve), `auto_route`, and hand-written `RouterDelegate` code.
 
 ### Transitions and back
@@ -116,6 +116,32 @@ Page transitions stay at the framework defaults, which on the pinned Flutter (3.
 - **Custom back handling uses `PopScope`**: a sheet or editor that must intercept back (an unsaved draft) does so through `PopScope` and `onPopInvokedWithResult`, never `WillPopScope`, so the predictive gesture keeps working.
 - **Per-route transitions** go through `CustomTransitionPage` in a route's `pageBuilder`, and only where a screen calls for one.
 - **Tests**: the route table is built by a function that takes the store, so a widget test pumps `MaterialApp.router` on a `MemorySnapshotStore` and asserts the screen a path renders; the shell tests in [[mobile-tests]] run at the three widths.
+
+## Sign-in
+
+The app sits behind sign-in with Google or Apple through Firebase Authentication on the environment's Identity Platform project; there is no guest mode, because the household lives in the service tier. Pinned by [[mobile-tests#Sign-in]].
+
+`Session` (`lib/logic/session.dart`, a `ChangeNotifier`) holds two independent pieces of launch state: `introSeen`, a device flag in `shared_preferences` (`SharedPreferencesIntroStore`) set when the slideshow is skipped or finished and kept across sign-out, and the signed-in user from the `AuthService`. `main` loads the flag before the first frame.
+
+`signInRedirect` in `lib/shell/router.dart` is the router's one redirect:
+
+| State | Destination |
+| --- | --- |
+| Signed in | the app: the `from` a sign-in was sent from, or Today |
+| Signed out, intro seen | `/sign-in` |
+| Signed out, intro unseen | `/welcome`, then `/sign-in` |
+
+The slideshow stays open while signed out, which is how "Learn more" on the sign-in screen replays it. A signed-out deep link carries `?from=`, so an invite link opened before signing in (#221) still lands where it pointed. Without a session, as in the screen tests, there is no redirect.
+
+- **`WelcomeScreen`**: three slides in a `PageView`, Skip at the top, dots, and Next that becomes "Get started"; both finish the intro and go to sign-in.
+- **`SignInScreen`**: "Continue with Google", "Continue with Apple" and "Learn more"; a failed sign-in shows its sentence in a live region and stays.
+- **Settings** gains an *Account* section with the email and "Sign out", after which the redirect returns to sign-in, never the slideshow.
+- **`FirebaseAuthService`** (`lib/data/firebase_auth_service.dart`) signs in with `signInWithProvider` for both providers, so no provider SDK is added: `google_sign_in` would need approval under rule 9. A cancelled sheet is not an error.
+- **`FirebaseConfig`** (`lib/firebase_options.dart`) builds the per-platform `FirebaseOptions` by hand from `--dart-define`s whose staging defaults are the Pulumi stack's outputs (`firebaseIosAppId`, `firebaseIosApiKey`, …), with no `flutterfire` CLI or generated file. A platform without an app id runs signed out with `UnconfiguredAuth`, whose every sign-in says it is not set up, so `make run macos` and the tests work without Firebase.
+- **iOS**: `Runner.entitlements` declares Sign in with Apple, which the App Store provisioning profile must carry (runbook 08, step 4). Google's web flow returns through the URL scheme `firebaseIosUrlScheme`, which goes into `Info.plist` with the staging option defaults once the stack has created the Firebase apps; until then the build runs with `UnconfiguredAuth`.
+- `firebase_core` and `firebase_auth` are Flutter Favorites, resolved through Swift Package Manager on iOS and macOS; the analyzer excludes `build/`, where a macOS build checks their Swift packages out.
+
+Every screen has a Widget Preview: the slideshow in both themes and sign-in at compact and expanded.
 
 ## Today screen
 

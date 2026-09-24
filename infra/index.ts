@@ -42,6 +42,7 @@ const budgetAmount = config.getNumber('budgetAmount') ?? 25
 const googleOAuthClientId = config.get('googleOAuthClientId') ?? ''
 const googleOAuthClientSecret = config.getSecret('googleOAuthClientSecret')
 const appleServicesId = config.get('appleServicesId') ?? ''
+const appleTeamId = config.get('appleTeamId') ?? ''
 
 /**
  * The repository permitted to deploy, as `owner/name`.
@@ -726,6 +727,33 @@ for (const name of signingSecrets) {
  */
 const firebaseProject = new gcp.firebase.Project('firebase', { project }, dependsOnApis)
 
+/**
+ * The app's two Firebase registrations, whose ids and API keys go into the
+ * app as its Firebase options (`apps/mobile/lib/firebase_options.dart`).
+ * None of them is a secret: they ship in every copy of the app.
+ */
+const appId = 'com.helpmebrands.reward'
+const firebaseIos = new gcp.firebase.AppleApp(
+  'firebase-ios',
+  {
+    project,
+    displayName: `HelpMe Reward (${environment})`,
+    bundleId: appId,
+    teamId: appleTeamId || undefined,
+  },
+  { dependsOn: [firebaseProject] },
+)
+const firebaseAndroid = new gcp.firebase.AndroidApp(
+  'firebase-android',
+  { project, displayName: `HelpMe Reward (${environment})`, packageName: appId },
+  { dependsOn: [firebaseProject] },
+)
+const iosConfig = gcp.firebase.getAppleAppConfigOutput({ project, appId: firebaseIos.appId })
+const androidConfig = gcp.firebase.getAndroidAppConfigOutput({
+  project,
+  appId: firebaseAndroid.appId,
+})
+
 const identityPlatform = new gcp.identityplatform.Config(
   'identity-platform',
   { project, signIn: { allowDuplicateEmails: false } },
@@ -921,6 +949,24 @@ export const apiServiceUrl = apiService.uri
 export const apiRuntimeServiceAccount = apiRuntimeAccount.email
 export const databaseInstanceConnectionName = dbInstance.connectionName
 export const databaseUrlSecretId = databaseUrlSecret.secretId
+/** The app's Firebase options, copied into `firebase_options.dart`. */
+export const firebaseIosAppId = firebaseIos.appId
+export const firebaseAndroidAppId = firebaseAndroid.appId
+export const firebaseIosApiKey = iosConfig.configFileContents.apply(
+  (b64) =>
+    /<key>API_KEY<\/key>\s*<string>([^<]+)<\/string>/.exec(
+      Buffer.from(b64, 'base64').toString(),
+    )?.[1] ?? '',
+)
+export const firebaseAndroidApiKey = androidConfig.configFileContents.apply(
+  (b64) =>
+    JSON.parse(Buffer.from(b64, 'base64').toString()).client?.[0]?.api_key?.[0]
+      ?.current_key ?? '',
+)
+/** The URL scheme Google sign-in returns to on iOS: the app id, encoded. */
+export const firebaseIosUrlScheme = firebaseIos.appId.apply(
+  (id) => `app-${id.replace(/:/g, '-')}`,
+)
 export const customDomainStatus = domainMapping
   ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')
