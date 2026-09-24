@@ -182,7 +182,7 @@ class _CardsBody extends StatelessWidget {
         const SizedBox(height: Space.s6),
         grid,
         if (widthClass == WidthClass.medium) const SizedBox(height: Space.s4),
-        addCard,
+        if (store.canWrite) addCard,
         if (summaries.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
@@ -341,14 +341,16 @@ class _CardStat extends StatelessWidget {
                     value: _CardAction.mute,
                     child: Text(store.isCardMuted(card.id) ? 'Unmute' : 'Mute'),
                   ),
-                  const PopupMenuItem(
-                    value: _CardAction.archive,
-                    child: Text('Archive'),
-                  ),
-                  const PopupMenuItem(
-                    value: _CardAction.delete,
-                    child: Text('Delete'),
-                  ),
+                  if (store.canWrite) ...const [
+                    PopupMenuItem(
+                      value: _CardAction.archive,
+                      child: Text('Archive'),
+                    ),
+                    PopupMenuItem(
+                      value: _CardAction.delete,
+                      child: Text('Delete'),
+                    ),
+                  ],
                 ],
                 icon: Icon(
                   store.isCardMuted(card.id)
@@ -519,14 +521,22 @@ class _CardStat extends StatelessWidget {
                 flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [verdictText, tags, edit],
+                  children: [verdictText, tags, if (store.canWrite) edit],
                 ),
               ),
             ],
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [head, figures, bar, pct, verdictText, tags, edit],
+            children: [
+              head,
+              figures,
+              bar,
+              pct,
+              verdictText,
+              tags,
+              if (store.canWrite) edit,
+            ],
           );
 
     return Container(
