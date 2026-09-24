@@ -678,6 +678,22 @@ describe('mobile release workflow', () => {
     expect(workflow()).toContain('fastlane')
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Release builds sign with the upload key from key.properties]]
+  it('signs release builds from key.properties and keeps the debug fallback without it', () => {
+    const gradle = read('apps/mobile/android/app/build.gradle.kts')
+    expect(gradle).toContain('rootProject.file("key.properties")')
+    expect(gradle).toMatch(/java\.util\.Properties\(\)/)
+    const signing = gradle.split(/signingConfigs\s*\{/)[1]?.split(/^ {4}\}/m)[0] ?? ''
+    expect(signing).toContain('create("release")')
+    for (const key of ['keyAlias', 'keyPassword', 'storeFile', 'storePassword']) {
+      expect(signing, key).toContain(key)
+    }
+    const release = gradle.split(/^ {8}release\s*\{/m)[1]?.split(/^ {8}\}/m)[0] ?? ''
+    expect(release).toContain('signingConfigs.getByName("release")')
+    expect(release).toContain('signingConfigs.getByName("debug")')
+    expect(release).not.toMatch(/TODO: Add your own signing config/)
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 describes the tag-driven release]]
   it('turns runbook 07 into the release procedure', () => {
     const runbook = read('docs/runbooks/07-mobile-release.md')
