@@ -755,7 +755,7 @@ describe('signing material procedure and token record', () => {
 
   // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
   it('records the iOS certificate expiry in the README table', () => {
-    expect(read('docs/runbooks/README.md')).toMatch(/^\| iOS signing \|.*2027-09-21.*\|$/m)
+    expect(read('docs/runbooks/README.md')).toMatch(/^\| iOS signing \|.*2027-09-24.*\|$/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]
@@ -902,6 +902,14 @@ describe('sign-in', () => {
     expect(read('infra/Pulumi.staging.yaml')).toMatch(
       /^ {2}reward-app:apiCustomDomain: api\.staging\.helpmereward\.com$/m,
     )
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Google sign-in returns to the app on iOS]]
+  it('registers the Firebase iOS app URL scheme in Info.plist', () => {
+    expect(read('apps/mobile/ios/Runner/Info.plist')).toContain(
+      '<string>app-1-133269731559-ios-40cae6fc6e557ad9a38a42</string>',
+    )
+    expect(program()).toMatch(/phoneNumber: \{ enabled: false/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#The sign-in credentials are the runbook's keys]]
