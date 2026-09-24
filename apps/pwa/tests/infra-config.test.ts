@@ -898,6 +898,17 @@ describe('sign-in', () => {
   })
 })
 
+describe('mobile api config', () => {
+  // @lat: [[infra-tests#Infrastructure config#The api define is tested with and without it]]
+  it('runs the api config test with the define in CI and make check', () => {
+    const define = /test test\/api_config_test\.dart --dart-define=API_BASE_URL=https:\/\/example\.test/
+    const flutter = read('.github/workflows/verify.yml').split(/^ {2}flutter:$/m)[1]?.split(/^ {2}\w+:$/m)[0] ?? ''
+    expect(flutter, 'the flutter job').toMatch(define)
+    const check = read('apps/mobile/Makefile').split(/^check:/m)[1]?.split(/^\w+:/m)[0] ?? ''
+    expect(check, 'make check').toMatch(define)
+  })
+})
+
 describe('api contract', () => {
   // @lat: [[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]
   it('lints services/api/openapi.yaml with a pinned Redocly CLI in the api job and make api', () => {
