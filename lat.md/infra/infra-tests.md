@@ -187,6 +187,12 @@ Every `SECRET_<NAME>` on the environment is read with `gcloud secrets versions a
 
 The workflow calls both, so the store logic is reviewable code beside the app rather than YAML.
 
+### Release builds sign with the upload key from key.properties
+
+`apps/mobile/android/app/build.gradle.kts` loads `key.properties` when it exists, declares a `release` signing config from its four keys, and the `release` build type uses it, falling back to the debug config without the file.
+
+Play refuses a debug-signed bundle, and both the laptop build in runbook 08 and `release-mobile.yml` write `key.properties` and expect Gradle to read it (#115). The fallback keeps `flutter run --release` and the verify job working with no secrets.
+
 ### Runbook 07 describes the tag-driven release
 
 `07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
@@ -241,7 +247,7 @@ The keystore step gives every `keytool` value, `-storetype PKCS12` and a `-dname
 
 The first-bundle step of `08-mobile-setup.md` shows the four `key.properties` lines, writes them from Secret Manager, checks Gradle reads the file, proves the bundle is not debug-signed, and deletes the file.
 
-`build.gradle.kts` still signs releases with the debug key until #115, so the check comes first rather than after a rejected upload.
+The check comes first rather than after a rejected upload: a checkout from before #115 still signs releases with the debug key ([[infra-tests#Infrastructure config#Release builds sign with the upload key from key.properties]]).
 
 ### Runbook 08 says store records are per app id
 
