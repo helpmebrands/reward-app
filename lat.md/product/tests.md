@@ -131,6 +131,42 @@ Without preferences no instance is muted; a benefit mute marks only that credit,
 
 Every field reads back as written, and the muted ids write as sorted lists so the same preferences always give the same JSON.
 
+## Catalogue versions
+
+`catalog_versions_test.dart` pins the versioned catalogue ([[domain#Catalogue versions]]) with a two-version Platinum: version 2 from 15 October 2026 raises Uber from $15 to $20, drops Resy and adds a locked Equinox credit.
+
+### Every template credit has a stable id
+
+Every credit in `cardTemplates` has an id under its template's, in lower-case kebab slugs and unique within the template; `amex-gold/uber-cash` finds the Gold's Uber Cash.
+
+### The version in force is the latest that has started
+
+Nothing is in force before version 1; version 1 applies the day before version 2's date and version 2 from it, in either list order.
+
+### A cycle resolves against the version in force at its start
+
+On 20 October the Uber cycle began on the 1st, under version 1, so it is still $15; on 5 November it is $20 and names its stable credit id.
+
+### Claims attach across versions by the stable id
+
+October's and November's resolved Uber benefits share the household's id, so a claim logged against that id counts in November's cycle.
+
+### A credit dropped from a version stops at its effectiveFrom
+
+Resy resolved on 20 October ends on 14 October and has ended; in September it has no end.
+
+### A credit added in a version appears from its effectiveFrom
+
+Equinox does not exist on 14 October; on 20 October it is $25 and locked behind enrolment.
+
+### A template link makes a card system-maintained
+
+A card without `templateId` is maintained by the user, one with it by the system.
+
+### The links round-trip in the snapshot
+
+`templateId` and `templateBenefitId` read back as written, and are left out when absent.
+
 ## Snapshot JSON
 
 `packages/domain/test/json_test.dart` pins the codec for the persisted snapshot, which the Flutter store and any export share with the PWA's stored record and export file.
