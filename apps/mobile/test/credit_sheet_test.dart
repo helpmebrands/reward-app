@@ -18,11 +18,11 @@ import 'package:reward/widgets/sheet_host.dart';
 
 const _stamp = '2026-01-01T00:00:00.000Z';
 
-Card _card(String id, String holder) => Card(
+Card _card(String id, String label) => Card(
   id: id,
   issuer: 'American Express',
   product: 'Platinum',
-  holder: holder,
+  label: label,
   network: CardNetwork.amex,
   kind: CardKind.personal,
   annualFeeCents: 89500,

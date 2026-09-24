@@ -16,7 +16,6 @@ Card _card({String id = 'card-1', bool muted = false}) => Card(
   id: id,
   issuer: 'American Express',
   product: 'Platinum',
-  holder: 'Jim',
   network: CardNetwork.amex,
   kind: CardKind.personal,
   annualFeeCents: 89500,
@@ -116,8 +115,7 @@ void main() {
 
         final card = await h.store.addCardFromTemplate(
           template,
-          holder: 'Ann',
-          nickname: 'Ann Plat',
+          label: 'Ann Plat',
           anniversaryOn: '2024-05-01',
         );
 
@@ -126,8 +124,7 @@ void main() {
         expect(saved.cards.map((c) => c.id), [card.id]);
         expect(card.issuer, template.issuer);
         expect(card.product, template.product);
-        expect(card.holder, 'Ann');
-        expect(card.nickname, 'Ann Plat');
+        expect(card.label, 'Ann Plat');
         expect(card.anniversaryOn, '2024-05-01');
         expect(card.createdAt, _now.toUtc().toIso8601String());
         expect(card.updatedAt, card.createdAt);
@@ -148,7 +145,6 @@ void main() {
 
       final card = await h.store.addCardFromTemplate(
         blank,
-        holder: 'Jim',
         issuer: 'Chase',
         product: 'Sapphire',
       );
@@ -165,12 +161,12 @@ void main() {
 
       await h.store.updateCard(
         'card-1',
-        (card) => card.copyWith(nickname: 'Work card', last4: '1234'),
+        (card) => card.copyWith(label: 'Work card', last4: '1234'),
       );
 
       expect(h.notifications, 1);
       final card = h.saved.cards.single;
-      expect(card.nickname, 'Work card');
+      expect(card.label, 'Work card');
       expect(card.last4, '1234');
       expect(card.createdAt, _stamp);
       expect(card.updatedAt, _now.toUtc().toIso8601String());
@@ -390,12 +386,11 @@ void main() {
         final h = await _load();
 
         await h.store.updateSettings(
-          (s) => s.copyWith(holderFilter: 'Jim', theme: ThemeSetting.dark),
+          (s) => s.copyWith(useSoonDays: 14, theme: ThemeSetting.dark),
         );
         var settings = h.saved.settings;
-        expect(settings.holderFilter, 'Jim');
+        expect(settings.useSoonDays, 14);
         expect(settings.theme, ThemeSetting.dark);
-        expect(settings.useSoonDays, 30);
 
         await h.store.updateNotificationSettings(
           (n) => n.copyWith(enabled: true, timeOfDay: '08:00'),
@@ -404,7 +399,7 @@ void main() {
         expect(settings.notifications.enabled, isTrue);
         expect(settings.notifications.timeOfDay, '08:00');
         expect(settings.notifications.minValueCents, 100);
-        expect(settings.holderFilter, 'Jim');
+        expect(settings.useSoonDays, 14);
         expect(h.notifications, 2);
       },
     );
@@ -422,7 +417,6 @@ void main() {
       final loading = store.load();
       final card = await store.addCardFromTemplate(
         findTemplate('blank')!,
-        holder: 'Ann',
       );
       expect(store.data!.cards.map((c) => c.id), [card.id]);
 

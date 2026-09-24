@@ -85,16 +85,16 @@ void main() {
       tester,
     ) async {
       final app = await pumpAt(tester, cardPath(jim));
-      expect(find.text('American Express Platinum — Jim'), findsOneWidget);
+      expect(find.text('American Express Platinum'), findsWidgets);
       expect(find.text('12 credits'), findsOneWidget);
       expect(find.text('Fields marked * are required.'), findsOneWidget);
 
-      await type(tester, 'field-holder', 'James');
-      expect(cardOf(app, jim).holder, 'James');
+      await type(tester, 'field-label', 'Jim’s Platinum');
+      expect(cardOf(app, jim).label, 'Jim’s Platinum');
 
       await type(tester, 'field-fee', 'abc');
       expect(cardOf(app, jim).annualFeeCents, 89500);
-      await blurTo(tester, 'field-nickname');
+      await blurTo(tester, 'field-label');
       expect(
         find.text('Enter the amount as a number, like 695.'),
         findsOneWidget,
@@ -107,12 +107,25 @@ void main() {
       );
 
       await type(tester, 'field-anniversary', '2026-02-30');
-      await blurTo(tester, 'field-nickname');
+      await blurTo(tester, 'field-label');
       expect(
         find.text('Enter the date the cardmember year starts.'),
         findsOneWidget,
       );
       expect(cardOf(app, jim).anniversaryOn, isNot('2026-02-30'));
+
+      // Blank, the label falls back to the product name, which Kathy's
+      // Platinum already shows.
+      await type(tester, 'field-label', '');
+      await blurTo(tester, 'field-fee');
+      expect(
+        find.text(
+          'Another card is already called American Express Platinum. '
+          'Enter a different label.',
+        ),
+        findsOneWidget,
+      );
+      expect(cardOf(app, jim).label, 'Jim’s Platinum');
     });
 
     // @lat: [[mobile-tests#Editors#Mute, archive and network are on the card editor]]

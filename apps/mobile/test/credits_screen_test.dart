@@ -61,12 +61,16 @@ Future<AppStore> pumpCredits(
   return store;
 }
 
+/// The PWA's fixture names each card's holder, which the app no longer
+/// stores; the sample household's two cards are Jim's and Kathy's.
+const holderOf = {'card-0001': 'Jim', 'card-0002': 'Kathy'};
+
 /// The rows on screen, in order, the way the fixture spells them.
 List<String> rows(WidgetTester tester) => tester
     .widgetList<CreditRow>(find.byType(CreditRow, skipOffstage: false))
     .map((r) {
       final i = r.instance;
-      return '${i.benefit.name} · ${i.card.holder} · ${i.cycle.label}';
+      return '${i.benefit.name} · ${holderOf[i.card.id]} · ${i.cycle.label}';
     })
     .toList();
 
