@@ -15,11 +15,13 @@ import '../widgets/screen_title.dart';
 import '../widgets/snackbar_host.dart';
 import 'card_editor_screen.dart' show KindChoice, networkLabel;
 
-/// Add a card, in two steps: pick the product, then say whose it is and when
-/// the cardmember year turns over.
+/// Add a card, in two steps: pick the product, then label it and say when the
+/// cardmember year turns over.
 ///
-/// The holder is asked for rather than inferred, because the whole app turns
-/// on telling two identical Platinums apart. Save is never disabled: an
+/// A second card of a product the household already holds gets a numbered
+/// label, "American Express Platinum (1)", because every card's display name
+/// is unique and the app turns on telling two identical Platinums apart.
+/// Save is never disabled: an
 /// invalid submit shows the errors and focuses the first, since a disabled
 /// button never says why. Back with a draft asks first.
 class AddCardScreen extends StatefulWidget {
@@ -51,18 +53,16 @@ class _AddCardScreenState extends State<AddCardScreen> {
   bool _submitted = false;
   CardKind _kind = CardKind.personal;
 
-  late final String _initialHolder;
+  String _initialLabel = '';
   late final String _today;
   final _issuer = TextEditingController();
   final _product = TextEditingController();
-  final _holder = TextEditingController();
+  final _label = TextEditingController();
   final _anniversary = TextEditingController();
-  final _nickname = TextEditingController();
   final _issuerFocus = FocusNode(debugLabel: 'issuer');
   final _productFocus = FocusNode(debugLabel: 'product');
-  final _holderFocus = FocusNode(debugLabel: 'holder');
+  final _labelFocus = FocusNode(debugLabel: 'label');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
-  final _nicknameFocus = FocusNode(debugLabel: 'nickname');
   final _filter = CatalogFilterController();
   final _filtersFocus = FocusNode(debugLabel: 'filters');
 
@@ -72,31 +72,27 @@ class _AddCardScreenState extends State<AddCardScreen> {
   @override
   void initState() {
     super.initState();
-    final data = store.data;
-    _initialHolder = data == null ? '' : (holders(data).firstOrNull ?? '');
     _today = store.today;
     final initial = widget.initialTemplate;
     if (initial != null) _apply(initial);
     final filter = widget.initialFilter;
     if (filter != null) _filter.update((_) => filter);
-    _holder.text = _initialHolder;
     _anniversary.text = _today;
-    for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
+    for (final c in [_issuer, _product, _label, _anniversary]) {
       c.addListener(_changed);
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
+    for (final c in [_issuer, _product, _label, _anniversary]) {
       c.dispose();
     }
     for (final f in [
       _issuerFocus,
       _productFocus,
-      _holderFocus,
+      _labelFocus,
       _anniversaryFocus,
-      _nicknameFocus,
     ]) {
       f.dispose();
     }
@@ -113,15 +109,29 @@ class _AddCardScreenState extends State<AddCardScreen> {
   String? get _productError => _isBlank
       ? requiredError(_product.text, 'Enter the name of the card.')
       : null;
-  String? get _holderError =>
-      requiredError(_holder.text, 'Enter whose card this is.');
+  List<Card> get _cards => store.data?.cards ?? const [];
+
+  /// The label the card is saved with: what was typed or, when nothing was,
+  /// the numbered default for a product the household already holds.
+  String get _effectiveLabel {
+    final typed = _label.text.trim();
+    if (typed.isNotEmpty) return typed;
+    return defaultLabel(_cards, _issuer.text.trim(), _product.text.trim()) ??
+        '';
+  }
+
+  String? get _labelError => labelError(
+    _effectiveLabel,
+    cards: _cards,
+    issuer: _issuer.text.trim(),
+    product: _product.text.trim(),
+  );
   String? get _anniversaryError => anniversaryError(_anniversary.text);
 
   /// Anything typed since the template was picked.
   bool get _dirty =>
-      _holder.text != _initialHolder ||
+      _label.text != _initialLabel ||
       _anniversary.text != _today ||
-      _nickname.text.isNotEmpty ||
       (_isBlank && (_issuer.text.isNotEmpty || _product.text.isNotEmpty));
 
   void _pick(CardTemplate template) {
@@ -134,6 +144,10 @@ class _AddCardScreenState extends State<AddCardScreen> {
     _kind = template.kind;
     _issuer.text = template.id == 'blank' ? '' : template.issuer;
     _product.text = template.id == 'blank' ? '' : template.product;
+    _initialLabel = template.id == 'blank'
+        ? ''
+        : defaultLabel(_cards, template.issuer, template.product) ?? '';
+    _label.text = _initialLabel;
   }
 
   void _leave() => context.go(Paths.cards);
@@ -177,7 +191,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     final firstInvalid = [
       (_issuerError, _issuerFocus),
       (_productError, _productFocus),
-      (_holderError, _holderFocus),
+      (_labelError, _labelFocus),
       (_anniversaryError, _anniversaryFocus),
     ].where((e) => e.$1 != null).firstOrNull;
     if (firstInvalid != null) {
@@ -185,12 +199,11 @@ class _AddCardScreenState extends State<AddCardScreen> {
       return;
     }
 
-    final nickname = _nickname.text.trim();
+    final label = _effectiveLabel;
     final card = await store.addCardFromTemplate(
       template,
-      holder: _holder.text.trim(),
+      label: label.isEmpty ? null : label,
       anniversaryOn: _anniversary.text,
-      nickname: nickname.isEmpty ? null : nickname,
       issuer: _isBlank ? _issuer.text.trim() : null,
       product: _isBlank ? _product.text.trim() : null,
       kind: _kind,
@@ -486,8 +499,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
     final widthClass = WidthClass.of(context);
     final template = _picked!;
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
-    final data = store.data;
-    final known = data == null ? const <String>[] : holders(data);
 
     Widget field(
       String key,
@@ -538,16 +549,14 @@ class _AddCardScreenState extends State<AddCardScreen> {
         ),
       ],
       field(
-        'field-holder',
-        'Whose card is it?',
-        required: true,
+        'field-label',
+        'Label (optional)',
         hint:
-            'Two people holding the same product is the case this app exists '
-            'for — the name is how their credits stay apart.'
-            '${known.isEmpty ? '' : ' Known: ${known.join(', ')}.'}',
-        error: _holderError,
-        controller: _holder,
-        focusNode: _holderFocus,
+            'How the household tells this card apart. Blank shows the card’s '
+            'name, which no other card may already show.',
+        error: _labelError,
+        controller: _label,
+        focusNode: _labelFocus,
       ),
       field(
         'field-anniversary',
@@ -565,13 +574,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
           icon: const Icon(Icons.calendar_today_outlined, size: 18),
           onPressed: _pickDate,
         ),
-      ),
-      field(
-        'field-nickname',
-        'Nickname (optional)',
-        error: null,
-        controller: _nickname,
-        focusNode: _nicknameFocus,
       ),
       KindChoice(
         kind: _kind,

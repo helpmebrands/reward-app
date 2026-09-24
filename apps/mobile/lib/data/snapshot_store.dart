@@ -15,7 +15,6 @@ const Settings defaultSettings = Settings(
   ),
   useSoonDays: 30,
   theme: ThemeSetting.system,
-  holderFilter: '',
 );
 
 /// Bump when a migration is needed. 1: the launch shape. 2: `Card.kind`,

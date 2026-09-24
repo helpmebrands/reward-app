@@ -16,10 +16,21 @@ import 'package:reward/shell/router.dart';
 /// The card editor and the benefit editor: live-writing forms on the Field
 /// pattern, with the benefit's window shown from its cadence and anchor.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 final DateTime now = DateTime(2026, 9, 16, 8);
 const jim = 'card-0001';
@@ -85,7 +96,7 @@ void main() {
       tester,
     ) async {
       final app = await pumpAt(tester, cardPath(jim));
-      expect(find.text('American Express Platinum'), findsWidgets);
+      expect(find.text('American Express Platinum — Jim'), findsWidgets);
       expect(find.text('12 credits'), findsOneWidget);
       expect(find.text('Fields marked * are required.'), findsOneWidget);
 
@@ -114,13 +125,11 @@ void main() {
       );
       expect(cardOf(app, jim).anniversaryOn, isNot('2026-02-30'));
 
-      // Blank, the label falls back to the product name, which Kathy's
-      // Platinum already shows.
-      await type(tester, 'field-label', '');
+      await type(tester, 'field-label', 'American Express Platinum — Kathy');
       await blurTo(tester, 'field-fee');
       expect(
         find.text(
-          'Another card is already called American Express Platinum. '
+          'Another card is already called American Express Platinum — Kathy. '
           'Enter a different label.',
         ),
         findsOneWidget,
@@ -287,7 +296,7 @@ void main() {
     ) async {
       final app = await pumpAt(tester, benefitPath(uber));
       expect(find.text('Uber Cash'), findsWidgets);
-      expect(find.text('Jim'), findsWidgets);
+      expect(find.text('American Express Platinum — Jim'), findsWidgets);
       expect(
         find.text('This period runs Sep 1 – Sep 30 (Sep 2026).'),
         findsOneWidget,

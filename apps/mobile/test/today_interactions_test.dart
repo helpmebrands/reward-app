@@ -30,9 +30,22 @@ class App {
   final UiState ui;
 }
 
+/// The sample household with its two Platinums labelled, as the add form
+/// would have made them unique.
+AppData labelledHousehold() {
+  final data = sampleHousehold();
+  const labels = {
+    'card-0001': 'Jim’s Platinum',
+    'card-0002': 'Kathy’s Platinum',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
+
 Future<App> pumpApp(WidgetTester tester, {AppData? data}) async {
   final store = AppStore(
-    store: MemorySnapshotStore(data ?? sampleHousehold()),
+    store: MemorySnapshotStore(data ?? labelledHousehold()),
     clock: () => now,
   );
   await store.load();
@@ -130,21 +143,24 @@ void main() {
     expect(compareSheet, findsOneWidget);
     final inSheet = find.descendant(
       of: compareSheet,
-      matching: find.text('Jim'),
+      matching: find.text('Jim’s Platinum'),
     );
     expect(inSheet, findsOneWidget);
     expect(
-      find.descendant(of: compareSheet, matching: find.text('Kathy')),
+      find.descendant(
+        of: compareSheet,
+        matching: find.text('Kathy’s Platinum'),
+      ),
       findsOneWidget,
     );
     expect(
       find.textContaining('Both sides are untouched at \$300'),
       findsOneWidget,
     );
-    expect(find.text('Log \$300 on Jim’s card'), findsOneWidget);
-    expect(find.text('Log \$300 on Kathy’s card'), findsOneWidget);
+    expect(find.text('Log \$300 on Jim’s Platinum'), findsOneWidget);
+    expect(find.text('Log \$300 on Kathy’s Platinum'), findsOneWidget);
 
-    await tester.tap(find.text('Log \$300 on Jim’s card'));
+    await tester.tap(find.text('Log \$300 on Jim’s Platinum'));
     await tester.pumpAndSettle();
     expect(compareSheet, findsNothing);
     final hotel = benefitId(
@@ -170,7 +186,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.descendant(of: compareSheet, matching: find.text('Kathy')),
+      find.descendant(
+        of: compareSheet,
+        matching: find.text('Kathy’s Platinum'),
+      ),
     );
     await tester.pumpAndSettle();
 

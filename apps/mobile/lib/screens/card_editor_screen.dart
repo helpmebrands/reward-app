@@ -42,12 +42,10 @@ class CardEditorScreen extends StatefulWidget {
 }
 
 class _CardEditorScreenState extends State<CardEditorScreen> {
-  final _holder = TextEditingController();
-  final _nickname = TextEditingController();
+  final _label = TextEditingController();
   final _fee = TextEditingController();
   final _anniversary = TextEditingController();
-  final _holderFocus = FocusNode(debugLabel: 'holder');
-  final _nicknameFocus = FocusNode(debugLabel: 'nickname');
+  final _labelFocus = FocusNode(debugLabel: 'label');
   final _feeFocus = FocusNode(debugLabel: 'fee');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
 
@@ -65,52 +63,53 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     super.initState();
     final current = card;
     if (current != null) {
-      _holder.text = current.holder;
-      _nickname.text = current.nickname ?? '';
+      _label.text = current.label ?? '';
       _fee.text = (current.annualFeeCents / 100).toString();
       _anniversary.text = current.anniversaryOn;
     }
-    for (final c in [_holder, _nickname, _fee, _anniversary]) {
+    for (final c in [_label, _fee, _anniversary]) {
       c.addListener(_changed);
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_holder, _nickname, _fee, _anniversary]) {
+    for (final c in [_label, _fee, _anniversary]) {
       c.dispose();
     }
-    for (final f in [
-      _holderFocus,
-      _nicknameFocus,
-      _feeFocus,
-      _anniversaryFocus,
-    ]) {
+    for (final f in [_labelFocus, _feeFocus, _anniversaryFocus]) {
       f.dispose();
     }
     super.dispose();
   }
 
-  String? get _holderError =>
-      requiredError(_holder.text, 'Enter whose card this is.');
+  String? get _labelError {
+    final current = card;
+    if (current == null) return null;
+    return labelError(
+      _label.text,
+      cards: store.data?.cards ?? const [],
+      issuer: current.issuer,
+      product: current.product,
+      cardId: current.id,
+    );
+  }
+
   String? get _feeError => moneyError(_fee.text);
   String? get _anniversaryError => anniversaryError(_anniversary.text);
   bool get _unsaved =>
-      _holderError != null || _feeError != null || _anniversaryError != null;
+      _labelError != null || _feeError != null || _anniversaryError != null;
 
   /// Writes every valid draft; the invalid ones wait, showing their error.
   void _changed() {
     final current = card;
     if (current == null) return;
-    final holder = _holder.text.trim();
-    final nickname = _nickname.text.trim();
+    final label = _label.text.trim();
     final cents = parseMoney(_fee.text);
     final anniversary = _anniversary.text;
     final patch = <Card Function(Card)>[
-      if (_holderError == null && holder != current.holder)
-        (c) => c.copyWith(holder: holder),
-      if ((current.nickname ?? '') != nickname)
-        (c) => c.copyWith(nickname: nickname.isEmpty ? null : nickname),
+      if (_labelError == null && (current.label ?? '') != label)
+        (c) => c.copyWith(label: label.isEmpty ? null : label),
       if (cents != null && cents >= 0 && cents != current.annualFeeCents)
         (c) => c.copyWith(annualFeeCents: cents),
       if (_anniversaryError == null && anniversary != current.anniversaryOn)
@@ -245,19 +244,13 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         FieldGrid(
           fields: [
             field(
-              'field-holder',
-              'Cardholder',
-              required: true,
-              error: _holderError,
-              controller: _holder,
-              focusNode: _holderFocus,
-            ),
-            field(
-              'field-nickname',
-              'Nickname',
-              hint: '${current.issuer} ${current.product} when blank.',
-              controller: _nickname,
-              focusNode: _nicknameFocus,
+              'field-label',
+              'Label',
+              hint:
+                  '${productName(current.issuer, current.product)} when blank.',
+              error: _labelError,
+              controller: _label,
+              focusNode: _labelFocus,
             ),
             field(
               'field-fee',

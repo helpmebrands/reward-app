@@ -13,10 +13,21 @@ import 'package:reward/theme/theme.dart';
 /// The Value screen against what the PWA shows for the sample household on
 /// 16 September 2026, dumped by `apps/pwa/scripts/value-snapshot.ts`.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them, so the PWA's fixtures still apply.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 Map<String, dynamic> expected() =>
     jsonDecode(File('test/fixtures/sample-value.json').readAsStringSync())

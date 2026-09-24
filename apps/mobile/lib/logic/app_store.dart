@@ -67,8 +67,7 @@ class AppStore extends ChangeNotifier {
   /// template's for the blank card.
   Future<Card> addCardFromTemplate(
     CardTemplate template, {
-    required String holder,
-    String? nickname,
+    String? label,
     String? last4,
     IsoDate? anniversaryOn,
     String? issuer,
@@ -80,8 +79,7 @@ class AppStore extends ChangeNotifier {
       id: newId(),
       issuer: issuer ?? template.issuer,
       product: product ?? template.product,
-      holder: holder,
-      nickname: nickname,
+      label: label,
       network: template.network,
       kind: kind ?? template.kind,
       last4: last4,
@@ -277,20 +275,14 @@ class AppStore extends ChangeNotifier {
 
   // Derived views
 
-  /// Every active credit resolved against today, narrowed by the household
-  /// filter, by urgency.
+  /// Every active credit resolved against today, by urgency.
   List<BenefitInstance> get instances {
     final data = _data;
     if (data == null) return const [];
-    final all = currentInstances(data, today);
-    final holder = data.settings.holderFilter;
-    return holder.isEmpty
-        ? all
-        : all.where((i) => i.card.holder == holder).toList();
+    return currentInstances(data, today);
   }
 
-  /// One credit resolved against today, regardless of the household filter,
-  /// or null when it is not tracked.
+  /// One credit resolved against today, or null when it is not tracked.
   BenefitInstance? instanceFor(String benefitId) {
     final data = _data;
     if (data == null) return null;

@@ -19,7 +19,9 @@ ISO dates are zero-padded, so lexical comparison is chronological ([[apps/pwa/sr
 
 ## Card
 
-A card belongs to one person in the household. The `holder` field is what distinguishes two of the same product; `nickname` wins over `issuer product` in the UI when set.
+A card belongs to the household, not to a person. Its display name (`cardLabel`) is its optional `label`, or `issuer product` when there is none, and it must be unique within the household.
+
+Two of the same product are told apart by their labels. `defaultLabel` proposes the first free "American Express Platinum (n)" from 1 for a duplicate, and the proposal is stored, so deleting a card renames nothing. `labelError` refuses a label, or a blank one, whose display name another card already shows, ignoring case and surrounding space. The Dart domain dropped the PWA's `holder` and `nickname` (#208); the frozen PWA keeps them, and the Dart codec ignores `holder` when it reads the PWA's sample.
 
 - `anniversaryOn` anchors anniversary cycles and the annual-fee countdown. Only month and day matter for recurrence.
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).

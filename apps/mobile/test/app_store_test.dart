@@ -415,9 +415,7 @@ void main() {
       store.addListener(() => notifications++);
 
       final loading = store.load();
-      final card = await store.addCardFromTemplate(
-        findTemplate('blank')!,
-      );
+      final card = await store.addCardFromTemplate(findTemplate('blank')!);
       expect(store.data!.cards.map((c) => c.id), [card.id]);
 
       gate.complete();

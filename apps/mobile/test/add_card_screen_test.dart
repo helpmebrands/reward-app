@@ -374,7 +374,7 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('field-issuer')), 'Chase');
       await tester.enterText(find.byKey(const Key('field-product')), 'Freedom');
-        await tester.tap(save);
+      await tester.tap(save);
       await tester.pumpAndSettle();
       final card = app.store.data!.cards.last;
       expect(card.product, 'Freedom');
