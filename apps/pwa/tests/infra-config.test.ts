@@ -891,6 +891,19 @@ describe('sign-in', () => {
     }
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Invite links have the api's own domain]]
+  it('maps the api to its own domain and tells it where invites point', () => {
+    const p = program()
+    expect(p).toMatch(/const apiCustomDomain = config\.get\('apiCustomDomain'\)/)
+    expect(p).toMatch(/new gcp\.cloudrun\.DomainMapping\(\s*'api-domain'/)
+    const api = p.split("new gcp.cloudrunv2.Service(\n  'api',")[1]?.split('\n)\n')[0] ?? ''
+    expect(api).toMatch(/name: 'INVITE_LINK_BASE'/)
+    expect(api).toMatch(/name: 'ANDROID_SHA256_FINGERPRINTS'/)
+    expect(read('infra/Pulumi.staging.yaml')).toMatch(
+      /^ {2}reward-app:apiCustomDomain: api\.staging\.helpmereward\.com$/m,
+    )
+  })
+
   // @lat: [[infra-tests#Infrastructure config#The sign-in credentials are the runbook's keys]]
   it('declares the runbook 08 keys and commits the Apple team id', () => {
     const project = read('infra/Pulumi.yaml')
