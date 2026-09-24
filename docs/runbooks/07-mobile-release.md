@@ -79,7 +79,7 @@ key uploaded to Firebase, which is part of wiring FCM and not of this runbook.
 
 **Android** needs an upload keystore and a Play Console record. The keystore
 is generated once and stored only in Secret Manager; [08, step
-2.2](08-mobile-setup.md#22-the-upload-keystore) has the exact commands. For a local signed build, fetch it and write
+2.3](08-mobile-setup.md#23-the-upload-keystore) has the exact commands. For a local signed build, fetch it and write
 `android/key.properties` the way `release-mobile.yml` does. `android/key.properties` names them and is
 gitignored by the Flutter template; `android/app/build.gradle.kts` needs the
 standard `signingConfigs.release` block reading it before the next command

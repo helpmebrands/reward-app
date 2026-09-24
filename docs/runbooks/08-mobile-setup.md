@@ -60,7 +60,7 @@ Two kinds of storage, for a reason:
 | `reward-app-ios-provisioning-profile-staging` | the App Store provisioning profile, `.mobileprovision` |
 | `reward-app-android-upload-keystore-staging` | the upload keystore, `.jks` |
 | `reward-app-android-keystore-password-staging` | the keystore password |
-| `reward-app-android-key-password-staging` | the `upload` key's password, the same as the keystore's (2.2 says why) |
+| `reward-app-android-key-password-staging` | the `upload` key's password, the same as the keystore's (2.3 says why) |
 
 ## Before you start
 
@@ -316,12 +316,28 @@ tester lists.
 ### 2.1 The Play Console app record
 
 At <https://play.google.com/console>, *Create app*: name `HelpMe Reward`,
-app, free. The package name is set by the first upload (2.3) and is
+app, free. The package name is set by the first upload (2.4) and is
 `com.helpmebrands.reward`. Play App Signing is on by default for a new app:
 Google holds the key that signs what people install, and your keystore is
 only the **upload** key that proves a bundle came from you.
 
-### 2.2 The upload keystore
+### 2.2 Link the Play publisher identity
+
+The release workflow uploads as a Google Cloud service account that it
+assumes keylessly, so no key file exists. The stack created it:
+
+```sh
+$ gcloud iam service-accounts list --project "$PROJECT_ID" \
+    --filter='email~^reward-app-play-' --format='value(email)'
+```
+
+In Play Console, *Users and permissions → Invite new users*: that email, with
+*Release to testing tracks* on this app. It needs only the app record from
+2.1, not a release. The email is also on the GitHub environment as
+`PLAY_SERVICE_ACCOUNT`, and every secret id as `SECRET_<NAME>`, for the
+workflow to read.
+
+### 2.3 The upload keystore
 
 Losing this keystore is recoverable through Play support; leaking it means
 rotating it there.
@@ -400,7 +416,7 @@ value.
        reward-app-android-key-password-$STACK --project "$PROJECT_ID" --data-file -
    ```
 
-### 2.3 The first bundle, by hand
+### 2.4 The first bundle, by hand
 
 The Play Developer API cannot create an app's first release, and the
 console may insist that the very first bundle arrives through its own upload
@@ -411,26 +427,10 @@ Mac with this keystore (`fvm flutter build appbundle --release` in
 testing → Create new release*. Every release after that goes through the
 workflow. Add testers on the same page.
 
-### 2.4 Link the Play publisher identity
-
-The release workflow uploads as a Google Cloud service account that it
-assumes keylessly, so no key file exists. The stack created it:
-
-```sh
-$ gcloud iam service-accounts list --project "$PROJECT_ID" \
-    --filter='email~^reward-app-play-' --format='value(email)'
-```
-
-In Play Console, *Users and permissions → Invite new users*: that email, with
-*Release to testing tracks* on this app. Until the app record exists there
-is nothing to link to. The email is also on the GitHub environment as
-`PLAY_SERVICE_ACCOUNT`, and every secret id as `SECRET_<NAME>`, for the
-workflow to read.
-
 ### 2.5 The signing key fingerprint
 
 Android opens invite links in the app only if the api's domain lists the
-app's signing certificate in `/.well-known/assetlinks.json`. Once 2.3 has
+app's signing certificate in `/.well-known/assetlinks.json`. Once 2.4 has
 enrolled the app in Play App Signing, copy the **app signing key**
 certificate's SHA-256 fingerprint from *Test and release → App integrity*:
 
@@ -713,7 +713,7 @@ weeks before it:
   and key id as new versions (the issuer id does not change), release once,
   then revoke the old key.
 - **Upload keystore.** Rotation goes through Play support; follow their
-  instructions, then store the new keystore and passwords as in 2.2.
+  instructions, then store the new keystore and passwords as in 2.3.
 
 ## Appendix: the profile from the command line
 
