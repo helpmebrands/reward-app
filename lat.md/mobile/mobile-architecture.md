@@ -25,6 +25,12 @@ The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves 
 
 `load` never throws: a corrupt or missing record starts the app empty, because empty is recoverable and a crash is not. The JSON shape is the domain's `json.dart` codec ([[tests#Snapshot JSON]]), so a PWA export loads directly. `MemorySnapshotStore` serves tests and previews. Pinned by [[mobile-tests#Store]].
 
+## Api config
+
+The app finds the service tier through one constant, `ApiConfig.baseUrl` in `lib/data/api_config.dart`: `String.fromEnvironment('API_BASE_URL')` at build time, defaulting to the staging api (`ApiConfig.stagingUrl`, `https://reward-api-bduraqeztq-uc.a.run.app`) for a local run.
+
+The release pipeline builds each environment with its own `--dart-define=API_BASE_URL=…` (epic #129); `make run`, `make test` and the verify gate need no define. Pinned by [[mobile-tests#Api config]].
+
 ## The store
 
 `AppStore` is a `ChangeNotifier` holding the snapshot and today's date, and the derived views the screens read. All of it is computed by [[domain]] selectors on every read; the store owns no rules.

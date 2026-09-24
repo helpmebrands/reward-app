@@ -310,6 +310,10 @@ Each provider is declared only once its keys are set, so the preview passes befo
 
 The api service's container sets `FIREBASE_PROJECT_ID` to the stack's project, so the tokens it accepts are this environment's.
 
+### The api define is tested with and without it
+
+The `flutter` job of `verify.yml` and `make check` in `apps/mobile` both run `flutter test test/api_config_test.dart --dart-define=API_BASE_URL=https://example.test` after the plain run, so both cases of [[mobile-tests#Api config]] run in review.
+
 ### The api spec is linted as OpenAPI in CI and locally
 
 The `api` job of `verify.yml` and the `api` target of the root `Makefile` both run `npx --yes @redocly/cli@<pinned> lint services/api/openapi.yaml`, so an invalid spec fails review before the contract test reads it ([[api-architecture#Contract]]).
