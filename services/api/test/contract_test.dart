@@ -108,6 +108,7 @@ final cases = <Case>[
     as: 'owner',
     url: '/v1/catalog/nope',
   ),
+  ...adminCases,
   call('GET', '/v1/household', 200, as: 'owner'),
   call(
     'POST',
@@ -203,6 +204,159 @@ final cases = <Case>[
     404,
     as: 'owner',
     url: () => '/v1/household/members/${saved['reader']}',
+  ),
+];
+
+const _draft = '/v1/admin/catalog/{templateId}/drafts/{version}';
+const _publish = '/v1/admin/catalog/{templateId}/drafts/{version}/publish';
+const _source = {
+  'effectiveFrom': '2020-01-01',
+  'sourceUrl': 'https://example.com/terms',
+};
+
+/// The catalogue admin routes, as `admin` (made an admin before the cases
+/// run) and as `owner`, who is not one.
+final adminCases = <Case>[
+  call(
+    'POST',
+    '/v1/admin/catalog',
+    201,
+    as: 'admin',
+    body: {
+      'id': 'contract-card',
+      'issuer': 'Test Bank',
+      'product': 'Card',
+      'network': 'visa',
+      'kind': 'personal',
+      'annualFeeCents': 0,
+      'credits': <Object>[],
+    },
+  ),
+  call('POST', '/v1/admin/catalog', 400, as: 'admin', body: {'id': 'x y'}),
+  call('POST', '/v1/admin/catalog', 403, as: 'owner', body: {'id': 'x'}),
+  call(
+    'POST',
+    '/v1/admin/catalog',
+    409,
+    as: 'admin',
+    body: {
+      'id': 'amex-gold',
+      'issuer': 'American Express',
+      'product': 'Gold',
+      'network': 'amex',
+      'kind': 'personal',
+      'annualFeeCents': 0,
+      'credits': <Object>[],
+    },
+  ),
+  call(
+    'POST',
+    '/v1/admin/catalog/{templateId}/drafts',
+    201,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts',
+    capture: (body) => saved['draft'] = jsonEncode(body),
+  ),
+  call(
+    'POST',
+    '/v1/admin/catalog/{templateId}/drafts',
+    403,
+    as: 'owner',
+    url: '/v1/admin/catalog/amex-gold/drafts',
+  ),
+  call(
+    'POST',
+    '/v1/admin/catalog/{templateId}/drafts',
+    404,
+    as: 'admin',
+    url: '/v1/admin/catalog/nope/drafts',
+  ),
+  call(
+    'POST',
+    '/v1/admin/catalog/{templateId}/drafts',
+    409,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts',
+  ),
+  call(
+    'PUT',
+    _draft,
+    200,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/2',
+    body: () => jsonDecode(saved['draft']!),
+  ),
+  call(
+    'PUT',
+    _draft,
+    400,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/2',
+    body: {'annualFeeCents': 'free'},
+  ),
+  call(
+    'PUT',
+    _draft,
+    403,
+    as: 'owner',
+    url: '/v1/admin/catalog/amex-gold/drafts/2',
+    body: const {},
+  ),
+  call(
+    'PUT',
+    _draft,
+    404,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/99',
+    body: () => jsonDecode(saved['draft']!),
+  ),
+  call(
+    'PUT',
+    _draft,
+    409,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/1',
+    body: () => jsonDecode(saved['draft']!),
+  ),
+  call(
+    'POST',
+    _publish,
+    400,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/2/publish',
+    body: {'effectiveFrom': '2020-01-01'},
+  ),
+  call(
+    'POST',
+    _publish,
+    403,
+    as: 'owner',
+    url: '/v1/admin/catalog/amex-gold/drafts/2/publish',
+    body: _source,
+  ),
+  call(
+    'POST',
+    _publish,
+    404,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/99/publish',
+    body: _source,
+  ),
+  call(
+    'POST',
+    _publish,
+    200,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/2/publish',
+    body: _source,
+  ),
+  call(
+    'POST',
+    _publish,
+    409,
+    as: 'admin',
+    url: '/v1/admin/catalog/amex-gold/drafts/2/publish',
+    body: _source,
   ),
 ];
 
@@ -341,7 +495,15 @@ void main() {
     () {
       late Connection db;
 
-      setUpAll(() async => db = await openMigratedSchema(url!, 'contract'));
+      setUpAll(() async {
+        db = await openMigratedSchema(url!, 'contract');
+        await db.execute('''
+          WITH admin AS (
+            INSERT INTO users (firebase_uid) VALUES ('admin') RETURNING id
+          )
+          INSERT INTO admins (user_id) SELECT id FROM admin
+        ''');
+      });
 
       tearDownAll(() => dropSchema(db, 'contract'));
 
