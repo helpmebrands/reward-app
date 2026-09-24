@@ -20,6 +20,8 @@ Not `/healthz`: Google's frontend answers exactly that path itself on `run.app` 
 
 Routes are added through `RouteTable` (`lib/src/routes.dart`), a `shelf_router` `Router` that also records each method and path, because the router keeps its routes private. `test/contract_test.dart` holds that list to the spec in both directions and drives every documented status of every operation through the handler, validating each body against its schema; only `500` is documented without a case. Pinned by [[api-tests#Contract]].
 
+Hand-written cases run in order as named users, and a case can keep an id or code from its body for later ones. The 401 and 503 of every signed-in operation are generated from the spec, since neither reaches the route.
+
 The spec is linted as OpenAPI by a pinned `npx @redocly/cli` in the `api` CI job and `make api` ([[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]). Every later route lands in the spec in the same pull request as its code. Operations that need no sign-in say `security: []`.
 
 The contract test found that the device routes answered 503 with one shared `Response`, whose body shelf lets be read once; the second request without a database would have failed. `_noDatabase()` now builds a fresh response.
@@ -35,6 +37,21 @@ Every data route acts for a signed-in person: a Firebase ID token from Identity 
 `SignedIn` wraps a protected route: no verifier configured is 503 `no auth`, a missing or unverifiable token 401 `unauthenticated`, no database 503 `no database`. Otherwise `callerFor` finds or creates the caller's `users` row (`0003_users.sql`: `id` uuid, `firebase_uid` unique, `email`, `created_at`) and the handler runs with that `Caller`; path parameters come from `request.params`.
 
 `GET /v1/me` returns the caller as `{id, email}`. The server builds the verifier from `FIREBASE_PROJECT_ID`, which Pulumi sets on the api service ([[infra-tests#Infrastructure config#The api knows its Firebase project]]).
+
+## Households
+
+The household owns the data; each person has their own login and is in exactly one household at a time (`lib/households.dart`, `0004_households.sql`). Pinned by [[api-tests#Households]].
+
+`households`, `memberships (household_id, user_id UNIQUE, role owner|editor|reader, joined_at)` and `invites (code, household_id, role, created_by, expires_at, used_by, used_at)`. The migration also creates `cards (id, household_id)`, because leaving a household that holds cards needs confirmation; the cards api adds the rest of its columns (#216).
+
+`callerFor` runs in one transaction: the user upsert locks the user's row, then a caller without a membership gets a new household with themselves as owner, so a new user always has one and two first calls cannot make two. The `Caller` carries the household id and its `Role`; `Role.canWrite` is false for readers, and every later data route authorises through it.
+
+- `GET /v1/household`: the household id, the caller's role, and every member with email, role and join time.
+- `POST /v1/household/invites {role: read|edit}`: owner only (403 otherwise). An eight-character code from an alphabet without 0, O, 1, I, L or U, single-use, expiring after seven days, plus a link: the code appended to `INVITE_LINK_BASE` (default `https://helpmereward.com/invite/`, set per environment with the invite links, #221).
+- `POST /v1/invites/{code}/accept {confirmLeave?}`: 404 for an unknown code, 410 once used or expired, 409 `already a member`, `owner has members` while an owner has others, or `household holds cards` without `confirmLeave: true`. Otherwise one transaction moves the caller, deletes their old household if they were its last member (its cards cascade), and marks the invite used.
+- `DELETE /v1/household/members/{userId}`: owner only; 409 for the owner themselves, 404 for someone not in the household. The member loses access at once and, on their next call, starts again in a new empty household; they take nothing with them.
+
+`inTransaction` (`lib/src/database.dart`) runs a body on the handler's `Connection` or `Pool`, or inside a transaction already open.
 
 ## Entrypoint
 

@@ -19,36 +19,53 @@ late TokenVerifier verifier;
 /// exist, and every documented status of every operation is driven through
 /// the handler and its body checked against the documented schema.
 
-/// One request the contract drives, and the status it must produce.
+/// One request the contract drives, the status it must produce, and what
+/// to keep from its body for later cases.
 typedef Case = ({
   Operation op,
   int status,
   Request Function() request,
   bool needsDatabase,
+  void Function(Map<String, dynamic> body)? capture,
 });
 
+/// Ids and codes earlier cases captured, for later cases' URLs.
+final saved = <String, String>{};
+
+/// [url] and [body] may be functions, read when the case runs, so a case can
+/// use what an earlier one [capture]d. [as] signs the request in as that
+/// Firebase uid.
 Case call(
   String method,
   String path,
   int status, {
-  String? url,
+  Object? url,
   Object? body,
-  bool signedIn = false,
+  String? as,
   bool needsDatabase = true,
+  void Function(Map<String, dynamic> body)? capture,
 }) => (
   op: (method: method, path: path),
   status: status,
   needsDatabase: needsDatabase,
-  request: () => Request(
-    method,
-    Uri.parse('http://localhost${url ?? path}'),
-    body: body == null ? null : (body is String ? body : jsonEncode(body)),
-    headers: {
-      if (body != null) 'content-type': 'application/json',
-      if (signedIn) 'authorization': 'Bearer ${key.sign()}',
-    },
-  ),
+  capture: capture,
+  request: () {
+    final u = url is String Function() ? url() : (url as String? ?? path);
+    final b = body is Object? Function() ? body() : body;
+    return Request(
+      method,
+      Uri.parse('http://localhost$u'),
+      body: b == null ? null : (b is String ? b : jsonEncode(b)),
+      headers: {
+        if (b != null) 'content-type': 'application/json',
+        if (as != null) 'authorization': 'Bearer ${key.sign(uid: as)}',
+      },
+    );
+  },
 );
+
+void Function(Map<String, dynamic>) keep(String name, String field) =>
+    (body) => saved[name] = body[field] as String;
 
 const device = {
   'token': 'contract-token',
@@ -57,13 +74,12 @@ const device = {
   'timezone': 'America/New_York',
 };
 
-/// Every case, in the order they run: a later case may rely on an earlier
-/// one's writes (the delete after the registration).
+/// Every hand-written case, in the order they run: a later case may rely on
+/// an earlier one's writes. The 401 and 503 of every signed-in operation are
+/// generated ([signedInCases]).
 final cases = <Case>[
   call('GET', '/health', 200, needsDatabase: false),
-  call('GET', '/v1/me', 200, signedIn: true),
-  call('GET', '/v1/me', 401, needsDatabase: false),
-  call('GET', '/v1/me', 503, signedIn: true, needsDatabase: false),
+  call('GET', '/v1/me', 200, as: 'owner', capture: keep('owner', 'id')),
   call('POST', '/v1/devices', 200, body: device),
   call('POST', '/v1/devices', 400, body: {...device}..remove('platform')),
   call('POST', '/v1/devices', 400, body: 'not json'),
@@ -77,6 +93,120 @@ final cases = <Case>[
     url: '/v1/devices/nobody',
     needsDatabase: false,
   ),
+  call('GET', '/v1/household', 200, as: 'owner'),
+  call(
+    'POST',
+    '/v1/household/invites',
+    201,
+    as: 'owner',
+    body: {'role': 'read'},
+    capture: keep('readCode', 'code'),
+  ),
+  call(
+    'POST',
+    '/v1/household/invites',
+    400,
+    as: 'owner',
+    body: {'role': 'admin'},
+  ),
+  call(
+    'POST',
+    '/v1/invites/{code}/accept',
+    400,
+    as: 'reader',
+    url: () => '/v1/invites/${saved['readCode']}/accept',
+    body: {'confirmLeave': 'yes'},
+  ),
+  call(
+    'POST',
+    '/v1/invites/{code}/accept',
+    200,
+    as: 'reader',
+    url: () => '/v1/invites/${saved['readCode']}/accept',
+  ),
+  call('GET', '/v1/me', 200, as: 'reader', capture: keep('reader', 'id')),
+  call(
+    'POST',
+    '/v1/invites/{code}/accept',
+    410,
+    as: 'third',
+    url: () => '/v1/invites/${saved['readCode']}/accept',
+  ),
+  call(
+    'POST',
+    '/v1/invites/{code}/accept',
+    404,
+    as: 'third',
+    url: '/v1/invites/NOSUCH/accept',
+  ),
+  call(
+    'POST',
+    '/v1/household/invites',
+    403,
+    as: 'reader',
+    body: {'role': 'read'},
+  ),
+  call(
+    'DELETE',
+    '/v1/household/members/{userId}',
+    403,
+    as: 'reader',
+    url: () => '/v1/household/members/${saved['owner']}',
+  ),
+  call(
+    'POST',
+    '/v1/household/invites',
+    201,
+    as: 'third',
+    body: {'role': 'edit'},
+    capture: keep('thirdCode', 'code'),
+  ),
+  call(
+    'POST',
+    '/v1/invites/{code}/accept',
+    409,
+    as: 'owner',
+    url: () => '/v1/invites/${saved['thirdCode']}/accept',
+  ),
+  call(
+    'DELETE',
+    '/v1/household/members/{userId}',
+    409,
+    as: 'owner',
+    url: () => '/v1/household/members/${saved['owner']}',
+  ),
+  call(
+    'DELETE',
+    '/v1/household/members/{userId}',
+    204,
+    as: 'owner',
+    url: () => '/v1/household/members/${saved['reader']}',
+  ),
+  call(
+    'DELETE',
+    '/v1/household/members/{userId}',
+    404,
+    as: 'owner',
+    url: () => '/v1/household/members/${saved['reader']}',
+  ),
+];
+
+/// For every operation that documents them, the 401 of a request with no
+/// token and the 503 of a signed-in request to a process without a
+/// database; neither reaches the route, so any path parameter will do.
+List<Case> signedInCases(Map<String, dynamic> spec) => [
+  for (final op in documentedOperations(spec))
+    for (final status in documentedStatuses(spec, op))
+      if (status == 401 || (status == 503 && requiresSignIn(spec, op)))
+        call(
+          op.method,
+          op.path,
+          status,
+          url: op.path.replaceAll(RegExp(r'\{\w+\}'), 'x'),
+          body: op.method == 'POST' || op.method == 'PUT' ? const {} : null,
+          as: status == 503 ? 'owner' : null,
+          needsDatabase: false,
+        ),
 ];
 
 /// Statuses no request can produce on purpose, documented for honesty.
@@ -105,9 +235,10 @@ Future<List<String>> check(
   }
   final schema =
       (content['application/json'] as Map)['schema'] as Map<String, dynamic>;
-  return [
-    for (final e in validate(spec, schema, jsonDecode(text))) '$label: $e',
-  ];
+  final body = jsonDecode(text);
+  final errors = [for (final e in validate(spec, schema, body)) '$label: $e'];
+  if (errors.isEmpty && body is Map<String, dynamic>) c.capture?.call(body);
+  return errors;
 }
 
 void main() {
@@ -150,7 +281,10 @@ void main() {
 
     // @lat: [[api-tests#Contract#Every documented status is driven]]
     test('every documented status of every operation has a case', () {
-      final driven = {for (final c in cases) '${describe(c.op)} ${c.status}'};
+      final driven = {
+        for (final c in [...cases, ...signedInCases(spec)])
+          '${describe(c.op)} ${c.status}',
+      };
       final missing = [
         for (final op in documentedOperations(spec))
           for (final status in documentedStatuses(spec, op))
@@ -177,7 +311,10 @@ void main() {
   test('the cases without a database answer as documented', () async {
     final handler = buildHandler(verifier: verifier);
     final errors = <String>[];
-    for (final c in cases.where((c) => !c.needsDatabase)) {
+    for (final c in [
+      ...cases.where((c) => !c.needsDatabase),
+      ...signedInCases(spec),
+    ]) {
       errors.addAll(await check(spec, c, await handler(c.request())));
     }
     expect(errors, isEmpty);
