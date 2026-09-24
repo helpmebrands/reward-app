@@ -450,8 +450,10 @@ it goes through the workflow.
 
 Signing on the Mac works the way it does in the workflow. The build reads
 one small file, `apps/mobile/android/key.properties`, that says where the
-keystore is and what its password is. The file is gitignored and never
-committed. It has exactly four lines:
+keystore is and what its password is. **It does not exist until you create
+it in step 3**: it is gitignored (`apps/mobile/android/.gitignore`), never
+committed, and step 13 deletes it again. The workflow creates its own copy
+on every run. It has exactly four lines:
 
 ```properties
 storeFile=/Users/<you>/reward-signing/upload.jks
@@ -490,7 +492,8 @@ typed or shown, and they prove the stored secrets are right.
        --project "$PROJECT_ID" --out-file ~/reward-signing/upload.jks
    ```
 
-3. **Write `key.properties`.** This is the same block `release-mobile.yml`
+3. **Create `key.properties`.** The `>` in the last line creates the file
+   (or replaces one left over). This is the same block `release-mobile.yml`
    runs, with the keystore path on your Mac. Run it from `apps/mobile`:
 
    ```sh
