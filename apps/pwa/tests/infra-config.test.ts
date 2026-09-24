@@ -63,6 +63,15 @@ describe('staging stack config', () => {
   it('trusts helpmebrands/reward-app to deploy', () => {
     expect(staging()).toMatch(/^\s+[\w-]+:githubRepo:\s*helpmebrands\/reward-app\s*$/m)
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Staging lists the Play app signing fingerprint]]
+  it('lists the Play app signing key fingerprint for assetlinks.json', () => {
+    const line = staging().match(/^\s+reward-app:androidSha256Fingerprints:\s*(\S+)\s*$/m)
+    expect(line, 'androidSha256Fingerprints is set').not.toBeNull()
+    for (const fingerprint of (line?.[1] ?? '').split(',')) {
+      expect(fingerprint).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/)
+    }
+  })
 })
 
 describe('verify workflow', () => {
@@ -232,6 +241,24 @@ describe('runbook 08 mobile setup', () => {
     expect(runbook).toMatch(/^## Part 3 — .*both platforms/m)
     expect(runbook).toContain('https://helpme-reward-staging.firebaseapp.com/__/auth/handler')
     expect(runbook).toContain('appleSignInConfig')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 Part 2 says what the first Android release taught]]
+  it('records the Android rehearsal: the console paths, the 403 symptom and the keystore owner', () => {
+    const play = part(/^## Part 2 — Google Play.*$/m)
+    expect(play).not.toMatch(/not rehearsed/i)
+    expect(play).toMatch(/rehearsed on 2026-09-24/i)
+    const identity = step(/^### 2\.2 .*$/m)
+    expect(identity).toContain('The caller does not have permission')
+    const fingerprint = step(/^### 2\.5 .*$/m)
+    expect(fingerprint).toContain('Protected with Play')
+    expect(fingerprint).toContain('Classical key')
+    expect(fingerprint).not.toContain('App integrity')
+    expect(runbook08()).not.toContain('HelpMe Reward upload')
+    expect(runbook08()).toContain('CN=HelpMe Reward Upload, OU=Mobile, O=HelpMe Brands')
+    const apply = step(/^### 3\.3 .*$/m)
+    expect(apply).toContain('invalid_rapt')
+    expect(apply).toContain('05-troubleshooting.md')
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 turns on every capability before the profile]]
