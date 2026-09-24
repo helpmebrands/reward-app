@@ -35,7 +35,6 @@ AppData loadSampleHousehold() {
       ),
       useSoonDays: data.settings.useSoonDays,
       theme: data.settings.theme,
-      holderFilter: data.settings.holderFilter,
     ),
   );
 }

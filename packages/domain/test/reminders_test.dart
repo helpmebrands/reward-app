@@ -27,7 +27,6 @@ AppData withNotifications(
       ),
       useSoonDays: data.settings.useSoonDays,
       theme: data.settings.theme,
-      holderFilter: data.settings.holderFilter,
     ),
   );
 }
@@ -188,6 +187,29 @@ void main() {
       ).reminders.firstWhere((r) => r.id == '2026-09-23|notice');
       expect(reminder.body, contains('Resy'));
       expect(reminder.title, contains(r'$115'));
+    });
+
+    // @lat: [[tests#Card labels#Notification copy names the card by its display name]]
+    test('names the card by its display name in a single-item group', () {
+      final data = withNotifications(
+        makeData(
+          cards: [makeCard(label: 'Travel card')],
+          benefits: [
+            makeBenefit(
+              Cadence.monthly,
+              name: 'Uber Cash',
+              merchant: 'Uber',
+              valueCents: 1500,
+            ),
+          ],
+        ),
+      );
+      final reminder = buildSchedule(data, now).reminders.first;
+      expect(reminder.items, hasLength(1));
+      expect(
+        reminder.body,
+        'Uber Cash at Uber on Travel card. \$15 untouched.',
+      );
     });
 
     test('leads with the blocker when most of the money is locked', () {

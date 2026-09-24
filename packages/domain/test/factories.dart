@@ -15,15 +15,13 @@ const Settings defaultSettings = Settings(
   ),
   useSoonDays: 30,
   theme: ThemeSetting.system,
-  holderFilter: '',
 );
 
 Card makeCard({
   String id = 'card-1',
   String issuer = 'American Express',
   String product = 'Platinum',
-  String holder = 'Jim',
-  String? nickname,
+  String? label,
   CardKind kind = CardKind.personal,
   int annualFeeCents = 89500,
   IsoDate anniversaryOn = '2020-03-14',
@@ -35,8 +33,7 @@ Card makeCard({
     id: id,
     issuer: issuer,
     product: product,
-    holder: holder,
-    nickname: nickname,
+    label: label,
     network: CardNetwork.amex,
     kind: kind,
     annualFeeCents: annualFeeCents,

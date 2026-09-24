@@ -16,7 +16,36 @@ void main() {
     expect(data.benefits, hasLength(24));
     expect(data.claims, hasLength(20));
     expect(data.benefits.first.merchant, 'Uber');
-    expect(jsonDecode(jsonEncode(appDataToJson(data))), json);
+    // The frozen PWA still writes `holder` and `holderFilter`; Dart drops them.
+    final expected = jsonDecode(raw) as Map<String, dynamic>;
+    for (final card in expected['cards'] as List) {
+      (card as Map).remove('holder');
+    }
+    (expected['settings'] as Map).remove('holderFilter');
+    expect(jsonDecode(jsonEncode(appDataToJson(data))), expected);
+  });
+
+  // @lat: [[tests#Card labels#A label round-trips and is omitted when absent]]
+  test('a card label round-trips and is left out when there is none', () {
+    final card = cardFromJson({
+      'id': 'c',
+      'issuer': 'Chase',
+      'product': 'Ink',
+      'label': 'Office',
+      'network': 'visa',
+      'annualFeeCents': 0,
+      'anniversaryOn': '2021-03-14',
+      'muted': false,
+      'archived': false,
+      'createdAt': 't',
+      'updatedAt': 't',
+    });
+    expect(card.label, 'Office');
+    expect(cardToJson(card)['label'], 'Office');
+    expect(
+      cardToJson(card.copyWith(label: null)).containsKey('label'),
+      isFalse,
+    );
   });
 
   // @lat: [[tests#Snapshot JSON#The sample household rolls its Global Entry credits]]
@@ -42,7 +71,6 @@ void main() {
       'id': 'c',
       'issuer': 'Chase',
       'product': 'Ink',
-      'holder': 'Jim',
       'network': 'visa',
       'annualFeeCents': 0,
       'anniversaryOn': '2021-03-14',
