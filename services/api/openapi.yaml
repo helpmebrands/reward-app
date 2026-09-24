@@ -26,6 +26,8 @@ tags:
     description: The caller's household, its members and invites.
   - name: catalog
     description: The versioned card catalogue.
+  - name: catalog admin
+    description: Drafting and publishing catalogue versions. Admins only.
 security:
   - firebase: []
 
@@ -122,6 +124,183 @@ paths:
           $ref: '#/components/responses/Internal'
         '503':
           $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog:
+    post:
+      tags: [catalog admin]
+      operationId: createTemplate
+      summary: Create a template as a draft version 1
+      description: |
+        Admin only. The template is invisible to the catalogue until its
+        draft is published.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTemplate'
+      responses:
+        '201':
+          description: The new draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A template with that id exists (`template exists`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [template exists]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts:
+    post:
+      tags: [catalog admin]
+      operationId: createDraft
+      summary: Start a draft from the latest version
+      description: |
+        Admin only. Copies the latest published version into version n + 1
+        as a draft. One draft at a time per template.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '201':
+          description: The draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The template already has an open draft (`draft exists`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [draft exists]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts/{version}:
+    put:
+      tags: [catalog admin]
+      operationId: editDraft
+      summary: Replace a draft's terms
+      description: |
+        Admin only. The whole template as it should read: its fields and
+        every credit. Checked by the domain's rules; `effectiveFrom` may be
+        left out to keep the draft's.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/Version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftTerms'
+      responses:
+        '200':
+          description: The draft as stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: That version is published and cannot change (`published`); start a new draft.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [published]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts/{version}/publish:
+    post:
+      tags: [catalog admin]
+      operationId: publishDraft
+      summary: Publish a draft
+      description: |
+        Admin only. Records who published it, when, and from what source,
+        and writes a `version published` event. The version never changes
+        again.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/Version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+      responses:
+        '200':
+          description: The published version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: That version is published already (`published`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [published]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
 
   /v1/household:
     get:
@@ -332,6 +511,20 @@ paths:
           $ref: '#/components/responses/Unavailable'
 
 components:
+  parameters:
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema:
+        type: string
+    Version:
+      name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+
   securitySchemes:
     firebase:
       type: http
@@ -465,6 +658,95 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TemplateCredit'
+
+    DraftTerms:
+      type: object
+      description: A template version's terms as an admin writes them.
+      required: [issuer, product, network, kind, annualFeeCents, credits]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        kind:
+          type: string
+          enum: [personal, business]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+
+    NewTemplate:
+      allOf:
+        - $ref: '#/components/schemas/DraftTerms'
+      required: [id]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+
+    PublishRequest:
+      type: object
+      required: [effectiveFrom, sourceUrl]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        sourceUrl:
+          type: string
+          format: uri
+          description: Where the terms were read, an http or https address.
+        notes:
+          type: string
+
+    AdminVersion:
+      description: A version with its status and, once published, its provenance.
+      type: object
+      required: [id, version, effectiveFrom, issuer, product, network, kind, annualFeeCents, credits, status]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+        kind:
+          type: string
+        annualFeeCents:
+          type: integer
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+        status:
+          type: string
+          enum: [draft, published]
+        publishedBy:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        sourceUrl:
+          type: string
+        notes:
+          type: string
 
     TemplateHistory:
       type: object

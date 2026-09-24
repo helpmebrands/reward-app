@@ -132,6 +132,38 @@ With versions from 2000, 2020 and 2999, `GET /v1/catalog` serves the 2020 one an
 
 `GET /v1/catalog/{id}` lists versions 1 and 2, including one not yet in force, and leaves out the draft; an unknown template is 404.
 
+## Catalogue admin
+
+`catalog_admin_integration_test.dart` drives the admin routes as an admin and as a member against `DATABASE_URL` in its own `catalog_admin` schema ([[api-architecture#Catalogue admin]]).
+
+### Only admins reach the admin routes
+
+A member without an `admins` row gets 403 from creating a template, starting a draft, editing one and publishing.
+
+### A draft is invisible until published
+
+A draft of the Gold is version 2 with the Gold's credits; a second draft is 409. After an edit to the fee the catalogue still serves version 1; after publishing, with the publisher and source recorded, it serves version 2.
+
+### Publishing needs a date and a source
+
+Publishing without `sourceUrl`, without `effectiveFrom`, with a date that is not one, or with a source that is not a web address, answers 400.
+
+### A published version needs a new draft
+
+Editing or publishing a published version answers 409, and the next draft is version 3.
+
+### Every publish writes one event
+
+Two publishes of one template leave two `catalog_events` rows, the first of kind `version published` for version 2.
+
+### Edits follow the domain's rules
+
+A credit made rolling without months answers 400 naming `credits[0].intervalMonths`, and passes with 48; a zero value, an unknown cadence and a credit id under another template are refused.
+
+### A new template starts as a draft
+
+`POST /v1/admin/catalog` answers 201 with draft version 1, absent from the catalogue until published; an existing id is 409.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

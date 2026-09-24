@@ -65,6 +65,19 @@ Triggers make a published version immutable in the database itself: its row cann
 
 `loadVersions` reads versions back into the domain's `TemplateVersion`s through its JSON codec. `GET /v1/catalog` answers each template's `versionInForce` on the database's `current_date`; `GET /v1/catalog/{templateId}` answers every published version, oldest first, or 404. Both need sign-in; drafts never appear.
 
+## Catalogue admin
+
+Term changes are entered by a person or an agent through the api, and only an explicit publish makes them live (`lib/catalog_admin.dart`, `0007_catalog_admin.sql`). Pinned by [[api-tests#Catalogue admin]].
+
+An admin is a row in `admins (user_id)`, added by hand as runbook 06 shows; every admin route answers 403 to anyone else. There is no route that grants it.
+
+- `POST /v1/admin/catalog` creates a template as draft version 1, 409 if the id exists.
+- `POST /v1/admin/catalog/{templateId}/drafts` copies the latest version into draft n + 1; one open draft per template (409), 404 for an unknown template.
+- `PUT …/drafts/{version}` replaces the draft's fields and credits; 409 once published, so a change needs a new draft.
+- `POST …/drafts/{version}/publish {effectiveFrom, sourceUrl, notes?}` needs a calendar date and an http(s) source (400 otherwise). It records `published_by` (the caller's user id) and `published_at`, and writes one `catalog_events` row of kind `version published`, which the change notices of the follow-on epic consume.
+
+`parseVersion` checks a body with the domain's own rules: `intervalMonthsError` for a rolling credit, `endsOnError`, `anniversaryError` for dates, `enrollmentUrlError` for the source, the enums in the domain's spellings, positive values, and credit ids of the form `<template id>/<slug>`, unique within the version. The first field at fault answers 400 `{"error":"invalid","field":…}`, `credits[0].intervalMonths` for instance. Every answer is the version with its status and provenance.
+
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
