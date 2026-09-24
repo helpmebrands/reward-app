@@ -42,7 +42,6 @@ Card cardFromJson(Map<String, dynamic> json) => Card(
   last4: json['last4'] as String?,
   annualFeeCents: json['annualFeeCents'] as int,
   anniversaryOn: json['anniversaryOn'] as String,
-  muted: json['muted'] as bool,
   archived: json['archived'] as bool,
   createdAt: json['createdAt'] as String,
   updatedAt: json['updatedAt'] as String,
@@ -58,7 +57,6 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'last4': card.last4,
   'annualFeeCents': card.annualFeeCents,
   'anniversaryOn': card.anniversaryOn,
-  'muted': card.muted,
   'archived': card.archived,
   'createdAt': card.createdAt,
   'updatedAt': card.updatedAt,
@@ -86,7 +84,6 @@ Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
   redemptionSteps: ((json['redemptionSteps'] as List?) ?? const [])
       .cast<String>(),
   notes: json['notes'] as String?,
-  muted: json['muted'] as bool,
   lastCallOnly: json['lastCallOnly'] as bool,
   active: json['active'] as bool,
   createdAt: json['createdAt'] as String,
@@ -114,7 +111,6 @@ Map<String, Object?> benefitToJson(Benefit benefit) => _withoutNulls({
   'endsOn': benefit.endsOn,
   'redemptionSteps': benefit.redemptionSteps,
   'notes': benefit.notes,
-  'muted': benefit.muted,
   'lastCallOnly': benefit.lastCallOnly,
   'active': benefit.active,
   'createdAt': benefit.createdAt,
@@ -139,31 +135,39 @@ Map<String, Object?> claimToJson(Claim claim) => _withoutNulls({
   'note': claim.note,
 });
 
-Settings settingsFromJson(Map<String, dynamic> json) {
-  final n = json['notifications'] as Map<String, dynamic>;
-  return Settings(
-    notifications: NotificationSettings(
-      enabled: n['enabled'] as bool,
-      timeOfDay: n['timeOfDay'] as String,
-      minValueCents: n['minValueCents'] as int,
-      annualFeeReminder: n['annualFeeReminder'] as bool,
-      enrollmentReminder: n['enrollmentReminder'] as bool,
-    ),
-    useSoonDays: json['useSoonDays'] as int,
-    theme: ThemeSetting.values.byName(json['theme'] as String),
-  );
-}
+Settings settingsFromJson(Map<String, dynamic> json) => Settings(
+  useSoonDays: json['useSoonDays'] as int,
+  theme: ThemeSetting.values.byName(json['theme'] as String),
+);
 
 Map<String, Object?> settingsToJson(Settings settings) => {
-  'notifications': {
-    'enabled': settings.notifications.enabled,
-    'timeOfDay': settings.notifications.timeOfDay,
-    'minValueCents': settings.notifications.minValueCents,
-    'annualFeeReminder': settings.notifications.annualFeeReminder,
-    'enrollmentReminder': settings.notifications.enrollmentReminder,
-  },
   'useSoonDays': settings.useSoonDays,
   'theme': settings.theme.name,
+};
+
+/// One member's preferences. The mutes are sorted lists, so the same
+/// preferences always encode to the same JSON.
+MemberPreferences memberPreferencesFromJson(Map<String, dynamic> json) =>
+    MemberPreferences(
+      enabled: json['enabled'] as bool,
+      timeOfDay: json['timeOfDay'] as String,
+      minValueCents: json['minValueCents'] as int,
+      annualFeeReminder: json['annualFeeReminder'] as bool,
+      enrollmentReminder: json['enrollmentReminder'] as bool,
+      mutedCardIds: {...(json['mutedCardIds'] as List? ?? const []).cast()},
+      mutedBenefitIds: {
+        ...(json['mutedBenefitIds'] as List? ?? const []).cast(),
+      },
+    );
+
+Map<String, Object?> memberPreferencesToJson(MemberPreferences prefs) => {
+  'enabled': prefs.enabled,
+  'timeOfDay': prefs.timeOfDay,
+  'minValueCents': prefs.minValueCents,
+  'annualFeeReminder': prefs.annualFeeReminder,
+  'enrollmentReminder': prefs.enrollmentReminder,
+  'mutedCardIds': prefs.mutedCardIds.toList()..sort(),
+  'mutedBenefitIds': prefs.mutedBenefitIds.toList()..sort(),
 };
 
 AppData appDataFromJson(Map<String, dynamic> json) => AppData(

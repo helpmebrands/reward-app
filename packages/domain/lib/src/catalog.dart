@@ -1668,7 +1668,6 @@ List<Benefit> benefitsFromTemplate(
           endsOn: entry.endsOn,
           redemptionSteps: entry.redemptionSteps,
           notes: entry.notes,
-          muted: false,
           lastCallOnly: false,
           // A credit the issuer has already retired lands as history.
           active:

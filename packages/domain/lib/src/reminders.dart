@@ -100,13 +100,17 @@ List<T> _stableSorted<T>(Iterable<T> items, int Function(T a, T b) compare) {
 /// in the same week, and a dozen separate notifications is how an app gets
 /// muted. The copy then leads with the single biggest loss, one decision per
 /// notification.
+///
+/// The schedule is one member's: [prefs] carry their reminder settings and
+/// mutes, so two members of one household get their own schedules.
 ReminderSchedule buildSchedule(
-  AppData data, [
+  AppData data,
+  MemberPreferences prefs, [
   DateTime? now,
   int horizon = horizonDays,
 ]) {
   final at = now ?? DateTime.now();
-  final settings = data.settings.notifications;
+  final settings = prefs;
   final reminders = <Reminder>[];
   if (!settings.enabled) {
     return ReminderSchedule(
@@ -130,9 +134,9 @@ ReminderSchedule buildSchedule(
         hasEnded(benefit, from)) {
       continue;
     }
-    if (benefit.muted) continue;
+    if (prefs.isMuted(benefit)) continue;
     final card = cardsById[benefit.cardId];
-    if (card == null || card.archived || card.muted) continue;
+    if (card == null || card.archived) continue;
     if (benefit.valueCents < settings.minValueCents) continue;
 
     final reason = lockReason(benefit, card, from);
