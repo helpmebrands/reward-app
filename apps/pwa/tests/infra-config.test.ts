@@ -860,7 +860,10 @@ describe('api contract', () => {
   // @lat: [[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]
   it('lints services/api/openapi.yaml with a pinned Redocly CLI in the api job and make api', () => {
     const lint = /npx --yes @redocly\/cli@\d+\.\d+\.\d+ lint services\/api\/openapi\.yaml/
-    const api = read('.github/workflows/verify.yml').split(/^ {2}api:$/m)[1]?.split(/^ {2}\w+:$/m)[0] ?? ''
+    const api =
+      read('.github/workflows/verify.yml')
+        .split(/^ {2}api:$/m)[1]
+        ?.split(/^ {2}\w+:$/m)[0] ?? ''
     expect(api, 'the api job').toMatch(lint)
     const target = read('Makefile').split(/^api:/m)[1]?.split(/^\w+:/m)[0] ?? ''
     expect(target, 'make api').toMatch(lint)
