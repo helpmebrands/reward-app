@@ -669,7 +669,7 @@ new gcp.kms.CryptoKeyIAMMember('deployer-can-decrypt-secrets', {
  *
  * - An identity for the Google Play Developer API that the workflow assumes
  *   keylessly through the same pool as the deployer. Play Console links a
- *   service account by email (runbook 07); no key file ever exists.
+ *   service account by email (runbook 08); no key file ever exists.
  * - Secret Manager containers for the signing material, with no versions:
  *   the values are added by hand once and rotated by hand, and the deployer
  *   may read exactly these secrets, so a workflow fetches them at build time

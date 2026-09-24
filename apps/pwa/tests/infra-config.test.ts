@@ -213,19 +213,38 @@ describe('runbook README', () => {
   })
 })
 
-describe('runbook 08 sign-in providers', () => {
-  const runbook08 = () => read('docs/runbooks/08-sign-in-providers.md')
+describe('runbook 08 mobile setup', () => {
+  const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
+  const part = (title: RegExp) => runbook08().split(title)[1]?.split(/^## /m)[0] ?? ''
+  const step = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 08 lists the sign-in hand steps]]
-  it('is indexed and walks through the Google and Apple hand steps', () => {
-    expect(read('docs/runbooks/README.md')).toContain('(08-sign-in-providers.md)')
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 is the one mobile setup flow]]
+  it('replaces the sign-in runbook with one setup flow, a part per platform and one for both', () => {
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toContain('(08-mobile-setup.md)')
+    expect(existsSync(join(root, 'docs/runbooks/08-sign-in-providers.md'))).toBe(false)
+    for (const file of filesUnder('docs')) {
+      expect(read(file), file).not.toContain('08-sign-in-providers')
+    }
     const runbook = runbook08()
-    expect(runbook).toMatch(/^## Google$/m)
-    expect(runbook).toMatch(/^## Apple$/m)
+    expect(runbook).toMatch(/^## Part 1 — Apple/m)
+    expect(runbook).toMatch(/^## Part 2 — Google Play/m)
+    expect(runbook).toMatch(/^## Part 3 — .*both platforms/m)
     expect(runbook).toContain('https://helpme-reward-staging.firebaseapp.com/__/auth/handler')
-    expect(runbook).toContain('Sign in with Apple')
-    expect(runbook).toMatch(/provisioning profile/i)
     expect(runbook).toContain('appleSignInConfig')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 turns on every capability before the profile]]
+  it('ticks every capability on the app id before any profile is made', () => {
+    const runbook = runbook08()
+    const capabilities = step(/^### .*capabilit.*$/im)
+    for (const capability of ['Push Notifications', 'Sign in with Apple', 'Associated Domains']) {
+      expect(capabilities, capability).toContain(capability)
+    }
+    expect(runbook.search(/^### .*capabilit/im)).toBeGreaterThan(-1)
+    expect(runbook.search(/^### .*capabilit/im)).toBeLessThan(
+      runbook.search(/^### .*provisioning profile/im),
+    )
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 stores credentials as stack secrets]]
@@ -237,7 +256,18 @@ describe('runbook 08 sign-in providers', () => {
     for (const key of ['googleOAuthClientId', 'appleServicesId', 'appleKeyId']) {
       expect(runbook, key).toMatch(new RegExp(`pulumi config set reward-app:${key}`))
     }
-    expect(runbook).not.toMatch(/gcloud secrets versions add/)
+    expect(runbook).not.toMatch(/gcloud secrets versions add\s+\\?\s*reward-app-(google|apple)/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 re-makes the profile end to end]]
+  it('re-makes the profile from deleting the old one to releasing again', () => {
+    const remake = part(/^## Later: re-making the iOS profile.*$/m)
+    expect(remake).toMatch(/delete|remove/i)
+    expect(remake).toContain('security cms -D')
+    expect(remake).toContain('gcloud secrets versions add')
+    expect(remake).toContain('iOS signing')
+    expect(remake).toMatch(/git tag v/)
+    expect(remake).toContain("doesn't include the")
   })
 })
 
@@ -576,9 +606,9 @@ describe('mobile release trust', () => {
     expect(program()).toMatch(/SECRET_\$\{name\.toUpperCase\(\)\.replace\(\/-\/g, '_'\)\}/)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 has the two hand steps]]
-  it('tells runbook 07 how to link the Play identity and add secret versions', () => {
-    const runbook = read('docs/runbooks/07-mobile-release.md')
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 has the store hand steps]]
+  it('tells runbook 08 how to link the Play identity and add secret versions', () => {
+    const runbook = read('docs/runbooks/08-mobile-setup.md')
     expect(runbook).toContain('gcloud secrets versions add')
     expect(runbook).toMatch(/Users\s+and\s+permissions/)
     expect(runbook).not.toMatch(/putting the signing material in GitHub\s+secrets/)
@@ -698,59 +728,84 @@ describe('runbook 01 keeps the two Pulumi projects apart', () => {
 })
 
 describe('signing material procedure and token record', () => {
-  const runbook07 = () => read('docs/runbooks/07-mobile-release.md')
+  const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
+  const section = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 walks through every piece of signing material]]
-  it('has a subsection for the keystore, the API key, the certificate and the profile', () => {
-    const signing =
-      runbook07()
-        .split(/^## Signing material/m)[1]
-        ?.split(/^## /m)[0] ?? ''
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 leaves setup to runbook 08]]
+  it('keeps runbook 07 to releasing and points it at runbook 08 for setup', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).not.toMatch(/^## Signing material/m)
+    expect(runbook).not.toMatch(/^## The Play publisher identity/m)
+    expect(runbook).toContain('(08-mobile-setup.md)')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 walks through every piece of signing material]]
+  it('has a step for the keystore, the API key, the certificate and the profile', () => {
+    const runbook = runbook08()
     for (const heading of [
       'upload keystore',
       'App Store Connect API key',
       'distribution certificate',
       'provisioning profile',
     ]) {
-      expect(signing, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
+      expect(runbook, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
+      expect(section(new RegExp(`^### .*${heading}.*$`, 'im')), heading).toContain(
+        'gcloud secrets versions add',
+      )
     }
-    expect(signing).toContain('gcloud secrets versions add')
-    expect(signing).toMatch(/^\$ export STACK=staging$/m)
-    expect(signing).toMatch(/Play App Signing/)
+    expect(runbook).toMatch(/^\$ export STACK=staging$/m)
+    expect(runbook).toMatch(/Play App Signing/)
+    const keystore = section(/^### .*upload keystore.*$/im)
+    expect(keystore).toContain('-storetype PKCS12')
+    expect(keystore).toContain('-dname')
+    expect(keystore).toMatch(/one password/i)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 says store records are per app id]]
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 writes key.properties step by step]]
+  it('writes key.properties from Secret Manager and checks the bundle is not debug-signed', () => {
+    const bundle = section(/^### .*first bundle.*$/im)
+    for (const line of ['storeFile=', 'storePassword=', 'keyPassword=', 'keyAlias=upload']) {
+      expect(bundle, line).toContain(line)
+    }
+    expect(bundle).toContain('build.gradle.kts')
+    expect(bundle).toContain('> android/key.properties')
+    expect(bundle).toContain('keytool -printcert -jarfile')
+    expect(bundle).toMatch(/rm android\/key\.properties/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 says store records are per app id]]
   it('states that store records are per app id, not per environment', () => {
-    expect(runbook07()).toMatch(/one record\s+per app/i)
+    expect(runbook08()).toMatch(/one record\s+per app/i)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 verifies the profile before storing it]]
-  it('checks the profile is for the app id before adding the secret version', () => {
-    const runbook = runbook07()
-    const profile =
-      runbook.split(/^### iOS: the provisioning profile/m)[1]?.split(/^### /m)[0] ?? ''
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 checks the profile's entitlements before storing it]]
+  it('checks the profile is for the app id and carries every entitlement before adding the version', () => {
+    const runbook = runbook08()
+    const profile = section(/^### .*provisioning profile.*$/im)
     expect(runbook).toContain('XC com helpmebrands reward')
-    expect(profile).toContain('/v1/profiles')
+    expect(runbook).toContain('/v1/profiles')
     expect(profile).toContain('security cms -D')
-    expect(profile.indexOf('application-identifier')).toBeGreaterThan(-1)
-    expect(profile.indexOf('application-identifier')).toBeLessThan(
-      profile.indexOf('gcloud secrets versions add'),
-    )
+    const stored = profile.indexOf('gcloud secrets versions add')
+    for (const line of [
+      'application-identifier',
+      'com.apple.developer.applesignin',
+      'com.apple.developer.associated-domains',
+    ]) {
+      expect(profile.indexOf(line), line).toBeGreaterThan(-1)
+      expect(profile.indexOf(line), line).toBeLessThan(stored)
+    }
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 reads binaries back with --out-file]]
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 reads binaries back with --out-file]]
   it('reads the binaries back with --out-file and proves them in the check step', () => {
-    const signing =
-      runbook07()
-        .split(/^## Signing material/m)[1]
-        ?.split(/^## /m)[0] ?? ''
-    const check = signing.split(/^### Check and clean up/m)[1] ?? ''
+    const runbook = runbook08()
+    const check = runbook.split(/^## Part 4 — Check.*$/m)[1]?.split(/^## /m)[0] ?? ''
     expect(check).toMatch(/--out-file check\.p12/)
     expect(check).toMatch(/security import check\.p12/)
     expect(check).toMatch(/security cms -D -i check\.mobileprovision/)
     expect(check).toMatch(/stdout/)
-    expect(signing).not.toMatch(/'X{10}' \| gcloud/)
-    expect(signing).toMatch(/read -r ASC_KEY_ID/)
+    expect(runbook).not.toMatch(/'X{10}' \| gcloud/)
+    expect(runbook).toMatch(/read -r ASC_KEY_ID/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
@@ -924,7 +979,7 @@ describe('sign-in', () => {
       'appleTeamId',
     ]) {
       expect(project, key).toMatch(new RegExp(`^  ${key}:$`, 'm'))
-      expect(read('docs/runbooks/08-sign-in-providers.md'), key).toContain(`reward-app:${key}`)
+      expect(read('docs/runbooks/08-mobile-setup.md'), key).toContain(`reward-app:${key}`)
     }
     expect(read('infra/Pulumi.staging.yaml')).toMatch(/^ {2}reward-app:appleTeamId: LMFUSVPCDH$/m)
   })
