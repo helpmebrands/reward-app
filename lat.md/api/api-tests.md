@@ -108,6 +108,30 @@ After the owner removes an editor (204, and 404 a second time), the editor's nex
 
 A role other than `read` or `edit` answers 400 `{"error":"invalid","field":"role"}`.
 
+## Catalogue
+
+`catalog_test.dart` holds the seed migration to its generator without a database; `catalog_integration_test.dart` checks the seed, the triggers and the read routes against `DATABASE_URL` in its own `catalog` schema ([[api-architecture#Catalogue]]).
+
+### The seed migration is generated from catalog.dart
+
+The committed `0006_catalog_seed.sql` equals `renderCatalogSeed(cardTemplates)`, the failure saying how to regenerate it; the render leaves out `blank` and doubles apostrophes.
+
+### The seed is version 1 of every template
+
+After migrating, every template but `blank` exists as published version 1 whose JSON equals the Dart template's, credits included.
+
+### A published version cannot change
+
+Updating or deleting a published version's credits, updating the version itself, or adding a credit to it all fail in the database; a draft's credit can still be changed.
+
+### The catalogue serves each template's version in force
+
+With versions from 2000, 2020 and 2999, `GET /v1/catalog` serves the 2020 one and its $20 credit; a template with only a draft is absent; the seeded templates are listed.
+
+### One template's published versions
+
+`GET /v1/catalog/{id}` lists versions 1 and 2, including one not yet in force, and leaves out the draft; an unknown template is 404.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

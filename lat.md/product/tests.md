@@ -163,6 +163,10 @@ Equinox does not exist on 14 October; on 20 October it is $25 and locked behind 
 
 A card without `templateId` is maintained by the user, one with it by the system.
 
+### Templates and versions round-trip as JSON
+
+Every catalogue template, as a version, writes `id`, `version`, `effectiveFrom`, the template's fields and its credits, and reads back to the same JSON; an absent `endsOn` is left out. This is the service tier's wire format for the catalogue.
+
 ### The links round-trip in the snapshot
 
 `templateId` and `templateBenefitId` read back as written, and are left out when absent.
