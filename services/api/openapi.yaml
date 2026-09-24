@@ -736,6 +736,51 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/cards/{cardId}/convert:
+    post:
+      tags: [household data]
+      operationId: convertCard
+      summary: Convert a linked card into one the household maintains
+      description: |
+        One transaction: a new card and credits copying the terms resolved
+        today and every piece of household state; the claims and every
+        member's mutes move to the new ids; the linked card is deleted.
+        The new card no longer follows the catalogue. The answer names the
+        card it replaces and maps each old credit id to its new one.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The new card and its credits.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertedCard'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The card is the household's own already (`user maintained`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: user maintained
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/cards/{cardId}/benefits:
     post:
       tags: [household data]
@@ -1414,6 +1459,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Benefit'
+
+    ConvertedCard:
+      type: object
+      required: [card, benefits, replaces, benefitIds]
+      additionalProperties: false
+      properties:
+        card:
+          $ref: '#/components/schemas/Card'
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Benefit'
+        replaces:
+          type: string
+          description: The linked card's id, now deleted.
+        benefitIds:
+          type: object
+          description: Each old credit id mapped to its new one.
+          additionalProperties:
+            type: string
 
     NewCard:
       type: object
