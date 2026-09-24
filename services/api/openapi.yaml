@@ -20,6 +20,8 @@ tags:
     description: Liveness.
   - name: devices
     description: Push-device registration.
+  - name: invite links
+    description: What lets an invite link open the app, and the page it shows without it.
   - name: me
     description: The signed-in caller.
   - name: household
@@ -51,6 +53,71 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /.well-known/apple-app-site-association:
+    get:
+      tags: [invite links]
+      operationId: getAppleAppSiteAssociation
+      security: []
+      summary: iOS universal links for /invite/*
+      description: Fetched by iOS from the api's own domain; names the app that opens invite links.
+      responses:
+        '200':
+          description: The association file.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [applinks]
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /.well-known/assetlinks.json:
+    get:
+      tags: [invite links]
+      operationId: getAssetLinks
+      security: []
+      summary: Android App Links for the api's domain
+      description: Fetched by Android; names the package and its signing certificates.
+      responses:
+        '200':
+          description: The statement list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [relation, target]
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /invite/{code}:
+    get:
+      tags: [invite links]
+      operationId: getInvitePage
+      security: []
+      summary: An invite link without the app
+      description: |
+        With the app installed the operating system opens the link in the
+        app; otherwise this page shows the code and both stores.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/Internal'
 

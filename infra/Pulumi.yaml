@@ -45,6 +45,14 @@ config:
   billingAccount:
     type: string
     description: The billing account the project charges to, as XXXXXX-XXXXXX-XXXXXX. Set with `pulumi config set --secret`; the id never appears in plain text in this repository.
+  apiCustomDomain:
+    type: string
+    description: The api's own domain, which invite links point at (issue 221). Requires the parent domain verified and a CNAME, as for customDomain.
+    default: ""
+  androidSha256Fingerprints:
+    type: string
+    description: SHA-256 fingerprints of the Android signing certificates, comma separated, served in assetlinks.json so invite links open the app.
+    default: ""
   googleOAuthClientId:
     type: string
     description: The web OAuth client id behind Google sign-in (runbook 08). Blank leaves the Google provider out.

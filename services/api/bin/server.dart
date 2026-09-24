@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:api/api.dart';
+import 'package:api/app_links.dart';
 import 'package:api/auth.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf_io.dart' as io;
@@ -30,6 +31,7 @@ Future<void> main() async {
       inviteLinkBase: Uri.tryParse(
         Platform.environment['INVITE_LINK_BASE'] ?? '',
       )?.takeIf((u) => u.hasScheme),
+      appLinks: AppLinks.fromEnvironment(Platform.environment),
     ),
     InternetAddress.anyIPv4,
     port,
