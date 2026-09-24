@@ -164,6 +164,62 @@ A credit made rolling without months answers 400 naming `credits[0].intervalMont
 
 `POST /v1/admin/catalog` answers 201 with draft version 1, absent from the catalogue until published; an existing id is 409.
 
+## Household data
+
+`household_data_integration_test.dart` drives the card, credit and claim routes as several users against `DATABASE_URL` in its own `household_data` schema ([[api-architecture#Household data]]).
+
+### A template card's benefits are the resolved version
+
+A Gold added from its template is linked and unlabelled; the household snapshot serves one credit per template credit, each equal to the domain's `resolveLinkedBenefit` for today, and the card's issuer and fee are the template's.
+
+### Duplicate products get numbered labels
+
+A second Gold is labelled "American Express Gold (1)"; that label again, in another case, is 409 `label taken`; "Travel" is accepted.
+
+### A retried claim is stored once
+
+The same claim with the same `Idempotency-Key` answers 201 twice with one id and one stored claim; a different amount under that key is 409; no key is 400; the claim then deletes with 204.
+
+### System-maintained terms cannot be edited
+
+On a linked card, editing a credit's value, the card's fee, or adding a credit is 409 `system maintained`, while its enrolment state changes. On a household card, a credit is added and its value edited, and the fee and label change.
+
+### Readers cannot write the household's data
+
+A reader's add, edit and delete of a card, state change and claim are 403, while their snapshot read shows the household's card.
+
+### Another household's ids are not found
+
+Another user's edit or delete of the card is 404, and their snapshot is empty.
+
+### Deleting a card takes its credits and claims
+
+After a claim on a Gold's credit, deleting the card leaves no card, credit or claim.
+
+## Member preferences
+
+`preferences_integration_test.dart` drives the preference and mute routes as members of one household and an outsider, against `DATABASE_URL` in its own `preferences` schema ([[api-architecture#Member preferences]]).
+
+### A new member reads the defaults
+
+A first `GET /v1/me/preferences` equals `defaultMemberPreferences`, nothing muted.
+
+### Preferences are the member's own
+
+Ann's new time, floor and switches, her card mute and her credit mute read back as hers, while Bob in the same household still reads the defaults; unmuting the card clears it.
+
+### A reader can mute
+
+A reader mutes a card of the household (204, and it reads back) and replaces their settings (200).
+
+### Muting another household's card is not found
+
+An outsider muting the household's card or credit, or an id that does not exist, gets 404.
+
+### Preferences are validated
+
+A time of `25:00`, a negative floor or a switch that is not a boolean answers 400 naming the field.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).
