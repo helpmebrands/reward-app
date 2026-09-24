@@ -128,7 +128,11 @@ void main() {
         final code = await invite('ann', 'edit');
         final bob = await api.as('bob').get('/v1/household');
         await db.execute(
-          Sql.named('INSERT INTO cards (household_id) VALUES (@h::uuid)'),
+          Sql.named('''
+            INSERT INTO cards (household_id, issuer, product, network,
+              annual_fee_cents, anniversary_on)
+            VALUES (@h::uuid, 'Chase', 'Freedom', 'visa', 0, '2024-01-01')
+          '''),
           parameters: {'h': json(bob)['id']},
         );
         final refused = await api.as('bob').post('/v1/invites/$code/accept');

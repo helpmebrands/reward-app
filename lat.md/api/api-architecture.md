@@ -78,6 +78,23 @@ An admin is a row in `admins (user_id)`, added by hand as runbook 06 shows; ever
 
 `parseVersion` checks a body with the domain's own rules: `intervalMonthsError` for a rolling credit, `endsOnError`, `anniversaryError` for dates, `enrollmentUrlError` for the source, the enums in the domain's spellings, positive values, and credit ids of the form `<template id>/<slug>`, unique within the version. The first field at fault answers 400 `{"error":"invalid","field":…}`, `credits[0].intervalMonths` for instance. Every answer is the version with its status and provenance.
 
+## Household data
+
+A household's cards, credits and claims live in the service tier and reach the app as the domain's `AppData` (`lib/household_data.dart`, `0008_household_data.sql`). Pinned by [[api-tests#Household data]].
+
+A card linked to a template stores only the household's own fields (label, kind, last four, anniversary, archived); a card the household maintains also stores issuer, product, network and fee, which a check constraint requires when there is no template. Each credit is the same split: household state (enrolment, spend met, last call only, active) on every row, terms only on a household credit. `UNIQUE (card_id, template_credit_id)` keeps one row per linked credit.
+
+`loadHousehold` builds the snapshot for the database's today. It first makes sure every linked card has a row for every credit any version in force has had, so a credit added in a new version has an id and state the day it appears. A linked card takes issuer, product, network and fee from its template's version in force; each linked credit is `resolveLinkedBenefit`, with its own claims for a rolling one, and a credit no version in force has is left out.
+
+- `GET /v1/household/data` serves the snapshot; readers may read.
+- `POST /v1/cards {templateId | issuer, product, network, annualFeeCents; anniversaryOn, label?, kind?, last4?}` returns the card and its credits. Without a label a duplicate product gets `defaultLabel`; a label `labelError` refuses is 409 `label taken`.
+- `PATCH /v1/cards/{id}` changes household fields on any card and terms only on a household card; `DELETE` cascades to credits and claims.
+- `POST /v1/cards/{id}/benefits`, `PUT /v1/benefits/{id}` and `DELETE /v1/benefits/{id}` work on household credits; on a linked card or credit each is 409 `system maintained`, since conversion is the only way to change catalogue terms. Terms are checked by `parseCreditTerms`, the catalogue admin's parser.
+- `PUT /v1/benefits/{id}/state` patches household state on any credit.
+- `POST /v1/claims` needs an `Idempotency-Key`. The canonical request is stored beside the claim under `UNIQUE (household_id, idempotency_key)`: a retry with the same body answers the stored claim, a different body is 409 `idempotency key reused`. `DELETE /v1/claims/{id}` removes one.
+
+Every write needs an editor or owner (403 for a reader), and an id from another household is 404, never a hint that it exists.
+
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.

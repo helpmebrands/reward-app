@@ -26,6 +26,96 @@ Future<bool> isAdmin(Session db, String userId) async => (await db.execute(
 final _templateId = RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$');
 final _creditSlug = RegExp(r'^[a-z0-9]+(-[a-z0-9]+)*$');
 
+T _field<T>(Map<String, dynamic> json, String name, String at) {
+  final value = json[name];
+  if (value is! T) throw InvalidField(at);
+  return value;
+}
+
+String _text(Map<String, dynamic> json, String name, String at) {
+  final value = _field<String>(json, name, at);
+  if (value.trim().isEmpty) throw InvalidField(at);
+  return value;
+}
+
+E _choice<E extends Enum>(
+  List<E> values,
+  Map<String, dynamic> json,
+  String name,
+  String at, [
+  String Function(E value)? spell,
+]) {
+  final value = _field<String>(json, name, at);
+  for (final v in values) {
+    if ((spell?.call(v) ?? v.name) == value) return v;
+  }
+  throw InvalidField(at);
+}
+
+/// One credit's terms from [raw], checked by the domain's rules, the first
+/// field at fault thrown as [InvalidField] under [at] (`credits[0]`). The
+/// caller has checked [id]. Shared by catalogue drafts and a household's
+/// own credits.
+BenefitTemplate parseCreditTerms(
+  Map<String, dynamic> raw,
+  String at, {
+  required String id,
+}) {
+  final prefix = at.isEmpty ? '' : '$at.';
+  final cadence = _choice(Cadence.values, raw, 'cadence', '${prefix}cadence');
+  final interval = raw['intervalMonths'];
+  if (interval != null && interval is! int) {
+    throw InvalidField('${prefix}intervalMonths');
+  }
+  if (intervalMonthsError(cadence, '${interval ?? ''}') != null) {
+    throw InvalidField('${prefix}intervalMonths');
+  }
+  final value = _field<int>(raw, 'valueCents', '${prefix}valueCents');
+  if (value <= 0) throw InvalidField('${prefix}valueCents');
+  final spend = raw['spendThresholdCents'];
+  if (spend != null && (spend is! int || spend <= 0)) {
+    throw InvalidField('${prefix}spendThresholdCents');
+  }
+  final endsOn = raw['endsOn'];
+  if (endsOn != null && (endsOn is! String || endsOnError(endsOn) != null)) {
+    throw InvalidField('${prefix}endsOn');
+  }
+  final steps = raw['redemptionSteps'] ?? const <Object>[];
+  if (steps is! List || steps.any((s) => s is! String)) {
+    throw InvalidField('${prefix}redemptionSteps');
+  }
+  final enrollment = raw['enrollmentRequired'] ?? false;
+  if (enrollment is! bool) throw InvalidField('${prefix}enrollmentRequired');
+  for (final optional in ['description', 'merchant', 'notes', 'icon']) {
+    if (raw[optional] != null && raw[optional] is! String) {
+      throw InvalidField('$prefix$optional');
+    }
+  }
+  return BenefitTemplate(
+    id: id,
+    name: _text(raw, 'name', '${prefix}name'),
+    description: raw['description'] as String?,
+    category: _choice(
+      BenefitCategory.values,
+      raw,
+      'category',
+      '${prefix}category',
+      (c) => c == BenefitCategory.feeCredit ? 'fee_credit' : c.name,
+    ),
+    icon: raw['icon'] as String? ?? '',
+    merchant: raw['merchant'] as String?,
+    valueCents: value,
+    cadence: cadence,
+    anchor: _choice(CycleAnchor.values, raw, 'anchor', '${prefix}anchor'),
+    intervalMonths: interval as int?,
+    enrollmentRequired: enrollment,
+    spendThresholdCents: spend as int?,
+    endsOn: endsOn as String?,
+    redemptionSteps: steps.cast<String>(),
+    notes: raw['notes'] as String?,
+  );
+}
+
 /// A draft's body read into a `TemplateVersion` for [templateId], checked
 /// field by field; the first field at fault is thrown as [InvalidField].
 /// [effectiveFrom] is kept when the body names none.
@@ -37,45 +127,19 @@ TemplateVersion parseVersion(
 }) {
   if (body is! Map<String, dynamic>) throw const InvalidField('body');
 
-  T field<T>(Map<String, dynamic> json, String name, String at) {
-    final value = json[name];
-    if (value is! T) throw InvalidField(at);
-    return value;
-  }
-
-  String text(Map<String, dynamic> json, String name, String at) {
-    final value = field<String>(json, name, at);
-    if (value.trim().isEmpty) throw InvalidField(at);
-    return value;
-  }
-
-  E choice<E extends Enum>(
-    List<E> values,
-    Map<String, dynamic> json,
-    String name,
-    String at, [
-    String Function(E value)? spell,
-  ]) {
-    final value = field<String>(json, name, at);
-    for (final v in values) {
-      if ((spell?.call(v) ?? v.name) == value) return v;
-    }
-    throw InvalidField(at);
-  }
-
   final from = body['effectiveFrom'] ?? effectiveFrom;
   if (from is! String || anniversaryError(from) != null) {
     throw const InvalidField('effectiveFrom');
   }
-  final fee = field<int>(body, 'annualFeeCents', 'annualFeeCents');
+  final fee = _field<int>(body, 'annualFeeCents', 'annualFeeCents');
   if (fee < 0) throw const InvalidField('annualFeeCents');
 
   final credits = <BenefitTemplate>[];
   final ids = <String>{};
-  for (final (i, raw) in field<List>(body, 'credits', 'credits').indexed) {
+  for (final (i, raw) in _field<List>(body, 'credits', 'credits').indexed) {
     final at = 'credits[$i]';
     if (raw is! Map<String, dynamic>) throw InvalidField(at);
-    final id = text(raw, 'id', '$at.id');
+    final id = _text(raw, 'id', '$at.id');
     final slash = id.indexOf('/');
     if (slash < 0 ||
         id.substring(0, slash) != templateId ||
@@ -83,60 +147,9 @@ TemplateVersion parseVersion(
         !ids.add(id)) {
       throw InvalidField('$at.id');
     }
-    final cadence = choice(Cadence.values, raw, 'cadence', '$at.cadence');
-    final interval = raw['intervalMonths'];
-    if (interval != null && interval is! int) {
-      throw InvalidField('$at.intervalMonths');
-    }
-    if (intervalMonthsError(cadence, '${interval ?? ''}') != null) {
-      throw InvalidField('$at.intervalMonths');
-    }
-    final value = field<int>(raw, 'valueCents', '$at.valueCents');
-    if (value <= 0) throw InvalidField('$at.valueCents');
-    final spend = raw['spendThresholdCents'];
-    if (spend != null && (spend is! int || spend <= 0)) {
-      throw InvalidField('$at.spendThresholdCents');
-    }
-    final endsOn = raw['endsOn'];
-    if (endsOn != null && (endsOn is! String || endsOnError(endsOn) != null)) {
-      throw InvalidField('$at.endsOn');
-    }
-    final steps = raw['redemptionSteps'] ?? const <Object>[];
-    if (steps is! List || steps.any((s) => s is! String)) {
-      throw InvalidField('$at.redemptionSteps');
-    }
-    final enrollment = raw['enrollmentRequired'] ?? false;
-    if (enrollment is! bool) throw InvalidField('$at.enrollmentRequired');
-    for (final optional in ['description', 'merchant', 'notes']) {
-      if (raw[optional] != null && raw[optional] is! String) {
-        throw InvalidField('$at.$optional');
-      }
-    }
-    credits.add(
-      BenefitTemplate(
-        id: id,
-        name: text(raw, 'name', '$at.name'),
-        description: raw['description'] as String?,
-        category: choice(
-          BenefitCategory.values,
-          raw,
-          'category',
-          '$at.category',
-          (c) => c == BenefitCategory.feeCredit ? 'fee_credit' : c.name,
-        ),
-        icon: text(raw, 'icon', '$at.icon'),
-        merchant: raw['merchant'] as String?,
-        valueCents: value,
-        cadence: cadence,
-        anchor: choice(CycleAnchor.values, raw, 'anchor', '$at.anchor'),
-        intervalMonths: interval as int?,
-        enrollmentRequired: enrollment,
-        spendThresholdCents: spend as int?,
-        endsOn: endsOn as String?,
-        redemptionSteps: steps.cast<String>(),
-        notes: raw['notes'] as String?,
-      ),
-    );
+    final credit = parseCreditTerms(raw, at, id: id);
+    if (credit.icon.isEmpty) throw InvalidField('$at.icon');
+    credits.add(credit);
   }
 
   return TemplateVersion(
@@ -144,10 +157,10 @@ TemplateVersion parseVersion(
     effectiveFrom: from,
     template: CardTemplate(
       id: templateId,
-      issuer: text(body, 'issuer', 'issuer'),
-      product: text(body, 'product', 'product'),
-      network: choice(CardNetwork.values, body, 'network', 'network'),
-      kind: choice(CardKind.values, body, 'kind', 'kind'),
+      issuer: _text(body, 'issuer', 'issuer'),
+      product: _text(body, 'product', 'product'),
+      network: _choice(CardNetwork.values, body, 'network', 'network'),
+      kind: _choice(CardKind.values, body, 'kind', 'kind'),
       annualFeeCents: fee,
       benefits: credits,
     ),
