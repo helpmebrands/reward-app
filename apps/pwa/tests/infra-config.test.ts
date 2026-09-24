@@ -810,7 +810,9 @@ describe('signing material procedure and token record', () => {
 
   // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
   it('records the iOS certificate expiry in the README table', () => {
-    expect(read('docs/runbooks/README.md')).toMatch(/^\| iOS signing \|.*2027-09-24.*\|$/m)
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toMatch(/^\| iOS signing \|.*`F43PSVY32N`.*2027-09-21.*\|$/m)
+    expect(readme).not.toContain('SHU9W3JD44')
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]
