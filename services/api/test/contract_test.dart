@@ -158,6 +158,7 @@ final cases = <Case>[
     url: '/v1/invites/NOSUCH/accept',
   ),
   ...dataCases,
+  ...preferenceCases,
   call(
     'POST',
     '/v1/household/invites',
@@ -517,6 +518,58 @@ final dataCases = <Case>[
     as: 'owner',
     url: () => '/v1/cards/${saved['ownCard']}',
   ),
+];
+
+const _muteCard = '/v1/me/mutes/cards/{cardId}';
+const _muteBenefit = '/v1/me/mutes/benefits/{benefitId}';
+
+/// Preferences and mutes, the reader's own; `linkedCard` and
+/// `linkedBenefit` come from [dataCases].
+final preferenceCases = <Case>[
+  call('GET', '/v1/me/preferences', 200, as: 'reader'),
+  call(
+    'PUT',
+    '/v1/me/preferences',
+    200,
+    as: 'reader',
+    body: {
+      'enabled': true,
+      'timeOfDay': '08:00',
+      'minValueCents': 100,
+      'annualFeeReminder': true,
+      'enrollmentReminder': false,
+    },
+  ),
+  call(
+    'PUT',
+    '/v1/me/preferences',
+    400,
+    as: 'reader',
+    body: {'timeOfDay': 'noon'},
+  ),
+  for (final (path, id, prefix) in [
+    (_muteCard, 'linkedCard', '/v1/me/mutes/cards'),
+    (_muteBenefit, 'linkedBenefit', '/v1/me/mutes/benefits'),
+  ]) ...[
+    call(
+      'PUT',
+      path,
+      204,
+      as: 'reader',
+      url: () => '$prefix/${saved[id]}',
+      body: const {},
+    ),
+    call(
+      'PUT',
+      path,
+      404,
+      as: 'reader',
+      url: '$prefix/$_nobody',
+      body: const {},
+    ),
+    call('DELETE', path, 204, as: 'reader', url: () => '$prefix/${saved[id]}'),
+    call('DELETE', path, 404, as: 'reader', url: '$prefix/$_nobody'),
+  ],
 ];
 
 const _draft = '/v1/admin/catalog/{templateId}/drafts/{version}';

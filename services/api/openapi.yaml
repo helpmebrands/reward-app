@@ -304,6 +304,145 @@ paths:
           $ref: '#/components/responses/Unavailable'
 
 
+  /v1/me/preferences:
+    get:
+      tags: [me]
+      operationId: getPreferences
+      summary: The caller's notification preferences and mutes
+      description: |
+        The member's own, not the household's: the defaults until they
+        change them, and the mutes that name their current household's
+        cards and credits.
+      responses:
+        '200':
+          description: The preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    put:
+      tags: [me]
+      operationId: putPreferences
+      summary: Replace the caller's notification settings
+      description: Readers may set their own; mutes have their own routes and are left as they are.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettings'
+      responses:
+        '200':
+          description: The preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPreferences'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/me/mutes/cards/{cardId}:
+    put:
+      tags: [me]
+      operationId: muteCard
+      summary: Silence a card for the caller only
+      description: Idempotent. Readers may mute; nothing shared changes.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [me]
+      operationId: unmuteCard
+      summary: Hear about a card again
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unmuted, or it was not muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/me/mutes/benefits/{benefitId}:
+    put:
+      tags: [me]
+      operationId: muteBenefit
+      summary: Silence a benefit for the caller only
+      description: Idempotent. Readers may mute; nothing shared changes.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [me]
+      operationId: unmuteBenefit
+      summary: Hear about a benefit again
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unmuted, or it was not muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/household:
     get:
       tags: [household]
@@ -1401,6 +1540,39 @@ components:
           description: When it was spent; now when absent.
         note:
           type: string
+
+    NotificationSettings:
+      type: object
+      required: [enabled, timeOfDay, minValueCents, annualFeeReminder, enrollmentReminder]
+      properties:
+        enabled:
+          type: boolean
+        timeOfDay:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Local time, 24-hour HH:MM.
+        minValueCents:
+          type: integer
+          minimum: 0
+        annualFeeReminder:
+          type: boolean
+        enrollmentReminder:
+          type: boolean
+
+    MemberPreferences:
+      allOf:
+        - $ref: '#/components/schemas/NotificationSettings'
+      type: object
+      required: [mutedCardIds, mutedBenefitIds]
+      properties:
+        mutedCardIds:
+          type: array
+          items:
+            type: string
+        mutedBenefitIds:
+          type: array
+          items:
+            type: string
 
     Role:
       type: string

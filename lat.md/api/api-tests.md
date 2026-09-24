@@ -196,6 +196,30 @@ Another user's edit or delete of the card is 404, and their snapshot is empty.
 
 After a claim on a Gold's credit, deleting the card leaves no card, credit or claim.
 
+## Member preferences
+
+`preferences_integration_test.dart` drives the preference and mute routes as members of one household and an outsider, against `DATABASE_URL` in its own `preferences` schema ([[api-architecture#Member preferences]]).
+
+### A new member reads the defaults
+
+A first `GET /v1/me/preferences` equals `defaultMemberPreferences`, nothing muted.
+
+### Preferences are the member's own
+
+Ann's new time, floor and switches, her card mute and her credit mute read back as hers, while Bob in the same household still reads the defaults; unmuting the card clears it.
+
+### A reader can mute
+
+A reader mutes a card of the household (204, and it reads back) and replaces their settings (200).
+
+### Muting another household's card is not found
+
+An outsider muting the household's card or credit, or an id that does not exist, gets 404.
+
+### Preferences are validated
+
+A time of `25:00`, a negative floor or a switch that is not a boolean answers 400 naming the field.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

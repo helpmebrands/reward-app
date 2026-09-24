@@ -860,6 +860,18 @@ Signed in, the app opens on Today with no sign-in screen.
 
 With `UnconfiguredAuth`, "Continue with Google" stays on sign-in and shows that sign-in is not set up.
 
+## Api config
+
+`api_config_test.dart` covers the build-time define ([[mobile-architecture#Api config]]). Each case skips itself in the run it does not apply to, so the verify gate and `make check` run the file a second time with the define.
+
+### The define sets the api base URL
+
+Run with `--dart-define=API_BASE_URL=https://example.test`, `ApiConfig.baseUrl` is `https://example.test`.
+
+### Without the define the app talks to staging
+
+Run without it, `ApiConfig.baseUrl` is `ApiConfig.stagingUrl`.
+
 ## End to end
 
 `integration_test/app_test.dart` drives the real app on a simulator or emulator through `make e2e` ([[mobile-architecture#Make targets]]); it is not part of the verify gate.

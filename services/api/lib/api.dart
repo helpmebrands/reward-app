@@ -14,6 +14,7 @@ import 'catalog_admin.dart';
 import 'devices.dart';
 import 'household_data.dart';
 import 'households.dart';
+import 'preferences.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
@@ -46,6 +47,7 @@ Api buildApi({Session? db, TokenVerifier? verifier, Uri? inviteLinkBase}) {
   addCatalogRoutes(table, signedIn);
   addCatalogAdminRoutes(table, signedIn);
   addHouseholdDataRoutes(table, signedIn);
+  addPreferenceRoutes(table, signedIn);
   addHouseholdRoutes(
     table,
     signedIn,
