@@ -37,6 +37,11 @@ const secretsKey = config.require('secretsKey')
  * public and a billing account id is a foothold for social engineering. */
 const billingAccount = config.requireSecret('billingAccount')
 const budgetAmount = config.getNumber('budgetAmount') ?? 25
+/** Sign-in credentials, set by hand per runbook 08. Until they are, the
+ * providers are left out rather than failing the preview. */
+const googleOAuthClientId = config.get('googleOAuthClientId') ?? ''
+const googleOAuthClientSecret = config.getSecret('googleOAuthClientSecret')
+const appleServicesId = config.get('appleServicesId') ?? ''
 
 /**
  * The repository permitted to deploy, as `owner/name`.
@@ -78,6 +83,8 @@ const services = [
   'cloudkms.googleapis.com',
   'billingbudgets.googleapis.com',
   'androidpublisher.googleapis.com',
+  'firebase.googleapis.com',
+  'identitytoolkit.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -421,7 +428,8 @@ const apiService = new gcp.cloudrunv2.Service(
             cpuIdle: true,
             startupCpuBoost: true,
           },
-          envs: [databaseUrlEnv],
+          // The project whose Firebase ID tokens sign people in.
+          envs: [databaseUrlEnv, { name: 'FIREBASE_PROJECT_ID', value: project }],
           volumeMounts: [cloudSqlMount],
           startupProbe: {
             tcpSocket: { port: 8080 },
@@ -703,6 +711,61 @@ for (const name of signingSecrets) {
     member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
   })
   signingSecretIds[`SECRET_${name.toUpperCase().replace(/-/g, '_')}`] = secret.secretId
+}
+
+// ---------------------------------------------------------------------------
+// Sign-in: Firebase Authentication on Identity Platform
+// ---------------------------------------------------------------------------
+
+/**
+ * People sign in with Google or Apple through Firebase Authentication on
+ * Identity Platform in this project. Adding Firebase gives the project its
+ * `<project>.firebaseapp.com` auth handler, which both providers redirect to,
+ * and makes the ID tokens the api verifies (issuer
+ * `securetoken.google.com/<project>`, audience the project id).
+ */
+const firebaseProject = new gcp.firebase.Project('firebase', { project }, dependsOnApis)
+
+const identityPlatform = new gcp.identityplatform.Config(
+  'identity-platform',
+  { project, signIn: { allowDuplicateEmails: false } },
+  { dependsOn: [...services, firebaseProject] },
+)
+
+/**
+ * The providers need credentials only a person can create (runbook 08), so
+ * each is declared once its keys are in the stack config. Apple's
+ * `appleSignInConfig` (bundle ids and the code-flow key) has no field in
+ * this provider version and is set by the PATCH in runbook 08; the client
+ * secret Apple needs is minted by Identity Platform from that key, so none
+ * is given here.
+ */
+if (googleOAuthClientId && googleOAuthClientSecret) {
+  new gcp.identityplatform.DefaultSupportedIdpConfig(
+    'idp-google',
+    {
+      project,
+      idpId: 'google.com',
+      clientId: googleOAuthClientId,
+      clientSecret: googleOAuthClientSecret,
+      enabled: true,
+    },
+    { dependsOn: [identityPlatform] },
+  )
+}
+
+if (appleServicesId) {
+  new gcp.identityplatform.DefaultSupportedIdpConfig(
+    'idp-apple',
+    {
+      project,
+      idpId: 'apple.com',
+      clientId: appleServicesId,
+      clientSecret: '',
+      enabled: true,
+    },
+    { dependsOn: [identityPlatform] },
+  )
 }
 
 // ---------------------------------------------------------------------------

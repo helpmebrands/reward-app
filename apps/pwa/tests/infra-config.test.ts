@@ -888,7 +888,7 @@ describe('sign-in', () => {
       expect(project, key).toMatch(new RegExp(`^  ${key}:$`, 'm'))
       expect(read('docs/runbooks/08-sign-in-providers.md'), key).toContain(`reward-app:${key}`)
     }
-    expect(read('infra/Pulumi.staging.yaml')).toMatch(/^  reward-app:appleTeamId: LMFUSVPCDH$/m)
+    expect(read('infra/Pulumi.staging.yaml')).toMatch(/^ {2}reward-app:appleTeamId: LMFUSVPCDH$/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#The api knows its Firebase project]]

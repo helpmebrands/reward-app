@@ -296,6 +296,20 @@ Checked: `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build
 
 The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
 
+### Identity Platform signs people in with Google and Apple
+
+`infra/index.ts` enables the Firebase and Identity Toolkit APIs, adds Firebase to the project, turns on Identity Platform, and declares the `google.com` and `apple.com` providers from the runbook 08 config ([[api-architecture#Sign-in]]).
+
+Each provider is declared only once its keys are set, so the preview passes before the hand steps are done.
+
+### The sign-in credentials are the runbook's keys
+
+`Pulumi.yaml` declares every key runbook 08 sets, and the runbook names each one; the staging stack commits `appleTeamId: LMFUSVPCDH`, which is not secret.
+
+### The api knows its Firebase project
+
+The api service's container sets `FIREBASE_PROJECT_ID` to the stack's project, so the tokens it accepts are this environment's.
+
 ### The api spec is linted as OpenAPI in CI and locally
 
 The `api` job of `verify.yml` and the `api` target of the root `Makefile` both run `npx --yes @redocly/cli@<pinned> lint services/api/openapi.yaml`, so an invalid spec fails review before the contract test reads it ([[api-architecture#Contract]]).

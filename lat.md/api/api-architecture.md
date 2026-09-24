@@ -24,11 +24,23 @@ The spec is linted as OpenAPI by a pinned `npx @redocly/cli` in the `api` CI job
 
 The contract test found that the device routes answered 503 with one shared `Response`, whose body shelf lets be read once; the second request without a database would have failed. `_noDatabase()` now builds a fresh response.
 
+## Sign-in
+
+Every data route acts for a signed-in person: a Firebase ID token from Identity Platform, Google or Apple, sent as `Authorization: Bearer <token>` and verified by the api itself (`lib/auth.dart`). Pinned by [[api-tests#Sign-in]].
+
+`FirebaseTokenVerifier` checks the token the way Firebase documents it: RS256 and nothing else, whatever the header says; a key id Google currently publishes; the signature against that key's certificate; issuer `https://securetoken.google.com/<project>` and audience the project; not expired; `iat` and `auth_time` not in the future beyond five minutes of skew; a non-empty `sub`. `dart_jsonwebtoken` does the signature and the standard claims, approved under rule 9 for this.
+
+`GoogleCertificates` fetches Google's certificates with `dart:io` and keeps them for the `max-age` Google sends, so a request waits on Google only when the keys rotate. The verifier sits behind `TokenVerifier`, and tests sign their own tokens with an `openssl` key made at run time.
+
+`SignedIn` wraps a protected route: no verifier configured is 503 `no auth`, a missing or unverifiable token 401 `unauthenticated`, no database 503 `no database`. Otherwise `callerFor` finds or creates the caller's `users` row (`0003_users.sql`: `id` uuid, `firebase_uid` unique, `email`, `created_at`) and the handler runs with that `Caller`; path parameters come from `request.params`.
+
+`GET /v1/me` returns the caller as `{id, email}`. The server builds the verifier from `FIREBASE_PROJECT_ID`, which Pulumi sets on the api service ([[infra-tests#Infrastructure config#The api knows its Firebase project]]).
+
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
 
-With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped connection is replaced rather than poisoning every later request; without one it serves health only and says so on its startup line, which is what the container smoke test runs against.
+With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped connection is replaced rather than poisoning every later request; without one it serves health only and says so on its startup line, which is what the container smoke test runs against. Without `FIREBASE_PROJECT_ID` it says "no sign-in" and the signed-in routes answer 503.
 
 ## Devices
 

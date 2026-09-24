@@ -45,6 +45,30 @@ config:
   billingAccount:
     type: string
     description: The billing account the project charges to, as XXXXXX-XXXXXX-XXXXXX. Set with `pulumi config set --secret`; the id never appears in plain text in this repository.
+  googleOAuthClientId:
+    type: string
+    description: The web OAuth client id behind Google sign-in (runbook 08). Blank leaves the Google provider out.
+    default: ""
+  googleOAuthClientSecret:
+    type: string
+    description: That client's secret. Set with `pulumi config set --secret`.
+    default: ""
+  appleServicesId:
+    type: string
+    description: The Sign in with Apple Services ID, e.g. com.helpmebrands.reward.signin (runbook 08). Blank leaves the Apple provider out.
+    default: ""
+  appleKeyId:
+    type: string
+    description: The id of the Sign in with Apple key; read by the appleSignInConfig PATCH in runbook 08.
+    default: ""
+  appleServicesKey:
+    type: string
+    description: The Sign in with Apple .p8 private key. Set with `pulumi config set --secret`; read by the PATCH in runbook 08.
+    default: ""
+  appleTeamId:
+    type: string
+    description: The Apple Developer team id; read by the PATCH in runbook 08.
+    default: ""
   budgetAmount:
     type: integer
     description: Monthly budget in USD for the alert on this stack's project. Emails billing-account administrators at 50, 90 and 100 percent.

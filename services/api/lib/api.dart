@@ -8,9 +8,11 @@ import 'dart:io';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 
+import 'auth.dart';
 import 'devices.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
+import 'src/signed_in.dart';
 
 export 'src/routes.dart' show ApiRoute;
 
@@ -29,9 +31,13 @@ class Api {
 /// The api as a shelf handler: the router behind a JSON error for anything
 /// that throws. [db] is the session the storage-backed routes use, a
 /// `Connection` in tests and a `Pool` in the server; without one they
-/// answer 503 while `/health` still serves.
-Api buildApi({Session? db}) {
-  final table = RouteTable()..add('GET', '/health', _health);
+/// answer 503 while `/health` still serves. [verifier] checks the bearer
+/// token on every signed-in route; without one those answer 503 too.
+Api buildApi({Session? db, TokenVerifier? verifier}) {
+  final signedIn = SignedIn(verifier, db);
+  final table = RouteTable()
+    ..add('GET', '/health', _health)
+    ..add('GET', '/v1/me', signedIn(_me));
   addDeviceRoutes(table, db);
   return Api(
     const Pipeline().addMiddleware(_jsonErrors()).addHandler(table.router.call),
@@ -40,7 +46,12 @@ Api buildApi({Session? db}) {
 }
 
 /// [buildApi]'s handler.
-Handler buildHandler({Session? db}) => buildApi(db: db).handler;
+Handler buildHandler({Session? db, TokenVerifier? verifier}) =>
+    buildApi(db: db, verifier: verifier).handler;
+
+/// The signed-in caller, as the api knows them.
+Future<Response> _me(Request request, Caller caller, Session db) async =>
+    jsonResponse(caller.toJson());
 
 /// Liveness for Cloud Run and the smoke tests: always 200 while the process
 /// serves, with the version so a deploy can be told apart from the last one.

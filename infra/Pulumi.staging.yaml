@@ -9,6 +9,7 @@ config:
   reward-app:customDomain: staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state
   reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+  reward-app:appleTeamId: LMFUSVPCDH
   reward-app:billingAccount:
     secure: v1:0CwVeAjXW0fknwpg:SvXrCDvTwmV2Dw6TY83QpwNl/wb/ggzTCZKE6kFN+9Yf3NNk
   github:token:
