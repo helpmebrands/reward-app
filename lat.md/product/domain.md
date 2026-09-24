@@ -190,9 +190,23 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 `apps/pwa/src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
 
-`packages/domain/lib/src/catalog.dart` is generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`, so there is one catalogue. Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
+`packages/domain/lib/src/catalog.dart` was generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`. Since #210 it is edited by hand, because the PWA is frozen and the Dart templates carry stable credit ids the PWA lacks: `<template id>/<slug of the name>`, such as `amex-gold/uber-cash`. It seeds version 1 of the service tier's catalogue ([[domain#Catalogue versions]]). Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
 `enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value; every Global Entry entry is one, at 48 months. An entry whose terms name a last day carries `endsOn`. Each template names its `kind`, which the add-card flow copies onto the new card: Business Platinum is `business`, everything else including `blank` is `personal`. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+
+## Catalogue versions
+
+A card template changes over time, so the catalogue keeps versions of it, and a card linked to a template takes its terms from them rather than holding copies (`packages/domain/lib/src/catalog_versions.dart`).
+
+A `TemplateVersion` is a whole `CardTemplate` with its `version` and `effectiveFrom`; `versionInForce(versions, date)` is the latest whose date has passed. A linked card stores `templateId` and each linked benefit `templateBenefitId`, the stable credit id; `maintainedBy(card)` is `system` for a linked card and `user` otherwise, derived and never stored.
+
+`resolveLinkedBenefit(versions, state, card, on)` builds today's `Benefit` from the household's `LinkedBenefitState` (its own id, which claims point at, enrolment, spend and the flags) and the credit's terms, so selectors, `buildSchedule` and the screens need no change:
+
+- The version in force at the start of the current cycle supplies the terms, so a cycle already running keeps them when a new version lands.
+- A credit added in a version appears from its `effectiveFrom` with that version's terms, locked if it needs enrolment.
+- A credit dropped from a version ends the day before that version's `effectiveFrom`.
+
+Catalogue storage, drafts and publishing live in the service tier (#214, #215); these are the pure rules both sides share.
 
 ## Catalogue filter
 

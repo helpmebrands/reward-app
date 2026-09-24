@@ -6,6 +6,7 @@ BenefitTemplate _credit(
   String? merchant,
   int valueCents = 1000,
 }) => BenefitTemplate(
+  id: 't/credit-1',
   name: name,
   category: BenefitCategory.other,
   icon: 'gift',

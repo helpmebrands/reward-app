@@ -79,7 +79,7 @@ void main() {
         }
       }
       expect(
-        findTemplate('amex-platinum')!.credit('amex-platinum/uber-cash')?.name,
+        findTemplate('amex-gold')!.credit('amex-gold/uber-cash')?.name,
         'Uber Cash',
       );
     });
