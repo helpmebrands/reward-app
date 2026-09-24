@@ -35,7 +35,7 @@ copy. Update it when an environment is added or moved.
 | Deployed from | `develop`: the PWA by `cd.yml`, the api by `cd-api.yml`, each on merges that touch it |
 | First deployed | PWA 2026-09-17; api 2026-09-18 |
 | GitHub token | fine-grained, this repository only, minted by `oravecz` on 2026-09-21, **no expiry**; held as `github:token` on the `staging` and `repo` stacks. Rotate by hand and update this row |
-| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `SHU9W3JD44`, team `LMFUSVPCDH`, both **expire 2027-09-24**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [08](08-mobile-setup.md#later-renewing-the-certificate) and update this row |
+| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `F43PSVY32N` (with Sign in with Apple and Associated Domains), team `LMFUSVPCDH`, both **expire 2027-09-21**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [08](08-mobile-setup.md#later-renewing-the-certificate) and update this row |
 
 ## What owns what
 
