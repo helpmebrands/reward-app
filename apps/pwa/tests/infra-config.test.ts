@@ -213,6 +213,34 @@ describe('runbook README', () => {
   })
 })
 
+describe('runbook 08 sign-in providers', () => {
+  const runbook08 = () => read('docs/runbooks/08-sign-in-providers.md')
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 lists the sign-in hand steps]]
+  it('is indexed and walks through the Google and Apple hand steps', () => {
+    expect(read('docs/runbooks/README.md')).toContain('(08-sign-in-providers.md)')
+    const runbook = runbook08()
+    expect(runbook).toMatch(/^## Google$/m)
+    expect(runbook).toMatch(/^## Apple$/m)
+    expect(runbook).toContain('https://helpme-reward-staging.firebaseapp.com/__/auth/handler')
+    expect(runbook).toContain('Sign in with Apple')
+    expect(runbook).toMatch(/provisioning profile/i)
+    expect(runbook).toContain('appleSignInConfig')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 stores credentials as stack secrets]]
+  it('stores each credential as stack config, the secret ones with --secret', () => {
+    const runbook = runbook08()
+    for (const key of ['googleOAuthClientSecret', 'appleServicesKey']) {
+      expect(runbook, key).toMatch(new RegExp(`pulumi config set --secret reward-app:${key}`))
+    }
+    for (const key of ['googleOAuthClientId', 'appleServicesId', 'appleKeyId']) {
+      expect(runbook, key).toMatch(new RegExp(`pulumi config set reward-app:${key}`))
+    }
+    expect(runbook).not.toMatch(/gcloud secrets versions add/)
+  })
+})
+
 describe('runbooks for two services', () => {
   // @lat: [[infra-tests#Infrastructure config#README records both services and the database]]
   it('records the api service, its job, the database and the secret in the README table', () => {
