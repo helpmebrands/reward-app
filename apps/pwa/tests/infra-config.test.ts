@@ -682,7 +682,7 @@ describe('mobile release workflow', () => {
   it('signs release builds from key.properties and keeps the debug fallback without it', () => {
     const gradle = read('apps/mobile/android/app/build.gradle.kts')
     expect(gradle).toContain('rootProject.file("key.properties")')
-    expect(gradle).toMatch(/java\.util\.Properties\(\)/)
+    expect(gradle).toMatch(/^import java\.util\.Properties$/m)
     const signing = gradle.split(/signingConfigs\s*\{/)[1]?.split(/^ {4}\}/m)[0] ?? ''
     expect(signing).toContain('create("release")')
     for (const key of ['keyAlias', 'keyPassword', 'storeFile', 'storePassword']) {
