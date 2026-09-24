@@ -95,6 +95,14 @@ A card linked to a template stores only the household's own fields (label, kind,
 
 Every write needs an editor or owner (403 for a reader), and an id from another household is 404, never a hint that it exists.
 
+## Member preferences
+
+Notification settings and mutes belong to each member, not the household ([[domain#Member preferences]]), and the server keeps them so it can schedule that member's reminders (`lib/preferences.dart`, `0009_member_preferences.sql`). Pinned by [[api-tests#Member preferences]].
+
+`member_preferences` holds one row per member who has changed anything; without one, `GET /v1/me/preferences` answers `defaultMemberPreferences`. `member_mutes` names a card or a credit, never both, and goes with the row it names. The read returns only mutes on the caller's current household, so a member who moved households does not carry old ids.
+
+`PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. Readers may do all of it, because nothing shared changes.
+
 ## Entrypoint
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
