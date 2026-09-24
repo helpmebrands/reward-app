@@ -35,6 +35,7 @@ Card cardFromJson(Map<String, dynamic> json) => Card(
   issuer: json['issuer'] as String,
   product: json['product'] as String,
   label: json['label'] as String?,
+  templateId: json['templateId'] as String?,
   network: CardNetwork.values.byName(json['network'] as String),
   // Cards saved before version 2 have no kind; a card is personal unless the
   // user says otherwise.
@@ -52,6 +53,7 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'issuer': card.issuer,
   'product': card.product,
   'label': card.label,
+  'templateId': card.templateId,
   'network': card.network.name,
   'kind': card.kind.name,
   'last4': card.last4,
@@ -65,6 +67,7 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
 Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
   id: json['id'] as String,
   cardId: json['cardId'] as String,
+  templateBenefitId: json['templateBenefitId'] as String?,
   name: json['name'] as String,
   description: json['description'] as String?,
   category: _categoryFromJson(json['category'] as String),
@@ -93,6 +96,7 @@ Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
 Map<String, Object?> benefitToJson(Benefit benefit) => _withoutNulls({
   'id': benefit.id,
   'cardId': benefit.cardId,
+  'templateBenefitId': benefit.templateBenefitId,
   'name': benefit.name,
   'description': benefit.description,
   'category': _categoryToJson(benefit.category),

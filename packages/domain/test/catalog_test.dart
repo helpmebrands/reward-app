@@ -46,6 +46,7 @@ void main() {
           annualFeeCents: 0,
           benefits: const [
             BenefitTemplate(
+              id: 't/credit-1',
               name: 'Monthly',
               category: BenefitCategory.other,
               icon: 'x',
@@ -55,6 +56,7 @@ void main() {
               enrollmentRequired: true,
             ),
             BenefitTemplate(
+              id: 't/credit-2',
               name: 'Annual',
               category: BenefitCategory.other,
               icon: 'x',
@@ -168,6 +170,7 @@ void main() {
           annualFeeCents: 0,
           benefits: [
             BenefitTemplate(
+              id: 't/credit-3',
               name: 'Global Entry',
               category: BenefitCategory.travel,
               icon: 'x',
@@ -177,6 +180,7 @@ void main() {
               intervalMonths: 48,
             ),
             BenefitTemplate(
+              id: 't/credit-4',
               name: 'Open',
               category: BenefitCategory.other,
               icon: 'x',
@@ -209,6 +213,7 @@ void main() {
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(
+            id: 't/credit-5',
             name: 'Gated',
             category: BenefitCategory.other,
             icon: 'x',
@@ -218,6 +223,7 @@ void main() {
             spendThresholdCents: 25000000,
           ),
           BenefitTemplate(
+            id: 't/credit-6',
             name: 'Open',
             category: BenefitCategory.other,
             icon: 'x',
@@ -273,6 +279,7 @@ void main() {
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(
+            id: 't/credit-7',
             name: 'Ended',
             category: BenefitCategory.other,
             icon: 'x',
@@ -282,6 +289,7 @@ void main() {
             endsOn: '2026-06-30',
           ),
           BenefitTemplate(
+            id: 't/credit-8',
             name: 'Ending',
             category: BenefitCategory.other,
             icon: 'x',
@@ -291,6 +299,7 @@ void main() {
             endsOn: '2026-12-31',
           ),
           BenefitTemplate(
+            id: 't/credit-9',
             name: 'Open',
             category: BenefitCategory.other,
             icon: 'x',

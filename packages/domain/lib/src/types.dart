@@ -96,6 +96,7 @@ class Card {
     required this.issuer,
     required this.product,
     this.label,
+    this.templateId,
     required this.network,
     required this.kind,
     this.last4,
@@ -118,6 +119,10 @@ class Card {
   /// the display name, which must be unique within the household, so two of
   /// the same product are told apart by it ([defaultLabel], [labelError]).
   final String? label;
+
+  /// The catalogue template this card follows, or null for a card the
+  /// household maintains itself ([maintainedBy]).
+  final String? templateId;
   final CardNetwork network;
   final CardKind kind;
 
@@ -138,6 +143,7 @@ class Card {
     String? issuer,
     String? product,
     Object? label = _unset,
+    Object? templateId = _unset,
     CardNetwork? network,
     CardKind? kind,
     Object? last4 = _unset,
@@ -150,6 +156,9 @@ class Card {
     issuer: issuer ?? this.issuer,
     product: product ?? this.product,
     label: identical(label, _unset) ? this.label : label as String?,
+    templateId: identical(templateId, _unset)
+        ? this.templateId
+        : templateId as String?,
     network: network ?? this.network,
     kind: kind ?? this.kind,
     last4: identical(last4, _unset) ? this.last4 : last4 as String?,
@@ -165,6 +174,7 @@ class Benefit {
   const Benefit({
     required this.id,
     required this.cardId,
+    this.templateBenefitId,
     required this.name,
     this.description,
     required this.category,
@@ -191,6 +201,10 @@ class Benefit {
 
   final Uuid id;
   final Uuid cardId;
+
+  /// The stable id of the catalogue credit this benefit follows
+  /// (`BenefitTemplate.id`), or null for a credit the household maintains.
+  final String? templateBenefitId;
   final String name;
   final String? description;
   final BenefitCategory category;
@@ -255,6 +269,7 @@ class Benefit {
   /// out.
   Benefit copyWith({
     String? cardId,
+    Object? templateBenefitId = _unset,
     String? name,
     Object? description = _unset,
     BenefitCategory? category,
@@ -279,6 +294,9 @@ class Benefit {
   }) => Benefit(
     id: id,
     cardId: cardId ?? this.cardId,
+    templateBenefitId: identical(templateBenefitId, _unset)
+        ? this.templateBenefitId
+        : templateBenefitId as String?,
     name: name ?? this.name,
     description: identical(description, _unset)
         ? this.description
