@@ -860,6 +860,10 @@ Signed in, the app opens on Today with no sign-in screen.
 
 With `UnconfiguredAuth`, "Continue with Google" stays on sign-in and shows that sign-in is not set up.
 
+### Staging Firebase options are built in
+
+`firebase_config_test.dart` checks that an iOS and an Android build with no `--dart-define`s get staging's Firebase app id, API key, project and bundle id, and that macOS gets none.
+
 ## Api store
 
 `api_store_test.dart` drives the store in its service-tier mode over a fake api that dedupes claims by idempotency key as the real one does, with an in-memory cache and outbox ([[mobile-architecture#The store#The service tier]]).

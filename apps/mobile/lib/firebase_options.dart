@@ -18,13 +18,22 @@ abstract final class FirebaseConfig {
     'FIREBASE_SENDER_ID',
     defaultValue: '133269731559',
   );
-  static const _iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
-  static const _iosApiKey = String.fromEnvironment('FIREBASE_IOS_API_KEY');
+  // Staging's, from `pulumi stack output` (firebaseIosAppId, …).
+  static const _iosAppId = String.fromEnvironment(
+    'FIREBASE_IOS_APP_ID',
+    defaultValue: '1:133269731559:ios:40cae6fc6e557ad9a38a42',
+  );
+  static const _iosApiKey = String.fromEnvironment(
+    'FIREBASE_IOS_API_KEY',
+    defaultValue: 'AIzaSyAzJMzkT8NEivP1U-Vwn5I1rNyjyjO2S2o',
+  );
   static const _androidAppId = String.fromEnvironment(
     'FIREBASE_ANDROID_APP_ID',
+    defaultValue: '1:133269731559:android:ecc28dcb9ef24847a38a42',
   );
   static const _androidApiKey = String.fromEnvironment(
     'FIREBASE_ANDROID_API_KEY',
+    defaultValue: 'AIzaSyDTYAeCUtpiqfIrvR5OCkM3ctomeouGtgI',
   );
 
   static FirebaseOptions? get currentPlatform {
