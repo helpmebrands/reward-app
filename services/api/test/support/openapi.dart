@@ -101,7 +101,7 @@ Map<String, dynamic> _deref(
 /// Every way [value] breaks [schema], as `path: reason`; empty when it fits.
 /// Covers what `openapi.yaml` uses: `$ref`, `type` (one or a list),
 /// `properties`, `required`, `additionalProperties`, `items`, `enum`,
-/// `const`, `oneOf`, `minLength` and `pattern`.
+/// `const`, `allOf`, `oneOf`, `minLength` and `pattern`.
 List<String> validate(
   Map<String, dynamic> spec,
   Map<String, dynamic> schema,
@@ -161,6 +161,12 @@ List<String> validate(
       errors.addAll(
         validate(spec, s['items'] as Map<String, dynamic>, value[i], '$at[$i]'),
       );
+    }
+  }
+  final allOf = s['allOf'];
+  if (allOf is List) {
+    for (final part in allOf) {
+      errors.addAll(validate(spec, part as Map<String, dynamic>, value, at));
     }
   }
   final oneOf = s['oneOf'];

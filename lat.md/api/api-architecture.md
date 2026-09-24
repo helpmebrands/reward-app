@@ -6,13 +6,23 @@ A shelf handler behind a small entrypoint, compiled ahead of time into a single 
 
 ## Handler
 
-`buildHandler` in `lib/api.dart` returns the api as one shelf `Handler`: a `shelf_router` router behind middleware that turns any uncaught error into a JSON 500, so a client never sees a stack trace.
+`buildApi` in `lib/api.dart` returns the api's shelf `Handler` and the routes it serves; `buildHandler` is that handler: a `shelf_router` router behind middleware that turns any uncaught error into a JSON 500, so a client never sees a stack trace.
 
 It takes an optional Postgres `Session` for the storage-backed routes: a `Connection` in tests, a `Pool` in the server, and none at all when only liveness is wanted, in which case those routes answer 503 `{"error":"no database"}` rather than pretending ([[api-tests#Devices#Without a database the device routes answer 503]]).
 
 `GET /health` is liveness for Cloud Run and the smoke tests: 200 with `{"status":"ok","version":…}` while the process serves, the version carried so a deploy can be told apart from the last one. Pinned by [[api-tests#Health]].
 
 Not `/healthz`: Google's frontend answers exactly that path itself on `run.app` hosts with its own 404 page, and the request never reaches the container; `/health`, `/livez` and `/readyz` all pass through. The error middleware writes every caught error and stack to stderr before answering 500, because a 500 on Cloud Run with nothing in the log is undiagnosable.
+
+## Contract
+
+`services/api/openapi.yaml` is the api's contract: OpenAPI 3.1, hand-written and spec-first, documenting every route, parameter, body and status. Nothing is generated from it; the Dart models stay hand-written on the domain's `json.dart` spelling.
+
+Routes are added through `RouteTable` (`lib/src/routes.dart`), a `shelf_router` `Router` that also records each method and path, because the router keeps its routes private. `test/contract_test.dart` holds that list to the spec in both directions and drives every documented status of every operation through the handler, validating each body against its schema; only `500` is documented without a case. Pinned by [[api-tests#Contract]].
+
+The spec is linted as OpenAPI by a pinned `npx @redocly/cli` in the `api` CI job and `make api` ([[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]). Every later route lands in the spec in the same pull request as its code. Operations that need no sign-in say `security: []`.
+
+The contract test found that the device routes answered 503 with one shared `Response`, whose body shelf lets be read once; the second request without a database would have failed. `_noDatabase()` now builds a fresh response.
 
 ## Entrypoint
 

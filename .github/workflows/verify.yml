@@ -256,6 +256,12 @@ jobs:
         run: dart analyze --fatal-infos
         working-directory: services/api
 
+      # The hand-written contract must be valid OpenAPI 3.1 before the
+      # contract test holds the router to it. Pinned, so a Redocly release
+      # cannot change what passes.
+      - name: Lint the OpenAPI spec
+        run: npx --yes @redocly/cli@2.53.3 lint services/api/openapi.yaml
+
       - name: Test
         run: dart test
         working-directory: services/api
