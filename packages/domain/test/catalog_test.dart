@@ -254,7 +254,6 @@ void main() {
       expect(benefits.first.cardId, 'card-9');
       expect(benefits.first.name, template.benefits.first.name);
       expect(benefits.first.active, isTrue);
-      expect(benefits.first.muted, isFalse);
       expect(benefits.first.createdAt, '2026-09-16T00:00:00.000Z');
       final locked = benefits
           .where((b) => b.enrollmentRequired)

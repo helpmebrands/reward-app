@@ -121,9 +121,11 @@ void main() {
       );
     });
 
-    test('marks a credit muted when its card is muted', () {
-      final data = makeData(cards: [makeCard(muted: true)]);
-      expect(currentInstances(data, today).first.muted, isTrue);
+    test('marks a credit muted when the member muted its card', () {
+      final prefs = defaultMemberPreferences.copyWith(
+        mutedCardIds: {'card-1'},
+      );
+      expect(currentInstances(makeData(), today, prefs).first.muted, isTrue);
     });
   });
 
@@ -428,6 +430,31 @@ void main() {
         expect(summary.feeProgress, closeTo(0.1117, 0.0005));
       },
     );
+  });
+
+  // @lat: [[tests#Member preferences#Mutes come from the member, not the household]]
+  test('an instance is muted by the member’s card or benefit mute', () {
+    final data = makeData(
+      benefits: [
+        makeBenefit(Cadence.monthly, id: 'x'),
+        makeBenefit(Cadence.monthly, id: 'y'),
+      ],
+    );
+    bool mutedFor(MemberPreferences? prefs, String id) => currentInstances(
+      data,
+      today,
+      prefs,
+    ).firstWhere((i) => i.benefit.id == id).muted;
+    expect(mutedFor(null, 'x'), isFalse);
+    final benefitMute = defaultMemberPreferences.copyWith(
+      mutedBenefitIds: {'x'},
+    );
+    expect(mutedFor(benefitMute, 'x'), isTrue);
+    expect(mutedFor(benefitMute, 'y'), isFalse);
+    final cardMute = defaultMemberPreferences.copyWith(
+      mutedCardIds: {'card-1'},
+    );
+    expect(mutedFor(cardMute, 'y'), isTrue);
   });
 
   group('display names', () {

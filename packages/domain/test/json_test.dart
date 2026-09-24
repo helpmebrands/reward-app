@@ -16,13 +16,40 @@ void main() {
     expect(data.benefits, hasLength(24));
     expect(data.claims, hasLength(20));
     expect(data.benefits.first.merchant, 'Uber');
-    // The frozen PWA still writes `holder` and `holderFilter`; Dart drops them.
+    // The frozen PWA still writes `holder`, `holderFilter`, the mutes and the
+    // notification block; Dart drops them, since reminders are a member's.
     final expected = jsonDecode(raw) as Map<String, dynamic>;
     for (final card in expected['cards'] as List) {
       (card as Map).remove('holder');
+      card.remove('muted');
     }
-    (expected['settings'] as Map).remove('holderFilter');
+    for (final benefit in expected['benefits'] as List) {
+      (benefit as Map).remove('muted');
+    }
+    final settings = expected['settings'] as Map;
+    settings.remove('holderFilter');
+    settings.remove('notifications');
     expect(jsonDecode(jsonEncode(appDataToJson(data))), expected);
+  });
+
+  // @lat: [[tests#Member preferences#Member preferences round-trip]]
+  test('member preferences round-trip, mutes as sorted lists', () {
+    final prefs = defaultMemberPreferences.copyWith(
+      enabled: true,
+      timeOfDay: '07:30',
+      minValueCents: 500,
+      annualFeeReminder: false,
+      mutedCardIds: {'c2', 'c1'},
+      mutedBenefitIds: {'b1'},
+    );
+    final json = memberPreferencesToJson(prefs);
+    expect(json['mutedCardIds'], ['c1', 'c2']);
+    final back = memberPreferencesFromJson(
+      jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+    );
+    expect(memberPreferencesToJson(back), json);
+    expect(back.mutedCardIds, {'c1', 'c2'});
+    expect(back.enrollmentReminder, isTrue);
   });
 
   // @lat: [[tests#Card labels#A label round-trips and is omitted when absent]]
