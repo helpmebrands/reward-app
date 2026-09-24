@@ -519,7 +519,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
               title: 'Silence this credit',
               note: 'Keeps tracking it, sends nothing.',
               label: 'Silence this credit',
-              value: current.muted,
+              value: store.isBenefitMuted(current.id),
               onChanged: (_) => store.toggleBenefitMute(current.id),
             ),
             OutlinedButton.icon(

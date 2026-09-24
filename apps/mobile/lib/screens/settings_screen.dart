@@ -35,17 +35,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _minValueFocus = FocusNode(debugLabel: 'min-value');
 
   AppStore get store => widget.store;
-  NotificationSettings? get _notifications =>
-      store.data?.settings.notifications;
+  MemberPreferences get _notifications => store.preferences;
 
   @override
   void initState() {
     super.initState();
     final current = _notifications;
-    if (current != null) {
-      _time.text = current.timeOfDay;
-      _minValue.text = (current.minValueCents / 100).toString();
-    }
+    _time.text = current.timeOfDay;
+    _minValue.text = (current.minValueCents / 100).toString();
     _time.addListener(_changed);
     _minValue.addListener(_changed);
   }
@@ -64,17 +61,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   /// Writes every valid draft; an invalid minimum waits, showing its error.
   void _changed() {
     final current = _notifications;
-    if (current == null) return;
     final time = _time.text.trim();
     final cents = parseMoney(_minValue.text);
-    final patch = <NotificationSettings Function(NotificationSettings)>[
+    final patch = <MemberPreferences Function(MemberPreferences)>[
       if (_timeValid(time) && time != current.timeOfDay)
         (n) => n.copyWith(timeOfDay: time),
       if (cents != null && cents >= 0 && cents != current.minValueCents)
         (n) => n.copyWith(minValueCents: cents),
     ];
     if (patch.isNotEmpty) {
-      store.updateNotificationSettings((n) => patch.fold(n, (n, p) => p(n)));
+      store.updatePreferences((n) => patch.fold(n, (n, p) => p(n)));
     }
     setState(() {});
   }
@@ -130,7 +126,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
-    final n = settings.notifications;
+    final n = store.preferences;
 
     Widget title(String value) => Semantics(
       header: true,
@@ -150,9 +146,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'not twelve.',
           label: 'Send me reminders',
           value: n.enabled,
-          onChanged: (next) => store.updateNotificationSettings(
-            (n) => n.copyWith(enabled: next),
-          ),
+          onChanged: (next) =>
+              store.updatePreferences((n) => n.copyWith(enabled: next)),
         ),
         if (n.enabled) ...[
           const SizedBox(height: Space.s4),
@@ -201,7 +196,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'about money you cannot yet spend.',
             label: 'Nudge me about locked credits',
             value: n.enrollmentReminder,
-            onChanged: (next) => store.updateNotificationSettings(
+            onChanged: (next) => store.updatePreferences(
               (n) => n.copyWith(enrollmentReminder: next),
             ),
           ),

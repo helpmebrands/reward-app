@@ -115,6 +115,22 @@ A single-credit reminder on a card labelled "Travel card" reads "Uber Cash at Ub
 
 `label` reads and writes under its own key, and a card without one writes no key.
 
+## Member preferences
+
+`reminders_test.dart`, `selectors_test.dart` and `json_test.dart` pin the split of reminder settings and mutes from the household ([[domain#Member preferences]]).
+
+### Two members of one household get their own schedules
+
+Two cards with a monthly credit each; the member with nothing muted is reminded about both, the member who muted the first card only about the second.
+
+### Mutes come from the member, not the household
+
+Without preferences no instance is muted; a benefit mute marks only that credit, and a card mute marks every credit on the card.
+
+### Member preferences round-trip
+
+Every field reads back as written, and the muted ids write as sorted lists so the same preferences always give the same JSON.
+
 ## Snapshot JSON
 
 `packages/domain/test/json_test.dart` pins the codec for the persisted snapshot, which the Flutter store and any export share with the PWA's stored record and export file.

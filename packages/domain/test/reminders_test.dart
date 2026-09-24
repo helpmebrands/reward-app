@@ -278,7 +278,10 @@ void main() {
     // @lat: [[tests#Member preferences#Two members of one household get their own schedules]]
     test('one household scheduled for two members differs by their mutes', () {
       final household = makeData(
-        cards: [makeCard(id: 'a'), makeCard(id: 'b', label: 'Second')],
+        cards: [
+          makeCard(id: 'a'),
+          makeCard(id: 'b', label: 'Second'),
+        ],
         benefits: [
           makeBenefit(Cadence.monthly, id: 'x', cardId: 'a', name: 'Uber'),
           makeBenefit(Cadence.monthly, id: 'y', cardId: 'b', name: 'Resy'),
@@ -288,14 +291,13 @@ void main() {
       final kathy = withNotifications(household, mutedCardIds: {'a'});
       final forJim = schedule(jim, now).reminders;
       final forKathy = schedule(kathy, now).reminders;
-      expect(
-        forJim.expand((r) => r.items).map((i) => i.benefitId).toSet(),
-        {'x', 'y'},
-      );
-      expect(
-        forKathy.expand((r) => r.items).map((i) => i.benefitId).toSet(),
-        {'y'},
-      );
+      expect(forJim.expand((r) => r.items).map((i) => i.benefitId).toSet(), {
+        'x',
+        'y',
+      });
+      expect(forKathy.expand((r) => r.items).map((i) => i.benefitId).toSet(), {
+        'y',
+      });
     });
 
     test('skips a cycle that has already been fully claimed', () {
@@ -417,10 +419,7 @@ void main() {
           ],
         ),
       );
-      final times = schedule(
-        data,
-        now,
-      ).reminders.map((r) => r.fireAt).toList();
+      final times = schedule(data, now).reminders.map((r) => r.fireAt).toList();
       expect(times, [...times]..sort());
     });
   });

@@ -37,7 +37,7 @@ class CreditActions {
 
   /// Silences or unsilences one credit, with an undo.
   Future<void> toggleMute(BenefitInstance instance) async {
-    final wasMuted = instance.benefit.muted;
+    final wasMuted = store.isBenefitMuted(instance.benefit.id);
     final id = instance.benefit.id;
     final name = instance.benefit.name;
     await store.toggleBenefitMute(id);

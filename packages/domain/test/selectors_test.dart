@@ -122,9 +122,7 @@ void main() {
     });
 
     test('marks a credit muted when the member muted its card', () {
-      final prefs = defaultMemberPreferences.copyWith(
-        mutedCardIds: {'card-1'},
-      );
+      final prefs = defaultMemberPreferences.copyWith(mutedCardIds: {'card-1'});
       expect(currentInstances(makeData(), today, prefs).first.muted, isTrue);
     });
   });

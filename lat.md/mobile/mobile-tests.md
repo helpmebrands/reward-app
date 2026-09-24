@@ -586,9 +586,9 @@ The blank template with `issuer` and `product` overrides yields a card named by 
 
 `updateCard` applies the `copyWith` patch (label, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
 
-### Mute and archive are card patches
+### Mute is the member's and archive is a card patch
 
-`toggleCardMute` flips `muted` each call and `archiveCard` sets `archived`, after which `hasCards` is false; three calls, three notifications.
+`toggleCardMute` adds then removes the card in the saved `MemberPreferences` and leaves the household's JSON as it was; `archiveCard` sets `archived`, after which `hasCards` is false; three notifications.
 
 ### Deleting a card cascades
 
@@ -600,7 +600,11 @@ With two cards, three benefits and three claims, `deleteCard` leaves the other c
 
 ### Benefit patches stamp updatedAt
 
-`updateBenefit` applies a name and value patch and stamps `updatedAt`; `toggleBenefitMute` flips `muted`; two notifications.
+`updateBenefit` applies a name and value patch and stamps `updatedAt`; one notification.
+
+### Muting a credit leaves the household alone
+
+`toggleBenefitMute` saves the credit's id in the member's preferences, leaves the household's JSON unchanged, marks the instance muted, and notifies once.
 
 ### Enrolment is confirmed and revoked
 
@@ -628,7 +632,7 @@ On a $25 credit with $10 claimed, `claim` without an amount records $15 with the
 
 ### Settings patches keep the rest
 
-`updateSettings` changes the horizon and theme; `updateNotificationSettings` turns reminders on at a new time, keeps the floor, and leaves the horizon as set.
+`updateSettings` changes the horizon and theme; `updatePreferences` turns reminders on at a new time, keeps the floor, saves the preferences apart from the snapshot, and leaves the horizon as set.
 
 ### A write before load wins
 

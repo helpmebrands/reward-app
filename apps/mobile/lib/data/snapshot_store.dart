@@ -3,16 +3,9 @@ import 'dart:convert';
 import 'package:domain/domain.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// The PWA's defaults: reminders off at 09:00, early enough to act on the day
-/// and late enough not to wake anyone, a $1 floor, a 30-day use-soon horizon.
+/// The PWA's defaults: a 30-day use-soon horizon. Reminder settings are the
+/// member's, from `defaultMemberPreferences`.
 const Settings defaultSettings = Settings(
-  notifications: NotificationSettings(
-    enabled: false,
-    timeOfDay: '09:00',
-    minValueCents: 100,
-    annualFeeReminder: true,
-    enrollmentReminder: true,
-  ),
   useSoonDays: 30,
   theme: ThemeSetting.system,
 );
@@ -40,14 +33,26 @@ abstract interface class SnapshotStore {
   Future<AppData?> load();
 
   Future<void> save(AppData data);
+
+  /// This member's saved preferences, or null when none are saved yet.
+  /// Never throws, for the same reason as [load].
+  Future<MemberPreferences?> loadPreferences();
+
+  /// Kept apart from the snapshot: the household's data is shared, a
+  /// member's reminder settings and mutes are not.
+  Future<void> savePreferences(MemberPreferences preferences);
 }
 
 /// The snapshot as one JSON string in shared preferences, under the same key
 /// the PWA uses for its record.
 class SharedPreferencesSnapshotStore implements SnapshotStore {
-  const SharedPreferencesSnapshotStore({this.key = 'app-data'});
+  const SharedPreferencesSnapshotStore({
+    this.key = 'app-data',
+    this.preferencesKey = 'member-preferences',
+  });
 
   final String key;
+  final String preferencesKey;
 
   @override
   Future<AppData?> load() async {
@@ -66,17 +71,46 @@ class SharedPreferencesSnapshotStore implements SnapshotStore {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(key, jsonEncode(appDataToJson(data)));
   }
+
+  @override
+  Future<MemberPreferences?> loadPreferences() async {
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final raw = preferences.getString(preferencesKey);
+      if (raw == null) return null;
+      return memberPreferencesFromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } on Object {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> savePreferences(MemberPreferences member) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      preferencesKey,
+      jsonEncode(memberPreferencesToJson(member)),
+    );
+  }
 }
 
 /// A store that keeps the snapshot in memory: tests and previews.
 class MemorySnapshotStore implements SnapshotStore {
-  MemorySnapshotStore([this.data]);
+  MemorySnapshotStore([this.data, this.preferences]);
 
   AppData? data;
+  MemberPreferences? preferences;
 
   @override
   Future<AppData?> load() async => data;
 
   @override
   Future<void> save(AppData data) async => this.data = data;
+
+  @override
+  Future<MemberPreferences?> loadPreferences() async => preferences;
+
+  @override
+  Future<void> savePreferences(MemberPreferences preferences) async =>
+      this.preferences = preferences;
 }

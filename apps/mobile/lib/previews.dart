@@ -45,7 +45,6 @@ Card _card(String id, String label, {CardKind kind = CardKind.personal}) =>
       kind: kind,
       annualFeeCents: 89500,
       anniversaryOn: '2021-03-14',
-      muted: false,
       archived: false,
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
@@ -76,7 +75,6 @@ Benefit _benefit(
   spendThresholdCents: spendThresholdCents,
   endsOn: endsOn,
   redemptionSteps: const [],
-  muted: false,
   lastCallOnly: false,
   active: true,
   createdAt: '2026-01-01T00:00:00.000Z',
@@ -151,17 +149,7 @@ AppData _household() => AppData(
       claimedAt: '2026-09-10T12:00:00.000Z',
     ),
   ],
-  settings: const Settings(
-    notifications: NotificationSettings(
-      enabled: false,
-      timeOfDay: '09:00',
-      minValueCents: 100,
-      annualFeeReminder: true,
-      enrollmentReminder: true,
-    ),
-    useSoonDays: 30,
-    theme: ThemeSetting.system,
-  ),
+  settings: const Settings(useSoonDays: 30, theme: ThemeSetting.system),
 );
 
 AppStore _store() {
@@ -650,7 +638,7 @@ Widget settingsOff() =>
 @Preview(name: 'Settings, reminders on', size: Size(402, 1100))
 Widget settingsOn() {
   final store = _store();
-  store.updateNotificationSettings((n) => n.copyWith(enabled: true));
+  store.updatePreferences((p) => p.copyWith(enabled: true));
   return _themed(SettingsScreen(store: store, ui: UiState()), Brightness.dark);
 }
 

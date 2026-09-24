@@ -25,9 +25,17 @@ Two of the same product are told apart by their labels. `defaultLabel` proposes 
 
 - `anniversaryOn` anchors anniversary cycles and the annual-fee countdown. Only month and day matter for recurrence.
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).
-- `muted` silences every credit on the card without losing their state. `archived` hides the card and its credits from every selector.
+- `archived` hides the card and its credits from every selector. Silencing a card is a member's choice, not the card's ([[domain#Member preferences]]).
 - `last4` is display only; a full PAN is never stored.
 - `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. The add-card catalogue can be filtered by kind ([[domain#Catalogue filter]]); the Cards screen cannot. A snapshot from before `kind` existed loads with every card `personal` ([[architecture#Persistence]]).
+
+## Member preferences
+
+The household's cards, credits and claims are shared by its members; reminder settings and mutes are not, so `MemberPreferences` holds one member's.
+
+They are whether reminders are on, the time of day, the value floor, the annual-fee and enrolment switches, and the muted card and credit ids.
+
+`isMuted(benefit)` is true when the member muted the credit or its card. `buildSchedule(data, prefs)` and `currentInstances(data, on, prefs)` read them, so one household scheduled for two members gives two schedules, and one member's mute leaves the household's data untouched (#209). The Dart domain dropped the PWA's `Card.muted`, `Benefit.muted` and `Settings.notifications`; the codec ignores them in the PWA's sample. `defaultMemberPreferences` are the PWA's defaults: off, 09:00, a $1 floor, both switches on, nothing muted.
 
 ## Benefit
 
@@ -39,7 +47,7 @@ Fields with behaviour behind them:
 - `enrollmentRequired` with no `enrolledAt` makes the credit `locked` ([[domain#Status ladder#Locked is not unclaimed]]).
 - `spendThresholdCents` is the second kind of lock: spend the issuer asks for in a year before the credit opens (Business Platinum's $250K credits, the Dell bonus). Until `spendMetAt` falls inside the current year the credit is `locked` for spend ([[domain#Status ladder#A spend threshold is the other lock]]).
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
-- `muted` silences reminders for this credit only; `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]).
+- `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]). Silencing a credit is a member's choice ([[domain#Member preferences]]).
 - `active: false` keeps history but stops tracking.
 - `endsOn` is the last day the credit can be used, for credits the issuer has announced an end to (Grubhub, Instacart). The final window is clamped to it and nothing follows ([[domain#Cycle]]); afterwards the credit is skipped the way an inactive one is, while its final shortfall stays in the [[domain#Missed ledger]]. `annualValueCents` is not prorated for a credit ending mid-year.
 

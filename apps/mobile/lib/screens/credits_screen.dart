@@ -48,7 +48,7 @@ List<BenefitInstance> missedRows(AppStore store) {
         remainingCents: entry.missedCents,
         daysRemaining: -1,
         cycleProgress: 1,
-        muted: entry.benefit.muted || entry.card.muted,
+        muted: store.preferences.isMuted(entry.benefit),
       ),
   ];
 }
