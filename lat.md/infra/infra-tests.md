@@ -296,6 +296,10 @@ Checked: `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build
 
 The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
 
+### The api spec is linted as OpenAPI in CI and locally
+
+The `api` job of `verify.yml` and the `api` target of the root `Makefile` both run `npx --yes @redocly/cli@<pinned> lint services/api/openapi.yaml`, so an invalid spec fails review before the contract test reads it ([[api-architecture#Contract]]).
+
 ### Verify gate builds and smoke-tests the api
 
 `verify.yml` has an `api` job that analyses and tests `services/api`, builds `services/api/Dockerfile` from the repository root and requests `/health` from the running container, so a broken image fails review rather than the deploy ([[api-architecture#Container]]).

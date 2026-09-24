@@ -1,0 +1,187 @@
+openapi: 3.1.0
+info:
+  title: HelpMe Reward api
+  version: 0.1.0
+  summary: The service tier behind the HelpMe Reward app.
+  description: |
+    Hand-written and spec-first: every route, parameter and body is
+    documented here before it is served, and `test/contract_test.dart`
+    holds the router and every response to this file. Nothing is generated
+    from it. Bodies are JSON in the domain's snapshot spelling
+    (`packages/domain/lib/src/json.dart`).
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://reward-api-bduraqeztq-uc.a.run.app
+    description: staging
+tags:
+  - name: health
+    description: Liveness.
+  - name: devices
+    description: Push-device registration.
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      security: []
+      summary: Liveness
+      description: |
+        200 while the process serves, with the version so a deploy can be
+        told apart from the last one. Not `/healthz`, which Google's
+        frontend answers itself on `run.app` hosts.
+      responses:
+        '200':
+          description: The process is serving.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /v1/devices:
+    post:
+      tags: [devices]
+      operationId: registerDevice
+      security: []
+      summary: Register a device for push
+      description: |
+        Upserts by token: a repeat registration replaces the installation,
+        platform and zone. The zone must be known to Postgres's
+        `pg_timezone_names`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Device'
+      responses:
+        '200':
+          description: Registered; the stored fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NoDatabase'
+
+  /v1/devices/{token}:
+    delete:
+      tags: [devices]
+      operationId: unregisterDevice
+      security: []
+      summary: Unregister a device
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: The FCM token the device registered under.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/NoDatabase'
+
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status, version]
+      additionalProperties: false
+      properties:
+        status:
+          const: ok
+        version:
+          type: string
+          description: The api's package version.
+
+    Device:
+      type: object
+      required: [token, installationId, platform, timezone]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: The FCM registration token.
+        installationId:
+          type: string
+          minLength: 1
+          description: An id the app generated for its own installation.
+        platform:
+          type: string
+          enum: [ios, android]
+        timezone:
+          type: string
+          minLength: 1
+          description: An IANA zone name, such as `Europe/London`.
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: A short machine-readable reason.
+
+    InvalidField:
+      type: object
+      required: [error, field]
+      additionalProperties: false
+      properties:
+        error:
+          const: invalid
+        field:
+          type: string
+          description: The first field that is missing, blank or malformed; `body` when the body is not a JSON object.
+
+  responses:
+    Invalid:
+      description: A field is missing, blank or malformed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InvalidField'
+    NotFound:
+      description: Nothing is stored under that id.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: not found
+    NoDatabase:
+      description: The process has no database, so storage-backed routes cannot answer.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: no database
+    Internal:
+      description: Anything uncaught; the detail goes to the log, never to the client.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: internal

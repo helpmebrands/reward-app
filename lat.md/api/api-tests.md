@@ -14,6 +14,38 @@ What the api's `dart test` suite in `services/api/test/` guards, run by the `api
 
 A path the router does not know returns 404 rather than falling through to anything.
 
+## Contract
+
+`contract_test.dart` holds `openapi.yaml` and the router to each other ([[api-architecture#Contract]]).
+
+Its helpers are in `test/support/`: the spec loader (`yaml`, a dev dependency), a validator for the subset of JSON Schema the spec uses, and `openMigratedSchema`, which gives a suite its own migrated schema.
+
+### The spec is OpenAPI 3.1
+
+`openapi.yaml` parses, declares `openapi: 3.1.x`, has a title and documents at least one operation.
+
+### Every route is documented and every operation served
+
+Every route `buildApi().routes` lists is an operation in the spec, with `<param>` read as `{param}`, and every documented operation is served.
+
+### An undocumented route fails the contract
+
+Adding `GET /v1/secret/<id>` to the served routes makes `undocumentedRoutes` report `GET /v1/secret/{id}`, so a route added without its documentation fails.
+
+### Every documented status is driven
+
+Each operation's documented statuses, except `500`, have a case in the contract's list, so documenting a status without exercising it fails.
+
+### The schema check catches a wrong body
+
+The `Device` schema accepts a valid device and rejects one with platform `web` or without a token, so a passing contract means the bodies were really checked.
+
+### Responses match the documented schemas
+
+Every case answers its status with a body that validates against the documented schema, or no body where none is documented.
+
+Without a database that is the 503s and `/health`; against `DATABASE_URL`, in the suite's own `contract` schema, the 200, 204, 400 and 404 answers.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

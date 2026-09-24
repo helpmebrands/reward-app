@@ -7,23 +7,40 @@ import 'dart:io';
 
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
 
 import 'devices.dart';
 import 'src/responses.dart';
+import 'src/routes.dart';
+
+export 'src/routes.dart' show ApiRoute;
 
 /// The version the health route reports, bumped with `pubspec.yaml`.
 const String apiVersion = '0.1.0';
 
+/// The api: its handler, and the routes it serves, which the contract test
+/// holds against `openapi.yaml`.
+class Api {
+  const Api(this.handler, this.routes);
+
+  final Handler handler;
+  final List<ApiRoute> routes;
+}
+
 /// The api as a shelf handler: the router behind a JSON error for anything
 /// that throws. [db] is the session the storage-backed routes use, a
 /// `Connection` in tests and a `Pool` in the server; without one they
-/// answer 503 while `/healthz` still serves.
-Handler buildHandler({Session? db}) {
-  final router = Router()..get('/health', _health);
-  addDeviceRoutes(router, db);
-  return const Pipeline().addMiddleware(_jsonErrors()).addHandler(router.call);
+/// answer 503 while `/health` still serves.
+Api buildApi({Session? db}) {
+  final table = RouteTable()..add('GET', '/health', _health);
+  addDeviceRoutes(table, db);
+  return Api(
+    const Pipeline().addMiddleware(_jsonErrors()).addHandler(table.router.call),
+    List.unmodifiable(table.routes),
+  );
 }
+
+/// [buildApi]'s handler.
+Handler buildHandler({Session? db}) => buildApi(db: db).handler;
 
 /// Liveness for Cloud Run and the smoke tests: always 200 while the process
 /// serves, with the version so a deploy can be told apart from the last one.
