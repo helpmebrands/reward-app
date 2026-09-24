@@ -215,14 +215,8 @@ describe('runbook README', () => {
 
 describe('runbook 08 mobile setup', () => {
   const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
-  const part = (title: RegExp) =>
-    runbook08()
-      .split(title)[1]
-      ?.split(/^## /m)[0] ?? ''
-  const step = (title: RegExp) =>
-    runbook08()
-      .split(title)[1]
-      ?.split(/^##+ /m)[0] ?? ''
+  const part = (title: RegExp) => runbook08().split(title)[1]?.split(/^## /m)[0] ?? ''
+  const step = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 is the one mobile setup flow]]
   it('replaces the sign-in runbook with one setup flow, a part per platform and one for both', () => {
@@ -735,10 +729,7 @@ describe('runbook 01 keeps the two Pulumi projects apart', () => {
 
 describe('signing material procedure and token record', () => {
   const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
-  const section = (title: RegExp) =>
-    runbook08()
-      .split(title)[1]
-      ?.split(/^##+ /m)[0] ?? ''
+  const section = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 leaves setup to runbook 08]]
   it('keeps runbook 07 to releasing and points it at runbook 08 for setup', () => {
