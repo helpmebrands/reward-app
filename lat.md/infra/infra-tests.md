@@ -306,6 +306,10 @@ Each provider is declared only once its keys are set, so the preview passes befo
 
 `infra/index.ts` declares a Firebase Apple app and Android app for `com.helpmebrands.reward` and exports each app id, each API key read from the app's config file, and the iOS URL scheme, which the app's Firebase options are copied from ([[mobile-architecture#Sign-in]]).
 
+### Invite links have the api's own domain
+
+`infra/index.ts` maps `apiCustomDomain` to the api service and sets `INVITE_LINK_BASE` and `ANDROID_SHA256_FINGERPRINTS` on it; the staging stack sets `apiCustomDomain` to `api.staging.helpmereward.com` ([[api-architecture#Invite links]]).
+
 ### The sign-in credentials are the runbook's keys
 
 `Pulumi.yaml` declares every key runbook 08 sets, and the runbook names each one; the staging stack commits `appleTeamId: LMFUSVPCDH`, which is not secret.

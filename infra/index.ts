@@ -27,6 +27,12 @@ const serviceName = config.get('serviceName') ?? 'reward-app'
 const minInstances = config.getNumber('minInstances') ?? 0
 const maxInstances = config.getNumber('maxInstances') ?? 4
 const customDomain = config.get('customDomain') ?? ''
+/** The api's own domain, which invite links point at: iOS and Android only
+ * hand a link to the app when the domain serves their association files. */
+const apiCustomDomain = config.get('apiCustomDomain') ?? ''
+/** SHA-256 fingerprints of the Android signing certificates, comma separated,
+ * for assetlinks.json; empty until the Play signing key exists (#115). */
+const androidSha256Fingerprints = config.get('androidSha256Fingerprints') ?? ''
 const apiServiceName = config.get('apiServiceName') ?? 'reward-api'
 const dbTier = config.get('dbTier') ?? 'db-f1-micro'
 /** Bootstrapped by hand before the stack exists (runbook 01); the deployer is
@@ -429,8 +435,17 @@ const apiService = new gcp.cloudrunv2.Service(
             cpuIdle: true,
             startupCpuBoost: true,
           },
-          // The project whose Firebase ID tokens sign people in.
-          envs: [databaseUrlEnv, { name: 'FIREBASE_PROJECT_ID', value: project }],
+          envs: [
+            databaseUrlEnv,
+            // The project whose Firebase ID tokens sign people in.
+            { name: 'FIREBASE_PROJECT_ID', value: project },
+            // Where an invite's link points, and which Android certificates
+            // may open it.
+            ...(apiCustomDomain
+              ? [{ name: 'INVITE_LINK_BASE', value: `https://${apiCustomDomain}/invite/` }]
+              : []),
+            { name: 'ANDROID_SHA256_FINGERPRINTS', value: androidSha256Fingerprints },
+          ],
           volumeMounts: [cloudSqlMount],
           startupProbe: {
             tcpSocket: { port: 8080 },
@@ -819,6 +834,25 @@ const domainMapping = customDomain
     )
   : undefined
 
+/**
+ * The api's domain, for invite links. Same prerequisite as the app's: the
+ * parent domain verified in Search Console and a CNAME to
+ * ghs.googlehosted.com (runbook 03).
+ */
+const apiDomainMapping = apiCustomDomain
+  ? new gcp.cloudrun.DomainMapping(
+      'api-domain',
+      {
+        project,
+        location: region,
+        name: apiCustomDomain,
+        metadata: { namespace: project, labels: tags },
+        spec: { routeName: apiService.name },
+      },
+      dependsOnApis,
+    )
+  : undefined
+
 // ---------------------------------------------------------------------------
 // GitHub: this stack's environment
 // ---------------------------------------------------------------------------
@@ -967,6 +1001,9 @@ export const firebaseAndroidApiKey = androidConfig.configFileContents.apply(
 export const firebaseIosUrlScheme = firebaseIos.appId.apply(
   (id) => `app-${id.replace(/:/g, '-')}`,
 )
+export const apiCustomDomainStatus = apiDomainMapping
+  ? apiDomainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
+  : pulumi.output('not configured')
 export const customDomainStatus = domainMapping
   ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')

@@ -2,6 +2,8 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/household_api.dart';
+import '../data/share.dart';
 import '../logic/app_store.dart';
 import '../logic/session.dart';
 import '../logic/ui_state.dart';
@@ -11,6 +13,7 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/editor_scaffold.dart';
 import '../widgets/field.dart';
 import '../widgets/switch_row.dart';
+import 'join_screen.dart';
 
 /// Settings: reminder preferences, the ladder table and the theme.
 ///
@@ -37,6 +40,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _minValue = TextEditingController();
   final _timeFocus = FocusNode(debugLabel: 'time');
   final _minValueFocus = FocusNode(debugLabel: 'min-value');
+
+  /// The invite just made, shown until the screen is left.
+  Invite? _invite;
+
+  Future<void> _createInvite() async {
+    final role = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => const _InviteRoleSheet(),
+    );
+    if (role == null) return;
+    final invite = await store.createInvite(role);
+    if (invite == null || !mounted) return;
+    setState(() => _invite = invite);
+    await shareText(
+      'Join my household on HelpMe Reward: ${invite.link}\n'
+      'Or enter the code ${invite.code} under “Have an invite code?”.',
+    );
+  }
+
+  Future<void> _remove(HouseholdMember member) async {
+    final who = member.email ?? 'this member';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Remove $who?'),
+        content: const Text(
+          'They lose access at once and take nothing with them.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await store.removeMember(member.userId);
+  }
+
+  Future<void> _enterCode() async {
+    final code = await askForInviteCode(context);
+    if (code != null && mounted) context.go(invitePath(code));
+  }
 
   AppStore get store => widget.store;
   MemberPreferences get _notifications => store.preferences;
@@ -278,6 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           'rather than inventing a second palette.',
           style: note,
         ),
+        if (store.remote) ..._householdSection(context, title, note),
         if (widget.session case final session?) ...[
           const SizedBox(height: Space.s8),
           title('Account'),
@@ -296,4 +347,126 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ],
     );
   }
+
+  List<Widget> _householdSection(
+    BuildContext context,
+    Widget Function(String) title,
+    TextStyle? note,
+  ) {
+    final text = Theme.of(context).textTheme;
+    final household = store.household;
+    final owner = household?.role == MemberRole.owner;
+    final invite = _invite;
+    return [
+      const SizedBox(height: Space.s8),
+      title('Household'),
+      const SizedBox(height: Space.s2),
+      Text(
+        'Everyone here shares the same cards and credits. Reminders and '
+        'silences stay each person’s own.',
+        style: note,
+      ),
+      const SizedBox(height: Space.s3),
+      for (final member in household?.members ?? const <HouseholdMember>[])
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: Space.s1),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(member.email ?? 'Someone', style: text.bodyMedium),
+              ),
+              Text(_roleLabel(member.role), style: note),
+              if (owner && member.role != MemberRole.owner)
+                IconButton(
+                  tooltip: 'Remove ${member.email ?? 'this member'}',
+                  icon: const Icon(Icons.person_remove_outlined),
+                  onPressed: () => _remove(member),
+                ),
+            ],
+          ),
+        ),
+      const SizedBox(height: Space.s3),
+      Wrap(
+        spacing: Space.s2,
+        runSpacing: Space.s2,
+        children: [
+          if (owner)
+            FilledButton.icon(
+              key: const Key('invite'),
+              onPressed: _createInvite,
+              icon: const Icon(Icons.person_add_outlined),
+              label: const Text('Invite someone'),
+            ),
+          TextButton(
+            key: const Key('have-code'),
+            onPressed: _enterCode,
+            child: const Text('Have an invite code?'),
+          ),
+        ],
+      ),
+      if (invite != null) ...[
+        const SizedBox(height: Space.s3),
+        Text(
+          'Share the link, or read out the code. It works once, for seven '
+          'days, and lets them ${invite.role == 'edit' ? 'change' : 'view'} '
+          'the household.',
+          style: note,
+        ),
+        const SizedBox(height: Space.s2),
+        SelectableText(
+          invite.code,
+          style: text.headlineSmall?.copyWith(letterSpacing: 4),
+        ),
+      ],
+    ];
+  }
+}
+
+String _roleLabel(MemberRole role) => switch (role) {
+  MemberRole.owner => 'Owner',
+  MemberRole.editor => 'Editor',
+  MemberRole.reader => 'Reader',
+};
+
+/// Read or edit, then make the invite.
+class _InviteRoleSheet extends StatefulWidget {
+  const _InviteRoleSheet();
+
+  @override
+  State<_InviteRoleSheet> createState() => _InviteRoleSheetState();
+}
+
+class _InviteRoleSheetState extends State<_InviteRoleSheet> {
+  String _role = 'read';
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: const EdgeInsets.all(Space.s6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Invite someone',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: Space.s4),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'read', label: Text('Can read')),
+              ButtonSegment(value: 'edit', label: Text('Can edit')),
+            ],
+            selected: {_role},
+            onSelectionChanged: (s) => setState(() => _role = s.single),
+          ),
+          const SizedBox(height: Space.s4),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(_role),
+            child: const Text('Create and share'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

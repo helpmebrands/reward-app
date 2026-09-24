@@ -81,6 +81,27 @@ const device = {
 /// generated ([signedInCases]).
 final cases = <Case>[
   call('GET', '/health', 200, needsDatabase: false),
+  call(
+    'GET',
+    '/.well-known/apple-app-site-association',
+    200,
+    needsDatabase: false,
+  ),
+  call('GET', '/.well-known/assetlinks.json', 200, needsDatabase: false),
+  call(
+    'GET',
+    '/invite/{code}',
+    200,
+    url: '/invite/ABCD2345',
+    needsDatabase: false,
+  ),
+  call(
+    'GET',
+    '/invite/{code}',
+    404,
+    url: '/invite/nope!',
+    needsDatabase: false,
+  ),
   call('GET', '/v1/me', 200, as: 'owner', capture: keep('owner', 'id')),
   call('POST', '/v1/devices', 200, body: device),
   call('POST', '/v1/devices', 400, body: {...device}..remove('platform')),
@@ -790,6 +811,12 @@ Future<List<String>> check(
   final content = documented['content'] as Map<String, dynamic>?;
   if (content == null) {
     return text.isEmpty ? const [] : ['$label: body where none is documented'];
+  }
+  if (content.containsKey('text/html')) {
+    return (response.headers['content-type'] ?? '').startsWith('text/html') &&
+            text.isNotEmpty
+        ? const []
+        : ['$label: not an HTML page'];
   }
   if (!(response.headers['content-type'] ?? '').startsWith(
     'application/json',

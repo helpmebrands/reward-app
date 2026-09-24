@@ -886,6 +886,42 @@ A cache written with the previous `householdCacheVersion` is cleared on load, le
 
 For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
 
+## Household sharing
+
+`household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `shareText` captured ([[mobile-architecture#Household sharing]]).
+
+### An owner shares an invite
+
+The owner sees themselves as Owner; "Invite someone", "Can edit" and "Create and share" make one edit invite, share a text with its link and code, and show the code.
+
+### Only an owner invites and removes
+
+An editor sees the members but no invite button and no remove button.
+
+### A code joins the household
+
+"Have an invite code?" with a lower-case code opens the join screen for it in capitals; "Join this household" accepts it, lands on Today with "You joined the household." and the invite's role.
+
+### A link opens the join screen
+
+Opening `/invite/ZZZZ2222` shows the join screen for that code.
+
+### A signed-out link joins after sign-in
+
+Signed out, the link shows sign-in; signing in lands on the join screen for the code.
+
+### Used, expired and unknown codes say so
+
+An expired, a used and an unknown code each stay on the join screen with their own sentence.
+
+### Leaving cards behind asks first
+
+When the current household holds cards the join asks "Leave your cards behind?", and "Leave and join" repeats it with `confirmLeave` and lands on Today.
+
+### An owner removes a member
+
+The owner's remove button for a member, confirmed, removes them from the api and the list.
+
 ## Api config
 
 `api_config_test.dart` covers the build-time define ([[mobile-architecture#Api config]]). Each case skips itself in the run it does not apply to, so the verify gate and `make check` run the file a second time with the define.

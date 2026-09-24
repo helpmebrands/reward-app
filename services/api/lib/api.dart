@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 
+import 'app_links.dart';
 import 'auth.dart';
 import 'catalog.dart';
 import 'catalog_admin.dart';
@@ -38,12 +39,18 @@ class Api {
 /// `Connection` in tests and a `Pool` in the server; without one they
 /// answer 503 while `/health` still serves. [verifier] checks the bearer
 /// token on every signed-in route; without one those answer 503 too.
-Api buildApi({Session? db, TokenVerifier? verifier, Uri? inviteLinkBase}) {
+Api buildApi({
+  Session? db,
+  TokenVerifier? verifier,
+  Uri? inviteLinkBase,
+  AppLinks? appLinks,
+}) {
   final signedIn = SignedIn(verifier, db);
   final table = RouteTable()
     ..add('GET', '/health', _health)
     ..add('GET', '/v1/me', signedIn(_me));
   addDeviceRoutes(table, db);
+  addAppLinkRoutes(table, appLinks ?? AppLinks.fromEnvironment(const {}));
   addCatalogRoutes(table, signedIn);
   addCatalogAdminRoutes(table, signedIn);
   addHouseholdDataRoutes(table, signedIn);
@@ -67,10 +74,12 @@ Handler buildHandler({
   Session? db,
   TokenVerifier? verifier,
   Uri? inviteLinkBase,
+  AppLinks? appLinks,
 }) => buildApi(
   db: db,
   verifier: verifier,
   inviteLinkBase: inviteLinkBase,
+  appLinks: appLinks,
 ).handler;
 
 /// The signed-in caller, as the api knows them.
