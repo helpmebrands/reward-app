@@ -36,6 +36,8 @@ dependencies:
   domain:
     path: ../../packages/domain
   go_router: ^18.0.1
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
 
 dev_dependencies:
   flutter_test:
