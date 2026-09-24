@@ -27,7 +27,9 @@ The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves 
 
 ## Api config
 
-The app finds the service tier through one constant, `ApiConfig.baseUrl` in `lib/data/api_config.dart`: `String.fromEnvironment('API_BASE_URL')` at build time, defaulting to the staging api (`ApiConfig.stagingUrl`, `https://reward-api-bduraqeztq-uc.a.run.app`) for a local run.
+The app finds the service tier through one constant, `ApiConfig.baseUrl` in `lib/data/api_config.dart`: `String.fromEnvironment('API_BASE_URL')` at build time, the staging api by default.
+
+The default is `ApiConfig.stagingUrl`, `https://reward-api-bduraqeztq-uc.a.run.app`, so a local run needs nothing.
 
 The release pipeline builds each environment with its own `--dart-define=API_BASE_URL=…` (epic #129); `make run`, `make test` and the verify gate need no define. Pinned by [[mobile-tests#Api config]].
 
