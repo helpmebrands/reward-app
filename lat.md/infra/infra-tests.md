@@ -189,7 +189,7 @@ The workflow calls both, so the store logic is reviewable code beside the app ra
 
 ### Release builds sign with the upload key from key.properties
 
-`apps/mobile/android/app/build.gradle.kts` loads `rootProject.file("key.properties")` into a `Properties` when it exists, declares a `release` signing config from its four keys, and the `release` build type uses it, falling back to the debug config without the file.
+`apps/mobile/android/app/build.gradle.kts` loads `key.properties` when it exists, declares a `release` signing config from its four keys, and the `release` build type uses it, falling back to the debug config without the file.
 
 Play refuses a debug-signed bundle, and both the laptop build in runbook 08 and `release-mobile.yml` write `key.properties` and expect Gradle to read it (#115). The fallback keeps `flutter run --release` and the verify job working with no secrets.
 
