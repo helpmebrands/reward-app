@@ -24,6 +24,8 @@ tags:
     description: The signed-in caller.
   - name: household
     description: The caller's household, its members and invites.
+  - name: catalog
+    description: The versioned card catalogue.
 security:
   - firebase: []
 
@@ -65,6 +67,57 @@ paths:
                 $ref: '#/components/schemas/User'
         '401':
           $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/catalog:
+    get:
+      tags: [catalog]
+      operationId: getCatalog
+      summary: Every template as it stands today
+      description: |
+        Each template's latest published version whose `effectiveFrom` has
+        passed, by the database's date. Drafts never appear.
+      responses:
+        '200':
+          description: The catalogue.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/catalog/{templateId}:
+    get:
+      tags: [catalog]
+      operationId: getTemplateVersions
+      summary: Every published version of one template
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The template's published versions, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateHistory'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/Internal'
         '503':
@@ -334,6 +387,96 @@ components:
           type: string
           minLength: 1
           description: An IANA zone name, such as `Europe/London`.
+
+    TemplateCredit:
+      type: object
+      description: One credit of a template version, in the domain's spelling (`BenefitTemplate`).
+      required: [id, name, category, icon, valueCents, cadence, anchor, enrollmentRequired, redemptionSteps]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9-]+/[a-z0-9-]+$'
+          description: Stable across versions, `<template id>/<slug>`.
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [travel, dining, shopping, entertainment, rideshare, wellness, lodging, airline, streaming, fee_credit, other]
+        icon:
+          type: string
+        merchant:
+          type: string
+        valueCents:
+          type: integer
+          minimum: 1
+        cadence:
+          type: string
+          enum: [monthly, quarterly, semiannual, annual, rolling, manual]
+        anchor:
+          type: string
+          enum: [calendar, anniversary]
+        intervalMonths:
+          type: integer
+        enrollmentRequired:
+          type: boolean
+        spendThresholdCents:
+          type: integer
+        endsOn:
+          type: string
+          format: date
+        redemptionSteps:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    TemplateVersion:
+      type: object
+      description: A whole card template as of one version.
+      required: [id, version, effectiveFrom, issuer, product, network, kind, annualFeeCents, credits]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        kind:
+          type: string
+          enum: [personal, business]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+
+    TemplateHistory:
+      type: object
+      required: [id, versions]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVersion'
 
     Role:
       type: string

@@ -144,6 +144,38 @@ void main() {
     });
   });
 
+  group('json', () {
+    // @lat: [[tests#Catalogue versions#Templates and versions round-trip as JSON]]
+    test('every catalogue template round-trips as a version', () {
+      for (final template in cardTemplates) {
+        final version = TemplateVersion(
+          version: 3,
+          effectiveFrom: '2026-10-15',
+          template: template,
+        );
+        final json = templateVersionToJson(version);
+        expect(json['id'], template.id);
+        expect(json['version'], 3);
+        expect(json['effectiveFrom'], '2026-10-15');
+        final back = templateVersionFromJson(json);
+        expect(templateVersionToJson(back), json, reason: template.id);
+        expect(back.template.benefits.length, template.benefits.length);
+      }
+      final gold = templateVersionToJson(
+        TemplateVersion(
+          version: 1,
+          effectiveFrom: '2000-01-01',
+          template: findTemplate('amex-gold')!,
+        ),
+      );
+      final uber = (gold['credits'] as List)
+          .cast<Map<String, Object?>>()
+          .firstWhere((c) => c['id'] == 'amex-gold/uber-cash');
+      expect(uber['cadence'], 'monthly');
+      expect(uber.containsKey('endsOn'), isFalse);
+    });
+  });
+
   group('maintainedBy', () {
     // @lat: [[tests#Catalogue versions#A template link makes a card system-maintained]]
     test('is derived from the template link', () {
