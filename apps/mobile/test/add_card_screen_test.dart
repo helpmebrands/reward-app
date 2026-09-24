@@ -11,8 +11,9 @@ import 'package:reward/main.dart';
 import 'package:reward/screens/add_card_screen.dart';
 import 'package:reward/shell/router.dart';
 
-/// Add a card: pick a product, say whose it is and when the cardmember year
-/// turns over, with the form rules applied the way the PWA applies them.
+/// Add a card: pick a product, label it when the household already holds
+/// one, and say when the cardmember year turns over, with the form rules
+/// applied the way the PWA applies them.
 
 AppData sampleHousehold() => appDataFromJson(
   jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
@@ -73,7 +74,7 @@ Future<void> pickPlatinum(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder get holder => find.byKey(const Key('field-holder'));
+Finder get label => find.byKey(const Key('field-label'));
 Finder get anniversary => find.byKey(const Key('field-anniversary'));
 Finder get save => find.text('Add this card');
 
@@ -100,7 +101,11 @@ void main() {
     expect(find.text('2 of 2'), findsOneWidget);
     expect(find.text('Fields marked * are required.'), findsOneWidget);
 
-    await tester.enterText(holder, 'Kathy');
+    // The sample household holds two Platinums already.
+    expect(
+      tester.widget<TextField>(label).controller!.text,
+      'American Express Platinum (1)',
+    );
     await tester.enterText(anniversary, '2024-05-01');
     final before = app.store.data!.cards.length;
     await tester.tap(save);
@@ -109,7 +114,7 @@ void main() {
     final cards = app.store.data!.cards;
     expect(cards, hasLength(before + 1));
     final card = cards.last;
-    expect(card.holder, 'Kathy');
+    expect(card.label, 'American Express Platinum (1)');
     expect(card.anniversaryOn, '2024-05-01');
     expect(card.issuer, template.issuer);
     expect(card.product, template.product);
@@ -129,35 +134,39 @@ void main() {
     expect(find.byType(AddCardScreen), findsNothing);
   });
 
-  // @lat: [[mobile-tests#Add a card#An empty holder is named and focused on submit]]
+  const taken =
+      'Another card is already called American Express Platinum. '
+      'Enter a different label.';
+
+  // @lat: [[mobile-tests#Add a card#A label another card shows is named and focused on submit]]
   testWidgets(
-    'submitting with an empty holder shows the error and focuses it',
+    'submitting a label another card already shows names it and focuses it',
     (tester) async {
       final app = await pumpAdd(tester);
       await pickPlatinum(tester);
 
-      await tester.enterText(holder, '');
+      await tester.enterText(label, 'American Express Platinum');
       await tester.pumpAndSettle();
-      expect(find.text('Enter whose card this is.'), findsNothing);
+      expect(find.text(taken), findsNothing);
 
       final before = app.store.data!.cards.length;
       await tester.tap(save);
       await tester.pumpAndSettle();
 
-      expect(find.text('Enter whose card this is.'), findsOneWidget);
+      expect(find.text(taken), findsOneWidget);
       expect(app.store.data!.cards, hasLength(before));
       final focused = FocusManager.instance.primaryFocus!;
       expect(
         find.ancestor(
           of: find.byWidget(focused.context!.widget),
-          matching: holder,
+          matching: label,
         ),
         findsOneWidget,
       );
 
-      await tester.enterText(holder, 'Kathy');
+      await tester.enterText(label, 'Kathy’s Platinum');
       await tester.pumpAndSettle();
-      expect(find.text('Enter whose card this is.'), findsNothing);
+      expect(find.text(taken), findsNothing);
       await tester.tap(save);
       await tester.pumpAndSettle();
       expect(app.store.data!.cards, hasLength(before + 1));
@@ -165,20 +174,20 @@ void main() {
   );
 
   // @lat: [[mobile-tests#Add a card#Typing shows no error before blur]]
-  testWidgets('clearing the holder shows no error until it is left', (
+  testWidgets('typing a taken label shows no error until it is left', (
     tester,
   ) async {
     await pumpAdd(tester);
     await pickPlatinum(tester);
 
-    await tester.tap(holder);
-    await tester.enterText(holder, '');
+    await tester.tap(label);
+    await tester.enterText(label, 'American Express Platinum');
     await tester.pumpAndSettle();
-    expect(find.text('Enter whose card this is.'), findsNothing);
+    expect(find.text(taken), findsNothing);
 
     await tester.tap(anniversary);
     await tester.pumpAndSettle();
-    expect(find.text('Enter whose card this is.'), findsOneWidget);
+    expect(find.text(taken), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Add a card#A bad date shows the domain's sentence]]
@@ -189,7 +198,7 @@ void main() {
       await pickPlatinum(tester);
 
       await tester.enterText(anniversary, '2026-13-40');
-      await tester.tap(holder);
+      await tester.tap(label);
       await tester.pumpAndSettle();
 
       expect(
@@ -221,7 +230,7 @@ void main() {
     expect(find.text('1 of 2'), findsOneWidget);
 
     await pickPlatinum(tester);
-    await tester.enterText(holder, 'Someone new');
+    await tester.enterText(label, 'Someone new');
     await tester.pumpAndSettle();
     expect(await tester.binding.handlePopRoute(), isTrue);
     await tester.pumpAndSettle();
@@ -242,27 +251,27 @@ void main() {
   });
 
   // @lat: [[mobile-tests#Add a card#Short fields pair from expanded]]
-  testWidgets('holder and anniversary share a row at 1280, stack at 402', (
+  testWidgets('label and anniversary share a row at 1280, stack at 402', (
     tester,
   ) async {
     await pumpAdd(tester);
     await pickPlatinum(tester);
     expect(
       tester.getTopLeft(anniversary).dy,
-      greaterThan(tester.getBottomLeft(holder).dy - 1),
+      greaterThan(tester.getBottomLeft(label).dy - 1),
     );
 
     await pumpAdd(tester, size: const Size(1280, 800));
     await pickPlatinum(tester);
-    expect(tester.getTopLeft(anniversary).dy, tester.getTopLeft(holder).dy);
+    expect(tester.getTopLeft(anniversary).dy, tester.getTopLeft(label).dy);
     expect(
       tester.getTopLeft(anniversary).dx,
-      greaterThan(tester.getBottomRight(holder).dx),
+      greaterThan(tester.getBottomRight(label).dx),
     );
     final button = find.widgetWithText(OutlinedButton, 'Add this card');
     expect(
       tester.getSize(button).width,
-      greaterThan(tester.getSize(holder).width * 1.5),
+      greaterThan(tester.getSize(label).width * 1.5),
     );
   });
 
@@ -293,7 +302,6 @@ void main() {
     await tester.tap(business);
     await tester.pumpAndSettle();
 
-    await tester.enterText(holder, 'Kathy');
     await tester.enterText(anniversary, '2024-05-01');
     await tester.tap(save);
     await tester.pumpAndSettle();
@@ -316,7 +324,6 @@ void main() {
 
     await tester.enterText(find.byKey(const Key('field-issuer')), 'Chase');
     await tester.enterText(find.byKey(const Key('field-product')), 'Sapphire');
-    await tester.enterText(holder, 'Kathy');
     await tester.tap(save);
     await tester.pumpAndSettle();
 
@@ -367,7 +374,6 @@ void main() {
 
       await tester.enterText(find.byKey(const Key('field-issuer')), 'Chase');
       await tester.enterText(find.byKey(const Key('field-product')), 'Freedom');
-      await tester.enterText(holder, 'Kathy');
       await tester.tap(save);
       await tester.pumpAndSettle();
       final card = app.store.data!.cards.last;

@@ -189,8 +189,8 @@ void main() {
   });
 
   group('findOverlaps, the same credit held twice', () {
-    final jim = makeCard(id: 'jim', holder: 'Jim');
-    final kathy = makeCard(id: 'kathy', holder: 'Kathy');
+    final jim = makeCard(id: 'jim', label: 'Jim’s Platinum');
+    final kathy = makeCard(id: 'kathy', label: 'Kathy’s Platinum');
 
     test('flags one credit carried by two cards in the household', () {
       final data = makeData(
@@ -214,9 +214,9 @@ void main() {
       expect(overlaps, hasLength(1));
       expect(overlaps.first.label, 'Resy Dining Credit');
       expect(overlaps.first.sameProduct, isTrue);
-      expect(overlaps.first.instances.map((i) => i.card.holder).toList(), [
-        'Jim',
-        'Kathy',
+      expect(overlaps.first.instances.map((i) => cardLabel(i.card)).toList(), [
+        'Jim’s Platinum',
+        'Kathy’s Platinum',
       ]);
     });
 
@@ -224,12 +224,7 @@ void main() {
       final data = makeData(
         cards: [
           jim,
-          makeCard(
-            id: 'chase',
-            holder: 'Kathy',
-            issuer: 'Chase',
-            product: 'Reserve',
-          ),
+          makeCard(id: 'chase', issuer: 'Chase', product: 'Reserve'),
         ],
         benefits: [
           makeBenefit(
@@ -435,19 +430,117 @@ void main() {
     );
   });
 
-  group('cardLabel', () {
+  group('display names', () {
+    // @lat: [[tests#Card labels#A card shows its label or its product name]]
     test(
-      'names the holder, because the household holds the same product twice',
+      'a card without a label shows its product name, one with a label shows the label',
       () {
-        expect(
-          cardLabel(makeCard(holder: 'Kathy')),
-          'American Express Platinum — Kathy',
-        );
+        expect(cardLabel(makeCard()), 'American Express Platinum');
+        expect(cardLabel(makeCard(label: 'The travel one')), 'The travel one');
+        expect(cardLabel(makeCard(label: '')), 'American Express Platinum');
       },
     );
 
-    test('prefers a nickname when the user has set one', () {
-      expect(cardLabel(makeCard(nickname: 'The travel one')), 'The travel one');
+    // @lat: [[tests#Card labels#A duplicate product proposes a numbered label]]
+    test('the second card of a product proposes (1), the third (2)', () {
+      final first = makeCard(id: 'a');
+      expect(defaultLabel([], 'American Express', 'Platinum'), isNull);
+      expect(
+        defaultLabel([first], 'American Express', 'Platinum'),
+        'American Express Platinum (1)',
+      );
+      final second = makeCard(id: 'b', label: 'American Express Platinum (1)');
+      expect(
+        defaultLabel([first, second], 'American Express', 'Platinum'),
+        'American Express Platinum (2)',
+      );
+      expect(
+        defaultLabel([first, second], 'Chase', 'Sapphire Reserve'),
+        isNull,
+      );
+    });
+
+    // @lat: [[tests#Card labels#Deleting a card renames nothing]]
+    test(
+      'deleting the first of three identical cards leaves the other labels',
+      () {
+        final cards = [
+          makeCard(id: 'a'),
+          makeCard(id: 'b', label: 'American Express Platinum (1)'),
+          makeCard(id: 'c', label: 'American Express Platinum (2)'),
+        ];
+        final remaining = cards.skip(1).toList();
+        expect(remaining.map(cardLabel).toList(), [
+          'American Express Platinum (1)',
+          'American Express Platinum (2)',
+        ]);
+        // The product name is free again, so a fourth card needs no number.
+        expect(defaultLabel(remaining, 'American Express', 'Platinum'), isNull);
+      },
+    );
+
+    // @lat: [[tests#Card labels#A label may not repeat another card's display name]]
+    test('refuses a label that is another card’s display name', () {
+      final cards = [makeCard(id: 'a'), makeCard(id: 'b', label: 'Travel')];
+      expect(
+        labelError(
+          'Travel',
+          cards: cards,
+          issuer: 'American Express',
+          product: 'Platinum',
+          cardId: 'a',
+        ),
+        contains('Travel'),
+      );
+      expect(
+        labelError(
+          'american express platinum ',
+          cards: cards,
+          issuer: 'American Express',
+          product: 'Platinum',
+          cardId: 'b',
+        ),
+        isNotNull,
+      );
+      // Its own name, a fresh name, and a blank label on a free product pass.
+      expect(
+        labelError(
+          'Travel',
+          cards: cards,
+          issuer: 'American Express',
+          product: 'Platinum',
+          cardId: 'b',
+        ),
+        isNull,
+      );
+      expect(
+        labelError(
+          'Everyday',
+          cards: cards,
+          issuer: 'American Express',
+          product: 'Platinum',
+        ),
+        isNull,
+      );
+      expect(
+        labelError(
+          '',
+          cards: cards,
+          issuer: 'Chase',
+          product: 'Sapphire Reserve',
+        ),
+        isNull,
+      );
+      // A blank label on a product another card already shows is a collision.
+      expect(
+        labelError(
+          '',
+          cards: cards,
+          issuer: 'American Express',
+          product: 'Platinum',
+        ),
+        isNotNull,
+      );
     });
   });
 

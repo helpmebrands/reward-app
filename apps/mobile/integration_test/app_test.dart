@@ -73,11 +73,10 @@ void main() {
     await show(tester, platinum);
     await tester.tap(platinum);
     await settle(tester);
-    await tester.enterText(find.byKey(const Key('field-holder')), 'Kathy');
     await tester.tap(find.text('Add this card'));
     await settle(tester);
     expect(find.byType(CardEditorScreen), findsOneWidget);
-    expect(find.text('American Express Platinum — Kathy'), findsWidgets);
+    expect(find.text('American Express Platinum'), findsWidgets);
     await tester.tap(find.byTooltip('Back'));
     await settle(tester);
 

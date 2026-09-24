@@ -313,7 +313,7 @@ List<OverlapGroup> findOverlaps(List<BenefitInstance> instances) {
         label: first.benefit.name,
         instances: _stableSorted(
           group,
-          (a, b) => a.card.holder.compareTo(b.card.holder),
+          (a, b) => cardLabel(a.card).compareTo(cardLabel(b.card)),
         ),
         remainingCents: sumRemaining(group),
         sameProduct:
@@ -643,29 +643,35 @@ int daysUntilRenewal(Card card, [IsoDate? on]) {
   return cycle != null ? daysBetween(day, cycle.end) + 1 : 0;
 }
 
-/// Distinct household members, in the order their cards were added.
-List<String> holders(AppData data) {
-  final seen = <String>[];
-  for (final card in data.cards) {
-    if (!card.archived &&
-        card.holder.isNotEmpty &&
-        !seen.contains(card.holder)) {
-      seen.add(card.holder);
-    }
-  }
-  return seen;
+/// A card's display name: its label, or its product name when it has none.
+/// Unique within the household ([labelError]).
+String cardLabel(Card card) {
+  final label = card.label?.trim();
+  if (label != null && label.isNotEmpty) return label;
+  return productName(card.issuer, card.product);
 }
 
-String cardLabel(Card card) {
-  final nickname = card.nickname;
-  if (nickname != null && nickname.isNotEmpty) return nickname;
-  final joined = [
-    card.issuer,
-    card.product,
-  ].where((s) => s.isNotEmpty).join(' ').trim();
-  final product = joined.isEmpty ? 'Card' : joined;
-  return card.holder.isNotEmpty ? '$product — ${card.holder}' : product;
+/// `issuer product`, the name a card has before anyone labels it.
+String productName(String issuer, String product) {
+  final joined = [issuer, product].where((s) => s.isNotEmpty).join(' ').trim();
+  return joined.isEmpty ? 'Card' : joined;
 }
+
+/// The label to propose for a new card of this product: null while its
+/// product name is free, otherwise the first free `<product> (n)` from 1.
+/// The proposal is stored as the card's label, so deleting a card later
+/// renames nothing.
+String? defaultLabel(List<Card> cards, String issuer, String product) {
+  final taken = {for (final card in cards) _nameKey(cardLabel(card))};
+  final name = productName(issuer, product);
+  if (!taken.contains(_nameKey(name))) return null;
+  for (var n = 1; ; n++) {
+    final candidate = '$name ($n)';
+    if (!taken.contains(_nameKey(candidate))) return candidate;
+  }
+}
+
+String _nameKey(String name) => name.trim().toLowerCase();
 
 String categoryLabel(BenefitCategory category) => switch (category) {
   BenefitCategory.travel => 'Travel',

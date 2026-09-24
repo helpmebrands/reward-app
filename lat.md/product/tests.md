@@ -85,6 +85,36 @@ Blank and whitespace-only pass, since most credits have no end; an impossible (m
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
+## Card labels
+
+`selectors_test.dart`, `reminders_test.dart` and `json_test.dart` pin the display name that replaced the holder ([[domain#Card]]).
+
+### A card shows its label or its product name
+
+A card without a label, or with a blank one, shows "American Express Platinum"; one labelled "The travel one" shows that.
+
+### A duplicate product proposes a numbered label
+
+With no Platinum there is nothing to propose; after one it proposes "American Express Platinum (1)", after that "(2)"; another product proposes nothing.
+
+### Deleting a card renames nothing
+
+Of three identical cards, removing the unlabelled first leaves "(1)" and "(2)" as they were, and a fourth card needs no number because the product name is free again.
+
+### A label may not repeat another card's display name
+
+A label equal to another card's display name, in any case and with spaces around it, is refused with a sentence naming it.
+
+A card's own label, a fresh one, and a blank label on a product nobody else shows pass; a blank label on a product another card shows is refused.
+
+### Notification copy names the card by its display name
+
+A single-credit reminder on a card labelled "Travel card" reads "Uber Cash at Uber on Travel card. $15 untouched."
+
+### A label round-trips and is omitted when absent
+
+`label` reads and writes under its own key, and a card without one writes no key.
+
 ## Snapshot JSON
 
 `packages/domain/test/json_test.dart` pins the codec for the persisted snapshot, which the Flutter store and any export share with the PWA's stored record and export file.

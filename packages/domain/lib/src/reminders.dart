@@ -18,7 +18,6 @@ class ReminderItem {
     required this.cycleKey,
     required this.benefitName,
     required this.cardName,
-    required this.holder,
     this.merchant,
     required this.remainingCents,
     required this.endsOn,
@@ -29,7 +28,6 @@ class ReminderItem {
   final IsoDate cycleKey;
   final String benefitName;
   final String cardName;
-  final String holder;
   final String? merchant;
   final int remainingCents;
   final IsoDate endsOn;
@@ -171,7 +169,6 @@ ReminderSchedule buildSchedule(
             cycleKey: cycle.key,
             benefitName: benefit.name,
             cardName: cardLabel(card),
-            holder: card.holder,
             merchant: benefit.merchant,
             remainingCents: remainingCents,
             endsOn: cycle.end,
@@ -240,13 +237,13 @@ String _bodyFor(List<ReminderItem> items, LadderRung rung) {
 
   final merchant = first.merchant;
   final where = merchant != null && merchant.isNotEmpty ? ' at $merchant' : '';
-  final whose = first.holder.isNotEmpty ? '${first.holder}’s' : 'your';
+  final card = first.cardName;
 
   if (items.length == 1) {
     if (first.locked) {
-      return '$whose ${first.benefitName} needs enrolment before you can spend a cent of it.';
+      return '${first.benefitName} on $card needs enrolment before you can spend a cent of it.';
     }
-    return '${first.benefitName}$where on $whose card. '
+    return '${first.benefitName}$where on $card. '
         '${formatMoney(first.remainingCents)} untouched.';
   }
 
@@ -255,7 +252,7 @@ String _bodyFor(List<ReminderItem> items, LadderRung rung) {
   if (rung.tone == Tone.permissive) {
     return '${first.benefitName} $tail reset overnight. Nothing is urgent yet.';
   }
-  return '$whose ${first.benefitName} is the largest untouched at '
+  return '${first.benefitName} on $card is the largest untouched at '
       '${formatMoney(first.remainingCents)}, $tail.';
 }
 

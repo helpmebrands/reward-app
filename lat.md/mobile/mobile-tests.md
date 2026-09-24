@@ -26,6 +26,8 @@ The expected rows are `test/fixtures/sample-today.json`, dumped by `apps/pwa/scr
 
 Every `CreditRow` on the screen, in order, has the name, holder, tone and amount of the PWA's use-soon, locked and captured rows for that date, so the two apps agree on what is at risk and how it is drawn.
 
+The app stores no holder, so the test names each row's holder from its card id, card-0001 Jim's and card-0002 Kathy's.
+
 ### The headline counts only what is claimable
 
 The headline digits are the claimable total from the fixture, the subtitle names the nearest reset, and the section titles carry the reset date and the captured total.
@@ -66,17 +68,15 @@ Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, d
 
 A 60 pixel swipe on the same row and a tap on "Log it" drops the headline the same way, and "Undo logging Resy Dining Credit" restores it.
 
-### The household filter narrows the screen
+### Today has no household filter
 
-The filter reads "Everyone in the household"; choosing Jim writes the setting, leaves only Jim's rows, and the headline becomes the claimable total of Jim's instances.
-
-### One holder has no filter
-
-With only Jim's card and benefits the filter is not rendered.
+With two Platinums in the household no filter renders, and the headline is the claimable total of every card's instances.
 
 ### An overlap card opens the compare sheet
 
-Tapping "Hotel Credit (FHR / THC) × 2" opens the compare sheet with Jim's and Kathy's sides, "Both sides are untouched at $300", and a log button per side; "Log $300 on Jim's card" closes it and records a $300 claim on Jim's hotel credit.
+Tapping "Hotel Credit (FHR / THC) × 2" opens the compare sheet with a side per labelled Platinum, "Both sides are untouched at $300", and a log button per side.
+
+The Platinums are labelled "Jim's Platinum" and "Kathy's Platinum"; "Log $300 on Jim's Platinum" closes the sheet and records a $300 claim on Jim's hotel credit.
 
 ### A compare side opens that credit
 
@@ -204,17 +204,21 @@ The label reads "Whose card is it? *", the hint is drawn under the control, and 
 
 ### A template becomes a card with its credits
 
-The catalogue shows the Platinum with its annual value; picking it shows "Card details" and the required note; a holder and a date then "Add this card" adds the card and leaves the screen.
+The catalogue shows the Platinum with its annual value; picking it shows "Card details", the required note, and the label "American Express Platinum (1)"; a date then "Add this card" adds the card.
 
-The card carries that holder, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
+The label is proposed because the sample household already holds two Platinums.
 
-### An empty holder is named and focused on submit
+The card carries that label, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
 
-Clearing the holder shows nothing; Save shows "Enter whose card this is.", adds nothing and puts focus in the holder field; typing a name clears the error and Save adds the card.
+### A label another card shows is named and focused on submit
+
+Typing "American Express Platinum" shows nothing; Save shows the "already called" sentence, adds nothing and focuses the label field.
+
+A fresh label then clears the error and Save adds the card.
 
 ### Typing shows no error before blur
 
-Clearing the holder shows no error until the anniversary field is tapped.
+Typing a taken label shows no error until the anniversary field is tapped.
 
 ### A bad date shows the domain's sentence
 
@@ -222,11 +226,11 @@ Clearing the holder shows no error until the anniversary field is tapped.
 
 ### Back with a draft asks first
 
-System back on an untouched form returns to the catalogue; with a holder typed it asks "Discard this card?", "Keep editing" stays, and "Discard" leaves to Cards.
+System back on an untouched form returns to the catalogue; with a label typed it asks "Discard this card?", "Keep editing" stays, and "Discard" leaves to Cards.
 
 ### Short fields pair from expanded
 
-At 402 the anniversary sits under the holder; at 1280 they share a top edge side by side and the Save button spans the row.
+At 402 the anniversary sits under the label; at 1280 they share a top edge side by side and the Save button spans the row.
 
 ### The form at 200% clips nothing
 
@@ -234,7 +238,7 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 ### The blank template asks for issuer and card
 
-The top "Add card" button then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a personal card with no benefits and says "Card added. Add its credits next."
+The top "Add card" button then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them adds a personal card with no benefits and says "Card added. Add its credits next."
 
 ### Manual entry sits at the top, labelled by width
 
@@ -254,7 +258,7 @@ At a 2.0 text scale at 402 wide, the catalogue raises no layout exception. Every
 
 ### A business template lands as a business card
 
-Picking the Business Platinum and saving with a holder and a date adds a card whose kind is `business`, copied from the template.
+Picking the Business Platinum and saving with a date adds a card whose kind is `business`, copied from the template.
 
 ## Catalogue filter
 
@@ -328,7 +332,9 @@ At a 2.0 text scale the Filters button, "Show N" and every facet option are at l
 
 ### The card editor writes valid values and shows errors for the rest
 
-The editor is titled by the card with "12 credits"; a typed holder reaches the store at once; an invalid fee or date shows its sentence after blur and is not written.
+The editor is titled by the card with "12 credits"; a typed label reaches the store at once; an invalid fee or date shows its sentence after blur and is not written, and so does a label another card already shows.
+
+The sample's two Platinums are labelled with the names the PWA shows for them, "American Express Platinum — Jim" and "— Kathy", here and in the Cards, Credits, Value and routing suites, so the PWA's fixtures still apply.
 
 "abc" as the fee leaves the fee alone and shows "Enter the amount as a number, like 695."; "695" writes $695 and clears it; "2026-02-30" shows the date sentence.
 
@@ -568,7 +574,7 @@ After `load` the store reports its cards, the first use-soon credit, the claimab
 
 ### A template becomes a card with its credits
 
-`addCardFromTemplate` on an empty household adds one card with the template's issuer and product, the given holder, nickname and anniversary, and one benefit per template credit; one notification.
+`addCardFromTemplate` on an empty household adds one card with the template's issuer and product, the given label and anniversary, and one benefit per template credit; one notification.
 
 Both card timestamps are the clock's instant, and each benefit has a distinct id and the new card's id.
 
@@ -578,7 +584,7 @@ The blank template with `issuer` and `product` overrides yields a card named by 
 
 ### Card patches stamp updatedAt
 
-`updateCard` applies the `copyWith` patch (nickname, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
+`updateCard` applies the `copyWith` patch (label, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
 
 ### Mute and archive are card patches
 
@@ -622,7 +628,7 @@ On a $25 credit with $10 claimed, `claim` without an amount records $15 with the
 
 ### Settings patches keep the rest
 
-`updateSettings` changes the holder filter and theme and keeps the horizon; `updateNotificationSettings` turns reminders on at a new time, keeps the floor, and leaves the holder filter as set.
+`updateSettings` changes the horizon and theme; `updateNotificationSettings` turns reminders on at a new time, keeps the floor, and leaves the horizon as set.
 
 ### A write before load wins
 

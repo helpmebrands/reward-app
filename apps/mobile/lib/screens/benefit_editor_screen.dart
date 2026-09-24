@@ -227,7 +227,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
           },
           child: EditorScaffold(
             title: current.name,
-            subtitle: card?.holder,
+            subtitle: card == null ? null : cardLabel(card),
             onBack: _back,
             action: EditorAction(
               icon: Icons.delete_outline,

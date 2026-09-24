@@ -9,7 +9,6 @@ import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/main.dart';
 import 'package:reward/widgets/credit_row.dart';
-import 'package:reward/widgets/holder_filter.dart';
 import 'package:reward/widgets/nudge_preview.dart';
 
 /// Today as the user touches it: rows open the sheet, the household filter
@@ -31,9 +30,22 @@ class App {
   final UiState ui;
 }
 
+/// The sample household with its two Platinums labelled, as the add form
+/// would have made them unique.
+AppData labelledHousehold() {
+  final data = sampleHousehold();
+  const labels = {
+    'card-0001': 'Jim’s Platinum',
+    'card-0002': 'Kathy’s Platinum',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
+
 Future<App> pumpApp(WidgetTester tester, {AppData? data}) async {
   final store = AppStore(
-    store: MemorySnapshotStore(data ?? sampleHousehold()),
+    store: MemorySnapshotStore(data ?? labelledHousehold()),
     clock: () => now,
   );
   await store.load();
@@ -101,45 +113,21 @@ void main() {
     expect(headline(tester), moneyParts(189890).digits);
   });
 
-  // @lat: [[mobile-tests#Today interactions#The household filter narrows the screen]]
-  testWidgets('choosing a holder hides the other rows and totals', (
+  // @lat: [[mobile-tests#Today interactions#Today has no household filter]]
+  testWidgets('two cards of the same product bring no household filter', (
     tester,
   ) async {
     final app = await pumpApp(tester);
-    expect(find.text('Everyone in the household'), findsOneWidget);
-
-    await tester.tap(find.byType(HolderFilter));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Jim').last);
-    await tester.pumpAndSettle();
-
-    expect(app.store.data!.settings.holderFilter, 'Jim');
-    final rows = tester.widgetList<CreditRow>(
-      find.byType(CreditRow, skipOffstage: false),
-    );
-    expect(rows, isNotEmpty);
-    expect(rows.every((r) => r.instance.card.holder == 'Jim'), isTrue);
-    final jims = currentInstances(
-      app.store.data!,
-      today,
-    ).where((i) => i.card.holder == 'Jim').toList();
-    expect(
-      headline(tester),
-      moneyParts(totalsFor(jims, 0).claimableCents).digits,
-    );
-  });
-
-  // @lat: [[mobile-tests#Today interactions#One holder has no filter]]
-  testWidgets('with one holder the filter is absent', (tester) async {
-    final data = sampleHousehold();
-    final one = data.copyWith(
-      cards: data.cards.where((c) => c.id == 'card-0001').toList(),
-      benefits: data.benefits.where((b) => b.cardId == 'card-0001').toList(),
-    );
-    await pumpApp(tester, data: one);
-
+    expect(app.store.data!.cards, hasLength(2));
     expect(find.byKey(const Key('holder-filter')), findsNothing);
     expect(find.text('Everyone in the household'), findsNothing);
+    // Every card's credits count towards the headline.
+    expect(
+      headline(tester),
+      moneyParts(
+        totalsFor(currentInstances(app.store.data!, today), 0).claimableCents,
+      ).digits,
+    );
   });
 
   // @lat: [[mobile-tests#Today interactions#An overlap card opens the compare sheet]]
@@ -155,21 +143,24 @@ void main() {
     expect(compareSheet, findsOneWidget);
     final inSheet = find.descendant(
       of: compareSheet,
-      matching: find.text('Jim'),
+      matching: find.text('Jim’s Platinum'),
     );
     expect(inSheet, findsOneWidget);
     expect(
-      find.descendant(of: compareSheet, matching: find.text('Kathy')),
+      find.descendant(
+        of: compareSheet,
+        matching: find.text('Kathy’s Platinum'),
+      ),
       findsOneWidget,
     );
     expect(
       find.textContaining('Both sides are untouched at \$300'),
       findsOneWidget,
     );
-    expect(find.text('Log \$300 on Jim’s card'), findsOneWidget);
-    expect(find.text('Log \$300 on Kathy’s card'), findsOneWidget);
+    expect(find.text('Log \$300 on Jim’s Platinum'), findsOneWidget);
+    expect(find.text('Log \$300 on Kathy’s Platinum'), findsOneWidget);
 
-    await tester.tap(find.text('Log \$300 on Jim’s card'));
+    await tester.tap(find.text('Log \$300 on Jim’s Platinum'));
     await tester.pumpAndSettle();
     expect(compareSheet, findsNothing);
     final hotel = benefitId(
@@ -195,7 +186,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(
-      find.descendant(of: compareSheet, matching: find.text('Kathy')),
+      find.descendant(
+        of: compareSheet,
+        matching: find.text('Kathy’s Platinum'),
+      ),
     );
     await tester.pumpAndSettle();
 

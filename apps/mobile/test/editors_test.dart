@@ -16,10 +16,21 @@ import 'package:reward/shell/router.dart';
 /// The card editor and the benefit editor: live-writing forms on the Field
 /// pattern, with the benefit's window shown from its cadence and anchor.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 final DateTime now = DateTime(2026, 9, 16, 8);
 const jim = 'card-0001';
@@ -85,16 +96,16 @@ void main() {
       tester,
     ) async {
       final app = await pumpAt(tester, cardPath(jim));
-      expect(find.text('American Express Platinum — Jim'), findsOneWidget);
+      expect(find.text('American Express Platinum — Jim'), findsWidgets);
       expect(find.text('12 credits'), findsOneWidget);
       expect(find.text('Fields marked * are required.'), findsOneWidget);
 
-      await type(tester, 'field-holder', 'James');
-      expect(cardOf(app, jim).holder, 'James');
+      await type(tester, 'field-label', 'Jim’s Platinum');
+      expect(cardOf(app, jim).label, 'Jim’s Platinum');
 
       await type(tester, 'field-fee', 'abc');
       expect(cardOf(app, jim).annualFeeCents, 89500);
-      await blurTo(tester, 'field-nickname');
+      await blurTo(tester, 'field-label');
       expect(
         find.text('Enter the amount as a number, like 695.'),
         findsOneWidget,
@@ -107,12 +118,23 @@ void main() {
       );
 
       await type(tester, 'field-anniversary', '2026-02-30');
-      await blurTo(tester, 'field-nickname');
+      await blurTo(tester, 'field-label');
       expect(
         find.text('Enter the date the cardmember year starts.'),
         findsOneWidget,
       );
       expect(cardOf(app, jim).anniversaryOn, isNot('2026-02-30'));
+
+      await type(tester, 'field-label', 'American Express Platinum — Kathy');
+      await blurTo(tester, 'field-fee');
+      expect(
+        find.text(
+          'Another card is already called American Express Platinum — Kathy. '
+          'Enter a different label.',
+        ),
+        findsOneWidget,
+      );
+      expect(cardOf(app, jim).label, 'Jim’s Platinum');
     });
 
     // @lat: [[mobile-tests#Editors#Mute, archive and network are on the card editor]]
@@ -274,7 +296,7 @@ void main() {
     ) async {
       final app = await pumpAt(tester, benefitPath(uber));
       expect(find.text('Uber Cash'), findsWidgets);
-      expect(find.text('Jim'), findsWidgets);
+      expect(find.text('American Express Platinum — Jim'), findsWidgets);
       expect(
         find.text('This period runs Sep 1 – Sep 30 (Sep 2026).'),
         findsOneWidget,

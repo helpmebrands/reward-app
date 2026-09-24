@@ -34,8 +34,7 @@ Card cardFromJson(Map<String, dynamic> json) => Card(
   id: json['id'] as String,
   issuer: json['issuer'] as String,
   product: json['product'] as String,
-  holder: json['holder'] as String,
-  nickname: json['nickname'] as String?,
+  label: json['label'] as String?,
   network: CardNetwork.values.byName(json['network'] as String),
   // Cards saved before version 2 have no kind; a card is personal unless the
   // user says otherwise.
@@ -53,8 +52,7 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'id': card.id,
   'issuer': card.issuer,
   'product': card.product,
-  'holder': card.holder,
-  'nickname': card.nickname,
+  'label': card.label,
   'network': card.network.name,
   'kind': card.kind.name,
   'last4': card.last4,
@@ -153,7 +151,6 @@ Settings settingsFromJson(Map<String, dynamic> json) {
     ),
     useSoonDays: json['useSoonDays'] as int,
     theme: ThemeSetting.values.byName(json['theme'] as String),
-    holderFilter: json['holderFilter'] as String,
   );
 }
 
@@ -167,7 +164,6 @@ Map<String, Object?> settingsToJson(Settings settings) => {
   },
   'useSoonDays': settings.useSoonDays,
   'theme': settings.theme.name,
-  'holderFilter': settings.holderFilter,
 };
 
 AppData appDataFromJson(Map<String, dynamic> json) => AppData(

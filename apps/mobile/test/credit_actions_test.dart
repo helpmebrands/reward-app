@@ -39,7 +39,6 @@ AppData _household() => AppData(
       id: 'jim',
       issuer: 'American Express',
       product: 'Platinum',
-      holder: 'Jim',
       network: CardNetwork.amex,
       kind: CardKind.personal,
       annualFeeCents: 89500,

@@ -17,7 +17,7 @@ RowTone toneFor(BenefitStatus status) => switch (status) {
   BenefitStatus.missed => RowTone.missed,
 };
 
-/// One credit in a list: its name, its cadence, window and holder, and the
+/// One credit in a list: its name, its cadence, window and card, and the
 /// money at stake with the deadline.
 ///
 /// Every row is reachable three ways: tap to open the detail sheet, swipe
@@ -38,7 +38,8 @@ class CreditRow extends StatelessWidget {
 
   final BenefitInstance instance;
 
-  /// Shows the holder in the subtitle. Off inside a per-card group.
+  /// Shows the card's display name in the subtitle. Off inside a per-card
+  /// group.
   final bool showCard;
 
   /// Opens the credit sheet.
@@ -61,15 +62,9 @@ class CreditRow extends StatelessWidget {
       cadenceLabel(instance.benefit.cadence),
       instance.cycle.label,
     ];
-    // The holder, not the full card name: two identical Platinums differ only
-    // by who holds them.
-    if (showCard) {
-      parts.add(
-        instance.card.holder.isNotEmpty
-            ? instance.card.holder
-            : cardLabel(instance.card),
-      );
-    }
+    // The display name is unique in the household, so two identical
+    // Platinums are told apart by their labels.
+    if (showCard) parts.add(cardLabel(instance.card));
     return parts.join(' · ');
   }
 

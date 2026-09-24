@@ -26,7 +26,6 @@ import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/field.dart';
-import 'widgets/holder_filter.dart';
 import 'widgets/nudge_preview.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
@@ -36,12 +35,12 @@ import 'widgets/snackbar_host.dart';
 
 const _today = '2026-09-16';
 
-Card _card(String id, String holder, {CardKind kind = CardKind.personal}) =>
+Card _card(String id, String label, {CardKind kind = CardKind.personal}) =>
     Card(
       id: id,
       issuer: 'American Express',
       product: 'Platinum',
-      holder: holder,
+      label: label,
       network: CardNetwork.amex,
       kind: kind,
       annualFeeCents: 89500,
@@ -89,8 +88,8 @@ AppData _household() => AppData(
   // Kathy's is a business card, so the Cards screen and the card editor
   // previews show the kind.
   cards: [
-    _card('jim', 'Jim'),
-    _card('kathy', 'Kathy', kind: CardKind.business),
+    _card('jim', 'Jim’s Platinum'),
+    _card('kathy', 'Kathy’s Platinum', kind: CardKind.business),
   ],
   benefits: [
     _benefit('u1', 'jim', 'Uber Cash', 1500, merchant: 'Uber'),
@@ -162,7 +161,6 @@ AppData _household() => AppData(
     ),
     useSoonDays: 30,
     theme: ThemeSetting.system,
-    holderFilter: '',
   ),
 );
 
@@ -349,15 +347,6 @@ Widget todayInteractive() {
   final store = _store();
   return _themed(TodayScreen(store: store, ui: UiState()), Brightness.dark);
 }
-
-@Preview(name: 'Household filter', size: Size(402, 120))
-Widget holderFilter() => _themed(
-  Padding(
-    padding: const EdgeInsets.all(16),
-    child: HolderFilter(store: _store()),
-  ),
-  Brightness.dark,
-);
 
 @Preview(name: 'Compare sheet', size: Size(480, 700))
 Widget compareSheet() {

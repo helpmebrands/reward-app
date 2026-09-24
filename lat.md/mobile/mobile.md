@@ -12,12 +12,12 @@ Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], wi
 | PWA feature | Flutter counterpart | Pinned by |
 | --- | --- | --- |
 | Today: headline, countdown, use-soon, locked and captured rows, three overlaps | `TodayScreen` ([[mobile-architecture#Today screen]]) | [[mobile-tests#Today]] |
-| Today: rows open the sheet and swipe, household filter, compare sheet, nudge preview | `TodayScreen` with `UiState` ([[mobile-architecture#Today screen#Today's interactions]]) | [[mobile-tests#Today interactions]] |
+| Today: rows open the sheet and swipe, compare sheet, nudge preview | `TodayScreen` with `UiState` ([[mobile-architecture#Today screen#Today's interactions]]) | [[mobile-tests#Today interactions]] |
 | Credits: six filters, three groupings, four totals, missed rows | `CreditsScreen` ([[mobile-architecture#Credits screen]]) | [[mobile-tests#Credits]] |
 | Cards: verdict and tags, fee bar, edit and add | `CardsScreen` ([[mobile-architecture#Cards screen]]) | [[mobile-tests#Cards]] |
 | Cards: mute, archive and delete | the card menu ([[mobile-architecture#Cards screen]]) | [[mobile-tests#Cards#Mute from the menu offers an undo]] |
 | Value: totals, monthly chart, worst-first ranks, leaks | `ValueScreen` and `MonthlyBarsPainter` ([[mobile-architecture#Value screen]]) | [[mobile-tests#Value]] |
-| Add a card: catalogue, holder and anniversary, the blank card | `AddCardScreen` ([[mobile-architecture#Forms and the Field pattern#Add a card]]) | [[mobile-tests#Add a card]] |
+| Add a card: catalogue, label and anniversary, the blank card | `AddCardScreen` ([[mobile-architecture#Forms and the Field pattern#Add a card]]) | [[mobile-tests#Add a card]] |
 | Forms and errors: label, hint, error on blur or submit, Save never disabled | `Field` ([[mobile-architecture#Forms and the Field pattern]]) | [[mobile-tests#Field]] |
 | Card editor and benefit editor with the live window | `CardEditorScreen`, `BenefitEditorScreen` ([[mobile-architecture#Forms and the Field pattern#The editors]]) | [[mobile-tests#Editors]] |
 | Settings: reminder preferences, the ladder table, appearance | `SettingsScreen` ([[mobile-architecture#Settings screen]]) | [[mobile-tests#Settings]] |
