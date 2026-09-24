@@ -93,6 +93,21 @@ final cases = <Case>[
     url: '/v1/devices/nobody',
     needsDatabase: false,
   ),
+  call('GET', '/v1/catalog', 200, as: 'owner'),
+  call(
+    'GET',
+    '/v1/catalog/{templateId}',
+    200,
+    as: 'owner',
+    url: '/v1/catalog/amex-gold',
+  ),
+  call(
+    'GET',
+    '/v1/catalog/{templateId}',
+    404,
+    as: 'owner',
+    url: '/v1/catalog/nope',
+  ),
   call('GET', '/v1/household', 200, as: 'owner'),
   call(
     'POST',
