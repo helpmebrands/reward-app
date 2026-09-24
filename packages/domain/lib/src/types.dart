@@ -95,8 +95,7 @@ class Card {
     required this.id,
     required this.issuer,
     required this.product,
-    required this.holder,
-    this.nickname,
+    this.label,
     required this.network,
     required this.kind,
     this.last4,
@@ -116,12 +115,10 @@ class Card {
   /// e.g. "Platinum".
   final String product;
 
-  /// Who in the household holds this card. Two people holding the same product
-  /// is the case the app exists for, so this is what distinguishes them.
-  final String holder;
-
-  /// User-supplied label that wins over `issuer product` in the UI.
-  final String? nickname;
+  /// What the household calls this card. It wins over `issuer product` as
+  /// the display name, which must be unique within the household, so two of
+  /// the same product are told apart by it ([defaultLabel], [labelError]).
+  final String? label;
   final CardNetwork network;
   final CardKind kind;
 
@@ -139,13 +136,12 @@ class Card {
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
 
-  /// A copy with the given fields replaced. Pass [nickname] or [last4] as
+  /// A copy with the given fields replaced. Pass [label] or [last4] as
   /// null to clear them; leave them out to keep them.
   Card copyWith({
     String? issuer,
     String? product,
-    String? holder,
-    Object? nickname = _unset,
+    Object? label = _unset,
     CardNetwork? network,
     CardKind? kind,
     Object? last4 = _unset,
@@ -158,8 +154,7 @@ class Card {
     id: id,
     issuer: issuer ?? this.issuer,
     product: product ?? this.product,
-    holder: holder ?? this.holder,
-    nickname: identical(nickname, _unset) ? this.nickname : nickname as String?,
+    label: identical(label, _unset) ? this.label : label as String?,
     network: network ?? this.network,
     kind: kind ?? this.kind,
     last4: identical(last4, _unset) ? this.last4 : last4 as String?,
@@ -489,7 +484,6 @@ class Settings {
     required this.notifications,
     required this.useSoonDays,
     required this.theme,
-    required this.holderFilter,
   });
 
   final NotificationSettings notifications;
@@ -498,19 +492,14 @@ class Settings {
   final int useSoonDays;
   final ThemeSetting theme;
 
-  /// Filters Today and Credits to one household member; empty means everyone.
-  final String holderFilter;
-
   Settings copyWith({
     NotificationSettings? notifications,
     int? useSoonDays,
     ThemeSetting? theme,
-    String? holderFilter,
   }) => Settings(
     notifications: notifications ?? this.notifications,
     useSoonDays: useSoonDays ?? this.useSoonDays,
     theme: theme ?? this.theme,
-    holderFilter: holderFilter ?? this.holderFilter,
   );
 }
 

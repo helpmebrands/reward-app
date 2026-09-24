@@ -7,11 +7,34 @@
 library;
 
 import 'dates.dart';
+import 'selectors.dart';
 import 'types.dart';
 
 /// A text field that must not be blank. [message] says what to enter.
 String? requiredError(String value, String message) {
   return value.trim().isNotEmpty ? null : message;
+}
+
+/// A card's label, checked against every other card in the household: the
+/// display name it gives ([cardLabel]) must not be another card's. [cardId]
+/// is the card being edited, left out for a new one. Case and surrounding
+/// space do not make two names different.
+String? labelError(
+  String label, {
+  required List<Card> cards,
+  required String issuer,
+  required String product,
+  String? cardId,
+}) {
+  final trimmed = label.trim();
+  final name = trimmed.isNotEmpty ? trimmed : productName(issuer, product);
+  final key = name.toLowerCase();
+  final clash = cards.any(
+    (card) => card.id != cardId && cardLabel(card).trim().toLowerCase() == key,
+  );
+  return clash
+      ? 'Another card is already called $name. Enter a different label.'
+      : null;
 }
 
 /// An amount of money that may be zero, such as an annual fee.
