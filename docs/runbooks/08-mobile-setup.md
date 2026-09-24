@@ -32,7 +32,7 @@ A staging app installed beside the production one would need a second id
 | App Store provisioning profile | Apple Developer portal | Secret Manager `reward-app-ios-provisioning-profile-*` |
 | App Store Connect app record | App Store Connect | Apple |
 | Play Console app record | Play Console | Google |
-| Upload keystore (`.jks` and two passwords) | `keytool` on your Mac | Secret Manager `reward-app-android-*` |
+| Upload keystore (`.jks` and its one password) | `keytool` on your Mac | Secret Manager `reward-app-android-*` |
 | Play signing key fingerprint | Play Console | stack config `androidSha256Fingerprints` |
 | Google OAuth web client | Google Cloud console | stack config `googleOAuthClientId`, `googleOAuthClientSecret` |
 | `api.<env>` DNS record | Cloudflare | Cloudflare |
@@ -60,7 +60,7 @@ Two kinds of storage, for a reason:
 | `reward-app-ios-provisioning-profile-staging` | the App Store provisioning profile, `.mobileprovision` |
 | `reward-app-android-upload-keystore-staging` | the upload keystore, `.jks` |
 | `reward-app-android-keystore-password-staging` | the keystore password |
-| `reward-app-android-key-password-staging` | the `upload` key's password |
+| `reward-app-android-key-password-staging` | the `upload` key's password, the same as the keystore's (2.2 says why) |
 
 ## Before you start
 
@@ -326,25 +326,60 @@ only the **upload** key that proves a bundle came from you.
 Losing this keystore is recoverable through Play support; leaking it means
 rotating it there.
 
-```sh
-$ cd ~/reward-signing
-$ keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 \
-    -validity 10000 -alias upload
-```
+**The values, and why:**
 
-`keytool` asks for a keystore password and, since Java 9, uses the same
-password for the key unless you say otherwise. The workflow sends both, so
-store both even if they match. The alias must be `upload`, which
-`release-mobile.yml` writes into `key.properties`.
+| Option | Value | Why |
+| --- | --- | --- |
+| `-keystore` | `upload.jks` | the file name; only you and Secret Manager see it |
+| `-storetype` | `PKCS12` | the default since Java 9, written out so an old JDK cannot pick the legacy JKS format |
+| `-alias` | `upload` | `release-mobile.yml` writes this alias into `key.properties`; any other fails the build |
+| `-keyalg`, `-keysize` | `RSA`, `2048` | what Play and Flutter's own guide use |
+| `-validity` | `10000` | days, about 27 years; an upload key should outlive the app |
+| `-dname` | `CN=HelpMe Reward upload, O=HelpMe Brands` | the certificate's owner. Nobody sees it, Play does not check it, and giving it here skips the six name, city and country questions |
+| password | 20 or more random characters (keytool's minimum is 6) | made below and kept in your password manager |
 
-```sh
-$ gcloud secrets versions add reward-app-android-upload-keystore-$STACK \
-    --project "$PROJECT_ID" --data-file upload.jks
-$ read -rs KEYSTORE_PASSWORD; printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
-    reward-app-android-keystore-password-$STACK --project "$PROJECT_ID" --data-file -
-$ read -rs KEY_PASSWORD; printf '%s' "$KEY_PASSWORD" | gcloud secrets versions add \
-    reward-app-android-key-password-$STACK --project "$PROJECT_ID" --data-file -
-```
+**One password, not two.** A PKCS12 keystore cannot give the key a
+password of its own: keytool uses the keystore password for the key and
+ignores `-keypass` with a warning. The release workflow still reads two
+secrets, the keystore password and the key password, so both get the same
+value.
+
+1. Make the password and save it in your password manager, as *HelpMe
+   Reward Android upload keystore*:
+
+   ```sh
+   $ openssl rand -base64 24
+   ```
+
+2. Make the keystore. keytool asks for the password twice; paste it both
+   times. It asks nothing else, because `-dname` answered the rest:
+
+   ```sh
+   $ cd ~/reward-signing
+   $ keytool -genkeypair -v -keystore upload.jks -storetype PKCS12 \
+       -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
+       -dname "CN=HelpMe Reward upload, O=HelpMe Brands"
+   ```
+
+3. Check it. You should see `Keystore type: PKCS12`, `Alias name: upload`
+   and a *Valid until* about 27 years away:
+
+   ```sh
+   $ keytool -list -v -keystore upload.jks | grep -E 'Keystore type|Alias name|Owner|until'
+   ```
+
+4. Store the keystore, then the password **into both password secrets**.
+   `read -rs` waits for you to paste it and press Enter:
+
+   ```sh
+   $ gcloud secrets versions add reward-app-android-upload-keystore-$STACK \
+       --project "$PROJECT_ID" --data-file upload.jks
+   $ read -rs KEYSTORE_PASSWORD
+   $ printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
+       reward-app-android-keystore-password-$STACK --project "$PROJECT_ID" --data-file -
+   $ printf '%s' "$KEYSTORE_PASSWORD" | gcloud secrets versions add \
+       reward-app-android-key-password-$STACK --project "$PROJECT_ID" --data-file -
+   ```
 
 ### 2.3 The first bundle, by hand
 
@@ -569,7 +604,7 @@ and, if you choose, in a password manager; the `.p8` files exist only in
 Secret Manager and the stack config.
 
 ```sh
-$ unset CERT_PASSWORD KEYSTORE_PASSWORD KEY_PASSWORD
+$ unset CERT_PASSWORD KEYSTORE_PASSWORD
 $ cd ~ && rm -rf ~/reward-signing
 ```
 

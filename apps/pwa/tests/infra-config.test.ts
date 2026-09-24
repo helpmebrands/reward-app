@@ -755,6 +755,10 @@ describe('signing material procedure and token record', () => {
     }
     expect(runbook).toMatch(/^\$ export STACK=staging$/m)
     expect(runbook).toMatch(/Play App Signing/)
+    const keystore = section(/^### .*upload keystore.*$/im)
+    expect(keystore).toContain('-storetype PKCS12')
+    expect(keystore).toContain('-dname')
+    expect(keystore).toMatch(/one password/i)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 says store records are per app id]]
