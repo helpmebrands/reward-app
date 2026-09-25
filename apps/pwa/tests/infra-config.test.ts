@@ -721,6 +721,20 @@ describe('mobile release workflow', () => {
     expect(release).not.toMatch(/TODO: Add your own signing config/)
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Android app uses AGP built-in Kotlin]]
+  it('opts into built-in Kotlin and applies no Kotlin Gradle Plugin to the app module', () => {
+    const properties = read('apps/mobile/android/gradle.properties')
+    expect(properties).toMatch(/^android\.builtInKotlin=true$/m)
+    expect(properties).not.toMatch(/^android\.builtInKotlin=false$/m)
+    // Built-in Kotlin still reads its KGP version from this declaration; AGP 9 bundles 2.2.10
+    // and Flutter 3.47 requires at least 2.2.20, as Flutter's own app template does.
+    const settings = read('apps/mobile/android/settings.gradle.kts')
+    expect(settings).toMatch(/id\("org\.jetbrains\.kotlin\.android"\) version "[\d.]+" apply false/)
+    const gradle = read('apps/mobile/android/app/build.gradle.kts')
+    expect(gradle).not.toMatch(/kotlin-android|org\.jetbrains\.kotlin\.android|kotlinOptions/)
+    expect(gradle).toContain('JvmTarget.JVM_17')
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 describes the tag-driven release]]
   it('turns runbook 07 into the release procedure', () => {
     const runbook = read('docs/runbooks/07-mobile-release.md')
