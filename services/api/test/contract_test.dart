@@ -605,6 +605,13 @@ final preferenceCases = <Case>[
   call('GET', '/v1/me/reminders/summary', 200, as: 'owner'),
   call('POST', '/v1/me/reminders/test', 200, as: 'owner'),
   call(
+    'POST',
+    '/v1/me/reminders/test',
+    400,
+    as: 'owner',
+    body: {'delaySeconds': 11},
+  ),
+  call(
     'PUT',
     '/v1/me/preferences',
     200,
