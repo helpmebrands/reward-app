@@ -738,6 +738,7 @@ describe('mobile release trust', () => {
     const push = check.split('**Push reaches a device.**')[1] ?? ''
     expect(push).toContain('Send me reminders')
     expect(push).toContain('Send a test notification')
+    expect(push).toContain('Sending in 5 seconds')
     expect(push).toMatch(/^1\. /m)
   })
 
