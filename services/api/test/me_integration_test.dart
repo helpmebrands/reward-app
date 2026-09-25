@@ -59,53 +59,49 @@ void main() {
     }
   });
 
-  group(
-    'users against DATABASE_URL',
-    () {
-      late Connection db;
-      late Handler handler;
+  group('users against DATABASE_URL', () {
+    late Connection db;
+    late Handler handler;
 
-      setUpAll(() async {
-        db = await openMigratedSchema(url!, 'sign_in');
-        handler = buildHandler(db: db, verifier: verifier);
-      });
+    setUpAll(() async {
+      db = await openMigratedSchema(url!, 'sign_in');
+      handler = buildHandler(db: db, verifier: verifier);
+    });
 
-      tearDownAll(() => dropSchema(db, 'sign_in'));
+    tearDownAll(() => dropSchema(db, 'sign_in'));
 
-      setUp(() => db.execute('TRUNCATE users CASCADE'));
+    setUp(() => db.execute('TRUNCATE users CASCADE'));
 
-      Future<int> users() async =>
-          (await db.execute('SELECT count(*) FROM users')).single[0] as int;
+    Future<int> users() async =>
+        (await db.execute('SELECT count(*) FROM users')).single[0] as int;
 
-      // @lat: [[api-tests#Sign-in#The first call creates the user and later calls reuse it]]
-      test('a new uid gets one user row, reused on the next call', () async {
-        final first = await handler(me(key.sign(uid: 'u-new')));
-        expect(first.statusCode, 200);
-        final body = await json(first);
-        expect(body['email'], 'jim@example.com');
-        expect(body['id'], isA<String>());
-        expect(await users(), 1);
+    // @lat: [[api-tests#Sign-in#The first call creates the user and later calls reuse it]]
+    test('a new uid gets one user row, reused on the next call', () async {
+      final first = await handler(me(key.sign(uid: 'u-new')));
+      expect(first.statusCode, 200);
+      final body = await json(first);
+      expect(body['email'], 'jim@example.com');
+      expect(body['id'], isA<String>());
+      expect(await users(), 1);
 
-        final second = await json(await handler(me(key.sign(uid: 'u-new'))));
-        expect(second['id'], body['id']);
-        expect(await users(), 1);
+      final second = await json(await handler(me(key.sign(uid: 'u-new'))));
+      expect(second['id'], body['id']);
+      expect(await users(), 1);
 
-        await handler(me(key.sign(uid: 'u-other', email: null)));
-        expect(await users(), 2);
-      });
+      await handler(me(key.sign(uid: 'u-other', email: null)));
+      expect(await users(), 2);
+    });
 
-      // @lat: [[api-tests#Sign-in#Bad tokens create nobody]]
-      test('expired, misaddressed and forged tokens get 401', () async {
-        for (final token in [
-          key.sign(expiresIn: const Duration(hours: -1)),
-          key.sign(claims: {'aud': 'someone-else'}),
-          forger.sign(),
-        ]) {
-          expect((await handler(me(token))).statusCode, 401);
-        }
-        expect(await users(), 0);
-      });
-    },
-    skip: url == null ? 'DATABASE_URL is not set' : false,
-  );
+    // @lat: [[api-tests#Sign-in#Bad tokens create nobody]]
+    test('expired, misaddressed and forged tokens get 401', () async {
+      for (final token in [
+        key.sign(expiresIn: const Duration(hours: -1)),
+        key.sign(claims: {'aud': 'someone-else'}),
+        forger.sign(),
+      ]) {
+        expect((await handler(me(token))).statusCode, 401);
+      }
+      expect(await users(), 0);
+    });
+  }, skip: url == null ? 'DATABASE_URL is not set' : false);
 }
