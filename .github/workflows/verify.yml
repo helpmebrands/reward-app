@@ -215,6 +215,11 @@ jobs:
       - name: Test
         run: flutter test
 
+      # The api's base URL is a build-time define; its test only means
+      # something with one.
+      - name: Test the api define
+        run: flutter test test/api_config_test.dart --dart-define=API_BASE_URL=https://example.test
+
   # The service tier: analysed and tested in the workspace, then built as a
   # container and smoke-tested, so a broken Dockerfile fails review rather
   # than the deploy.
@@ -255,6 +260,12 @@ jobs:
       - name: Analyze
         run: dart analyze --fatal-infos
         working-directory: services/api
+
+      # The hand-written contract must be valid OpenAPI 3.1 before the
+      # contract test holds the router to it. Pinned, so a Redocly release
+      # cannot change what passes.
+      - name: Lint the OpenAPI spec
+        run: npx --yes @redocly/cli@2.53.3 lint services/api/openapi.yaml
 
       - name: Test
         run: dart test

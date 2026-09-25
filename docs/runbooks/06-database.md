@@ -195,6 +195,24 @@ Stop the proxy when you are done (`kill %1`). The `api` user owns the tables
 and can do anything to them; there is no read-only user yet, so treat a
 session here as production access even on staging.
 
+## Making a catalogue admin
+
+The catalogue admin api (`/v1/admin/catalog`, [README](README.md)) answers
+only people with a row in `admins`, and no route grants one, so the first
+admin is made here, by hand. The person must have signed in once, which is
+what creates their `users` row. Through the proxy above:
+
+```sh
+$ docker run --rm -i postgres:16 psql "postgres://api:$PW@host.docker.internal:5433/reward" <<'SQL'
+INSERT INTO admins (user_id) SELECT id FROM users WHERE email = 'someone@example.com';
+SELECT u.email, a.created_at FROM admins a JOIN users u ON u.id = a.user_id;
+SQL
+```
+
+`DELETE FROM admins WHERE user_id = …` takes it away again. Every publish is
+recorded in `catalog_events` with the publisher's user id, so who changed the
+terms is never a mystery.
+
 ## Locally, without Google Cloud
 
 `services/api/docker-compose.yml` is the same PostgreSQL 16 on

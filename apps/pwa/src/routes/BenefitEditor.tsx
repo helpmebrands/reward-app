@@ -4,14 +4,17 @@ import { cadenceLabel, cycleFor } from '../domain/cycles.ts'
 import { formatDate } from '../domain/format.ts'
 import { ladderSummary } from '../domain/ladder.ts'
 import { categoryLabel } from '../domain/selectors.ts'
-import type { Benefit, BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
+import type { BenefitCategory, Cadence, CycleAnchor } from '../domain/types.ts'
 import {
+  endsOnError,
   enrollmentUrlError,
+  intervalMonthsError,
+  moneyError,
   parseMoney,
   positiveMoneyError,
   requiredError,
 } from '../domain/validation.ts'
-import { useApp } from '../stores/app.tsx'
+import { type BenefitPatch, useApp } from '../stores/app.tsx'
 import { Field } from '../ui/Field.tsx'
 import { Ph } from '../ui/Ph.tsx'
 import { useSnackbar } from '../ui/Snackbar.tsx'
@@ -19,7 +22,7 @@ import { Switch } from '../ui/Switch.tsx'
 import { TopBar } from '../ui/TopBar.tsx'
 import { useScreenTitle } from '../ui/useScreenTitle.ts'
 
-const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'manual']
+const CADENCES: Cadence[] = ['monthly', 'quarterly', 'semiannual', 'annual', 'rolling', 'manual']
 const CATEGORIES: BenefitCategory[] = [
   'travel',
   'dining',
@@ -64,16 +67,28 @@ export function BenefitEditor() {
   const [nameDraft, setNameDraft] = createSignal<string | null>(null)
   const [valueDraft, setValueDraft] = createSignal<string | null>(null)
   const [urlDraft, setUrlDraft] = createSignal<string | null>(null)
+  const [endsOnDraft, setEndsOnDraft] = createSignal<string | null>(null)
+  const [spendDraft, setSpendDraft] = createSignal<string | null>(null)
+  const [intervalDraft, setIntervalDraft] = createSignal<string | null>(null)
   const nameText = () => nameDraft() ?? benefit()?.name ?? ''
+  const intervalText = () => intervalDraft() ?? benefit()?.intervalMonths?.toString() ?? ''
   const valueText = () => valueDraft() ?? ((benefit()?.valueCents ?? 0) / 100).toString()
   const urlText = () => urlDraft() ?? benefit()?.enrollmentUrl ?? ''
+  const endsOnText = () => endsOnDraft() ?? benefit()?.endsOn ?? ''
+  const spendText = () => {
+    const threshold = benefit()?.spendThresholdCents
+    return spendDraft() ?? (threshold === undefined ? '' : (threshold / 100).toString())
+  }
   const errors = {
     name: () => requiredError(nameText(), 'Enter what the credit is called.'),
     value: () => positiveMoneyError(valueText()),
     url: () => enrollmentUrlError(urlText()),
+    endsOn: () => endsOnError(endsOnText()),
+    spend: () => (spendText().trim() === '' ? null : moneyError(spendText())),
+    interval: () => intervalMonthsError(benefit()?.cadence ?? 'monthly', intervalText()),
   }
 
-  function patch(changes: Partial<Benefit>) {
+  function patch(changes: BenefitPatch) {
     const current = benefit()
     if (current) app.updateBenefit(current.id, changes)
   }
@@ -159,42 +174,95 @@ export function BenefitEditor() {
                   {(cadence) => <option value={cadence}>{cadenceLabel(cadence)}</option>}
                 </For>
               </select>
-              <Show when={current().cadence !== 'manual'}>
+              <Show when={current().cadence !== 'manual' && current().cadence !== 'rolling'}>
                 <p class="section-note">
                   Reminders at {ladderSummary(current().cadence)} days out.
                 </p>
               </Show>
             </div>
 
-            <div class="field">
-              <span class="field__label">Measured from</span>
-              <div class="seg">
-                <button
-                  type="button"
-                  class="seg__opt"
-                  aria-pressed={current().anchor === 'calendar'}
-                  onClick={() => patch({ anchor: 'calendar' as CycleAnchor })}
-                >
-                  The calendar
-                </button>
-                <button
-                  type="button"
-                  class="seg__opt"
-                  aria-pressed={current().anchor === 'anniversary'}
-                  onClick={() => patch({ anchor: 'anniversary' as CycleAnchor })}
-                >
-                  Card anniversary
-                </button>
-              </div>
-              <Show when={preview()}>
-                {(cycle) => (
-                  <p class="section-note">
-                    This period runs {formatDate(cycle().start)} &ndash; {formatDate(cycle().end)} (
-                    {cycle().label}).
-                  </p>
+            <Show when={current().cadence === 'rolling'}>
+              <Field
+                id="benefit-interval"
+                label="Months between claims"
+                hint="Counted from the day you claim it. Global Entry is every 48."
+                required
+                error={errors.interval()}
+              >
+                {(control) => (
+                  <input
+                    {...control}
+                    class="input numeric"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    step="1"
+                    value={intervalText()}
+                    onInput={(e) => {
+                      setIntervalDraft(e.currentTarget.value)
+                      if (!errors.interval()) {
+                        patch({ intervalMonths: Number(e.currentTarget.value.trim()) })
+                      }
+                    }}
+                  />
                 )}
-              </Show>
-            </div>
+              </Field>
+            </Show>
+
+            {/* A rolling credit measures from its last claim, not an anchor. */}
+            <Show when={current().cadence !== 'rolling'}>
+              <div class="field">
+                <span class="field__label">Measured from</span>
+                <div class="seg">
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={current().anchor === 'calendar'}
+                    onClick={() => patch({ anchor: 'calendar' as CycleAnchor })}
+                  >
+                    The calendar
+                  </button>
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={current().anchor === 'anniversary'}
+                    onClick={() => patch({ anchor: 'anniversary' as CycleAnchor })}
+                  >
+                    Card anniversary
+                  </button>
+                </div>
+                <Show when={preview()}>
+                  {(cycle) => (
+                    <p class="section-note">
+                      This period runs {formatDate(cycle().start)} &ndash; {formatDate(cycle().end)}{' '}
+                      ({cycle().label}).
+                    </p>
+                  )}
+                </Show>
+              </div>
+            </Show>
+
+            <Field
+              id="benefit-ends-on"
+              label="Ends on (optional)"
+              hint="The last day it can be used, if the issuer has set one."
+              error={errors.endsOn()}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  class="input"
+                  type="date"
+                  value={endsOnText()}
+                  onInput={(e) => {
+                    setEndsOnDraft(e.currentTarget.value)
+                    if (!errors.endsOn()) {
+                      patch({ endsOn: e.currentTarget.value.trim() || undefined })
+                    }
+                  }}
+                />
+              )}
+            </Field>
 
             <div class="field">
               <label class="field__label" for="benefit-category">
@@ -280,6 +348,57 @@ export function BenefitEditor() {
                   />
                 )}
               </Field>
+            </Show>
+
+            <Field
+              id="benefit-spend-threshold"
+              label="Unlocks after spending (optional)"
+              hint="Dollars the issuer asks you to spend in a year before this credit opens."
+              error={errors.spend()}
+            >
+              {(control) => (
+                <input
+                  {...control}
+                  class="input numeric"
+                  type="number"
+                  inputmode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={spendText()}
+                  onInput={(e) => {
+                    setSpendDraft(e.currentTarget.value)
+                    const raw = e.currentTarget.value.trim()
+                    if (raw === '') {
+                      patch({ spendThresholdCents: undefined })
+                      return
+                    }
+                    const cents = parseMoney(raw)
+                    if (cents !== null && cents >= 0) patch({ spendThresholdCents: cents })
+                  }}
+                />
+              )}
+            </Field>
+
+            <Show when={current().spendThresholdCents !== undefined}>
+              <div class="panel row row--between">
+                <span class="grow">
+                  <span style={{ display: 'block', 'font-size': 'var(--type-body-sm)' }}>
+                    Spend reached this year
+                  </span>
+                  <span class="section-note">
+                    <Show when={current().spendMetAt} fallback="Not yet — the credit is locked.">
+                      {(at) => `Confirmed ${formatDate(at().slice(0, 10))}.`}
+                    </Show>
+                  </span>
+                </span>
+                <Switch
+                  label="Spend reached this year"
+                  checked={Boolean(current().spendMetAt)}
+                  onChange={(next) =>
+                    next ? app.confirmSpend(current().id) : app.revokeSpend(current().id)
+                  }
+                />
+              </div>
             </Show>
 
             <div class="field">

@@ -22,10 +22,12 @@ export type Uuid = string
 /**
  * How often a credit refreshes.
  *
- * `manual` covers credits no cycle can track — Global Entry every four to four
- * and a half years — which are listed but never counted as at risk.
+ * `rolling` restarts from the last claim rather than the calendar — Global
+ * Entry every four years — with the gap in {@link Benefit.intervalMonths}.
+ * `manual` covers credits no cycle can track at all, which are listed but
+ * never counted as at risk.
  */
-export type Cadence = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'manual'
+export type Cadence = 'monthly' | 'quarterly' | 'semiannual' | 'annual' | 'rolling' | 'manual'
 
 /**
  * What a recurring cycle is measured from.
@@ -52,6 +54,13 @@ export type BenefitCategory =
 
 export type CardNetwork = 'amex' | 'visa' | 'mastercard' | 'discover' | 'other'
 
+/**
+ * Whether the card is a personal or a business product. Classification only:
+ * the Cards screen marks business cards, and filtering by kind is left to a
+ * later epic.
+ */
+export type CardKind = 'personal' | 'business'
+
 export interface Card {
   id: Uuid
   /** e.g. "American Express". */
@@ -66,6 +75,7 @@ export interface Card {
   /** User-supplied label that wins over `issuer product` in the UI. */
   nickname?: string
   network: CardNetwork
+  kind: CardKind
   /** Display only; never a full PAN. */
   last4?: string
   annualFeeCents: number
@@ -96,6 +106,11 @@ export interface Benefit {
   cadence: Cadence
   anchor: CycleAnchor
   /**
+   * Months between claims for a `rolling` credit, which ignores the anchor.
+   * Required when rolling; the editors refuse to save without it.
+   */
+  intervalMonths?: number
+  /**
    * True when the credit must be activated on the issuer's benefits page
    * before a cent of it can be spent. Until {@link enrolledAt} is set the
    * credit is `locked` — visible, counted separately, and never dunned as if
@@ -106,6 +121,20 @@ export interface Benefit {
   /** Why it is blocked, shown on the locked rows. */
   enrollmentNote?: string
   enrollmentUrl?: string
+  /**
+   * Spend the issuer asks for in a year before the credit opens, in cents.
+   * Until {@link spendMetAt} falls inside the current year the credit is
+   * `locked` for spend, excluded from value totals and never reminded about.
+   */
+  spendThresholdCents?: number
+  /** When the user said the threshold was reached; cleared by revoking. */
+  spendMetAt?: IsoInstant
+  /**
+   * The last day the credit can be used, for credits the issuer has announced
+   * an end to. The final window is clamped to this day and nothing follows
+   * it; afterwards the credit is skipped the way an inactive one is.
+   */
+  endsOn?: IsoDate
   /** Numbered "How to redeem" steps shown in the detail sheet. */
   redemptionSteps: string[]
   notes?: string

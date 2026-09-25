@@ -7,11 +7,21 @@ config:
   github:owner: helpmebrands
   reward-app:githubRepo: helpmebrands/reward-app
   reward-app:customDomain: staging.helpmereward.com
+  reward-app:apiCustomDomain: api.staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state
   reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
+  reward-app:appleTeamId: LMFUSVPCDH
   reward-app:billingAccount:
     secure: v1:0CwVeAjXW0fknwpg:SvXrCDvTwmV2Dw6TY83QpwNl/wb/ggzTCZKE6kFN+9Yf3NNk
   github:token:
     secure: v1:YYl5S1v10qI35iMe:xEB61U29cs4S21RP3iOa4tqeZ69rzZ0cmI402+YAR8faeyeGqTa5vcnXkAgyocaCXuBpm2kgTpkc8cQplFRD6mk7s68Cbx+iz1w9lYBvQcrm7MFOxBuoTYJIqxn9PpCudLQtUfkxrOLX7cjIkQ==
+  reward-app:googleOAuthClientId: 133269731559-rladfsuacqhahnm0fhqbrhuhnrmj4bvb.apps.googleusercontent.com
+  reward-app:googleOAuthClientSecret:
+    secure: v1:N2SiFAdRBt5f0EZ6:bPsirnKv4ReX8XGUkGwmFQcG9CDXqBULmo2DI/Xm0+/m1PycsgMOqJCcsXWCbA1okRqr
+  reward-app:appleServicesId: com.helpmebrands.reward.signin
+  reward-app:appleKeyId: 7AFAB9FCUF
+  reward-app:appleServicesKey:
+    secure: v1:kOoZbv2k4UacEYij:tW5OfD8vzG5Y84BVENG5Rem9mos8MaUiP9/1hFMLrRfzC9D72UsNFTdqpeNvVgVw6C1WPx7ZiHOrAu3yRGpWAPNrdfl8VfLs15YmFsaEp6Ix3JtXNK/LUL3qVk/hGWo/ND2RC8O49vrCeMRLrXRu7IoZPMNoxQBHxLnghSAM1ZQ+x2i5SrZu6jwBJqjBjAaFBz/ebJdJwPWv2o3Hi/mHNnGGbt17IgSxP8XnQVID8l7AvlBj43xlgIWRmBPdWVrBF38gsh4LPBmqsMaMgMhGeh3orgh3pHWd94FAzdATWop15XGhGOORO1zsgCRxg9Et8DYQxgUwIlPWk7YoIOmDJ1OcEkqfMkk2j+oKCgV8ZJr4
+  reward-app:androidSha256Fingerprints: EF:99:92:B5:5C:6B:94:71:6E:FB:E1:4C:58:A4:E7:9A:B3:4A:42:AE:E1:B6:D3:14:2E:57:89:1C:2D:19:98:CE
 secretsprovider: gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
 encryptedkey: CiQAuVK5vIbBdYmWPlWeUwibzQo8Xj01h0bNWV+xaLUueimdwTkSSAAvEBIWtpaw7vHAOE9O6Gp/pN8m+K4ckDsjOalooRE+WoYHm9IeMZ2mJDEvnMqR8z53doPeH22wxqkhvH3He2XMt8x7e5asfg==

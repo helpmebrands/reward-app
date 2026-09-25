@@ -25,6 +25,7 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
     required this.section,
     required this.sectionGlow,
     required this.bloom,
+    required this.chartMissed,
     required this.neutral,
     required this.accentRamp,
     required this.soon,
@@ -53,6 +54,10 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
 
   /// The bloom's peak behind each screen.
   final Color bloom;
+
+  /// The Value chart's missed bar and its swatch: neutral-600 in dark and
+  /// neutral-700 in light, so it clears 3:1 on the page in both.
+  final Color chartMissed;
 
   /// Neutral ramp, steps 100 to 900.
   final Map<int, Color> neutral;
@@ -83,6 +88,7 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
     section: Color(0xFF262A60),
     sectionGlow: Color(0xFF353B80),
     bloom: Color(0xFF232136),
+    chartMissed: Color(0xFF75798C),
     neutral: {
       100: Color(0xFFF3F5FE),
       200: Color(0xFFE4E7F5),
@@ -153,6 +159,7 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
     section: Color(0xFFD2CEFD),
     sectionGlow: Color(0xFFB5ABFC),
     bloom: Color(0xFFECEBFE),
+    chartMissed: Color(0xFF81838E),
     neutral: {
       100: Color(0xFF232532),
       200: Color(0xFF383A46),

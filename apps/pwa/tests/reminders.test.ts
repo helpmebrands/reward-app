@@ -48,6 +48,11 @@ describe('the ladder', () => {
     expect(currentRung(monthly, 0)?.tone).toBe('urgent')
   })
 
+  it('gives a rolling credit one unscheduled rung, like manual', () => {
+    expect(defaultLadder('rolling')).toHaveLength(1)
+    expect(defaultLadder('rolling')[0]?.daysBefore).toBe(0)
+  })
+
   it('summarises a cadence for the settings screen', () => {
     expect(ladderSummary('quarterly')).toBe('30 · 14 · 3')
     expect(ladderSummary('monthly')).toBe('23 · 7 · last day')
@@ -165,6 +170,31 @@ describe('buildSchedule', () => {
     )
     const reminder = buildSchedule(data, NOW).reminders.find((r) => r.id === '2026-09-23|notice')
     expect(reminder?.totalCents).toBe(1500)
+  })
+
+  it('reminds against the clamped end of a credit that ends on a date, then stops', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('monthly', { endsOn: '2026-09-20' })] }),
+    )
+    const { reminders } = buildSchedule(data, NOW)
+    expect(reminders.map((r) => r.id)).toEqual(['2026-09-20|urgent'])
+    expect(reminders[0]?.items[0]?.endsOn).toBe('2026-09-20')
+    expect(buildSchedule(data, new Date(2026, 8, 21, 8, 0, 0)).reminders).toHaveLength(0)
+  })
+
+  it('never schedules a spend-locked credit, even with enrolment reminders on', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('monthly', { spendThresholdCents: 100 })] }),
+      { enrollmentReminder: true },
+    )
+    expect(buildSchedule(data, NOW).reminders).toHaveLength(0)
+  })
+
+  it('never schedules a rolling credit, whose clock only the user can start', () => {
+    const data = withNotifications(
+      makeData({ benefits: [makeBenefit('rolling', { intervalMonths: 48 })] }),
+    )
+    expect(buildSchedule(data, NOW).reminders).toHaveLength(0)
   })
 
   it('ignores untracked credits, which have no deadline to warn about', () => {

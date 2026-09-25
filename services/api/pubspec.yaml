@@ -11,6 +11,8 @@ dependencies:
   shelf: ^1.4.2
   postgres: ^3.5.16
   shelf_router: ^1.1.4
+  dart_jsonwebtoken: ^3.4.1
 dev_dependencies:
   lints: ^6.1.0
   test: ^1.31.0
+  yaml: ^3.1.3
