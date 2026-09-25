@@ -803,6 +803,32 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/cards/{cardId}/terms-seen:
+    post:
+      tags: [household data]
+      operationId: markTermsSeen
+      summary: Clear the caller's "terms changed" mark on a card
+      description: |
+        For the caller only; other members keep theirs. 204 whether or not
+        there was a mark. Readers may.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Cleared.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/cards/{cardId}/convert:
     post:
       tags: [household data]
@@ -1596,6 +1622,32 @@ components:
               type: integer
             theme:
               type: string
+        termsChanged:
+          type: array
+          description: |
+            The caller's own "terms changed" marks, one per linked card whose
+            template published a version they have not yet marked seen. The
+            app's snapshot parser ignores it.
+          items:
+            $ref: '#/components/schemas/TermsChanged'
+
+    TermsChanged:
+      type: object
+      required: [cardId, version, effectiveFrom, changes]
+      additionalProperties: false
+      properties:
+        cardId:
+          type: string
+        version:
+          type: integer
+        effectiveFrom:
+          type: string
+          format: date
+        changes:
+          type: array
+          description: Each change, worded to follow "Your <card>'s".
+          items:
+            type: string
 
     CardWithBenefits:
       type: object

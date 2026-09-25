@@ -12,6 +12,7 @@ import 'app_links.dart';
 import 'auth.dart';
 import 'catalog.dart';
 import 'catalog_admin.dart';
+import 'change_notices.dart';
 import 'devices.dart';
 import 'household_data.dart';
 import 'households.dart';
@@ -58,6 +59,7 @@ Api buildApi({
   addCatalogRoutes(table, signedIn);
   addCatalogAdminRoutes(table, signedIn);
   addHouseholdDataRoutes(table, signedIn);
+  addChangeNoticeRoutes(table, signedIn);
   addPreferenceRoutes(table, signedIn);
   addReminderRoutes(table, signedIn, push);
   addHouseholdRoutes(

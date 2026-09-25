@@ -151,14 +151,43 @@ Future<({int sent, int retired})> sendToMember(
   return (sent: sent, retired: retired);
 }
 
-/// One run of the sender job at [now]: for every member with reminders on
-/// and a device, each reminder that fell due in the last [lateLimit] and has
-/// not been sent to them goes to all their devices. Returns the pushes
-/// delivered.
+/// Sends [message] to [userId]'s devices unless something under [sendId]
+/// has already gone to them; returns the pushes delivered.
 ///
 /// The send is recorded before it goes out, so an overlapping run cannot
 /// send it too; if no device took it and none was retired, the record is
 /// dropped again so the next run retries.
+Future<int> sendOnce(
+  Session db,
+  PushSender push,
+  String userId,
+  String sendId,
+  PushMessage message,
+) async {
+  final claimed = await db.execute(
+    Sql.named('''
+      INSERT INTO reminder_sends (user_id, reminder_id)
+      VALUES (@u::uuid, @r) ON CONFLICT DO NOTHING
+    '''),
+    parameters: {'u': userId, 'r': sendId},
+  );
+  if (claimed.affectedRows == 0) return 0;
+  final outcome = await sendToMember(db, push, userId, message);
+  if (outcome.sent == 0 && outcome.retired == 0) {
+    await db.execute(
+      Sql.named('''
+        DELETE FROM reminder_sends WHERE user_id = @u::uuid AND reminder_id = @r
+      '''),
+      parameters: {'u': userId, 'r': sendId},
+    );
+  }
+  return outcome.sent;
+}
+
+/// One run of the sender job at [now]: for every member with reminders on
+/// and a device, each reminder that fell due in the last [lateLimit] and has
+/// not been sent to them goes to all their devices ([sendOnce]). Returns the
+/// pushes delivered.
 Future<int> sendDueReminders(
   Session db,
   PushSender push, {
@@ -187,30 +216,13 @@ Future<int> sendDueReminders(
         if (s.at.isAfter(since) && !s.at.isAfter(at)) s.reminder,
     ];
     for (final reminder in due) {
-      final claimed = await db.execute(
-        Sql.named('''
-          INSERT INTO reminder_sends (user_id, reminder_id)
-          VALUES (@u::uuid, @r) ON CONFLICT DO NOTHING
-        '''),
-        parameters: {'u': member.userId, 'r': reminder.id},
-      );
-      if (claimed.affectedRows == 0) continue;
-      final outcome = await sendToMember(
+      delivered += await sendOnce(
         db,
         push,
         member.userId,
+        reminder.id,
         _message(reminder),
       );
-      delivered += outcome.sent;
-      if (outcome.sent == 0 && outcome.retired == 0) {
-        await db.execute(
-          Sql.named('''
-            DELETE FROM reminder_sends
-            WHERE user_id = @u::uuid AND reminder_id = @r
-          '''),
-          parameters: {'u': member.userId, 'r': reminder.id},
-        );
-      }
     }
   }
   return delivered;

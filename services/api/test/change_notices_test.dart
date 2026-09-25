@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:api/change_notices.dart';
 import 'package:domain/domain.dart';
 import 'package:test/test.dart';
@@ -12,9 +14,9 @@ void main() {
 
   /// Version 2 of the Gold: v1's JSON with [edit] applied.
   TemplateVersion v2(void Function(Map<String, dynamic> json) edit) {
-    final json = templateVersionToJson(v1).map(
-      (k, v) => MapEntry(k, v is List ? [...v.map((c) => {...c as Map})] : v),
-    );
+    final json =
+        jsonDecode(jsonEncode(templateVersionToJson(v1)))
+            as Map<String, dynamic>;
     json['version'] = 2;
     json['effectiveFrom'] = '2027-01-01';
     edit(json);
@@ -30,22 +32,23 @@ void main() {
       termChanges(
         v1,
         v2(
-          (j) => credits(
-            j,
-          ).firstWhere((c) => c['id'] == 'amex-gold/uber-cash')['valueCents'] =
-              2000,
+          (j) => credits(j).firstWhere(
+            (c) => c['id'] == 'amex-gold/uber-cash',
+          )['valueCents'] = 2000,
         ),
       ),
       [r'Uber Cash credit changes to $20'],
     );
-    expect(
-      termChanges(v1, v2((j) => j['annualFeeCents'] = 35000)),
-      [r'annual fee changes to $350'],
-    );
+    expect(termChanges(v1, v2((j) => j['annualFeeCents'] = 35000)), [
+      r'annual fee changes to $350',
+    ]);
     expect(
       termChanges(
         v1,
-        v2((j) => credits(j).removeWhere((c) => c['id'] == 'amex-gold/uber-cash')),
+        v2(
+          (j) =>
+              credits(j).removeWhere((c) => c['id'] == 'amex-gold/uber-cash'),
+        ),
       ),
       ['Uber Cash credit ends'],
     );
@@ -63,9 +66,7 @@ void main() {
       ),
       [r'new $50 Lounge credit starts'],
     );
-    expect(termChanges(v1, v2((j) => j['issuer'] = 'Amex')), [
-      'terms change',
-    ]);
+    expect(termChanges(v1, v2((j) => j['issuer'] = 'Amex')), ['terms change']);
   });
 
   // @lat: [[api-tests#Change notices#A notice leads with the first change]]
@@ -74,7 +75,10 @@ void main() {
       cardName: 'Gold',
       cardId: 'c-1',
       version: 2,
-      changes: [r'Uber Cash credit changes to $20', r'annual fee changes to $350'],
+      changes: [
+        r'Uber Cash credit changes to $20',
+        r'annual fee changes to $350',
+      ],
       effectiveFrom: '2027-01-01',
       today: '2026-12-01',
     );
