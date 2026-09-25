@@ -30,7 +30,7 @@ A deploy reporting success only means Cloud Run accepted the revision or Pages t
 
 Api revisions are named `<service>-sha-<commit>-<run number>`, so a manual dispatch of a commit that is already live makes a new revision rather than failing `ALREADY_EXISTS` ([[infra-tests#Infrastructure config#CD revision names carry the run number]]).
 
-For the site they check that `/` returns 200 and that a missing path returns 404 rather than the page ([[infra-tests#Infrastructure config#The site smoke test checks the page and a 404]]).
+For the site they check that `/` returns 200 and that a missing path returns 404 rather than the page ([[infra-tests#Infrastructure config#The site smoke test checks the page and a 404]]). Both paths are polled for up to a minute, since a freshly attached custom domain can answer 522 for a few seconds after `/` first succeeds ([[infra-tests#Infrastructure config#The site smoke test retries both paths]]).
 
 ### Action runtimes
 

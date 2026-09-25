@@ -521,8 +521,22 @@ describe('monorepo layout', () => {
     const cd = read('.github/workflows/cd.yml')
     expect(cd).toContain('URL: ${{ vars.SITE_URL }}')
     expect(cd).toMatch(/\/nope/)
-    expect(cd).toMatch(/"404"/)
+    expect(cd).toMatch(/\b404\b/)
     expect(cd).not.toContain('sw.js')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The site smoke test retries both paths]]
+  it('polls / and /nope through one retrying helper so a settling domain does not fail the deploy', () => {
+    const cd = read('.github/workflows/cd.yml')
+    const step = cd.split('- name: Smoke test the site')[1]?.split('- name:')[0] ?? ''
+    const helper = step.match(/(\w+)\(\)\s*\{[\s\S]*?\n\s*\}/)
+    expect(helper, 'a shell function that polls a path').not.toBeNull()
+    expect(helper![0]).toMatch(/for i in \$\(seq 1 \d+\)/)
+    expect(helper![0]).toMatch(/sleep \d+/)
+    const name = helper![1]
+    expect(step).toMatch(new RegExp(`${name} / 200`))
+    expect(step).toMatch(new RegExp(`${name} /nope 404`))
+    expect(step.match(/curl /g)?.length, 'only the helper calls curl').toBe(1)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Verify has no accessibility gate or build output]]

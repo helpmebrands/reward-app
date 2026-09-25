@@ -116,7 +116,7 @@ Step 6 of `01-initial-deployment.md` names `RepositoryRuleset` and the one-time 
 
 ### Every workflow variable is declared on the environment
 
-Every `vars.*` the workflows read, except the optional build-time `VITE_*` pair, is a key of `environmentVariables` in `infra/index.ts`, so a variable a workflow needs cannot be missing from the stack that deploys it ([[deployment#Infrastructure]]).
+Every `vars.*` the workflows read is a key of `environmentVariables` in `infra/index.ts`, so a variable a workflow needs cannot be missing from the stack that deploys it ([[deployment#Infrastructure]]).
 
 The same program declares the `github.RepositoryEnvironment` the variables are written to.
 
@@ -493,6 +493,10 @@ The API token is read from Secret Manager with `gcloud`, never from `secrets.*`,
 ### The site smoke test checks the page and a 404
 
 After the deploy, `cd.yml` requires `vars.SITE_URL` to answer 200 at `/` and 404 at `/nope`, which also proves `404.html` stops Pages' single-page fallback ([[deployment#Pipeline#Smoke tests]]).
+
+### The site smoke test retries both paths
+
+One shell helper in the site smoke step polls a path until it answers the expected code or a minute passes, and both `/` (200) and `/nope` (404) go through it, so a custom domain still settling (a Cloudflare 522) does not fail the deploy.
 
 ### Verify has no accessibility gate or build output
 
