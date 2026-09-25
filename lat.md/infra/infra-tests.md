@@ -547,3 +547,28 @@ No workflow, runbook, Makefile or Pulumi program sets `ACTIONS_ALLOW_USE_UNSECUR
 ### Dependabot watches the workflow actions
 
 `.github/dependabot.yml` is version 2 with a `github-actions` entry, so the next runtime deprecation arrives as a pull request instead of a warning on every run ([[deployment#Pipeline#Action runtimes]]).
+
+## Brand icons
+
+`infra/tests/brand-icons.test.ts` checks the native icons `apps/mobile/scripts/brand-icons.swift` generates from `assets/logo/` ([[mobile-architecture#Native brand assets]]), reading each PNG's header and pixels with the dependency-free reader in `infra/tests/png.ts`.
+
+### Every iOS icon file is the size it declares
+
+Every file listed in `AppIcon.appiconset/Contents.json` exists and is as many pixels square as its size times its scale.
+
+### iOS has a dark appearance and an opaque 1024 icon
+
+At least one entry carries the dark luminosity appearance, and every 1024 icon without an appearance has no alpha channel, as App Store Connect requires.
+
+### The launcher icons are the brand's maroon
+
+The iOS 1024 icon and Android's xxxhdpi legacy icon are maroon at the middle of their left edge, not the Flutter template's blue.
+
+### Each Android density has its launcher size
+
+`mipmap-*dpi/ic_launcher.png` is 48dp square at each of the five densities: 48, 72, 96, 144 and 192 pixels.
+
+### The adaptive icon has all three layers
+
+`mipmap-anydpi-v26/ic_launcher.xml` names a background, a foreground and a monochrome layer, and each names a drawable that exists.
+
