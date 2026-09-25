@@ -201,9 +201,13 @@ Play refuses a debug-signed bundle, and both the laptop build in runbook 08 and 
 
 ### Android app uses AGP built-in Kotlin
 
-`gradle.properties` sets `android.builtInKotlin=true`, `settings.gradle.kts` declares no `org.jetbrains.kotlin.android` plugin, and the app module keeps only the `kotlin { compilerOptions }` block.
+`gradle.properties` sets `android.builtInKotlin=true`, the app module applies no Kotlin plugin and keeps only `kotlin { compilerOptions }`, and `settings.gradle.kts` pins KGP with `apply false`.
 
 The template's `builtInKotlin=false` opt-out made `firebase_core` and `firebase_auth` apply the Kotlin Gradle Plugin themselves, which Flutter warns will stop building (#247).
+
+Built-in Kotlin needs Flutter 3.47, whose Gradle plugin stops force-applying `kotlin-android` to plugin subprojects. The `apply false` line stays because AGP 9 bundles Kotlin 2.2.10 and Flutter 3.47 requires 2.2.20, as its own template does.
+
+Flutter still prints the plugin warning for `firebase_core` and `firebase_auth`: it matches `apply plugin: 'kotlin-android'` in their build files as text, although both only run that line when built-in Kotlin is off.
 
 ### Runbook 07 describes the tag-driven release
 
