@@ -87,6 +87,15 @@ jobs:
           gcloud run jobs execute ${{ vars.API_MIGRATION_JOB }} \
             --region ${{ vars.GCP_REGION }} --wait --quiet
 
+      # The reminder sender runs from the same image, so its next scheduled
+      # run sends with the code just migrated for.
+      - name: Move the reminder job to the new image
+        env:
+          IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
+        run: |
+          gcloud run jobs update ${{ vars.API_REMIND_JOB }} \
+            --region ${{ vars.GCP_REGION }} --image "$IMAGE" --quiet
+
       # The run number in the revision name lets a manual dispatch redeploy a
       # commit that is already live.
       - name: Deploy to Cloud Run
@@ -99,9 +108,9 @@ jobs:
           flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}
 
       # Liveness on /health (Google's edge answers the conventional z-suffixed
-      # path itself), then one request that has to reach the database: a zone
-      # shaped like an IANA name that Postgres does not know is refused with a
-      # 400 only after `pg_timezone_names` answered, and nothing is stored.
+      # path itself), then one signed-in route without a token: a 401
+      # `unauthenticated` proves the api was given its Firebase project,
+      # where a 503 `no auth` would mean it was not.
       - name: Smoke test the deployed revision
         env:
           URL: ${{ steps.deploy.outputs.url }}
@@ -117,10 +126,10 @@ jobs:
 
           code=$(curl -sS -o /tmp/devices.json -w '%{http_code}' \
             -X POST "$URL/v1/devices" -H 'content-type: application/json' \
-            -d '{"token":"smoke","installationId":"smoke","platform":"ios","timezone":"Mars/Olympus_Mons"}')
-          [ "$code" = "400" ] || { echo "  POST /v1/devices -> $code, expected 400: $(cat /tmp/devices.json)"; exit 1; }
-          grep -q '"field":"timezone"' /tmp/devices.json || { echo "  unexpected body: $(cat /tmp/devices.json)"; exit 1; }
-          echo "  POST /v1/devices (unknown zone) -> 400 timezone, via the database"
+            -d '{"token":"smoke","installationId":"smoke","platform":"ios","timezone":"UTC"}')
+          [ "$code" = "401" ] || { echo "  POST /v1/devices -> $code, expected 401: $(cat /tmp/devices.json)"; exit 1; }
+          grep -q '"error":"unauthenticated"' /tmp/devices.json || { echo "  unexpected body: $(cat /tmp/devices.json)"; exit 1; }
+          echo "  POST /v1/devices (no token) -> 401 unauthenticated"
 
       - name: Summarise
         if: always()

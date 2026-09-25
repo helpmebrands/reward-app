@@ -924,36 +924,32 @@ void main() {
   });
 
   final url = Platform.environment['DATABASE_URL'];
-  group(
-    'responses against DATABASE_URL',
-    () {
-      late Connection db;
+  group('responses against DATABASE_URL', () {
+    late Connection db;
 
-      setUpAll(() async {
-        db = await openMigratedSchema(url!, 'contract');
-        await db.execute('''
+    setUpAll(() async {
+      db = await openMigratedSchema(url!, 'contract');
+      await db.execute('''
           WITH admin AS (
             INSERT INTO users (firebase_uid) VALUES ('admin') RETURNING id
           )
           INSERT INTO admins (user_id) SELECT id FROM admin
         ''');
-      });
+    });
 
-      tearDownAll(() => dropSchema(db, 'contract'));
+    tearDownAll(() => dropSchema(db, 'contract'));
 
-      test('every case with a database answers as documented', () async {
-        final handler = buildHandler(
-          db: db,
-          verifier: verifier,
-          push: FakePush(),
-        );
-        final errors = <String>[];
-        for (final c in cases.where((c) => c.needsDatabase)) {
-          errors.addAll(await check(spec, c, await handler(c.request())));
-        }
-        expect(errors, isEmpty);
-      });
-    },
-    skip: url == null ? 'DATABASE_URL is not set' : false,
-  );
+    test('every case with a database answers as documented', () async {
+      final handler = buildHandler(
+        db: db,
+        verifier: verifier,
+        push: FakePush(),
+      );
+      final errors = <String>[];
+      for (final c in cases.where((c) => c.needsDatabase)) {
+        errors.addAll(await check(spec, c, await handler(c.request())));
+      }
+      expect(errors, isEmpty);
+    });
+  }, skip: url == null ? 'DATABASE_URL is not set' : false);
 }

@@ -16,6 +16,8 @@ import 'devices.dart';
 import 'household_data.dart';
 import 'households.dart';
 import 'preferences.dart';
+import 'push.dart';
+import 'reminder_sender.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
@@ -39,22 +41,25 @@ class Api {
 /// `Connection` in tests and a `Pool` in the server; without one they
 /// answer 503 while `/health` still serves. [verifier] checks the bearer
 /// token on every signed-in route; without one those answer 503 too.
+/// [push] sends the test notification; without one that answers 503.
 Api buildApi({
   Session? db,
   TokenVerifier? verifier,
   Uri? inviteLinkBase,
   AppLinks? appLinks,
+  PushSender? push,
 }) {
   final signedIn = SignedIn(verifier, db);
   final table = RouteTable()
     ..add('GET', '/health', _health)
     ..add('GET', '/v1/me', signedIn(_me));
-  addDeviceRoutes(table, db);
+  addDeviceRoutes(table, signedIn);
   addAppLinkRoutes(table, appLinks ?? AppLinks.fromEnvironment(const {}));
   addCatalogRoutes(table, signedIn);
   addCatalogAdminRoutes(table, signedIn);
   addHouseholdDataRoutes(table, signedIn);
   addPreferenceRoutes(table, signedIn);
+  addReminderRoutes(table, signedIn, push);
   addHouseholdRoutes(
     table,
     signedIn,
@@ -75,11 +80,13 @@ Handler buildHandler({
   TokenVerifier? verifier,
   Uri? inviteLinkBase,
   AppLinks? appLinks,
+  PushSender? push,
 }) => buildApi(
   db: db,
   verifier: verifier,
   inviteLinkBase: inviteLinkBase,
   appLinks: appLinks,
+  push: push,
 ).handler;
 
 /// The signed-in caller, as the api knows them.
