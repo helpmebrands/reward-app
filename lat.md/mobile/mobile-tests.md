@@ -124,6 +124,14 @@ In the app on the Credits tab, Kathy's Resy row swipes left to "Silence" and a t
 
 At compact Claimable and Locked share a top edge and Captured sits below; at expanded all four share a top edge inside the padded column.
 
+### Opted out is its own yearly figure
+
+The "Opted out" tile is absent while nothing is opted out. Opting out the Oura Ring Credit shows its annual value as "… a year", read as "Opted out, … a year", and claimable drops.
+
+### Five totals hold at compact and expanded
+
+With a credit opted out, the fifth tile wraps below the others inside the compact column, and from medium all five sit in one row inside the column.
+
 ### Segments carry labels and a selected state
 
 "All" and "Card" are selected, "Missed" and "Cycle" are not, the groups are labelled "Filter by status" and "Group credits by", and choosing Missed moves the selection.
@@ -141,6 +149,18 @@ The fixture carries the fee and captured totals and each active card's figures, 
 ### Each card carries the PWA's figures, verdict and tags
 
 "Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage and days to renewal, the verdict headline and body, every tag and the edit button, and the catalogue button follows.
+
+### A card states its usable value, and its potential once anything is opted out
+
+Jim's card reads "Credits worth … a year" with its usable value. After opting out the Oura Ring Credit it reads "… potential · … usable · … opted out", heard as "Credits worth … a year: … usable, … opted out".
+
+### The verdict never counts opted-out credits
+
+Opting out an open credit lowers the card's claimable by exactly that credit's remainder, leaves locked alone, and the verdict shown is the one worded from those figures.
+
+### The value line holds at compact and expanded
+
+With a credit opted out, the potential · usable · opted out line stays inside the card at compact and at expanded, and nothing overflows.
 
 ### A business card carries a Business mark
 
