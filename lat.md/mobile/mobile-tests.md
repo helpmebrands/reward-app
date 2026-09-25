@@ -599,6 +599,23 @@ None of them draws the Settings gear or a "Settings" tooltip.
 
 In a 500-high window, where Settings scrolls, its bar is the page colour at rest and the surface-container colour once its list scrolls under it.
 
+
+## Landing screens
+
+`landing_screens_test.dart` pumps Join household and Not found on their own, signed out, in both themes, and through the router with a signed-in session ([[mobile-architecture#Brand app bar#Landing screens]]).
+
+### The lockup bar, with the gear only when signed in
+
+Signed out, each has one 64-high bar holding the lockup, no Back and no "Settings" button; signed in, at `/invite/ABC123` and `/nowhere`, each shows the lockup and one "Settings" button.
+
+### The two-line logo above the message
+
+Each draws `helpmereward-logo.png`, the `-dark` file in the dark theme, and the logo ends above the screen's heading.
+
+### Still one heading, the logo is an image
+
+Each has exactly one level-one heading, and the two "HelpMe reward" nodes, the bar's lockup and the logo, are images and not headers.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.

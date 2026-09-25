@@ -46,6 +46,16 @@ Settings, the benefit editor, Add card, the card editor and Change the terms kee
 
 `EditorScaffold` frames Settings and the two editors; Add card and `ConvertScreen` build their own `AppBar`, and Change the terms carries its `ScreenTitle` in the bar like the rest. Pinned by [[mobile-tests#Pushed route bars]].
 
+### Landing screens
+
+Join household and Not found are reached from a link, often before the app is set up, so they say where the person landed: a `BrandAppBar` with the lockup instead of Back and a title, and `BrandLogo` above the message.
+
+- **The gear only when signed in**: the router passes `showSettings` as `session?.signedIn ?? true` (no session means no sign-in, as in tests), and `BrandAppBar` draws no gear without `onSettings`. The gear pushes Settings, as on the tabs.
+- **`BrandLogo`** (`lib/widgets/brand_logo.dart`) is the icon and two-line wordmark with the tagline, `helpmereward-logo{,-dark}.png` trimmed into the app's assets, drawn at 200 x 71. It is labelled "HelpMe reward" as an image, never a heading, and replaces the generic icon each screen had above its message.
+- **A way out of Join**: with no Back in the bar, a "Not now" text button under "Join this household" goes to Today; Not found keeps "Back to Today".
+
+Pinned by [[mobile-tests#Landing screens]]; previews of Join and Not found in both themes.
+
 ## The snapshot store
 
 The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves one `AppData`, and `SharedPreferencesSnapshotStore` keeps it as a JSON string under the PWA's `app-data` key through the `shared_preferences` package, a Flutter Favorite.
