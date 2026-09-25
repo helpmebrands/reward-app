@@ -1123,7 +1123,15 @@ paths:
       summary: Send a test notification to each of the caller's devices
       description: |
         A token FCM reports unregistered is removed. 503 `no push` when the
-        server has no FCM project.
+        server has no FCM project. `delaySeconds` (0 to 10, default 0) makes
+        the server wait before sending, inside the request, so the tester
+        can put the app in the background and see the banner.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestPushRequest'
       responses:
         '200':
           description: How many devices took it.
@@ -1131,6 +1139,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TestPush'
+        '400':
+          $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '500':
@@ -1289,6 +1299,16 @@ components:
                   type: string
                 body:
                   type: string
+
+    TestPushRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        delaySeconds:
+          type: integer
+          minimum: 0
+          maximum: 10
+          description: Seconds to wait before sending; 0 when absent.
 
     TestPush:
       type: object

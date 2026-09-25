@@ -162,9 +162,9 @@ abstract interface class HouseholdApi {
   Future<void> unregisterDevice(String token);
   Future<ReminderSummary> reminderSummary();
 
-  /// Sends a test notification to each of the member's devices; how many
-  /// took it.
-  Future<int> sendTestReminder();
+  /// Sends a test notification to each of the member's devices after
+  /// [delaySeconds] (at most 10); how many took it.
+  Future<int> sendTestReminder({int delaySeconds = 0});
 }
 
 /// A request and its answer, as the client needs them: a seam so the
@@ -312,8 +312,12 @@ class ApiClient implements HouseholdApi {
   );
 
   @override
-  Future<int> sendTestReminder() async =>
-      ((await _send('POST', '/v1/me/reminders/test', body: const {}))!
+  Future<int> sendTestReminder({int delaySeconds = 0}) async =>
+      ((await _send(
+                'POST',
+                '/v1/me/reminders/test',
+                body: {'delaySeconds': delaySeconds},
+              ))!
               as Map<String, dynamic>)['sent']
           as int;
 
