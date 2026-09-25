@@ -11,7 +11,8 @@ when a change goes wrong.
 | [04 — Rollback](04-rollback.md) | Getting off a bad revision. Read this **before** you need it. |
 | [05 — Troubleshooting](05-troubleshooting.md) | Specific failures and what they actually mean. |
 | [06 — Database](06-database.md) | Migrations, backups, restore, and connecting to Cloud SQL from a laptop. |
-| [07 — Mobile release](07-mobile-release.md) | Versioning and signing the Flutter app; TestFlight and the Play internal track. |
+| [07 — Mobile release](07-mobile-release.md) | Versioning and releasing the Flutter app to TestFlight and the Play internal track. |
+| [08 — Mobile setup](08-mobile-setup.md) | Store records, signing material, sign-in credentials and invite links, done once in order; re-making the iOS profile and renewing the certificate. |
 
 ## Environments
 
@@ -34,7 +35,8 @@ copy. Update it when an environment is added or moved.
 | Deployed from | `develop`: the PWA by `cd.yml`, the api by `cd-api.yml`, each on merges that touch it |
 | First deployed | PWA 2026-09-17; api 2026-09-18 |
 | GitHub token | fine-grained, this repository only, minted by `oravecz` on 2026-09-21, **no expiry**; held as `github:token` on the `staging` and `repo` stacks. Rotate by hand and update this row |
-| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `6595DT67WA`, team `LMFUSVPCDH`, both **expire 2027-09-21**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [07](07-mobile-release.md#signing-material) and update this row |
+| iOS signing | Apple Distribution certificate `2737R9KZJP` and App Store profile `F43PSVY32N` (with Sign in with Apple and Associated Domains), team `LMFUSVPCDH`, both **expire 2027-09-21**; held only in Secret Manager as `reward-app-ios-*-staging`. Renew per [08](08-mobile-setup.md#later-renewing-the-certificate) and update this row |
+| Android signing | Play app `HelpMe Reward` (`com.helpmebrands.reward`) on developer account `HelpMe Brands LLC`, Play App Signing on; upload keystore alias `upload` (owner `CN=HelpMe Reward Upload`, SHA-256 `CA:30:…:4C:DC`) held only in Secret Manager as `reward-app-android-*-staging`; the app signing key's SHA-256 is `androidSha256Fingerprints` on the stack. First internal-track build: version code 3 on 2026-09-24 |
 
 ## What owns what
 

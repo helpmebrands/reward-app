@@ -2,7 +2,7 @@
 
 The Solid PWA in `apps/pwa` is the reference implementation of the product in [[overview]], and it is frozen: it keeps building, testing and deploying to staging, but takes no new features while the Flutter app catches up.
 
-Everything lives in the browser's IndexedDB, and the export in Settings is the only backup.
+It keeps everything in the browser's IndexedDB and has no server sync; its export in Settings is how data leaves the browser.
 
 - [[architecture]] — Layers, IndexedDB persistence, the app and UI stores, the shell, service-worker lifecycle and environment variables.
 - [[delivery]] — Web Push and service-worker replay.
@@ -39,5 +39,5 @@ The repository is an npm workspace: the PWA lives in `apps/pwa`, the Pulumi prog
 These are deliberate limits, not bugs.
 
 - The card catalogue is a starting point, not a source of truth. Issuers change terms constantly; everything it creates is an ordinary editable credit. See [[domain#Card catalogue]].
-- Web Push needs a backend that is not in this repository. Without it the app falls back to service-worker replay, which only fires while the browser runs or on next launch. See [[delivery#Delivery paths]].
+- The PWA's Web Push path was never connected to a backend. Without it the app falls back to service-worker replay, which only fires while the browser runs or on next launch. See [[delivery#Delivery paths]].
 - Solid 2.0 is in release candidate; the app targets stable 1.9.

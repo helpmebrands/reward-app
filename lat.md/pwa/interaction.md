@@ -24,7 +24,7 @@ All of it is CSS grid on the phone markup, so the DOM and the reading order are 
 
 Route stylesheets are bundled before `base.css`, so a route rule that overrides a base utility such as `.stack` is written as a compound selector.
 
-- **Today**: from 600px the overlap cards pair up. From 1024px the body is a two-column grid with the headline across both, the use-soon rows and captured rows in the first column and "Locked behind enrolment" beside them in the second.
+- **Today**: from 600px the overlap cards pair up. From 1024px the body is a two-column grid with the headline across both, the use-soon rows and captured rows in the first column and the locked section beside them in the second.
 - **Cards**: two cards across from 600px; from 1024px one per row with the verdict and tags beside the figures instead of under them.
 - **Value**: the two totals were already side by side; the chart and the ranks grow with the column, and the visually-hidden table stays the accessible source.
 - **Editors** (`.form-grid`): from 1024px short fields pair up two to a row in DOM order; panels, sections, buttons and text areas keep the whole row. Settings keeps one column, since its ladder table needs the width.

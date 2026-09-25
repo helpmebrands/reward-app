@@ -2,7 +2,7 @@
 
 A deadline manager for households that hold more premium credit cards than they can track. On opening it answers one question, "what am I about to lose?", and warns before each credit lapses.
 
-There is no account: the household's data stays on the device, and an export is the only backup. This directory is the product specification every implementation is written against. See [[domain]] for the concepts, [[reminders]] for the part that is the product, [[design]] for how it looks and behaves, and [[tests]] for what the suites pin. The frozen reference implementation is the [[pwa]].
+A household signs in, and the service tier keeps its cards, credits and claims ([[api]]). This directory is the product specification every implementation is written against. See [[domain]] for the concepts, [[reminders]] for the part that is the product, [[design]] for how it looks and behaves, and [[tests]] for what the suites pin. The frozen reference implementation is the [[pwa]].
 
 ## The household premise
 

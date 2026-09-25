@@ -16,12 +16,11 @@ AppData sampleHousehold() => appDataFromJson(
 );
 
 const order = ['Today', 'Credits', 'Cards', 'Value'];
-const stubBody = 'This screen arrives with a later issue.';
 
 Future<void> pumpShell(WidgetTester tester, Size size) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   tester.view.physicalSize = size;
@@ -112,10 +111,11 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester, const Size(402, 874));
-    expect(find.text(stubBody), findsNothing);
+    final addCard = find.byKey(const Key('add-card'), skipOffstage: false);
+    expect(addCard, findsNothing);
     await tester.tap(find.text('Cards'));
     await tester.pumpAndSettle();
-    expect(find.text(stubBody), findsOneWidget);
+    expect(addCard, findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       2,
@@ -124,7 +124,7 @@ void main() {
     await pumpShell(tester, const Size(768, 1024));
     await tester.tap(find.text('Value'));
     await tester.pumpAndSettle();
-    expect(find.text(stubBody), findsOneWidget);
+    expect(find.text('Cards against their own fee'), findsOneWidget);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
       3,

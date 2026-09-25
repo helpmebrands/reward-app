@@ -43,6 +43,8 @@ export function CreditRow(props: CreditRowProps) {
     const days = props.instance.daysRemaining
     if (status() === 'manual') return 'No deadline'
     if (status() === 'captured') return 'Captured'
+    // A rolling credit's clock starts only when it is claimed.
+    if (props.instance.benefit.cadence === 'rolling') return 'Eligible now'
     if (days < 0) return 'Expired'
     return formatDaysRemaining(days)
   }

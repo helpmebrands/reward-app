@@ -40,6 +40,15 @@ const Map<Cadence, List<LadderRung>> _ladders = {
     LadderRung(daysBefore: 30, label: 'Urgent', tone: Tone.urgent),
     LadderRung(daysBefore: 7, label: 'Final week', tone: Tone.urgent),
   ],
+  // A rolling credit has no deadline until the user claims it, so it gets one
+  // rung and is never scheduled.
+  Cadence.rolling: [
+    LadderRung(
+      daysBefore: 0,
+      label: 'Restarts when claimed',
+      tone: Tone.permissive,
+    ),
+  ],
   // Untracked credits get one rung and it is the user's own review, not a
   // deadline the app invented.
   Cadence.manual: [

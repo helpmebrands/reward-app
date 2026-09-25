@@ -57,8 +57,9 @@ analyze: ## Static analysis, as the verify gate runs it
 format: ## Format the Dart code (rule 9)
 	$(DART) format .
 
-check: analyze test ## What CI checks: analyze, widget tests, formatting
-	$(DART) format --output=none --set-exit-if-changed .
+check: analyze test ## What CI checks: analyze, widget tests, the api define, formatting
+	$(FLUTTER) test test/api_config_test.dart --dart-define=API_BASE_URL=https://example.test
+	$(DART) format --output=none --set-exit-if-changed lib test integration_test
 
 test: ## Unit and widget tests; `make test ios` or `make test android` also runs e2e there
 	$(FLUTTER) test $(ARGS)
