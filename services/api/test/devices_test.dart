@@ -46,8 +46,8 @@ void main() {
     });
   });
 
-  // @lat: [[api-tests#Devices#Without a database the device routes answer 503]]
-  test('the device routes answer 503 when no database is configured', () async {
+  // @lat: [[api-tests#Devices#Without sign-in the device routes answer 503]]
+  test('the device routes answer 503 when sign-in is not configured', () async {
     final handler = buildHandler();
     final post = await handler(
       Request(
@@ -59,7 +59,7 @@ void main() {
     );
     expect(post.statusCode, 503);
     final body = jsonDecode(await post.readAsString()) as Map<String, dynamic>;
-    expect(body['error'], 'no database');
+    expect(body['error'], 'no auth');
 
     final delete = await handler(
       Request('DELETE', Uri.parse('http://localhost/v1/devices/fcm-token-1')),

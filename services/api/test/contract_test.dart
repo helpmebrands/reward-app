@@ -9,6 +9,7 @@ import 'package:test/test.dart';
 
 import 'support/database.dart';
 import 'support/openapi.dart';
+import 'support/push.dart';
 import 'support/tokens.dart';
 
 /// Signs the contract's tokens; made in `main`'s `setUpAll`.
@@ -103,18 +104,28 @@ final cases = <Case>[
     needsDatabase: false,
   ),
   call('GET', '/v1/me', 200, as: 'owner', capture: keep('owner', 'id')),
-  call('POST', '/v1/devices', 200, body: device),
-  call('POST', '/v1/devices', 400, body: {...device}..remove('platform')),
-  call('POST', '/v1/devices', 400, body: 'not json'),
-  call('POST', '/v1/devices', 503, body: device, needsDatabase: false),
-  call('DELETE', '/v1/devices/{token}', 204, url: '/v1/devices/contract-token'),
-  call('DELETE', '/v1/devices/{token}', 404, url: '/v1/devices/nobody'),
+  call('POST', '/v1/devices', 200, as: 'owner', body: device),
+  call(
+    'POST',
+    '/v1/devices',
+    400,
+    as: 'owner',
+    body: {...device}..remove('platform'),
+  ),
+  call('POST', '/v1/devices', 400, as: 'owner', body: 'not json'),
   call(
     'DELETE',
     '/v1/devices/{token}',
-    503,
+    204,
+    as: 'owner',
+    url: '/v1/devices/contract-token',
+  ),
+  call(
+    'DELETE',
+    '/v1/devices/{token}',
+    404,
+    as: 'owner',
     url: '/v1/devices/nobody',
-    needsDatabase: false,
   ),
   call('GET', '/v1/catalog', 200, as: 'owner'),
   call(
@@ -577,6 +588,8 @@ const _muteBenefit = '/v1/me/mutes/benefits/{benefitId}';
 /// `linkedBenefit` come from [dataCases].
 final preferenceCases = <Case>[
   call('GET', '/v1/me/preferences', 200, as: 'reader'),
+  call('GET', '/v1/me/reminders/summary', 200, as: 'owner'),
+  call('POST', '/v1/me/reminders/test', 200, as: 'owner'),
   call(
     'PUT',
     '/v1/me/preferences',
@@ -929,7 +942,11 @@ void main() {
       tearDownAll(() => dropSchema(db, 'contract'));
 
       test('every case with a database answers as documented', () async {
-        final handler = buildHandler(db: db, verifier: verifier);
+        final handler = buildHandler(
+          db: db,
+          verifier: verifier,
+          push: FakePush(),
+        );
         final errors = <String>[];
         for (final c in cases.where((c) => c.needsDatabase)) {
           errors.addAll(await check(spec, c, await handler(c.request())));
