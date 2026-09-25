@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../theme/nocturne_tokens.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/screen_title.dart';
 
 /// One slide of the welcome slideshow.
 class WelcomeSlide {
   const WelcomeSlide(this.icon, this.title, this.body);
 
-  final IconData icon;
+  /// The slide's picture; null draws the stacked brand logo.
+  final IconData? icon;
   final String title;
   final String body;
 }
@@ -16,7 +18,7 @@ class WelcomeSlide {
 /// again from "Learn more" on the sign-in screen.
 const welcomeSlides = [
   WelcomeSlide(
-    Icons.savings_outlined,
+    null,
     'Every credit, before it lapses',
     'Premium cards pay back in monthly, quarterly and yearly credits. '
         'HelpMe Reward tracks each one and shows what is about to expire.',
@@ -84,12 +86,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 children: [
                   Row(
                     children: [
-                      ScreenTitle(
-                        label: 'Welcome',
-                        text: 'HelpMe Reward',
-                        style: text.titleSmall,
+                      // Expanded, so at a large text size the name wraps
+                      // instead of pushing Skip off the right edge.
+                      Expanded(
+                        child: ScreenTitle(
+                          label: 'Welcome',
+                          text: 'HelpMe Reward',
+                          style: text.titleSmall,
+                        ),
                       ),
-                      const Spacer(),
                       TextButton(
                         key: const Key('welcome-skip'),
                         onPressed: widget.onDone,
@@ -108,11 +113,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const SizedBox(height: Space.s12),
-                                Icon(
-                                  slide.icon,
-                                  size: 56,
-                                  color: tokens.accent,
-                                ),
+                                if (slide.icon case final icon?)
+                                  Icon(icon, size: 56, color: tokens.accent)
+                                else
+                                  const BrandLogo.stacked(),
                                 const SizedBox(height: Space.s6),
                                 Semantics(
                                   header: true,

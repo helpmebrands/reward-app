@@ -51,7 +51,7 @@ Settings, the benefit editor, Add card, the card editor and Change the terms kee
 Join household and Not found are reached from a link, often before the app is set up, so they say where the person landed: a `BrandAppBar` with the lockup instead of Back and a title, and `BrandLogo` above the message.
 
 - **The gear only when signed in**: the router passes `showSettings` as `session?.signedIn ?? true` (no session means no sign-in, as in tests), and `BrandAppBar` draws no gear without `onSettings`. The gear pushes Settings, as on the tabs.
-- **`BrandLogo`** (`lib/widgets/brand_logo.dart`) is the icon and two-line wordmark with the tagline, `helpmereward-logo{,-dark}.png` trimmed into the app's assets, drawn at 200 x 71. It is labelled "HelpMe reward" as an image, never a heading, and replaces the generic icon each screen had above its message.
+- **`BrandLogo`** (`lib/widgets/brand_logo.dart`) is, by default, the icon and two-line wordmark with the tagline, `helpmereward-logo{,-dark}.png` trimmed into the app's assets, drawn at 200 x 71. It is labelled "HelpMe reward" as an image, never a heading, and replaces the generic icon each screen had above its message.
 - **A way out of Join**: with no Back in the bar, a "Not now" text button under "Join this household" goes to Today; Not found keeps "Back to Today".
 
 Pinned by [[mobile-tests#Landing screens]]; previews of Join and Not found in both themes.
@@ -201,6 +201,12 @@ The slideshow stays open while signed out, which is how "Learn more" on the sign
 - `firebase_core` and `firebase_auth` are Flutter Favorites, resolved through Swift Package Manager on iOS and macOS; the analyzer excludes `build/`, where a macOS build checks their Swift packages out.
 
 Every screen has a Widget Preview: the slideshow in both themes and sign-in at compact and expanded.
+
+### The stacked logo
+
+Welcome and Sign in show the brand as `BrandLogo.stacked`, the icon above the wordmark and tagline (`helpmereward-logo-vertical{,-dark}.png`), centred at 160 x 170 with no app bar, in place of the piggy bank they had.
+
+On Welcome it is the first slide's picture (a `WelcomeSlide` with no icon); on Sign in it sits above the heading. Like every logo it is a labelled image, not a heading. Both pages scroll, so at 320 x 568 and text scale 2.0 the buttons can still be reached; Welcome's name beside Skip wraps rather than overflowing. Pinned by [[mobile-tests#Entry logo]].
 
 ## System and user cards
 
