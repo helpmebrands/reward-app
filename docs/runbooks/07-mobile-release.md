@@ -24,8 +24,9 @@ iOS profile and renewing the certificate.
 
 The api it will talk to is `reward-api` ([README](README.md#environments));
 device registration is `POST /v1/devices` with the FCM token, an installation
-id the app generates, `ios` or `android`, and the IANA zone. Push delivery
-itself is not built yet.
+id the app generates, `ios` or `android`, and the IANA zone. The server sends
+reminders from the Cloud Run job `reward-api-remind`; setting it up is
+[08 §3.6 and §3.7](08-mobile-setup.md#36-the-apns-key-for-push).
 
 ## Versioning
 
@@ -74,8 +75,9 @@ $ fvm flutter build ipa --release    # writes build/ios/ipa/*.ipa
 The first time, open `ios/Runner.xcworkspace` in Xcode, sign in under
 *Signing & Capabilities* with the team that owns the bundle id, and tick
 *Automatically manage signing*; Xcode creates the certificate and profile.
-Push notifications will need the *Push Notifications* capability and an APNs
-key uploaded to Firebase, which is part of wiring FCM and not of this runbook.
+Push notifications need the *Push Notifications* capability on the app id and
+an APNs key uploaded to Firebase; both are in
+[08](08-mobile-setup.md#36-the-apns-key-for-push).
 
 **Android** needs an upload keystore and a Play Console record. The keystore
 is generated once and stored only in Secret Manager ([08, step

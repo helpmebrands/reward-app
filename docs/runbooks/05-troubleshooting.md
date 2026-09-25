@@ -247,3 +247,47 @@ Check in this order, because the cheapest checks are also the likeliest:
 
 Reminder delivery is client-side. A deploy cannot break it for a user who never
 reopens the app, and equally cannot fix it for them.
+
+## Push notifications do not reach the app
+
+The Flutter app gets reminders from the server: the Cloud Run job
+`reward-api-remind` sends them through FCM every 15 minutes, and FCM reaches
+iPhones through APNs. Set `PROJECT_ID=helpme-reward-staging` and check in
+this order:
+
+1. **Is the device registered?** In the app, Settings →
+   **Send a test notification**. `No device took the test` means the api
+   holds no token for you: turn **Send me reminders** off and on again.
+2. **Is the job running?** Read its last lines:
+
+   ```sh
+   $ gcloud logging read \
+       'resource.type="cloud_run_job" AND resource.labels.job_name="reward-api-remind"' \
+       --project "$PROJECT_ID" --limit 20 --format='value(textPayload)'
+   ```
+
+   - No lines at all: the job has never run. Check the scheduler with
+     `gcloud scheduler jobs describe reward-api-remind --location us-central1 --project "$PROJECT_ID"`,
+     and that the job's image is not the `cloudrun/container/hello`
+     placeholder (runbook 08 §3.7 step 3).
+   - `DATABASE_URL and FIREBASE_PROJECT_ID must both be set`: the job was
+     created by hand or edited; apply the stack again.
+   - `sent 0 reminder and 0 notice pushes` every run: nothing was due for
+     anyone with reminders on and a device. That is normal between a
+     ladder's rungs. The Settings summary shows the next one.
+3. **Does FCM refuse the job?** A line `fcm 403: … PERMISSION_DENIED` means
+   the api identity lacks `roles/firebasecloudmessaging.admin` or
+   `fcm.googleapis.com` is disabled. Both are in `infra/index.ts`; apply the
+   stack. `SERVICE_DISABLED` is the API; enable it the same way.
+4. **iPhone only, and the test says sent?** FCM accepted the push but APNs
+   refused it: the **APNs Authentication Key** is missing or revoked in the
+   Firebase console (Project settings → Cloud Messaging → Apple app
+   configuration). Upload one as runbook 08 §3.6 describes.
+5. **Android only?** Notifications for HelpMe Reward are blocked in the
+   phone's settings (Settings → Apps → HelpMe Reward → Notifications), or the
+   app was force-stopped, which holds pushes until it is opened again.
+
+A device row can also disappear on its own: when FCM answers `UNREGISTERED`
+for a token (the app was uninstalled, or FCM replaced the token), the job
+deletes that device. The app registers again the next time it launches with
+reminders on.

@@ -176,6 +176,22 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 Step 3.6 of `08-mobile-setup.md` creates an Apple Push Notifications service key and uploads it under *APNs Authentication Key* with the team id `LMFUSVPCDH`, without which FCM cannot reach an iPhone ([[mobile-architecture#Push]]).
 
+### Runbook 07 no longer calls push unbuilt
+
+`07-mobile-release.md` drops "Push delivery itself is not built" and the claim that the APNs key is not its concern, and links runbook 08 §3.6 instead.
+
+### Runbook 08 turns on the reminder job
+
+§3.7 of `08-mobile-setup.md` is numbered steps: apply the stack, check `API_REMIND_JOB` on the environment, describe the scheduler, execute `reward-api-remind` and read the `sent N reminder and N notice pushes` line ([[api-architecture#Reminder sender]]).
+
+### Runbook 08 checks push on a device
+
+Part 4 has a numbered **Push reaches a device.** check: turn on Send me reminders, allow the prompt, and Send a test notification from Settings.
+
+### Runbook 05 covers push that does not arrive
+
+`05-troubleshooting.md` has "Push notifications do not reach the app", naming the APNs Authentication Key, `roles/firebasecloudmessaging.admin`, a job that sent 0 and tokens retired on `UNREGISTERED`.
+
 ### Runbook 08 has the store hand steps
 
 `08-mobile-setup.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
@@ -280,11 +296,17 @@ The check comes first rather than after a rejected upload: a checkout from befor
 `08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
 ### Runbook 08 checks the profile's entitlements before storing it
 
-The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
+The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks the app id and all three entitlements before `gcloud secrets versions add`.
+
+The names are `application-identifier`, `aps-environment`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains`.
 
 The API route stays as an appendix.
 
 The first pass of the runbook stored a profile made for a second, hand-registered app id, and a later one stored a profile without Associated Domains (release run 35960067543). Both fail only at signing, so the check comes before the version is added.
+### Runbook 08 re-checks the stored profile for push
+
+Part 4 decodes the stored profile and greps the four names §1.7 requires, `aps-environment` among them, so a profile without Push Notifications is caught before a release.
+
 ### Runbook 08 reads binaries back with --out-file
 
 The *Check everything* part of `08-mobile-setup.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.

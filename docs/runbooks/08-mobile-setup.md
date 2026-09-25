@@ -750,9 +750,61 @@ builds. Android needs nothing here.
    keeps the key; a lost key is revoked and replaced by repeating this
    step.
 
-The api sends through FCM as its own identity (no key file, see
-`infra/index.ts`), and Cloud Scheduler runs the reminder job every 15
-minutes once `pulumi up` (3.3) has applied the stack.
+The api sends through FCM as its own identity, so there is no server key
+to make or store. §3.7 turns on the job that sends.
+
+### 3.7 Turn on the reminder job
+
+The Cloud Run job `reward-api-remind` sends due reminders and catalogue
+change notices. Cloud Scheduler starts it every 15 minutes. `pulumi up`
+creates the job on a placeholder image; the api's deploy workflow moves it
+to the real one. Skip steps 1 and 2 if §3.3 already ran on a `develop` that
+has the job in `infra/index.ts`.
+
+1. Apply the stack as in §3.3, step 4. The plan creates
+   `api-remind`, `scheduler`, `scheduler-runs-reminders`,
+   `remind-every-15-minutes`, `api-runtime-sends-fcm`,
+   `deployer-can-update-reminders` and `var-API_REMIND_JOB`.
+2. Check the variable reached the GitHub environment. It prints
+   `API_REMIND_JOB  reward-api-remind`:
+
+   ```sh
+   $ gh variable list --env $STACK | grep API_REMIND_JOB
+   ```
+
+3. Put the real image on the job by running the api's deploy workflow:
+
+   ```sh
+   $ gh workflow run cd-api.yml --ref develop
+   $ gh run watch "$(gh run list --workflow cd-api.yml --limit 1 --json databaseId --jq '.[0].databaseId')"
+   ```
+
+   The step *Move the reminder job to the new image* must show as run, not
+   skipped.
+4. Check the schedule. It prints `*/15 * * * *` and `ENABLED`:
+
+   ```sh
+   $ gcloud scheduler jobs describe reward-api-remind --location us-central1 \
+       --project "$PROJECT_ID" --format='value(schedule,state)'
+   ```
+
+5. Run the job once by hand and wait for it:
+
+   ```sh
+   $ gcloud run jobs execute reward-api-remind --region us-central1 \
+       --project "$PROJECT_ID" --wait
+   ```
+
+6. Read its last line. With nobody's reminder due it is
+   `sent 0 reminder and 0 notice pushes`:
+
+   ```sh
+   $ gcloud logging read \
+       'resource.type="cloud_run_job" AND resource.labels.job_name="reward-api-remind"' \
+       --project "$PROJECT_ID" --limit 5 --format='value(textPayload)'
+   ```
+
+   An error instead of that line is in [05](05-troubleshooting.md#push-notifications-do-not-reach-the-app).
 
 ## Part 4 — Check everything
 
@@ -785,10 +837,13 @@ $ security delete-keychain check.keychain-db
 $ gcloud secrets versions access latest --secret reward-app-ios-provisioning-profile-$STACK \
     --project "$PROJECT_ID" --out-file check.mobileprovision
 $ security cms -D -i check.mobileprovision | plutil -p - \
-    | grep -E 'application-identifier|com.apple.developer.applesignin|com.apple.developer.associated-domains'
+    | grep -E 'application-identifier|aps-environment|com.apple.developer.applesignin|com.apple.developer.associated-domains'
 ```
 
-The last command must show the same three names as in 1.7.
+The last command must show the same four names as in 1.7. A missing
+`aps-environment` means the profile was made without Push Notifications:
+the next release fails to sign and no iPhone gets a push. Re-make it as
+*Later: re-making the iOS profile* describes.
 
 **Both sign-in providers are on:**
 
@@ -819,6 +874,24 @@ domain's certificate up to an hour after the DNS record exists.
    The first answers JSON naming `LMFUSVPCDH.com.helpmebrands.reward`; the
    second lists the fingerprint from 2.5. A certificate error means step 1
    is still pending.
+
+**Push reaches a device.** This proves §3.6 and §3.7 together, on a phone
+signed in to the staging build.
+
+1. Open Settings and turn on **Send me reminders**.
+2. Answer **Allow** to the system's notification prompt.
+3. Check the line under the fields reads `N reminders scheduled. Next on …`,
+   or `Nothing scheduled yet.` for a household with no cards.
+4. Put the app in the background.
+5. Reopen it and tap **Send a test notification**. The snackbar reads
+   `Test notification sent.`
+6. Background the app again. The notification *Test notification* arrives
+   within a few seconds.
+7. Tap it. The app opens on Settings.
+
+`No device took the test` in step 5 means the device is not registered;
+nothing arriving in step 6 on an iPhone only is the APNs key. Both are in
+[05](05-troubleshooting.md#push-notifications-do-not-reach-the-app).
 
 **Clean up.** The keystore and the `.p12` now exist only in Secret Manager
 and, if you choose, in a password manager; the `.p8` files exist only in
