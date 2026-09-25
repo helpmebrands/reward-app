@@ -964,6 +964,7 @@ describe('signing material procedure and token record', () => {
     const stored = profile.indexOf('gcloud secrets versions add')
     for (const line of [
       'application-identifier',
+      'aps-environment',
       'com.apple.developer.applesignin',
       'com.apple.developer.associated-domains',
     ]) {
@@ -982,6 +983,23 @@ describe('signing material procedure and token record', () => {
     expect(check).toMatch(/stdout/)
     expect(runbook).not.toMatch(/'X{10}' \| gcloud/)
     expect(runbook).toMatch(/read -r ASC_KEY_ID/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 re-checks the stored profile for push]]
+  it('re-checks the stored profile for the push entitlement', () => {
+    const check =
+      runbook08()
+        .split(/^## Part 4 — Check.*$/m)[1]
+        ?.split(/^## /m)[0] ?? ''
+    const decoded = check.split('security cms -D -i check.mobileprovision')[1] ?? ''
+    const names = decoded.match(/grep -E '([^']+)'/)?.[1]?.split('|')
+    expect(names).toEqual([
+      'application-identifier',
+      'aps-environment',
+      'com.apple.developer.applesignin',
+      'com.apple.developer.associated-domains',
+    ])
+    expect(check).toMatch(/same four names as in 1\.7/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
