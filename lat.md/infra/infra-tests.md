@@ -296,7 +296,9 @@ The check comes first rather than after a rejected upload: a checkout from befor
 `08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
 ### Runbook 08 checks the profile's entitlements before storing it
 
-The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `aps-environment`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
+The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks the app id and all three entitlements before `gcloud secrets versions add`.
+
+The names are `application-identifier`, `aps-environment`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains`.
 
 The API route stays as an appendix.
 
