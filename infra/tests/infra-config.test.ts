@@ -7,14 +7,17 @@ import { describe, expect, it } from 'vitest'
 // target (which project it deploys to); a drift is only noticed when a deploy
 // is rejected at the auth step.
 
-// The repository root: this suite lives in apps/pwa/tests.
-const root = join(import.meta.dirname, '..', '..', '..')
+// The repository root: this suite lives in infra/tests.
+const root = join(import.meta.dirname, '..', '..')
 const read = (path: string) => readFileSync(join(root, path), 'utf8')
 
 function filesUnder(dir: string): string[] {
+  if (!existsSync(join(root, dir))) return []
   return readdirSync(join(root, dir), { recursive: true, encoding: 'utf8' })
     .map((name) => join(dir, name))
     .filter((path) => !path.includes('node_modules') && statSync(join(root, path)).isFile())
+    // This suite quotes the strings it forbids, so it never scans itself.
+    .filter((path) => !path.startsWith('infra/tests/'))
 }
 
 describe('Pulumi project config', () => {
@@ -157,16 +160,16 @@ describe('verify workflow', () => {
 
 describe('api deploy workflow', () => {
   // @lat: [[infra-tests#Infrastructure config#Api CD workflow is path-filtered to the api and the domain]]
-  it('runs cd-api.yml only for the api, the domain and itself, never for the PWA', () => {
+  it('runs cd-api.yml only for the api, the domain and itself, never for the site', () => {
     const cdApi = read('.github/workflows/cd-api.yml')
     const trigger = cdApi.split(/^jobs:\s*$/m)[0]
     expect(trigger).toMatch(/^\s+- ['"]?services\/api\/\*\*['"]?\s*$/m)
     expect(trigger).toMatch(/^\s+- ['"]?packages\/domain\/\*\*['"]?\s*$/m)
-    expect(trigger).not.toContain('apps/pwa')
+    expect(trigger).not.toContain('apps/site')
     const cd = read('.github/workflows/cd.yml')
-    const pwaTrigger = cd.split(/^jobs:\s*$/m)[0]
-    expect(pwaTrigger).toMatch(/^\s+paths-ignore:\s*$/m)
-    expect(pwaTrigger).toMatch(/^\s+- ['"]?services\/api\/\*\*['"]?\s*$/m)
+    const siteTrigger = cd.split(/^jobs:\s*$/m)[0]
+    expect(siteTrigger).toMatch(/^\s+paths-ignore:\s*$/m)
+    expect(siteTrigger).toMatch(/^\s+- ['"]?services\/api\/\*\*['"]?\s*$/m)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Api CD builds, migrates, deploys and smoke-tests]]
@@ -422,8 +425,7 @@ describe('runbook 01', () => {
 
 describe('infra, runbooks, workflows and container files', () => {
   const files = [
-    ...['infra', 'docs', '.github', 'apps/pwa/deploy'].flatMap(filesUnder),
-    'apps/pwa/Dockerfile',
+    ...['infra', 'docs', '.github', 'apps/site'].flatMap(filesUnder),
   ]
 
   // @lat: [[infra-tests#Infrastructure config#No stale repository or project names]]
@@ -441,9 +443,13 @@ describe('infra, runbooks, workflows and container files', () => {
 
 describe('monorepo layout', () => {
   // @lat: [[infra-tests#Infrastructure config#Root package declares the workspaces]]
-  it('declares apps/pwa and infra as npm workspaces at the root', () => {
-    const pkg = JSON.parse(read('package.json')) as { workspaces?: string[] }
-    expect(pkg.workspaces).toEqual(['apps/pwa', 'infra', 'infra-repo'])
+  it('declares infra and infra-repo as the npm workspaces at the root', () => {
+    const pkg = JSON.parse(read('package.json')) as {
+      workspaces?: string[]
+      scripts?: Record<string, string>
+    }
+    expect(pkg.workspaces).toEqual(['infra', 'infra-repo'])
+    expect(Object.keys(pkg.scripts ?? {}).sort()).toEqual(['test', 'typecheck'])
   })
 
   // @lat: [[infra-tests#Infrastructure config#Root pubspec declares the pub workspace]]
@@ -456,20 +462,69 @@ describe('monorepo layout', () => {
     expect(read('packages/domain/pubspec.yaml')).toMatch(/^resolution: workspace$/m)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#The PWA lives in apps/pwa]]
-  it('keeps the PWA package, Dockerfile and nginx config under apps/pwa', () => {
-    const pwa = JSON.parse(read('apps/pwa/package.json')) as { name: string }
-    expect(pwa.name).toBe('@helpmebrands/reward-app')
-    expect(statSync(join(root, 'apps/pwa/Dockerfile')).isFile()).toBe(true)
-    expect(statSync(join(root, 'apps/pwa/deploy/nginx.conf.template')).isFile()).toBe(true)
+  // @lat: [[infra-tests#Infrastructure config#The PWA is retired]]
+  it('has no apps/pwa and names it nowhere it could be built or run from', () => {
+    expect(existsSync(join(root, 'apps/pwa'))).toBe(false)
+    const manifests = [
+      'package.json',
+      'package-lock.json',
+      'Makefile',
+      '.dockerignore',
+      ...filesUnder('.github'),
+      ...filesUnder('infra'),
+      ...filesUnder('apps/site'),
+    ]
+    const naming = manifests.filter((path) => read(path).includes('apps/pwa'))
+    expect(naming).toEqual([])
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Workflows build the PWA image from its Dockerfile]]
-  it('builds the image from apps/pwa/Dockerfile in verify and cd', () => {
+  // @lat: [[infra-tests#Infrastructure config#The site is plain HTML and CSS]]
+  it('keeps the site as static files, a Dockerfile and an nginx config under apps/site', () => {
+    for (const path of [
+      'apps/site/public/index.html',
+      'apps/site/public/styles.css',
+      'apps/site/Dockerfile',
+      'apps/site/deploy/nginx.conf.template',
+      'apps/site/deploy/security-headers.conf',
+    ]) {
+      expect(existsSync(join(root, path)), path).toBe(true)
+    }
+    expect(existsSync(join(root, 'apps/site/package.json'))).toBe(false)
+    const dockerfile = read('apps/site/Dockerfile')
+    expect(dockerfile).not.toMatch(/^FROM node/m)
+    expect(dockerfile).toMatch(/^FROM nginxinc\/nginx-unprivileged:/m)
+    expect(dockerfile).toContain('COPY apps/site/public /usr/share/nginx/html')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Workflows build the site image from its Dockerfile]]
+  it('builds the site image from apps/site/Dockerfile in verify and cd, with no build args', () => {
     for (const workflow of ['verify.yml', 'cd.yml']) {
       const text = read(`.github/workflows/${workflow}`)
-      expect(text, workflow).toContain('file: apps/pwa/Dockerfile')
+      expect(text, workflow).toContain('file: apps/site/Dockerfile')
+      expect(text, workflow).not.toMatch(/VITE_|build-args:/)
     }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The site smoke test checks the page and a 404]]
+  it('smoke-tests / as 200 and a missing path as 404 in the container job and after deploy', () => {
+    const verify = read('.github/workflows/verify.yml')
+    const container =
+      verify.split(/^ {2}container:\s*$/m)[1]?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    for (const [name, text] of [
+      ['container job', container],
+      ['cd.yml', read('.github/workflows/cd.yml')],
+    ] as const) {
+      expect(text, name).toMatch(/\/nope/)
+      expect(text, name).toMatch(/"404"/)
+      expect(text, name).not.toContain('sw.js')
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Verify has no accessibility gate or build output]]
+  it('drops the PWA accessibility gate and the dist upload from verify', () => {
+    const verify = read('.github/workflows/verify.yml')
+    expect(verify).not.toMatch(/^ {2}a11y:\s*$/m)
+    expect(verify).not.toMatch(/upload-artifact|download-artifact|playwright|npm run build|npm run lint/)
   })
 })
 
@@ -520,15 +575,12 @@ describe('GitHub environment per stack', () => {
     ['verify.yml', 'cd.yml', 'cd-api.yml', 'release-mobile.yml'].map((name) =>
       read(`.github/workflows/${name}`),
     )
-  // Build-time PWA variables are optional and set by hand (runbook 01 §5).
-  const optional = new Set(['VITE_VAPID_PUBLIC_KEY', 'VITE_PUSH_API'])
 
   // @lat: [[infra-tests#Infrastructure config#Every workflow variable is declared on the environment]]
   it('declares every vars.* the workflows read as an environment variable', () => {
     const referenced = new Set(
       workflows()
-        .flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1] ?? ''))
-        .filter((v) => !optional.has(v)),
+        .flatMap((text) => [...text.matchAll(/vars\.([A-Z_]+)/g)].map((m) => m[1] ?? '')),
     )
     for (const name of [
       'API_CLOUD_RUN_SERVICE',
@@ -580,11 +632,6 @@ describe('GitHub environment per stack', () => {
     expect(verify).toContain('npm run typecheck --workspace infra-repo')
     expect(verify).toContain('working-directory: infra-repo')
     expect(verify).toMatch(/pulumi stack select repo/)
-  })
-
-  // @lat: [[infra-tests#Infrastructure config#PWA image knows every workspace manifest]]
-  it('copies the infra-repo manifest into the PWA image so npm ci resolves the lockfile', () => {
-    expect(read('apps/pwa/Dockerfile')).toContain('COPY infra-repo/package.json infra-repo/')
   })
 
   // @lat: [[infra-tests#Infrastructure config#Runbook 01 no longer copies outputs into GitHub by hand]]

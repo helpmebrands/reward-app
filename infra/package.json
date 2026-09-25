@@ -5,7 +5,8 @@
   "description": "Pulumi program for HelpMe Reward's Google Cloud infrastructure.",
   "main": "index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@pulumi/gcp": "^8.0.0",
@@ -15,6 +16,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.20.3",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^5.0.1"
   }
 }

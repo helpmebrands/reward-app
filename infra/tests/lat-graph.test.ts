@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest'
 
 // Guards the shape of the lat.md graph: one root, split by area, with the
 // product spec free of anything the Dart port and the Flutter app must not
-// inherit from the reference PWA.
+// inherit from the retired PWA.
 
-const root = join(import.meta.dirname, '..', '..', '..')
+const root = join(import.meta.dirname, '..', '..')
 const graph = join(root, 'lat.md')
-const AREAS = ['product', 'pwa', 'infra'] as const
+const AREAS = ['product', 'mobile', 'api', 'infra'] as const
 
 const markdownUnder = (dir: string) =>
   readdirSync(dir, { withFileTypes: true })
@@ -17,16 +17,17 @@ const markdownUnder = (dir: string) =>
 
 describe('lat.md graph layout', () => {
   // @lat: [[infra-tests#Infrastructure config#The graph is split by area]]
-  it('keeps every section under product, pwa or infra', () => {
+  it('keeps every section under product, mobile, api or infra', () => {
     for (const area of AREAS) {
       expect(existsSync(join(graph, area)), area).toBe(true)
       expect(markdownUnder(join(graph, area)).length, area).toBeGreaterThan(0)
     }
     expect(markdownUnder(graph)).toEqual(['lat.md'])
+    expect(existsSync(join(graph, 'pwa'))).toBe(false)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#The index names the three areas]]
-  it('indexes the three areas from lat.md/lat.md', () => {
+  // @lat: [[infra-tests#Infrastructure config#The index names the four areas]]
+  it('indexes the four areas from lat.md/lat.md', () => {
     const index = readFileSync(join(graph, 'lat.md'), 'utf8')
     for (const area of AREAS) {
       expect(index, area).toContain(`${area}/`)
