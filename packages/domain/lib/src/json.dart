@@ -7,6 +7,7 @@ library;
 
 import 'catalog.dart';
 import 'catalog_versions.dart';
+import 'dates.dart';
 import 'types.dart';
 
 const Map<BenefitCategory, String> _categoryNames = {
@@ -20,12 +21,17 @@ BenefitCategory _categoryFromJson(String name) => name == 'fee_credit'
     ? BenefitCategory.feeCredit
     : BenefitCategory.values.byName(name);
 
-String _statusToJson(BenefitStatus status) =>
-    status == BenefitStatus.useSoon ? 'use_soon' : status.name;
+String _statusToJson(BenefitStatus status) => switch (status) {
+  BenefitStatus.useSoon => 'use_soon',
+  BenefitStatus.optedOut => 'opted_out',
+  _ => status.name,
+};
 
-BenefitStatus statusFromJson(String name) => name == 'use_soon'
-    ? BenefitStatus.useSoon
-    : BenefitStatus.values.byName(name);
+BenefitStatus statusFromJson(String name) => switch (name) {
+  'use_soon' => BenefitStatus.useSoon,
+  'opted_out' => BenefitStatus.optedOut,
+  _ => BenefitStatus.values.byName(name),
+};
 
 String statusToJson(BenefitStatus status) => _statusToJson(status);
 
@@ -66,7 +72,23 @@ Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'updatedAt': card.updatedAt,
 });
 
-Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
+/// A credit saved before opting out existed was paused with `active: false`.
+/// Unless it had already ended by the time it was last saved, which is how
+/// the catalogue marks a credit that ended before the card was added, the
+/// pause meant "I won't use this": it loads opted out as of that save.
+Benefit benefitFromJson(Map<String, dynamic> json) {
+  final benefit = _benefitFromJson(json);
+  if (benefit.active || benefit.optedOutAt != null) return benefit;
+  final endsOn = benefit.endsOn;
+  final ended =
+      endsOn != null &&
+      compareIsoDate(endsOn, benefit.updatedAt.substring(0, 10)) < 0;
+  return ended
+      ? benefit
+      : benefit.copyWith(active: true, optedOutAt: benefit.updatedAt);
+}
+
+Benefit _benefitFromJson(Map<String, dynamic> json) => Benefit(
   id: json['id'] as String,
   cardId: json['cardId'] as String,
   templateBenefitId: json['templateBenefitId'] as String?,
@@ -91,6 +113,8 @@ Benefit benefitFromJson(Map<String, dynamic> json) => Benefit(
   notes: json['notes'] as String?,
   lastCallOnly: json['lastCallOnly'] as bool,
   active: json['active'] as bool,
+  optedOutAt: json['optedOutAt'] as String?,
+  trackedFrom: json['trackedFrom'] as String?,
   createdAt: json['createdAt'] as String,
   updatedAt: json['updatedAt'] as String,
 );
@@ -119,6 +143,8 @@ Map<String, Object?> benefitToJson(Benefit benefit) => _withoutNulls({
   'notes': benefit.notes,
   'lastCallOnly': benefit.lastCallOnly,
   'active': benefit.active,
+  'optedOutAt': benefit.optedOutAt,
+  'trackedFrom': benefit.trackedFrom,
   'createdAt': benefit.createdAt,
   'updatedAt': benefit.updatedAt,
 });

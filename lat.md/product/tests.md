@@ -29,7 +29,7 @@ The suite is `packages/domain/test/`, ported case for case from the retired PWA'
 
 - Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrolment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
 - Ordering puts what closes soonest first and locked below open.
-- The four totals stay apart. `nextReset` reports the nearest open window.
+- The totals stay apart. `nextReset` reports the nearest open window.
 - Overlaps: one credit on two cards is flagged with `sameProduct`; different issuers match by merchant; two credits on the same card do not overlap; the group totals what is still unclaimed.
 - The missed ledger counts closed windows with nothing claimed, counts only the shortfall for partial use, never blames windows before tracking began, and ignores manual credits. Leaks group repeats and rank by money lost. Monthly totals bin claims by when logged and misses by when the window shut.
 - `summarizeCard` reports net against the fee; `cardLabel` names the holder and prefers a nickname.

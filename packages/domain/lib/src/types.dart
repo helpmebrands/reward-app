@@ -79,6 +79,10 @@ enum BenefitStatus {
 
   /// The window closed with value left on the table.
   missed,
+
+  /// The household will never use it ([Benefit.optedOutAt]). Outranks every
+  /// other rung, and is counted only in its own total.
+  optedOut,
 }
 
 /// The boundary between "Use soon" and "Available", in days.
@@ -195,6 +199,8 @@ class Benefit {
     this.notes,
     required this.lastCallOnly,
     required this.active,
+    this.optedOutAt,
+    this.trackedFrom,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -257,16 +263,27 @@ class Benefit {
   /// of a single alert on the last day.
   final bool lastCallOnly;
 
-  /// Set false to keep history but stop tracking.
+  /// False only for a credit that had ended before it was added or paused;
+  /// a credit the household will not use is opted out instead
+  /// ([optedOutAt]).
   final bool active;
+
+  /// When the household opted out of this credit: it will never be used, so
+  /// it leaves every list and total except the opted-out figure, and is
+  /// never reminded about or missed. Null while it is tracked.
+  final IsoInstant? optedOutAt;
+
+  /// The day tracking resumed after an opt-out. Windows that closed before it
+  /// are never counted as missed.
+  final IsoDate? trackedFrom;
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
 
   /// A copy with the given fields replaced. The nullable fields
   /// ([description], [icon], [merchant], [intervalMonths], [enrolledAt],
   /// [enrollmentNote], [enrollmentUrl], [spendThresholdCents], [spendMetAt],
-  /// [endsOn], [notes]) are cleared by passing null and kept by leaving them
-  /// out.
+  /// [endsOn], [notes], [optedOutAt], [trackedFrom]) are cleared by passing
+  /// null and kept by leaving them out.
   Benefit copyWith({
     String? cardId,
     Object? templateBenefitId = _unset,
@@ -290,6 +307,8 @@ class Benefit {
     Object? notes = _unset,
     bool? lastCallOnly,
     bool? active,
+    Object? optedOutAt = _unset,
+    Object? trackedFrom = _unset,
     IsoInstant? updatedAt,
   }) => Benefit(
     id: id,
@@ -331,6 +350,12 @@ class Benefit {
     notes: identical(notes, _unset) ? this.notes : notes as String?,
     lastCallOnly: lastCallOnly ?? this.lastCallOnly,
     active: active ?? this.active,
+    optedOutAt: identical(optedOutAt, _unset)
+        ? this.optedOutAt
+        : optedOutAt as IsoInstant?,
+    trackedFrom: identical(trackedFrom, _unset)
+        ? this.trackedFrom
+        : trackedFrom as IsoDate?,
     createdAt: createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );

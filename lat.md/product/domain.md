@@ -48,7 +48,8 @@ Fields with behaviour behind them:
 - `spendThresholdCents` is the second kind of lock: spend the issuer asks for in a year before the credit opens (Business Platinum's $250K credits, the Dell bonus). Until `spendMetAt` falls inside the current year the credit is `locked` for spend ([[domain#Status ladder#A spend threshold is the other lock]]).
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
 - `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]). Silencing a credit is a member's choice ([[domain#Member preferences]]).
-- `active: false` keeps history but stops tracking.
+- `optedOutAt` marks a credit the household will never use (an Oura ring, Equinox). It stays on the card but leaves every list and total except its own ([[domain#Status ladder#Opted out is a choice, not a status of the window]]). `trackedFrom` is the day tracking resumed after an opt-out.
+- `active: false` is kept only for a credit that had already ended when it was added or paused. The codec loads a legacy paused credit that had not ended by its `updatedAt` as opted out at that instant.
 - `endsOn` is the last day the credit can be used, for credits the issuer has announced an end to (Grubhub, Instacart). The final window is clamped to it and nothing follows ([[domain#Cycle]]); afterwards the credit is skipped the way an inactive one is, while its final shortfall stays in the [[domain#Missed ledger]]. `annualValueCents` is not prorated for a credit ending mid-year.
 
 ### Cadence
@@ -96,10 +97,11 @@ Claims are indexed once per resolve (`indexClaims`) so resolving every credit st
 
 ## Status ladder
 
-Every benefit instance sits on exactly one rung: `locked`, `manual`, `use_soon`, `available`, `captured` or `missed`. The status is computed, never stored.
+Every benefit instance sits on exactly one rung: `opted_out`, `locked`, `manual`, `use_soon`, `available`, `captured` or `missed`. The status is computed, never stored.
 
 Precedence, from `statusFor` in `packages/domain/lib/src/selectors.dart`:
 
+0. `opted_out` when `optedOutAt` is set. This outranks everything, captured included: the household has said it will not use the credit.
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
 3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met (`lockReason` says which; enrolment outranks spend).
@@ -107,7 +109,7 @@ Precedence, from `statusFor` in `packages/domain/lib/src/selectors.dart`:
 5. `missed` when the window has closed.
 6. `use_soon` when the window closes within `settings.useSoonDays` (default `useSoonDays`, 30), otherwise `available`.
 
-Instances sort by `compareByUrgency`: status order (use soon, available, locked, manual, captured, missed), then soonest deadline, then most money at stake.
+Instances sort by `compareByUrgency`: status order (use soon, available, locked, manual, captured, missed, opted out), then soonest deadline, then most money at stake.
 
 Only `use_soon` and `available` are "claimable" (`isClaimable`), and that is the set the headline number and the next-reset date are built from.
 
@@ -118,9 +120,21 @@ A credit behind an unticked enrolment box cannot be spent. Treating it as unclai
 Consequences elsewhere:
 
 - Today shows locked credits in their own section, below the headline.
-- The Credits screen keeps `lockedCents` as its own figure ([[domain#The four totals]]).
+- The Credits screen keeps `lockedCents` as its own figure ([[domain#The five totals]]).
 - Reminders only mention locked credits when the user has opted into enrolment reminders, and then lead with the blocker rather than the spend ([[reminders#Schedule construction#Notification copy]]).
 - The detail sheet offers "I've enrolled — unlock this credit" instead of a spend action. Confirming sets `enrolledAt`; revoking clears it.
+
+### Opted out is a choice, not a status of the window
+
+Some credits will never be used. Opting out keeps the credit on its card but takes it off every list and out of every figure except its own, so what is left reflects what the household will actually spend.
+
+The flag lives on the credit on one card: two people with their own Platinum opt out on their own card. Consequences:
+
+- `totalsFor` counts its annual value in `optedOutCents` and nowhere else ([[domain#The five totals]]).
+- `missedCycles` skips it, and `buildSchedule` never reminds about it ([[reminders#Schedule construction]]).
+- `summarizeCard` counts it in the card's potential value but not its usable value ([[domain#Card value and the cardmember year]]).
+- The mobile store leaves it out of `instances`, so no screen list shows it.
+- Reactivating clears `optedOutAt` and sets `trackedFrom` to that day, so the windows that closed while it was opted out are never counted as missed ([[domain#Missed ledger]]).
 
 ### A spend threshold is the other lock
 
@@ -135,9 +149,9 @@ Consequences:
 - `summarizeCard` counts nothing for a spend-locked credit in `annualValueCents`, and `templateAnnualValueCents` leaves gated entries out of the catalogue price.
 - Reminders never mention a spend-locked credit, whatever the enrolment-reminder setting: no notification can reach a spend threshold ([[reminders#Schedule construction]]).
 
-## The four totals
+## The five totals
 
-Claimable, locked, captured and missed are four different quantities. Money you can still get and money you have already lost are never summed into one number.
+Claimable, locked, captured, missed and opted out are five different quantities. Money you can still get and money you have already lost are never summed into one number.
 
 `totalsFor` returns them side by side:
 
@@ -147,6 +161,7 @@ Claimable, locked, captured and missed are four different quantities. Money you 
 | `lockedCents` | Behind an enrolment box. Excluded from claimable on purpose. |
 | `capturedCents` | Already used this cycle. |
 | `missedCents` | Windows that closed unused ([[domain#Missed ledger]]). |
+| `optedOutCents` | A year's value of the opted-out credits, which no other figure counts. |
 
 ## Overlaps
 
@@ -160,7 +175,7 @@ Each group reports `sameProduct` (the same issuer and product held twice) and th
 
 A closed cycle with less claimed than its value is a miss for the shortfall. The ledger is computed from claims rather than stored, so it is always consistent with what the user actually logged.
 
-`missedCycles` walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss, and rolling ones close only by claim, so neither appears. A credit that has ended keeps its final, clamped window in the ledger.
+`missedCycles` walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. It also skips opted-out credits, and for a reactivated credit every window that closed before its `trackedFrom`. Manual credits have no window to miss, and rolling ones close only by claim, so neither appears. A credit that has ended keeps its final, clamped window in the ledger.
 
 Two views are built on it:
 
@@ -172,6 +187,8 @@ Two views are built on it:
 A card is judged against its own annual fee, over its own cardmember year. Six cards with six fees cannot share a dollar axis, so the Value screen plots captured value as a percentage of fee, where 100% is break-even for every card.
 
 `summarizeCard` builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit (`cardYearStart`), and `capturedCents` is the sum of claims logged since that date (`claimedThisCardYear`). `netCents` is captured minus fee; `feeProgress` is the break-even bar.
+
+A card has two annual values. `potentialValueCents` is every credit the card gives, opted-out ones included and spend-gated ones left out; `annualValueCents` is the usable value, without the opted-out credits, and is what the verdict is judged on. `optedOutCents` is the difference.
 
 This is why the Value tab and the Cards tab can disagree: Value covers the last nine calendar months, while each card's figure covers only its own fee period. A credit only pays for the fee it was issued against.
 

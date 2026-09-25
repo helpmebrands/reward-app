@@ -791,18 +791,20 @@ class AppStore extends ChangeNotifier {
 
   // Derived views
 
-  /// Every active credit resolved against today, by urgency.
+  /// Every tracked credit resolved against today, by urgency. Opted-out
+  /// credits are left out: they appear on no list.
   List<BenefitInstance> get instances {
     final data = _data;
     if (data == null) return const [];
-    return currentInstances(data, today, _preferences);
+    return [
+      for (final instance in currentInstances(data, today, _preferences))
+        if (instance.status != BenefitStatus.optedOut) instance,
+    ];
   }
 
   /// One credit resolved against today, or null when it is not tracked.
   BenefitInstance? instanceFor(String benefitId) {
-    final data = _data;
-    if (data == null) return null;
-    for (final instance in currentInstances(data, today, _preferences)) {
+    for (final instance in instances) {
       if (instance.benefit.id == benefitId) return instance;
     }
     return null;

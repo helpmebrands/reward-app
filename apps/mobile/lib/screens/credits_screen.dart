@@ -380,6 +380,7 @@ class _Group extends StatelessWidget {
             BenefitStatus.available => tokens.available.line,
             BenefitStatus.locked => tokens.locked.line,
             BenefitStatus.captured ||
+            BenefitStatus.optedOut ||
             BenefitStatus.manual => tokens.captured.line,
             BenefitStatus.missed => tokens.missed.line,
           }

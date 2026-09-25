@@ -129,6 +129,7 @@ ReminderSchedule buildSchedule(
     // A rolling credit has no deadline to warn about until the user claims
     // it, and then nothing to do until the interval runs out.
     if (!benefit.active ||
+        benefit.optedOutAt != null ||
         benefit.cadence == Cadence.manual ||
         benefit.cadence == Cadence.rolling ||
         hasEnded(benefit, from)) {

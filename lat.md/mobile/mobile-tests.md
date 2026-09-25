@@ -634,6 +634,10 @@ On a $25 credit with $10 claimed, `claim` without an amount records $15 with the
 
 `updateSettings` changes the horizon and theme; `updatePreferences` turns reminders on at a new time, keeps the floor, saves the preferences apart from the snapshot, and leaves the horizon as set.
 
+### Opted-out credits stay off the lists
+
+`instances` and `instanceFor` leave out a credit with `optedOutAt`, so it reaches no screen list; its value is still in the opted-out figure.
+
 ### A write before load wins
 
 With a snapshot store whose load is held open, `addCardFromTemplate` lands first; when the load resolves the store still holds the new card, that card is what was saved, and `loading` is false, with one notification per event.

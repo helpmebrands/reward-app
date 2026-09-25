@@ -19,7 +19,7 @@ Map<String, Object?> _legacy({IsoDate? endsOn}) => {
   'cadence': 'annual',
   'anchor': 'calendar',
   'enrollmentRequired': false,
-  if (endsOn != null) 'endsOn': endsOn,
+  'endsOn': ?endsOn,
   'lastCallOnly': false,
   'active': false,
   'createdAt': '2026-01-01T00:00:00.000Z',
@@ -109,7 +109,11 @@ void main() {
     final data = makeData(
       cards: [makeCard(createdAt: '2026-01-01T00:00:00.000Z')],
       benefits: [
-        makeBenefit(Cadence.monthly, valueCents: 1500, trackedFrom: '2026-06-10'),
+        makeBenefit(
+          Cadence.monthly,
+          valueCents: 1500,
+          trackedFrom: '2026-06-10',
+        ),
       ],
     );
     expect(missedCycles(data, today).map((m) => m.cycle.label).toList(), [
