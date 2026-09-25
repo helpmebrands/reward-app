@@ -484,6 +484,10 @@ The API token is read from Secret Manager with `gcloud`, never from `secrets.*`,
 
 After the deploy, `cd.yml` requires `vars.SITE_URL` to answer 200 at `/` and 404 at `/nope`, which also proves `404.html` stops Pages' single-page fallback ([[deployment#Pipeline#Smoke tests]]).
 
+### The site smoke test retries both paths
+
+One shell helper in the site smoke step polls a path until it answers the expected code or a minute passes, and both `/` (200) and `/nope` (404) go through it, so a custom domain still settling (a Cloudflare 522) does not fail the deploy.
+
 ### Verify has no accessibility gate or build output
 
 `verify.yml` has no `a11y` or `container` job, uploads and downloads no artifact, and runs neither `npm run build` nor `npm run lint`: the PWA's bundle, its Playwright gate and the site's nginx image went with it.
