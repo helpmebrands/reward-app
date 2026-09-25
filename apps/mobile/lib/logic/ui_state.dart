@@ -1,10 +1,8 @@
-import 'package:domain/domain.dart';
 import 'package:flutter/widgets.dart';
 
 import 'snackbar_state.dart';
 
-/// Transient UI state: which sheet is open, and whether the nudge preview is
-/// up. The counterpart of the PWA's `UiProvider`.
+/// Transient UI state: which sheet is open. The counterpart of the PWA's `UiProvider`.
 ///
 /// Held above the router rather than in a screen, because the shell renders
 /// the sheets while the screens open them. Sheets track a benefit *id*, never
@@ -19,7 +17,6 @@ class UiState extends ChangeNotifier {
 
   String? _openBenefitId;
   String? _openOverlapLabel;
-  Reminder? _nudge;
 
   /// Each mounted screen's heading focus node by its location, so the app
   /// can move focus to the new screen on navigation. Not a notification:
@@ -39,9 +36,6 @@ class UiState extends ChangeNotifier {
 
   /// The overlap group whose compare sheet is open, or null.
   String? get openOverlapLabel => _openOverlapLabel;
-
-  /// The reminder shown as a nudge preview, or null.
-  Reminder? get nudge => _nudge;
 
   void openCredit(String benefitId) {
     if (_openBenefitId == benefitId) return;
@@ -64,17 +58,6 @@ class UiState extends ChangeNotifier {
   void closeOverlap() {
     if (_openOverlapLabel == null) return;
     _openOverlapLabel = null;
-    notifyListeners();
-  }
-
-  void showNudge(Reminder reminder) {
-    _nudge = reminder;
-    notifyListeners();
-  }
-
-  void dismissNudge() {
-    if (_nudge == null) return;
-    _nudge = null;
     notifyListeners();
   }
 

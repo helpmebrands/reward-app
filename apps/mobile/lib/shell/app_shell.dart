@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../logic/credit_actions.dart';
 import '../widgets/compare_sheet.dart';
 import '../widgets/credit_sheet.dart';
-import '../widgets/nudge_preview.dart';
 import '../widgets/sheet_host.dart';
 import '../widgets/snackbar_host.dart';
 import 'app_scope.dart';
@@ -95,7 +94,7 @@ class _Scaffold extends StatelessWidget {
           constraints: BoxConstraints(maxWidth: widthClass.column),
           child: SnackbarHost(
             snackbar: UiScope.of(context).snackbar,
-            child: _NudgeHost(child: navigationShell),
+            child: navigationShell,
           ),
         ),
       ),
@@ -157,38 +156,6 @@ class _Scaffold extends StatelessWidget {
           Expanded(child: SafeArea(child: column)),
         ],
       ),
-    );
-  }
-}
-
-/// Draws the nudge preview over the top of the column while one is showing.
-class _NudgeHost extends StatelessWidget {
-  const _NudgeHost({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final ui = UiScope.of(context);
-    final nudge = ui.nudge;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        child,
-        if (nudge != null)
-          Align(
-            alignment: Alignment.topCenter,
-            child: NudgePreview(
-              key: ValueKey(nudge.id),
-              reminder: nudge,
-              onDismiss: ui.dismissNudge,
-              onOpen: () {
-                ui.dismissNudge();
-                context.go(nudge.url);
-              },
-            ),
-          ),
-      ],
     );
   }
 }

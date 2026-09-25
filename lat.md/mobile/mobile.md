@@ -12,7 +12,7 @@ Every feature of the PWA, from [[design#Screens]], with the Flutter counterpart 
 | PWA feature | Flutter counterpart | Pinned by |
 | --- | --- | --- |
 | Today: headline, countdown, use-soon, locked and captured rows, three overlaps | `TodayScreen` ([[mobile-architecture#Today screen]]) | [[mobile-tests#Today]] |
-| Today: rows open the sheet and swipe, compare sheet, nudge preview | `TodayScreen` with `UiState` ([[mobile-architecture#Today screen#Today's interactions]]) | [[mobile-tests#Today interactions]] |
+| Today: rows open the sheet and swipe, compare sheet | `TodayScreen` with `UiState` ([[mobile-architecture#Today screen#Today's interactions]]) | [[mobile-tests#Today interactions]] |
 | Credits: six filters, three groupings, four totals and opted out, missed rows | `CreditsScreen` ([[mobile-architecture#Credits screen]]) | [[mobile-tests#Credits]] |
 | Cards: verdict and tags, fee bar, edit and add | `CardsScreen` ([[mobile-architecture#Cards screen]]) | [[mobile-tests#Cards]] |
 | Cards: mute, archive and delete | the card menu ([[mobile-architecture#Cards screen]]) | [[mobile-tests#Cards#Mute from the menu offers an undo]] |

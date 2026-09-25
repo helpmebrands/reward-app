@@ -10,7 +10,6 @@ import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
-import '../widgets/nudge_preview.dart';
 import '../widgets/screen_title.dart';
 
 /// Today: one number, a countdown, and the rows behind them.
@@ -23,7 +22,7 @@ class TodayScreen extends StatelessWidget {
 
   final AppStore store;
 
-  /// The sheets and the nudge; without it the screen is static, as tests
+  /// The sheets; without it the screen is static, as tests
   /// and previews build it bare.
   final UiState? ui;
 
@@ -49,30 +48,6 @@ class _TodayBody extends StatelessWidget {
 
   final AppStore store;
   final UiState? ui;
-
-  /// Shows the next real reminder, with the user's own numbers in it, or
-  /// the stand-in when nothing is scheduled. Notification permission is a
-  /// big ask on faith; showing exactly what will arrive is the honest way to
-  /// make it.
-  void previewNudge() {
-    final ui = this.ui;
-    final data = store.data;
-    if (ui == null || data == null) return;
-    final now = store.now;
-    final at = now.millisecondsSinceEpoch;
-    Reminder? next;
-    for (final reminder in buildSchedule(
-      data,
-      store.preferences,
-      now,
-    ).reminders) {
-      if (reminder.fireAt > at) {
-        next = reminder;
-        break;
-      }
-    }
-    ui.showNudge(next ?? sampleReminder(store.totals.claimableCents, now));
-  }
 
   CreditRow row(BenefitInstance instance, bool showCard) {
     final ui = this.ui;
@@ -158,14 +133,6 @@ class _TodayBody extends StatelessWidget {
               spacing: Space.s2,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                OutlinedButton.icon(
-                  onPressed: previewNudge,
-                  icon: const Icon(
-                    Icons.notifications_active_outlined,
-                    size: 14,
-                  ),
-                  label: const Text('Preview nudge'),
-                ),
                 // The only way into Settings, and therefore into turning
                 // reminders on at all, so it lives on the screen people
                 // open every day.
