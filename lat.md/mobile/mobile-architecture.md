@@ -59,7 +59,9 @@ Pinned by [[mobile-tests#Landing screens]]; previews of Join and Not found in bo
 
 ## Native brand assets
 
-`apps/mobile/scripts/brand-icons.swift` generates every native brand asset, launcher icons and splash screens, from `assets/logo/helpmereward-icon{,-dark}.png`, by hand rather than with `flutter_launcher_icons` or `flutter_native_splash` (epic #279). Run it with `swift`; a second run leaves no diff.
+`apps/mobile/scripts/brand-icons.swift` generates the launcher icons and splash screens from `assets/logo/helpmereward-icon{,-dark}.png`, with no icon or splash package (epic #279).
+
+Run it with `swift`; a second run leaves no diff. It replaces `flutter_launcher_icons` and `flutter_native_splash`.
 
 It uses CoreGraphics and ImageIO, which ship with Xcode, because `sips` can neither flatten alpha nor separate the glyph from its ground. The source is a rounded square with transparent corners over a diagonal gradient from `#7C2C44` to `#BF6170`, measured from its pixels. Full-bleed icons redraw that gradient underneath, so the corners continue it. The glyph (speech bubble and star) is found by flooding the ground in from the edges over every pixel that is not white.
 

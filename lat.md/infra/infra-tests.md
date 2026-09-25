@@ -574,7 +574,9 @@ The iOS 1024 icon and Android's xxxhdpi legacy icon are maroon at the middle of 
 
 ### The iOS launch screen shows the icon on the page colour
 
-`LaunchScreen.storyboard` draws one image, `LaunchIcon`, whose set has 1x, 2x and 3x files in proportion; the template's `LaunchImage` set is gone. Its background is the named colour `LaunchBackground`, the Nocturne light page colour by default and the dark one for the dark appearance, both read from `nocturne_tokens.dart`.
+`LaunchScreen.storyboard` draws one image, `LaunchIcon`, whose set has 1x, 2x and 3x files in proportion; the template's `LaunchImage` set is gone.
+
+Its background is the named colour `LaunchBackground`, the Nocturne light page colour by default and the dark one for the dark appearance, both read from `nocturne_tokens.dart`.
 
 ### Android 12 splashes set the icon and the page colour
 
