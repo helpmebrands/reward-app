@@ -58,6 +58,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go(cardPath(widget.cardId)),
         ),
+        title: const ScreenTitle(label: 'Change the terms'),
       ),
       body: SafeArea(
         child: Center(
@@ -68,11 +69,6 @@ class _ConvertScreenState extends State<ConvertScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ScreenTitle(
-                    label: 'Change the terms',
-                    style: text.headlineSmall,
-                  ),
-                  const SizedBox(height: Space.s4),
                   Text(
                     '$name follows the catalogue: when the issuer changes its '
                     'credits, the card changes with it.',

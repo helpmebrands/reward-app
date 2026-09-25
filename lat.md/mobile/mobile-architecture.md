@@ -35,10 +35,16 @@ The sources are the sixteen PNGs in the repo's `assets/logo/` (epic #279). The a
 
 - **Placement**: at compact it is the shell `Scaffold`'s `appBar`, across the window; from medium it is the `appBar` of a `Scaffold` inside the pane's `Expanded`, so it spans the content pane and never the rail. Either way its content box (key `brand-app-bar`) is capped at the content column's width and centred like it, so the lockup starts on the column's margin (20, 24 or 28) and the gear's glyph ends on the other.
 - **The gear**: a 48 `IconButton` with the 24 `settings_outlined` glyph in the neutral on-surface-variant colour, its target overhanging the margin by 12. It is labelled "Settings" for the screen reader, with a pointer tooltip kept out of the semantics so the name is read once. It `push`es `/settings`, not `go`, so Back returns to the tab it was opened from rather than to Today.
-- **Colour**: the page colour with no divider at rest, the theme's surface-container colour once a list scrolls under it (`WidgetState.scrolledUnder`), with elevation and tint off so the change is the colour alone.
+- **Colour and height**: the page colour with no divider at rest, the theme's surface-container colour once a list scrolls under it (`WidgetState.scrolledUnder`), with elevation and tint off so the change is the colour alone. The height and colours live in the theme's `AppBarTheme`, so every bar in the app shares them.
 - **One heading**: the bar adds none (`excludeHeaderSemantics`), so each tab's `ScreenTitle` stays its only level-one heading; the tab titles ("All credits", "Cards", "Value") stay the first line of each page.
 
 Pinned by [[mobile-tests#Brand app bar]]; previews of the bar alone at the three widths, and the shell previews show it in place.
+
+### Pushed routes
+
+Settings, the benefit editor, Add card, the card editor and Change the terms keep a Back and a title bar, with no gear: through the shared `AppBarTheme` it is 64 high and coloured like the tabs' bar, so the height does not jump on a push.
+
+`EditorScaffold` frames Settings and the two editors; Add card and `ConvertScreen` build their own `AppBar`, and Change the terms carries its `ScreenTitle` in the bar like the rest. Pinned by [[mobile-tests#Pushed route bars]].
 
 ## The snapshot store
 
@@ -193,7 +199,7 @@ A card added from the catalogue is linked to its template and kept up to date by
 - **Cards** names two groups, "Kept up to date" (`cards-system`) and "Maintained by you" (`cards-user`), each shown when it has cards; a local household with no linked card shows its cards without names, as before sign-in existed.
 - **Add a card** lists the api's catalogue (`GET /v1/catalog`, `AppStore.templates`) in the service-tier mode, the built-in one until it is fetched, with `blank` last; `CatalogFilterController` reads its templates through a function so a fetch that lands later shows. A template adds a linked card, `blank` a household one, and a second card of a product gets the numbered label ([[domain#Card]]).
 - **A system card's terms are read-only**: in the card editor the fee is read-only, the network cannot change and "Add" is gone; in the benefit editor every term (name, value, cadence, anchor, category, merchant, ends on, spend threshold, enrolment needed, steps) is read-only, while the label, renewal date, kind, enrolment, spend met, tracking, last call and silences stay the household's.
-- **"Change the terms"** on either editor opens `ConvertScreen` at `/cards/:id/convert`, which says the card will be replaced by one the household maintains, will no longer update automatically, and keeps its claims, history, enrolment and everyone's silences. Nothing changes until "Make it mine", which calls `AppStore.convertCard` (`POST /v1/cards/{id}/convert`) and opens the new card's editor, now fully editable.
+- **"Change the terms"** on either editor opens `ConvertScreen` at `/cards/:id/convert`, titled in its 64-high bar, which says the card will be replaced by one the household maintains, will no longer update automatically, and keeps its claims, history, enrolment and everyone's silences. Nothing changes until "Make it mine", which calls `AppStore.convertCard` (`POST /v1/cards/{id}/convert`) and opens the new card's editor, now fully editable.
 - `SwitchRow` takes a null `onChanged` for a switch the catalogue owns.
 
 Widget Previews: Cards with both groups, and the conversion screen.

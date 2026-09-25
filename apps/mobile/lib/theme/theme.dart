@@ -66,10 +66,20 @@ ThemeData nocturneTheme(Brightness brightness) {
         side: BorderSide(color: tokens.surfaceLine),
       ),
     ),
+    // Every bar, the tabs' and the pushed routes', is 64 high and the page
+    // colour at rest, taking the surface-container colour once content
+    // scrolls under it, so nothing jumps between a tab and its sub-screens.
     appBarTheme: AppBarTheme(
-      backgroundColor: tokens.background,
+      toolbarHeight: 64,
+      backgroundColor: WidgetStateColor.resolveWith(
+        (states) => states.contains(WidgetState.scrolledUnder)
+            ? scheme.surfaceContainer
+            : tokens.background,
+      ),
       foregroundColor: tokens.text,
       elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
     ),
   );
 }
