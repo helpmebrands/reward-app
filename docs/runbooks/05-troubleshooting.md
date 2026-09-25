@@ -115,48 +115,20 @@ restore from before the table existed ([06](06-database.md)).
 
 In order of likelihood:
 
-1. **A stale service worker.** The old worker serves the old precache until it
-   is replaced. Confirm the header is intact:
-   ```sh
-   $ curl -sSI "$URL/sw.js" | grep -i cache-control    # must include no-store
-   ```
-   If it does not, that is the bug — fix `deploy/nginx.conf.template` rather
-   than telling users to clear their cache. If it does, the client simply has
-   not reloaded with every tab closed yet.
-
-2. **Traffic is still split.** A rollback that was never reconciled:
+1. **Traffic is still split.** A rollback that was never reconciled:
    ```sh
    $ gcloud run services describe reward-app --region "$REGION" \
        --format='value(status.traffic)'
    ```
 
-3. **You are looking at your own cached page.** Hard-reload with DevTools open
+2. **You are looking at your own cached page.** Hard-reload with DevTools open
    and *Disable cache* ticked, or use a private window.
 
-## The app loads but is completely unstyled
+## The site loads but is unstyled
 
-A Content Security Policy problem. Open the console: `Refused to apply inline
-style` means `style-src` lost `'unsafe-inline'`.
-
-This is not optional for this app. Solid's `style={{ ... }}` prop writes a
-`style` **attribute**, which `style-src` governs. Removing `'unsafe-inline'`
-from `deploy/security-headers.conf` leaves every inline style dropped and the
-layout collapsed. `script-src` stays strict — that is the directive that
-matters for injection.
-
-## A client route 404s on refresh, but works when navigating
-
-The SPA fallback is broken. `/credits` typed into the address bar must return
-the shell. CI asserts this, so if it reaches production the container in use is
-not the one CI built — check that the deploy step used the digest from the
-build step rather than a floating tag.
-
-## The service worker fails to install, with a cache error
-
-Usually a missing asset being served as HTML. If `/assets/<hash>.js` 404s but
-returns `index.html` with a `200`, the worker caches HTML under a JavaScript URL
-and fails in a way that looks like cache corruption. The `try_files $uri =404`
-in the `/assets/` block prevents it; CI asserts it.
+A Content Security Policy problem. Open the console: `Refused to apply
+stylesheet` means `style-src` in `apps/site/deploy/security-headers.conf` no
+longer allows `'self'`, or the page links a stylesheet from another origin.
 
 ## `pulumi up` fails with `SERVICE_DISABLED`
 
@@ -226,27 +198,7 @@ credentials: `gcloud auth login` and `gcloud auth application-default login`.
 First request to an idle service pays container start — about a second for
 nginx, less for the api's AOT binary, plus the api's first database connection
 on the first request that needs one. `pulumi config set reward-app:minInstances 1`
-removes it for roughly $10/month per service. For a PWA that users install and
-open from the Home Screen this matters less than it looks: after the first
-visit, the service worker serves the shell locally and the network is not on
-the critical path at all.
-
-## Notifications stopped arriving
-
-Check in this order, because the cheapest checks are also the likeliest:
-
-1. Is the **service worker** the current one? DevTools → Application → Service
-   Workers. A worker stuck in *waiting* is serving an old schedule.
-2. Is the browser still **permitted**? Permission can be revoked at the OS
-   level without the site knowing.
-3. On **iOS**, is the app still installed to the Home Screen? Notifications
-   only work for installed PWAs there, and removing the icon removes them.
-4. Is the schedule actually populated? Settings shows the count and the next
-   fire time. Zero means the ladder computed nothing — likely every credit is
-   muted, captured, or beyond the horizon.
-
-Reminder delivery is client-side. A deploy cannot break it for a user who never
-reopens the app, and equally cannot fix it for them.
+removes it for roughly $10/month per service.
 
 ## Push notifications do not reach the app
 

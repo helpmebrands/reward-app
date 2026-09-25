@@ -20,7 +20,7 @@ With the platform reporting dark, the running app resolves the dark accent as pr
 
 `today_screen_test.dart` renders the screen over the PWA's sample household with today fixed at 16 September 2026 and compares it with what the PWA shows for that date ([[mobile-architecture#Today screen]]).
 
-The expected rows are `test/fixtures/sample-today.json`, dumped by `apps/pwa/scripts/today-snapshot.ts`.
+The expected rows are `test/fixtures/sample-today.json`, dumped once by the retired PWA (#174) and pinned.
 
 ### The sample household renders the PWA's rows, order and tones
 
@@ -92,7 +92,7 @@ With reminders on, the preview is the first reminder `buildSchedule` produces af
 
 ## Credits
 
-`credits_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-credits.json`, dumped by `apps/pwa/scripts/credits-snapshot.ts` ([[mobile-architecture#Credits screen]]).
+`credits_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-credits.json`, dumped once by the retired PWA (#174) and pinned ([[mobile-architecture#Credits screen]]).
 
 The fixture carries the header counts, the four totals, every filter's rows as drawn under the card grouping, and every grouping's labels and figures.
 
@@ -134,7 +134,7 @@ At a 2.0 text scale on 402 the screen raises no layout exception and every text'
 
 ## Cards
 
-`cards_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-cards.json`, dumped by `apps/pwa/scripts/cards-snapshot.ts` ([[mobile-architecture#Cards screen]]).
+`cards_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-cards.json`, dumped once by the retired PWA (#174) and pinned ([[mobile-architecture#Cards screen]]).
 
 The fixture carries the fee and captured totals and each active card's figures, verdict and tags.
 
@@ -400,7 +400,7 @@ At 1280 the name and value fields share a top edge side by side; at a 2.0 text s
 
 ## Value
 
-`value_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-value.json`, dumped by `apps/pwa/scripts/value-snapshot.ts` ([[mobile-architecture#Value screen]]).
+`value_screen_test.dart` renders the screen over the sample household dated 16 September 2026 and compares it with `test/fixtures/sample-value.json`, dumped once by the retired PWA (#174) and pinned ([[mobile-architecture#Value screen]]).
 
 The fixture carries the nine-month totals and peak, each month's bars, the ranks and the leaks.
 
@@ -528,7 +528,7 @@ The headline number's painted width at 2.0 is smaller than its natural width and
 
 ## Token contrast
 
-`contrast_test.dart` computes WCAG ratios over the theme extension's token set for light and dark, the way `apps/pwa/tests/contrast.test.ts` does over `tokens.css`, so a copied token cannot drift ([[mobile-architecture#Accessibility]], [[pwa-tests#Token contrast]]).
+`contrast_test.dart` computes WCAG ratios over the theme extension's token set for light and dark, the way the retired PWA did over its `tokens.css`, so a changed token cannot slip below the ratios ([[mobile-architecture#Accessibility]]).
 
 The tone lines around rows and the surface lines are decorative and are not asserted; WCAG 1.4.11 exempts them.
 

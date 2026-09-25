@@ -50,7 +50,7 @@ Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `he
 
 ### No cardvantage in infrastructure names
 
-Nothing under `infra/`, `docs/`, `.github/`, `apps/pwa/deploy/` or `apps/pwa/Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
+Nothing under `infra/`, `docs/`, `.github/` or `apps/site/` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
 
 ### Runbook names the real state backend
 
@@ -100,7 +100,7 @@ Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC excha
 
 ### Every verify job is a required check
 
-Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all seven current job names, so a red Dart, Flutter, api or accessibility job blocks a merge.
+Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all six current job names, so a red npm, Pulumi, Dart, Flutter, api or container job blocks a merge.
 
 ### Staging names the GitHub owner
 
@@ -412,7 +412,7 @@ The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isread
 
 ### Api CD workflow is path-filtered to the api and the domain
 
-`cd-api.yml` triggers on `services/api/**` and `packages/domain/**` and never mentions `apps/pwa`; `cd.yml` carries a `paths-ignore` naming `services/api/**`, so a merge to one deployable does not roll the other ([[deployment#Pipeline]]).
+`cd-api.yml` triggers on `services/api/**` and `packages/domain/**` and never mentions `apps/site`; `cd.yml` carries a `paths-ignore` naming `services/api/**`, so a merge to one deployable does not roll the other ([[deployment#Pipeline]]).
 
 ### Api CD builds, migrates, deploys and smoke-tests
 

@@ -2,11 +2,11 @@
 
 The product test specs: what the suites pin about dates, cycles, statuses, overlaps, reminders and form rules. They are the fastest way to see what the app believes, and the Dart port is written against them.
 
-The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` supplying fixtures so each test states only what it is about. The Dart port in `packages/domain/test/` carries the same cases, one file per file, with the same fixtures in `factories.dart`; each Dart file tags the section it covers. The fixture card is an Amex Platinum held by Jim with a 14 March anniversary, and most tests are dated 16 September 2026, the same "today" as the sample household. The PWA's own suites are in [[pwa-tests]].
+The suite is `packages/domain/test/`, ported case for case from the retired PWA's (#174), with `factories.dart` supplying fixtures so each test states only what it is about; each file tags the section it covers. The fixture card is an Amex Platinum held by Jim with a 14 March anniversary, and most tests are dated 16 September 2026, the same "today" as the sample household in `test/fixtures/sample-household.json`.
 
 ## Date arithmetic
 
-`apps/pwa/tests/dates.test.ts` and its port `packages/domain/test/dates_test.dart` guard the calendar-date discipline in [[domain#Calendar dates, not timestamps]].
+`packages/domain/test/dates_test.dart` guard the calendar-date discipline in [[domain#Calendar dates, not timestamps]].
 
 - Month addition clamps to the end of a shorter month and handles leap years in both directions.
 - Day addition does not drift across the US DST transitions on 8 March and 1 November 2026.
@@ -14,7 +14,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Cycles
 
-`apps/pwa/tests/cycles.test.ts` and its port `packages/domain/test/cycles_test.dart` cover window construction for every cadence and both anchors ([[domain#Cycle]]).
+`packages/domain/test/cycles_test.dart` cover window construction for every cadence and both anchors ([[domain#Cycle]]).
 
 - Calendar anchors put quarters on Jan/Apr/Jul/Oct, halves on Jan/Jul, and resolve dates before the anchor year.
 - Anniversary anchors run a cardmember year from the open date, place the day before the anniversary in the prior year, and do not drift for a 31st anniversary across short months.
@@ -25,7 +25,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Statuses, totals and ledgers
 
-`apps/pwa/tests/selectors.test.ts` and its port `packages/domain/test/selectors_test.dart` pin the status ladder and the derived views ([[domain#Status ladder]], [[domain#Missed ledger]]).
+`packages/domain/test/selectors_test.dart` pin the status ladder and the derived views ([[domain#Status ladder]], [[domain#Missed ledger]]).
 
 - Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrolment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
 - Ordering puts what closes soonest first and locked below open.
@@ -39,7 +39,7 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 ## Ladder and schedule
 
-`apps/pwa/tests/reminders.test.ts` and its port `packages/domain/test/reminders_test.dart` cover when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).
+`packages/domain/test/reminders_test.dart` cover when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).
 
 - Each cadence's rungs match the table, open permissive and end urgent, and collapse to one last call when opted out. `currentRung` reports the rung a credit stands on.
 - The schedule is empty while reminders are off, fires a rung at the reminder time on the right day, never schedules in the past, and returns reminders in firing order.
@@ -55,11 +55,11 @@ The reference suite is the PWA's, under `apps/pwa/tests/`, with `factories.ts` s
 
 `packages/domain/test/sample_household_test.dart` builds the schedule for the PWA's sample household on 16 September 2026 and expects the group ids the TypeScript build produces.
 
-The expected list is `test/fixtures/sample-schedule-ids.json`, dumped by `apps/pwa/scripts/schedule-ids.ts`. A drift here means the two implementations would remind on different days.
+The expected list is `test/fixtures/sample-schedule-ids.json`, dumped once by the retired PWA (#174). A drift here means the Dart schedule has left the reference it was ported against.
 
 ## Form rules
 
-`apps/pwa/tests/validation.test.ts` and its port `packages/domain/test/validation_test.dart` cover each rule in [[domain#Form rules]] without the DOM.
+`packages/domain/test/validation_test.dart` cover each rule in [[domain#Form rules]] without the DOM.
 
 ### A required field must not be blank
 
@@ -205,7 +205,7 @@ The sample's two Global Entry credits are `rolling` with `intervalMonths` 48 and
 
 ## Card catalogue
 
-`packages/domain/test/catalog_test.dart` pins the starting templates in [[domain#Card catalogue]]. The PWA covers the first case from its store suite; the rest are Dart-only, since the PWA exercised them through the add-card screen.
+`packages/domain/test/catalog_test.dart` pins the starting templates in [[domain#Card catalogue]].
 
 ### Every template gives each credit an icon and a value
 
@@ -255,11 +255,7 @@ A template with a $1,200 annual credit behind $250K of spend and a $15 monthly o
 
 `benefitsFromTemplate` copies `endsOn`; an entry whose date is before the day the card is added lands `active: false`, one still ahead lands active, and one without a date is unchanged.
 
-Covered in both languages: the PWA's `catalog.test.ts` and the Dart port stamp the same synthetic template.
-
-### Every template icon is a Phosphor glyph
-
-Every credit's icon names a class in the bundled Phosphor stylesheet (kebab-case, e.g. `device-mobile`), so imported catalogue data with PascalCase names cannot ship blank icons. PWA-only, since the stylesheet lives there.
+The PWA's `catalog.test.ts` stamped the same synthetic template before it was retired.
 
 ## Catalogue filter
 

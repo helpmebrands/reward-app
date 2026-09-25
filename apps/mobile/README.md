@@ -1,6 +1,6 @@
 # HelpMe Reward, the Flutter app
 
-The product from `apps/pwa` rebuilt on `packages/domain` for iOS and Android.
+The product, first built as a PWA and retired in #174, on `packages/domain` for iOS and Android.
 It talks to `services/api`. macOS is a local run target only, there to try
 the medium and expanded width classes on a laptop; it is never released. Design and test notes live in `lat.md/mobile/`;
 getting a build to testers is `docs/runbooks/07-mobile-release.md`.

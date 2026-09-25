@@ -147,8 +147,7 @@ assume that. Staging is `staging.helpmereward.com`; the apex is reserved for
 
 ```sh
 $ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/          # 200
-$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/credits   # 200
-$ curl -sSI https://staging.helpmereward.com/sw.js | grep -i cache-control            # no-store
+$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/nope      # 404
 $ pulumi preview                                                                       # no changes
 ```
 

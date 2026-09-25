@@ -906,7 +906,7 @@ $ cd ~ && rm -rf ~/reward-signing
 
 Update the *iOS signing* row of the [README](README.md#environments) with
 the certificate id and profile id from 1.6 and 1.7 and their expiry date.
-`apps/pwa/tests/infra-config.test.ts` pins that date (*records the iOS
+`infra/tests/infra-config.test.ts` pins that date (*records the iOS
 certificate expiry*), so change it there in the same pull request. The
 *Android signing* row records the Play app, the upload key's owner and
 fingerprint, and where the app signing fingerprint lives.

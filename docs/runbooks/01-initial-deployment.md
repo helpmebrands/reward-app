@@ -1,6 +1,6 @@
 # 01 — Initial deployment
 
-From an empty Google Cloud project to two live URLs: the PWA and the api, with
+From an empty Google Cloud project to two live URLs: the site and the api, with
 its database. You do this once per environment. Budget about an hour, most of
 it waiting on API enablement and Cloud SQL.
 
@@ -208,7 +208,7 @@ read:
 | `GCP_PROJECT_ID` | the project |
 | `GCP_REGION` | the region |
 | `ARTIFACT_REPO` | the image repository id |
-| `CLOUD_RUN_SERVICE` | the PWA service name |
+| `CLOUD_RUN_SERVICE` | the site's service name |
 | `WIF_PROVIDER` | the workload identity provider's full name |
 | `DEPLOY_SERVICE_ACCOUNT` | the deployer's email |
 | `API_CLOUD_RUN_SERVICE` | the api service name |
@@ -248,22 +248,6 @@ nothing can fall back to them:
 $ gh variable delete GCP_PROJECT_ID      # and the other seven
 $ gh api -X DELETE repos/helpmebrands/reward-app/environments/develop
 ```
-
-### If you have Web Push keys
-
-`VITE_VAPID_PUBLIC_KEY` and `VITE_PUSH_API` are **build-time** values — Vite
-inlines them into the bundle, so setting them on the Cloud Run service does
-nothing. Set them as variables on the `staging` environment (they are the one
-pair the stack does not write, because they are optional and product-side)
-and the CD workflow passes them as build arguments:
-
-```sh
-$ gh api -X POST repos/helpmebrands/reward-app/environments/staging/variables \
-    -f name=VITE_VAPID_PUBLIC_KEY -f value=<public key>
-``` The VAPID *public* key is safe in a variable; the private key
-belongs only to the push backend and never enters this repository.
-
-Without them the app falls back to service-worker replay, which works.
 
 ## 6. Protect `develop`: the repository project
 
@@ -335,7 +319,7 @@ Each deployable has its own workflow, filtered to the paths that reach its
 image. Trigger both by hand the first time:
 
 ```sh
-$ gh workflow run cd.yml --ref develop       # the PWA
+$ gh workflow run cd.yml --ref develop       # the site
 $ gh workflow run cd-api.yml --ref develop   # the api
 $ gh run watch
 ```
@@ -353,8 +337,7 @@ $ URL=$(cd infra && pulumi stack output serviceUrl)
 $ API=$(cd infra && pulumi stack output apiServiceUrl)
 
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"          # 200
-$ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/credits"   # 200 — SPA fallback
-$ curl -sSI "$URL/sw.js" | grep -i cache-control             # must say no-store
+$ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/nope"      # 404 — a missing page is not the home page
 
 $ curl -sS "$API/health"                                     # {"status":"ok","version":"…"}
 $ curl -sS -X POST "$API/v1/devices" -H 'content-type: application/json' \
@@ -369,8 +352,7 @@ proves the database path. Do not use `/healthz` for anything
 on Cloud Run; Google's edge answers that exact path itself and the container
 never sees it.
 
-Then open the PWA URL in a browser: the app should load, and DevTools →
-Application → Service Workers should show one activated.
+Then open the site URL in a browser: the placeholder page should load.
 
 ## 8. Record what you did
 
@@ -388,14 +370,14 @@ fails with `401` on a GitHub resource, and the fix is a new token pasted into
 
 ## What you have now
 
-- Two Cloud Run services on `run.app` URLs, publicly readable: the PWA and the api
+- Two Cloud Run services on `run.app` URLs, publicly readable: the site and the api
 - A Cloud SQL PostgreSQL 16 instance the api reaches over the Cloud SQL
   connector, with nightly backups, and a migration job that runs before each
   api deploy
 - The api's connection URL in Secret Manager, readable by exactly one identity
 - Images in Artifact Registry, tagged by commit SHA, pruned after 30 releases
 - Keyless deploys from `develop` only, and keyless previews from pull requests
-- A PWA runtime identity with no permissions at all, and an api runtime
+- A site runtime identity with no permissions at all, and an api runtime
   identity with exactly two
 - Stack secrets encrypted with a KMS key, never a passphrase
 - A GitHub environment named after the stack, carrying every variable the
