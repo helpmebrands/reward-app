@@ -597,7 +597,7 @@ None of them draws the Settings gear or a "Settings" tooltip.
 
 ### The same colours as the tab bar
 
-Settings' bar is the page colour at rest and the surface-container colour once its list scrolls under it.
+In a 500-high window, where Settings scrolls, its bar is the page colour at rest and the surface-container colour once its list scrolls under it.
 
 ## Text scaling
 

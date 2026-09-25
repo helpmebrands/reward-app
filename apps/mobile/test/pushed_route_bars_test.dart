@@ -32,13 +32,17 @@ const routes = {
   '/cards/card-0001/convert': 'Change the terms',
 };
 
-Future<void> pumpAt(WidgetTester tester, String location) async {
+Future<void> pumpAt(
+  WidgetTester tester,
+  String location, {
+  Size size = const Size(402, 874),
+}) async {
   final store = AppStore(
     store: MemorySnapshotStore(sampleHousehold()),
     clock: () => DateTime(2026, 9, 16, 8),
   );
   await store.load();
-  tester.view.physicalSize = const Size(402, 874);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(const SizedBox());
@@ -117,12 +121,14 @@ void main() {
   testWidgets('Settings bar is the page colour and tints when scrolled', (
     tester,
   ) async {
-    await pumpAt(tester, '/settings');
+    // Short enough that Settings scrolls with reminders off.
+    await pumpAt(tester, '/settings', size: const Size(402, 500));
     final theme = Theme.of(tester.element(appBar));
     expect(barColour(tester), theme.scaffoldBackgroundColor);
 
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
     await tester.pumpAndSettle();
+
     expect(barColour(tester), theme.colorScheme.surfaceContainer);
   });
 }

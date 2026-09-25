@@ -8,8 +8,8 @@ import 'width_class.dart';
 /// column so the logo and the gear sit on the column's margins at every
 /// width class.
 ///
-/// Page coloured with no divider at rest, the surface-container colour once
-/// content scrolls under it. The lockup is a labelled image, not a heading,
+/// Its height and colours come from the theme's app bar theme, shared with
+/// the pushed routes' bars. The lockup is a labelled image, not a heading,
 /// so the bar adds no heading of its own ([AppBar.excludeHeaderSemantics]).
 class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   const BrandAppBar({
@@ -36,19 +36,10 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final page = theme.scaffoldBackgroundColor;
-    final scrolled = theme.colorScheme.surfaceContainer;
     return AppBar(
-      toolbarHeight: height,
       automaticallyImplyLeading: false,
       titleSpacing: 0,
       excludeHeaderSemantics: true,
-      backgroundColor: WidgetStateColor.resolveWith(
-        (states) =>
-            states.contains(WidgetState.scrolledUnder) ? scrolled : page,
-      ),
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
       title: Align(
         child: ConstrainedBox(
           key: const Key('brand-app-bar'),
