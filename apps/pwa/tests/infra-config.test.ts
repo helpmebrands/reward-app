@@ -712,6 +712,46 @@ describe('mobile release trust', () => {
     expect(step).toContain('LMFUSVPCDH')
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 no longer calls push unbuilt]]
+  it('has runbook 07 point at runbook 08 for push instead of calling it unbuilt', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).not.toMatch(/Push\s+delivery\s+itself\s+is\s+not\s+built/)
+    expect(runbook).not.toMatch(/not\s+of\s+this\s+runbook/)
+    expect(runbook).toContain('08-mobile-setup.md#36-the-apns-key-for-push')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 turns on the reminder job]]
+  it('has runbook 08 turn on the reminder job and read its log, as numbered steps', () => {
+    const runbook = read('docs/runbooks/08-mobile-setup.md')
+    const step = runbook.split(/^### 3\.7 .*$/m)[1]?.split(/^##/m)[0] ?? ''
+    expect(step).toMatch(/^1\. /m)
+    expect(step).toContain('API_REMIND_JOB')
+    expect(step).toContain('gcloud scheduler jobs describe reward-api-remind')
+    expect(step).toContain('gcloud run jobs execute reward-api-remind')
+    expect(step).toMatch(/sent \d+ reminder and \d+ notice pushes/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 checks push on a device]]
+  it('has runbook 08 check push end to end with a test notification', () => {
+    const runbook = read('docs/runbooks/08-mobile-setup.md')
+    const check = runbook.split(/^## Part 4 .*$/m)[1]?.split(/^## Part 5/m)[0] ?? ''
+    const push = check.split('**Push reaches a device.**')[1] ?? ''
+    expect(push).toContain('Send me reminders')
+    expect(push).toContain('Send a test notification')
+    expect(push).toMatch(/^1\. /m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 05 covers push that does not arrive]]
+  it('has runbook 05 diagnose push that does not arrive', () => {
+    const runbook = read('docs/runbooks/05-troubleshooting.md')
+    const section =
+      runbook.split(/^## Push notifications do not reach the app$/m)[1]?.split(/^## /m)[0] ?? ''
+    expect(section).toMatch(/APNs\s+Authentication\s+Key/)
+    expect(section).toContain('roles/firebasecloudmessaging.admin')
+    expect(section).toContain('sent 0 reminder')
+    expect(section).toContain('UNREGISTERED')
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 has the store hand steps]]
   it('tells runbook 08 how to link the Play identity and add secret versions', () => {
     const runbook = read('docs/runbooks/08-mobile-setup.md')
