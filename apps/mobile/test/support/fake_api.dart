@@ -153,6 +153,30 @@ class FakeApi implements HouseholdApi {
     });
   }
 
+  /// The state bodies sent, in order.
+  final benefitStates = <Map<String, Object?>>[];
+
+  /// Terms bodies sent to `PUT /v1/benefits/{id}`.
+  final benefitTerms = <Map<String, Object?>>[];
+
+  @override
+  Future<void> putBenefitState(String id, Map<String, Object?> state) async {
+    _check();
+    benefitStates.add(state);
+    data = data.copyWith(
+      benefits: [
+        for (final b in data.benefits)
+          b.id == id ? benefitFromJson({...benefitToJson(b), ...state}) : b,
+      ],
+    );
+  }
+
+  @override
+  Future<void> putBenefit(String id, Map<String, Object?> terms) async {
+    _check();
+    benefitTerms.add(terms);
+  }
+
   @override
   Future<void> patchCard(String id, Map<String, Object?> body) async {
     _check();

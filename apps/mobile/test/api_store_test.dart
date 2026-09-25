@@ -142,6 +142,28 @@ void main() {
     expect(store.data!.cards.single.label, 'Renamed');
   });
 
+  // @lat: [[mobile-tests#Api store#Opting out and reactivating send the credit's state]]
+  test('opting out and reactivating send state, never terms', () async {
+    final api = FakeApi();
+    final store = remoteStore(api);
+    await store.load();
+
+    expect(await store.optOutBenefit('benefit-1'), isTrue);
+    expect(api.benefitStates.last, {
+      'optedOutAt': now.toUtc().toIso8601String(),
+    });
+    expect(store.data!.benefits.single.optedOutAt, isNotNull);
+
+    expect(await store.reactivateBenefit('benefit-1'), isTrue);
+    expect(api.benefitStates.last, {
+      'optedOutAt': null,
+      'trackedFrom': '2026-09-16',
+    });
+    expect(store.data!.benefits.single.optedOutAt, isNull);
+    expect(store.data!.benefits.single.trackedFrom, '2026-09-16');
+    expect(api.benefitTerms, isEmpty);
+  });
+
   testWidgets('the card editor shows the offline message', (tester) async {
     final api = FakeApi();
     final store = remoteStore(api);

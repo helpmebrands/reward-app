@@ -350,6 +350,10 @@ Jim's card starts personal; tapping the "Business" chip writes `CardKind.busines
 
 The twelve credits are listed by name in order; tapping Uber Cash opens its editor; "Add" adds a "New credit" on the card and opens its editor.
 
+### Opted-out credits are grouped on the card editor and reactivate there
+
+Opting out Uber Cash moves it under an "Opted out" heading below every tracked credit, with no "paused" tag anywhere. Its "Reactivate Uber Cash" button is at least 48dp tall and clears the opt-out with `trackedFrom` today.
+
 ### Deleting a card from its editor confirms, cascades and returns
 
 "Delete this card" asks, Delete removes the card and every benefit on it, says "Card deleted." and lands on Cards.
@@ -374,7 +378,9 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 ### Enrolment, tracking and the switches write the benefit
 
-"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Track this credit" pauses it; "Last call only" sets it.
+"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Opted out" stamps `optedOutAt` and leaves `active` alone; "Last call only" sets it.
+
+There is no "Track this credit" switch any more; the "Opted out" switch carries the note "You won’t use this. It stays off your lists and totals until you reactivate it."
 
 ### A rolling credit asks for its interval and hides the anchor
 
@@ -605,6 +611,10 @@ With two cards, three benefits and three claims, `deleteCard` leaves the other c
 ### Muting a credit leaves the household alone
 
 `toggleBenefitMute` saves the credit's id in the member's preferences, leaves the household's JSON unchanged, marks the instance muted, and notifies once.
+
+### Opting out stamps the credit and reactivating resumes it today
+
+`optOutBenefit` stamps `optedOutAt` and the credit leaves `instances`; `reactivateBenefit` clears it, sets `trackedFrom` to today, and the credit returns. Each notifies once.
 
 ### Enrolment is confirmed and revoked
 
@@ -881,6 +891,10 @@ With the api unreachable, `load` shows the cached household and reports offline;
 A claim logged offline shows at once and is pending, and a new store over the same cache and outbox still shows it pending. Three concurrent flushes once the api is back post it once, empty the outbox and swap in the server's claim.
 
 The same key queued and flushed again after it was stored leaves one claim on the server.
+
+### Opting out and reactivating send the credit's state
+
+Against the fake api, opting out sends only `{optedOutAt}` and reactivating only `{optedOutAt: null, trackedFrom}` to the state route; no terms are sent, and the refreshed household carries both.
 
 ### Offline edits are refused with a message
 
