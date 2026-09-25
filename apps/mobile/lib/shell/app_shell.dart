@@ -7,6 +7,7 @@ import '../widgets/credit_sheet.dart';
 import '../widgets/sheet_host.dart';
 import '../widgets/snackbar_host.dart';
 import 'app_scope.dart';
+import 'brand_app_bar.dart';
 import 'router.dart';
 import 'ui_scope.dart';
 import 'width_class.dart';
@@ -100,8 +101,15 @@ class _Scaffold extends StatelessWidget {
       ),
     );
 
+    // Pushed, not gone to, so Back returns to the tab it was opened from.
+    final bar = BrandAppBar(
+      widthClass: widthClass,
+      onSettings: () => context.push(Paths.settings),
+    );
+
     if (widthClass == WidthClass.compact) {
       return Scaffold(
+        appBar: bar,
         body: SafeArea(child: column),
         bottomNavigationBar: NavigationBar(
           selectedIndex: navigationShell.currentIndex,
@@ -153,7 +161,13 @@ class _Scaffold extends StatelessWidget {
               ],
             ),
           ),
-          Expanded(child: SafeArea(child: column)),
+          // The bar spans the content pane only, never the rail.
+          Expanded(
+            child: Scaffold(
+              appBar: bar,
+              body: SafeArea(child: column),
+            ),
+          ),
         ],
       ),
     );

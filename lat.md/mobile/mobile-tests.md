@@ -509,7 +509,7 @@ Both switches are found by their labels and carry a toggled state; the appearanc
 
 ### Today leads to Settings
 
-The gear labelled "Settings" on Today opens the Settings screen.
+The gear labelled "Settings" in the bar on Today opens the Settings screen.
 
 ## Routing
 

@@ -1,12 +1,10 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter/semantics.dart';
 
 import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
 import '../logic/ui_state.dart';
-import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
@@ -102,63 +100,19 @@ class _TodayBody extends StatelessWidget {
     final daysToReset = soon.isEmpty ? null : soon.first.daysRemaining;
     final parts = moneyParts(totals.claimableCents);
 
-    final header = _Section(
-      order: 0,
-      // A Wrap, not a Row: at a large text size the date drops under the
-      // title instead of running off the right edge.
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: WrapAlignment.spaceBetween,
-        spacing: Space.s3,
-        runSpacing: Space.s2,
-        children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.end,
-            spacing: Space.s3,
-            children: [
-              // The heading reads "Today"; the logotype is what is drawn.
-              ScreenTitle(
-                label: 'Today',
-                text: 'HelpMe Reward',
-                style: text.titleMedium,
-              ),
-              Text(
-                formatHeaderDate(store.today),
-                style: text.bodySmall?.copyWith(color: tokens.textSecondary),
-              ),
-            ],
-          ),
-          if (ui != null)
-            Wrap(
-              spacing: Space.s2,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                // The only way into Settings, and therefore into turning
-                // reminders on at all, so it lives on the screen people
-                // open every day.
-                MergeSemantics(
-                  child: Semantics(
-                    label: 'Settings',
-                    child: IconButton(
-                      onPressed: () => context.go(Paths.settings),
-                      icon: const Icon(Icons.settings_outlined, size: 18),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-
     final headline = _Section(
       order: 1,
       child: Column(
         key: const Key('today-headline'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'UNCLAIMED, OPEN PERIODS',
+          // The heading reads "Today"; the date and the eyebrow are what
+          // is drawn, since the brand now sits in the bar above.
+          ScreenTitle(
+            label: 'Today',
+            text:
+                '${formatHeaderDate(store.today).replaceAll(',', '').toUpperCase()}'
+                ' · UNCLAIMED, OPEN PERIODS',
             style: text.labelSmall?.copyWith(color: tokens.textSecondary),
           ),
           Row(
@@ -360,12 +314,7 @@ class _TodayBody extends StatelessWidget {
 
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
-      children: [
-        header,
-        const SizedBox(height: Space.s8),
-        headline,
-        body,
-      ],
+      children: [headline, body],
     );
   }
 }
