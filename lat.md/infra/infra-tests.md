@@ -116,7 +116,7 @@ Step 6 of `01-initial-deployment.md` names `RepositoryRuleset` and the one-time 
 
 ### Every workflow variable is declared on the environment
 
-Every `vars.*` the workflows read, except the optional build-time `VITE_*` pair, is a key of `environmentVariables` in `infra/index.ts`, so a variable a workflow needs cannot be missing from the stack that deploys it ([[deployment#Infrastructure]]).
+Every `vars.*` the workflows read is a key of `environmentVariables` in `infra/index.ts`, so a variable a workflow needs cannot be missing from the stack that deploys it ([[deployment#Infrastructure]]).
 
 The same program declares the `github.RepositoryEnvironment` the variables are written to.
 

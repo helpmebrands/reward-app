@@ -81,11 +81,9 @@ The credit sheet (`CreditSheet`) makes logging a partial amount as easy as loggi
 
 ## Household filter
 
-The holder filter narrows Today and Credits to one member. A native `<select>` sits invisibly over a styled row so mobile gets the OS picker.
+The app has no household filter. Cards carry a label instead of a holder, so there is no member to filter Today or Credits by, and sign-in brings real members ([[domain#Card]]).
 
-A custom dropdown would be worse in every way that matters: no keyboard accessory, no scroll wheel, no VoiceOver rotor. The control hides itself when there is only one person, because a filter with one option is furniture.
-
-The Flutter app has no household filter. Cards carry a label instead of a holder, so there is no member to filter by, and sign-in brings real members ([[domain#Card]]).
+The retired PWA had one: a holder filter narrowing Today and Credits to one member, a native `<select>` over a styled row so mobile got the OS picker, hidden when there was only one person.
 
 ## Responsive layout
 
