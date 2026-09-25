@@ -28,6 +28,8 @@ The image is tagged with the commit SHA, never `latest`, and deployed by digest 
 
 The deploy reporting success only means Cloud Run accepted the revision. The smoke tests, run against the container in CI and the live URL after a deploy, assert the app is actually served.
 
+Revisions are named `<service>-sha-<commit>-<run number>`, so a manual dispatch of a commit that is already live makes a new revision rather than failing `ALREADY_EXISTS` ([[infra-tests#Infrastructure config#CD revision names carry the run number]]).
+
 They check that `/` and a client route return 200, that a missing asset 404s rather than returning HTML, and that `sw.js` carries `Cache-Control: no-store`. The last one guards the failure this pipeline most needs to catch ([[deployment#Cache rules]]).
 
 ### Action runtimes

@@ -39,8 +39,10 @@ $ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"          # the PWA
 $ curl -sS "$URL/health"                                      # the api
 ```
 
-Revisions are named `<service>-sha-<commit>`, so the revision list doubles as
-a map back to the commit that produced it.
+Revisions are named `<service>-sha-<commit>-<run number>`, so the revision
+list doubles as a map back to the commit and the workflow run that produced
+it. The run number keeps a manual redeploy of a live commit from colliding
+with the revision already there.
 
 ## Then: get `develop` back to the truth
 
