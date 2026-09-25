@@ -336,6 +336,20 @@ final dataCases = <Case>[
   ),
   call(
     'POST',
+    '/v1/cards/{cardId}/terms-seen',
+    204,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['linkedCard']}/terms-seen',
+  ),
+  call(
+    'POST',
+    '/v1/cards/{cardId}/terms-seen',
+    404,
+    as: 'owner',
+    url: '/v1/cards/$_nobody/terms-seen',
+  ),
+  call(
+    'POST',
     '/v1/cards/{cardId}/benefits',
     201,
     as: 'owner',

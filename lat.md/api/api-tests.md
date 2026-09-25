@@ -371,3 +371,35 @@ When the sender reports one of a member's two tokens unregistered, the other sti
 ### FCM's answer decides the outcome
 
 A 2xx is sent, a 404 whose details carry `UNREGISTERED` is unregistered, and a 400 `INVALID_ARGUMENT` or a 503 is failed, so only a dead token ever deletes a device.
+
+## Change notices
+
+`change_notices_test.dart` covers the wording; `change_notices_integration_test.dart` publishes Gold version 2 and runs `sendChangeNotices` with a recording sender ([[api-architecture#Change notices]]).
+
+Version 2 raises Uber Cash to $20 from 1 January 2027. Each test gets a fresh schema, because a published version can never be deleted.
+
+The fixture: Ann's household holds a linked Gold with Bob in it, and Cat's household converted its Gold; all three have reminders on and a device.
+
+### Each change is worded from the two versions
+
+A credit's new value, a new fee, a dropped credit and an added one each get their phrase; a change to anything else is `terms change`.
+
+### A notice leads with the first change
+
+`changeNotice` titles the card, puts the first change and the effective date in the body with a count of the rest, tags it per card and carries the notice id and the card's path.
+
+### Each holder of an affected linked card hears once
+
+Ann and Bob each get one push naming the Uber Cash change and the date, linking to the card; a second run sends nothing; Ann's household data carries one mark with the version, date and changes.
+
+### A muted card gets the mark without the push
+
+Bob, who muted the card, gets no push while Ann does, and Bob's household data still carries the mark.
+
+### A converted card hears nothing
+
+Cat gets no push and no mark, since her card no longer links to the template.
+
+### Seeing the mark clears it for that member only
+
+After Ann posts `terms-seen` (204) her data has no mark and Bob's still has one; Cat posting it for Ann's card is 404.

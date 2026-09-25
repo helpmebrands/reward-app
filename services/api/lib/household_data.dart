@@ -17,6 +17,7 @@ import 'catalog_admin.dart' show parseCreditTerms;
 import 'devices.dart' show InvalidField;
 import 'src/database.dart';
 import 'src/responses.dart';
+import 'change_notices.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
 
@@ -315,7 +316,15 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
       (tx) async =>
           loadHousehold(tx, caller.householdId, await databaseToday(tx)),
     );
-    return jsonResponse(appDataToJson(household.data));
+    return jsonResponse({
+      ...appDataToJson(household.data),
+      'termsChanged': await termsChangedMarks(
+        db,
+        caller.userId,
+        household.data.cards,
+        household.versionsByTemplate,
+      ),
+    });
   }
 
   /// One card and its credits, as the household sees them now.

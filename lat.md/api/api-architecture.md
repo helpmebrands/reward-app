@@ -74,7 +74,7 @@ An admin is a row in `admins (user_id)`, added by hand as runbook 06 shows; ever
 - `POST /v1/admin/catalog` creates a template as draft version 1, 409 if the id exists.
 - `POST /v1/admin/catalog/{templateId}/drafts` copies the latest version into draft n + 1; one open draft per template (409), 404 for an unknown template.
 - `PUT …/drafts/{version}` replaces the draft's fields and credits; 409 once published, so a change needs a new draft.
-- `POST …/drafts/{version}/publish {effectiveFrom, sourceUrl, notes?}` needs a calendar date and an http(s) source (400 otherwise). It records `published_by` (the caller's user id) and `published_at`, and writes one `catalog_events` row of kind `version published`, which the change notices of the follow-on epic consume.
+- `POST …/drafts/{version}/publish {effectiveFrom, sourceUrl, notes?}` needs a calendar date and an http(s) source (400 otherwise). It records `published_by` (the caller's user id) and `published_at`, and writes one `catalog_events` row of kind `version published`, which the change notices consume ([[api-architecture#Change notices]]).
 
 `parseVersion` checks a body with the domain's own rules: `intervalMonthsError` for a rolling credit, `endsOnError`, `anniversaryError` for dates, `enrollmentUrlError` for the source, the enums in the domain's spellings, positive values, and credit ids of the form `<template id>/<slug>`, unique within the version. The first field at fault answers 400 `{"error":"invalid","field":…}`, `credits[0].intervalMonths` for instance. Every answer is the version with its status and provenance.
 
@@ -86,7 +86,7 @@ A card linked to a template stores only the household's own fields (label, kind,
 
 `loadHousehold` builds the snapshot for the database's today. It first makes sure every linked card has a row for every credit any version in force has had, so a credit added in a new version has an id and state the day it appears. A linked card takes issuer, product, network and fee from its template's version in force; each linked credit is `resolveLinkedBenefit`, with its own claims for a rolling one, and a credit no version in force has is left out.
 
-- `GET /v1/household/data` serves the snapshot; readers may read.
+- `GET /v1/household/data` serves the snapshot; readers may read. Beside the snapshot it carries `termsChanged`, the caller's own marks ([[api-architecture#Change notices]]), which the app's snapshot parser ignores.
 - `POST /v1/cards {templateId | issuer, product, network, annualFeeCents; anniversaryOn, label?, kind?, last4?}` returns the card and its credits. Without a label a duplicate product gets `defaultLabel`; a label `labelError` refuses is 409 `label taken`.
 - `PATCH /v1/cards/{id}` changes household fields on any card and terms only on a household card; `DELETE` cascades to credits and claims.
 - `POST /v1/cards/{id}/benefits`, `PUT /v1/benefits/{id}` and `DELETE /v1/benefits/{id}` work on household credits; on a linked card or credit each is 409 `system maintained`, since conversion is the only way to change catalogue terms. Terms are checked by `parseCreditTerms`, the catalogue admin's parser.
@@ -154,7 +154,22 @@ A member's zone is their most recently registered device's, UTC before they have
 
 `PushSender` is the seam: `FcmSender` posts to FCM HTTP v1 (`projects/<FIREBASE_PROJECT_ID>/messages:send`), which also reaches APNs, authorised by an OAuth token from the metadata server as the api identity, so no key file exists. The request carries the reminder's title and body, `data` with `reminderId` and `url`, and the reminder's tag as the Android notification tag and the APNs collapse id, so a newer notice for the same day replaces the older one. Only an `UNREGISTERED` error code retires a token, deleting its device row; any other failure keeps the device. Tests use a fake that records.
 
+The same job then sends the catalogue's change notices ([[api-architecture#Change notices]]); `sendOnce` is the claim-send-release step both use.
+
 Two signed-in routes serve the app's Settings screen. `GET /v1/me/reminders/summary` is `{count, next}`: how many reminders the caller's schedule holds from now over the horizon, and the next one's instant, title and body, or null. `POST /v1/me/reminders/test` sends a test notification to each of the caller's devices and answers `{sent}`; without an FCM project it is 503 `no push`.
+
+## Change notices
+
+When a catalogue version is published, the holders of linked cards on that template hear about it (`lib/change_notices.dart`, `0011_change_notices.sql`). Pinned by [[api-tests#Change notices]].
+
+Each run of the reminder job takes every `catalog_events` row not yet `noticed_at`, compares the published version with the one before it and words each change with `termChanges`: `Uber Cash credit changes to $20`, `annual fee changes to $350`, `Uber Cash credit ends`, `new $50 Lounge credit starts`, or `terms change` for anything else. Then, for every member of every household with a linked card on the template:
+
+1. It upserts a `terms_changed (card_id, user_id, version)` mark, one per member so seeing it clears it for that member only.
+2. If the member has reminders on and has not muted the card, it sends one push through `sendOnce` under the id `terms|<card>|<version>`: "Your Gold's Uber Cash credit changes to $20 on Jan 1, 2027, and 1 other change.", tagged `terms-<card>` so a later notice replaces it, with `url` `/cards/<card>`.
+
+The event is then marked noticed, so a second run sends nothing. A card the household maintains has no template, so a converted card gets neither; converting or deleting a card takes its marks. `0011` marks every earlier event noticed, so the seed is never announced.
+
+`GET /v1/household/data` carries `termsChanged`: the caller's marks on their household's cards, each `{cardId, version, effectiveFrom, changes}`. `POST /v1/cards/{cardId}/terms-seen` deletes the caller's mark (204, with or without one; 404 outside their household). Readers may, since nothing shared changes.
 
 ## Migrations
 
