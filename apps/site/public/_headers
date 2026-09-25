@@ -1,0 +1,11 @@
+# Cloudflare Pages response headers, for every path. The site is static and
+# same-origin: no scripts, no fonts, no requests. File names are not
+# fingerprinted, so nothing is cached for long and a deploy shows on the next
+# visit.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'none'; style-src 'self'; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=()
+  Cache-Control: no-cache

@@ -1,9 +1,8 @@
 # Keep the build context small and the image free of anything that is not the
 # app. node_modules especially — `npm ci` reinstalls inside the image, and
 # copying a host tree in can smuggle platform-specific binaries across.
-# The context is the repository root; the site image copies apps/site
-# (apps/site/Dockerfile) and the api image copies packages/domain and
-# services/api (services/api/Dockerfile).
+# The context is the repository root; the api image copies packages/domain
+# and services/api (services/api/Dockerfile).
 **/node_modules
 **/.dart_tool
 **/build

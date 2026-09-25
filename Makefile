@@ -6,7 +6,7 @@
 #
 #   make init          toolchains for every workspace, and the pre-push hook
 #   make verify        about two minutes; what .githooks/pre-push runs
-#   make verify-full   verify, then both containers
+#   make verify-full   verify, then the api container
 
 DART   := fvm dart
 API_DB := postgres://reward:reward@localhost:5432/reward?sslmode=disable
@@ -26,7 +26,7 @@ init: ## Install every toolchain and point git at the committed hooks
 verify: node dart flutter api ## The verify jobs that run without cloud credentials, in CI's order
 	@echo "verify: every row passed"
 
-verify-full: verify containers ## verify, then the container builds
+verify-full: verify containers ## verify, then the api container build
 
 node: ## Typecheck and test: the npm job, over infra and infra-repo
 	npm run typecheck
@@ -49,6 +49,5 @@ api: ## Api analyze, spec lint and test; against docker compose when docker is u
 	  echo "api: docker is not running, so the integration group is skipped"; cd services/api && $(DART) test; \
 	fi
 
-containers: ## Build both container images the way the container job does
-	docker build -f apps/site/Dockerfile -t reward-app:verify .
+containers: ## Build the api image the way the api job does
 	docker build -f services/api/Dockerfile -t reward-api:verify .

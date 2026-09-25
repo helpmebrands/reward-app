@@ -7,6 +7,8 @@ config:
   github:owner: helpmebrands
   reward-app:githubRepo: helpmebrands/reward-app
   reward-app:customDomain: staging.helpmereward.com
+  reward-app:pagesProject: helpmereward-staging
+  reward-app:siteBranch: develop
   reward-app:apiCustomDomain: api.staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state
   reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging

@@ -186,8 +186,8 @@ describe('api deploy workflow', () => {
   })
 
   // @lat: [[infra-tests#Infrastructure config#CD revision names carry the run number]]
-  it('suffixes both CD revision names with the SHA and the run number', () => {
-    for (const file of ['.github/workflows/cd.yml', '.github/workflows/cd-api.yml']) {
+  it('suffixes the api CD revision names with the SHA and the run number', () => {
+    for (const file of ['.github/workflows/cd-api.yml']) {
       expect(read(file)).toContain(
         'flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}',
       )
@@ -551,7 +551,7 @@ describe('monorepo layout', () => {
     for (const name of ['CLOUDFLARE_ACCOUNT_ID', 'PAGES_PROJECT', 'SITE_URL']) {
       expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
     }
-    expect(declared).not.toMatch(/CLOUD_RUN_SERVICE:/)
+    expect(declared).not.toMatch(/^\s+CLOUD_RUN_SERVICE:/m)
     const secrets = program.split('const signingSecrets')[1]?.split(']')[0] ?? ''
     expect(secrets).toContain("'cloudflare-api-token'")
   })
@@ -650,7 +650,6 @@ describe('GitHub environment per stack', () => {
       'API_MIGRATION_JOB',
       'API_REMIND_JOB',
       'ARTIFACT_REPO',
-      'CLOUD_RUN_SERVICE',
       'DEPLOY_SERVICE_ACCOUNT',
       'GCP_PROJECT_ID',
       'GCP_REGION',
@@ -676,7 +675,7 @@ describe('GitHub environment per stack', () => {
   // @lat: [[infra-tests#Infrastructure config#Workflows run in the stack's environment]]
   it('runs the deploy and preview jobs in the staging environment', () => {
     expect(read('.github/workflows/cd.yml')).toMatch(
-      /environment:\s*\n\s+name: \$\{\{ github\.ref_name == 'main' && 'production' \|\| 'staging' \}\}\s*$/m,
+      /environment:\s*\n\s+name: \$\{\{ github\.ref_name == 'main' && 'prod' \|\| 'staging' \}\}\s*$/m,
     )
     for (const name of ['cd-api.yml']) {
       expect(read(`.github/workflows/${name}`), name).toMatch(
