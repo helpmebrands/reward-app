@@ -358,12 +358,14 @@ $ curl -sSI "$URL/sw.js" | grep -i cache-control             # must say no-store
 
 $ curl -sS "$API/health"                                     # {"status":"ok","version":"…"}
 $ curl -sS -X POST "$API/v1/devices" -H 'content-type: application/json' \
-    -d '{"token":"t","installationId":"i","platform":"ios","timezone":"Mars/Olympus_Mons"}'
-{"error":"invalid","field":"timezone"}                       # a 400 that came through the database
+    -d '{"token":"t","installationId":"i","platform":"ios","timezone":"UTC"}'
+{"error":"unauthenticated"}                                  # a 401: sign-in is configured
+$ gcloud run jobs executions list --job reward-api-migrate --region us-central1 --limit 1
 ```
 
-The last request is the one that proves the database path: the zone is shaped
-correctly, so only Postgres can refuse it. Do not use `/healthz` for anything
+The device request proves the api was given its Firebase project (without it
+the answer is a 503 `no auth`); the migration job's last execution succeeding
+proves the database path. Do not use `/healthz` for anything
 on Cloud Run; Google's edge answers that exact path itself and the container
 never sees it.
 

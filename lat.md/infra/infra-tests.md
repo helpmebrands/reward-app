@@ -396,7 +396,7 @@ The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isread
 
 `cd-api.yml` builds `services/api/Dockerfile`, updates and executes `API_MIGRATION_JOB`, deploys `API_CLOUD_RUN_SERVICE` by the built digest, then smoke-tests the live URL.
 
-The smoke test reads `/health` (never `/healthz`) and posts a device with the zone `Mars/Olympus_Mons`, expecting the database-backed 400.
+The smoke test reads `/health` (never `/healthz`) and posts a device without a token, expecting 401 `unauthenticated`, which proves the service was given its Firebase project.
 
 ### CD revision names carry the run number
 
@@ -406,9 +406,31 @@ The smoke test reads `/health` (never `/healthz`) and posts a device with the zo
 
 `services/api/Dockerfile` compiles `bin/migrate.dart` to `/app/migrate` and the runtime stage copies it to `/migrate` with `migrations/` at `/migrations`, where the binary resolves them ([[api-architecture#Container]]).
 
+### Api image carries the reminder sender
+
+`services/api/Dockerfile` compiles `bin/remind.dart` to `/app/remind` and the runtime stage copies it to `/remind` ([[api-architecture#Reminder sender]]).
+
+### The reminder job runs /remind as the api identity
+
+`infra/index.ts` declares the Cloud Run job `${apiServiceName}-remind` running `/remind` as the api runtime account, with `DATABASE_URL` from the secret and `FIREBASE_PROJECT_ID`, its image left to CI.
+
+### Cloud Scheduler runs the reminder job every 15 minutes
+
+A `gcp.cloudscheduler.Job` on `*/15 * * * *` in `Etc/UTC` posts to the job's `run.googleapis.com/v2/…:run` URL with an OAuth token for its own scheduler account.
+
+That account holds `run.invoker` on that job only, and `cloudscheduler.googleapis.com` is enabled.
+
+### The api identity may send through FCM
+
+`fcm.googleapis.com` is enabled and the api runtime account holds `firebasecloudmessaging.admin`, so it sends with a metadata-server token; the program creates no service-account key.
+
+### CD moves the reminder job to each new image
+
+`cd-api.yml` runs `gcloud run jobs update ${{ vars.API_REMIND_JOB }}` with the built digest; the program writes `API_REMIND_JOB` onto the environment, exports `apiRemindJob`, and grants the deployer `run.developer` on the job.
+
 ### Api service runs on the gen2 execution environment
 
-`infra/index.ts` sets `EXECUTION_ENVIRONMENT_GEN2` on both the api service and the migration job templates, because on the first-generation sandbox a Dart connect to the Cloud SQL unix socket never completes ([[deployment#Infrastructure]]).
+`infra/index.ts` sets `EXECUTION_ENVIRONMENT_GEN2` on the api service and both job templates (migration and reminders), because on the first-generation sandbox a Dart connect to the Cloud SQL unix socket never completes ([[deployment#Infrastructure]]).
 
 ### Stack outputs name the api service and job
 
