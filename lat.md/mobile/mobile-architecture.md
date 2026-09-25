@@ -268,7 +268,7 @@ The server decides and sends reminders and change notices ([[api-architecture#Re
 - `enable` asks once per switch-on (the system prompts only the first time) and registers `{token, installationId, platform, timezone}` with `POST /v1/devices`; a refusal returns the PWA's sentence instead.
 - `register` runs again on each launch and sign-in while reminders are on, and on every token refresh, so the api has the current token and zone; a replaced token is unregistered.
 - `unregister` deletes the registration when the switch goes off and before sign-out, while the ID token still works.
-- `refreshSummary` reads `GET /v1/me/reminders/summary` for Settings, and `sendTest` posts `/v1/me/reminders/test` and returns the sentence for the snackbar.
+- `refreshSummary` reads `GET /v1/me/reminders/summary` for Settings, and `sendTest` posts `/v1/me/reminders/test` with `delaySeconds: 5` and returns the sentence for the snackbar. Settings first shows "Sending in 5 seconds. Put the app in the background to see it.", because a push that arrives in the foreground gets no banner.
 
 The installation id is a UUID made once and kept in shared preferences. `main.dart` builds the controller only with Firebase, next to the api client. `RewardApp` routes each tap, and the one that launched the app, through `handleNotificationTap`, so a reminder opens Today and a change notice opens `/cards/<id>`; a push in the foreground, which the system does not show, appears in the snackbar with its title.
 

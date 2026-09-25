@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:domain/domain.dart';
 import 'package:reward/data/household_api.dart';
 import 'package:reward/data/snapshot_store.dart';
@@ -295,6 +297,13 @@ class FakeApi implements HouseholdApi {
   ReminderSummary summary = const ReminderSummary(count: 0);
   int testSends = 0;
 
+  /// The delay each test notification asked for.
+  final testDelays = <int>[];
+
+  /// When set, a test notification waits for it, so a test can look at the
+  /// app mid-request.
+  Completer<void>? testGate;
+
   @override
   Future<void> registerDevice(PushDevice device) async {
     _check();
@@ -314,8 +323,10 @@ class FakeApi implements HouseholdApi {
   }
 
   @override
-  Future<int> sendTestReminder() async {
+  Future<int> sendTestReminder({int delaySeconds = 0}) async {
     _check();
+    testDelays.add(delaySeconds);
+    await testGate?.future;
     testSends++;
     return devices.length;
   }

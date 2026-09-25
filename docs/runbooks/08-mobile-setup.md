@@ -882,16 +882,18 @@ signed in to the staging build.
 2. Answer **Allow** to the system's notification prompt.
 3. Check the line under the fields reads `N reminders scheduled. Next on …`,
    or `Nothing scheduled yet.` for a household with no cards.
-4. Put the app in the background.
-5. Reopen it and tap **Send a test notification**. The snackbar reads
+4. Tap **Send a test notification**. The snackbar reads
+   `Sending in 5 seconds. Put the app in the background to see it.`
+5. Within those 5 seconds, go to the Home Screen. The notification
+   *Test notification* arrives as a banner.
+6. Tap it. The app opens on Settings, with the snackbar reading
    `Test notification sent.`
-6. Background the app again. The notification *Test notification* arrives
-   within a few seconds.
-7. Tap it. The app opens on Settings.
 
-`No device took the test` in step 5 means the device is not registered;
-nothing arriving in step 6 on an iPhone only is the APNs key. Both are in
-[05](05-troubleshooting.md#push-notifications-do-not-reach-the-app).
+`No device took the test` in step 6 means the device is not registered;
+no banner in step 5 on an iPhone only is the APNs key. Both are in
+[05](05-troubleshooting.md#push-notifications-do-not-reach-the-app). A push
+that arrives while the app is open shows only in the snackbar, which is why
+the test waits.
 
 **Clean up.** The keystore and the `.p12` now exist only in Secret Manager
 and, if you choose, in a password manager; the `.p8` files exist only in

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/household_api.dart';
@@ -175,7 +177,7 @@ void main() {
     expect(app.auth.calls, contains('sign out'));
   });
 
-  // @lat: [[mobile-tests#Push#Settings shows the summary and sends a test]]
+  // @lat: [[mobile-tests#Push#Settings shows the summary and sends a delayed test]]
   testWidgets('Settings reads the summary and the test button sends', (
     tester,
   ) async {
@@ -194,7 +196,15 @@ void main() {
       findsOneWidget,
     );
 
+    app.api.testGate = Completer<void>();
     await tapFinder(tester, key('send-test'));
+    expect(app.api.testDelays, [5]);
+    expect(
+      app.ui.snackbar.current?.text,
+      'Sending in 5 seconds. Put the app in the background to see it.',
+    );
+    app.api.testGate!.complete();
+    await tester.pumpAndSettle();
     expect(app.api.testSends, 1);
     expect(app.ui.snackbar.current?.text, 'Test notification sent.');
   });

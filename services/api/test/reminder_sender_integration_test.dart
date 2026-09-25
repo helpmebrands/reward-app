@@ -273,5 +273,30 @@ void main() {
       expect(r.body, {'sent': 2});
       expect({for (final s in push.sent) s.token}, {'phone', 'tablet'});
     });
+
+    // @lat: [[api-tests#Reminder sender#The test push can wait a few seconds]]
+    test('a test push with delaySeconds sends only after the wait', () async {
+      await device('ann', 'phone', 'Europe/London');
+      final clock = Stopwatch()..start();
+      final r = await api.as('ann').post('/v1/me/reminders/test', {
+        'delaySeconds': 1,
+      });
+      expect(r.status, 200, reason: '${r.body}');
+      expect(r.body, {'sent': 1});
+      expect(clock.elapsed, greaterThanOrEqualTo(const Duration(seconds: 1)));
+    });
+
+    // @lat: [[api-tests#Reminder sender#A bad delay is refused]]
+    test('a delay outside 0 to 10 seconds is 400 and sends nothing', () async {
+      await device('ann', 'phone', 'Europe/London');
+      for (final bad in [-1, 11, '5']) {
+        final r = await api.as('ann').post('/v1/me/reminders/test', {
+          'delaySeconds': bad,
+        });
+        expect(r.status, 400, reason: '$bad');
+        expect(r.body, {'error': 'invalid', 'field': 'delaySeconds'});
+      }
+      expect(push.sent, isEmpty);
+    });
   }, skip: url == null ? 'DATABASE_URL is not set' : false);
 }

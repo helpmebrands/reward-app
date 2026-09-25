@@ -104,10 +104,21 @@ class PushController extends ChangeNotifier {
     }
   }
 
-  /// Asks the server for a test notification; the sentence to show.
+  /// How long the server waits before sending the test, so the tester can
+  /// put the app in the background: a push that arrives while the app is
+  /// open shows no banner.
+  static const testDelaySeconds = 5;
+
+  /// What to show while the test waits.
+  static const testPending =
+      'Sending in $testDelaySeconds seconds. '
+      'Put the app in the background to see it.';
+
+  /// Asks the server for a test notification in [testDelaySeconds]; the
+  /// sentence to show when it has gone.
   Future<String> sendTest() async {
     try {
-      final sent = await _api.sendTestReminder();
+      final sent = await _api.sendTestReminder(delaySeconds: testDelaySeconds);
       return sent == 0
           ? 'No device took the test. Check that notifications are allowed.'
           : 'Test notification sent.';

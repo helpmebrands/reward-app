@@ -310,6 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: const Icon(Icons.notifications_active_outlined),
                 label: const Text('Send a test notification'),
                 onPressed: () async {
+                  widget.ui?.snackbar.show(PushController.testPending);
                   final message = await push.sendTest();
                   widget.ui?.snackbar.show(message);
                 },

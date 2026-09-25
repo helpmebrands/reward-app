@@ -364,6 +364,14 @@ When the sender reports one of a member's two tokens unregistered, the other sti
 
 `POST /v1/me/reminders/test` answers `{"sent":2}` for a member with two devices and sends to those two tokens and no one else's.
 
+### The test push can wait a few seconds
+
+With `delaySeconds: 1` the test answers `{"sent":1}` no sooner than a second after the request.
+
+### A bad delay is refused
+
+`delaySeconds` of -1, 11 or the string `"5"` answers 400 `{"error":"invalid","field":"delaySeconds"}`, and nothing is sent.
+
 ### The FCM request carries the copy, the data and the tag
 
 `fcmRequestBody` is the v1 `message` with the token, the title and body as the notification, the data map, and the tag as the Android notification tag and the APNs collapse id.
