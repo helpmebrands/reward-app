@@ -897,6 +897,31 @@ describe('mobile release workflow', () => {
     }
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Release workflow refuses anything but a version tag]]
+  it('fails a run on any ref but a v* tag before either platform job starts', () => {
+    expect(workflow()).toMatch(/^\s+workflow_dispatch:/m)
+    const job = (name: string) =>
+      workflow()
+        .split(new RegExp(`^ {2}${name}:\\s*$`, 'm'))[1]
+        ?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
+    const gate = job('tag')
+    expect(gate).toContain("if: ${{ !startsWith(github.ref, 'refs/tags/v') }}")
+    expect(gate).toMatch(/^\s+exit 1\s*$/m)
+    expect(gate).not.toContain('actions/checkout')
+    for (const name of ['android', 'ios']) {
+      expect(job(name), name).toMatch(/^ {4}needs: tag\s*$/m)
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 releases only from a tag]]
+  it('tells runbook 07 that a release starts only from a tag', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    const section =
+      runbook.split(/^## Getting it to testers$/m)[1]?.split(/^## /m)[0] ?? ''
+    expect(section).toMatch(/Run\s+workflow/)
+    expect(section).toMatch(/refuses?\s+any\s+ref\s+but\s+a\s+`v\*`\s+tag/)
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Release workflow stores nothing in GitHub secrets]]
   it('references no GitHub secret except the workflow token', () => {
     const secrets = [...workflow().matchAll(/secrets\.([A-Za-z_]+)/g)].map((m) => m[1])
