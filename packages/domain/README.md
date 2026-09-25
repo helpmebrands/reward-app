@@ -1,9 +1,9 @@
 # domain
 
 The HelpMe Reward domain rules in Dart, shared by the Flutter app and the
-service tier. It is a port of the reference PWA's `apps/pwa/src/domain/`,
+service tier. It is a port of the retired PWA's TypeScript domain (#174),
 written against the product spec in `lat.md/product/`, with the Vitest suites
-ported first so both implementations are held to the same cases.
+ported first so both implementations were held to the same cases.
 
 Pure Dart, no Flutter and no packages beyond `test` and `lints` for
 development. Calendar dates are `YYYY-MM-DD` strings computed in UTC; money
@@ -68,8 +68,8 @@ named parameters as noted.
 
 ### `catalog.ts` → `catalog.dart`
 
-`BenefitTemplate`, `CardTemplate`, `cardTemplates`, `findTemplate`, `templateAnnualValueCents`, `templateEnrollmentNames`, `benefitsFromTemplate`. The template data is generated from the TypeScript source by `apps/pwa/scripts/emit-catalog.ts`; edit there and regenerate.
+`BenefitTemplate`, `CardTemplate`, `cardTemplates`, `findTemplate`, `templateAnnualValueCents`, `templateEnrollmentNames`, `benefitsFromTemplate`. The template data was first generated from the PWA's catalogue and is now edited by hand here; `services/api` seeds its catalogue from it.
 
 ## Tests
 
-`test/` mirrors `apps/pwa/tests/` case for case for the domain suites, with the same fixtures in `factories.dart`. Each file tags the `lat.md/product/tests` section it covers with a `// @lat:` comment. `sample_household_test.dart` reads the PWA's sample household and pins the reminder group ids to the TypeScript output.
+`test/` carries the retired PWA's domain suites case for case, with the same fixtures in `factories.dart`. Each file tags the `lat.md/product/tests` section it covers with a `// @lat:` comment. `test/fixtures/sample-household.json` is the sample household the Flutter tests also read; `sample_household_test.dart` pins its reminder group ids to the TypeScript output.

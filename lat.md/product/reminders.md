@@ -2,11 +2,11 @@
 
 Reminder timing is the product. Each cadence has its own ladder of warnings, everything due on one day is grouped into one notification, and the schedule is a pure function of the household's data.
 
-The schedule is computed from `AppData` alone (`apps/pwa/src/domain/reminders.ts` in the reference implementation, `packages/domain/lib/src/reminders.dart` in the port) and handed to the platform to deliver ([[delivery]] for the PWA). That split keeps the timing rules testable and means delivery needs no domain knowledge.
+The schedule is computed from `AppData` alone (`packages/domain/lib/src/reminders.dart`) and handed on to deliver: the service tier sends it as push ([[api-architecture#Reminder sender]], [[mobile-architecture#Push]]). That split keeps the timing rules testable and means delivery needs no domain knowledge.
 
 ## The ladder
 
-A monthly $15 credit and an annual $300 one cannot share a schedule, so each cadence gets its own rungs, defined in `apps/pwa/src/domain/ladder.ts`.
+A monthly $15 credit and an annual $300 one cannot share a schedule, so each cadence gets its own rungs, defined in `packages/domain/lib/src/ladder.dart`.
 
 Warn about the monthly one 90 days out and it is noise; warn about the annual one on the last day and it is too late to book anything.
 
@@ -21,13 +21,13 @@ Warn about the monthly one 90 days out and it is noise; warn about the annual on
 
 The tone climbs along the rungs, from `permissive` ("You can use me") through `notice` to `urgent` (last call). Tone drives both the row styling and the notification copy; Nocturne carries urgency as a saturated ground and a filled glyph, never an alarm colour.
 
-- [[apps/pwa/src/domain/ladder.ts#ladderFor]] returns a credit's rungs, collapsing to the final rung alone when `lastCallOnly` is set.
-- [[apps/pwa/src/domain/ladder.ts#currentRung]] reports which rung a credit is standing on given days remaining, or null before the first.
-- [[apps/pwa/src/domain/ladder.ts#ladderSummary]] renders the table above for Settings.
+- `ladderFor` returns a credit's rungs, collapsing to the final rung alone when `lastCallOnly` is set.
+- `currentRung` reports which rung a credit is standing on given days remaining, or null before the first.
+- `ladderSummary` renders the table above for Settings.
 
 ## Schedule construction
 
-[[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon, for one member: the Dart port takes that member's preferences ([[domain#Member preferences]]). It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
+`buildSchedule` turns `AppData` into a sorted list of reminders over a 200-day horizon for one member, taking that member's preferences ([[domain#Member preferences]]). It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
 
 A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the member has muted the credit or its card, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
 
@@ -49,4 +49,4 @@ One decision per notification. The title leads with the total at stake and the r
 
 Notification permission is a big ask on faith. The "Preview nudge" button on Today shows the next real reminder from the stored schedule, with the user's own numbers, in-app and without permission.
 
-When nothing is scheduled yet, [[apps/pwa/src/ui/NudgePreview.tsx#sampleReminder]] builds a stand-in from the claimable total.
+When nothing is scheduled yet, `sampleReminder` builds a stand-in from the claimable total.

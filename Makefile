@@ -6,13 +6,13 @@
 #
 #   make init          toolchains for every workspace, and the pre-push hook
 #   make verify        about two minutes; what .githooks/pre-push runs
-#   make verify-full   verify, then the accessibility gate and both containers
+#   make verify-full   verify, then the api container
 
 DART   := fvm dart
 API_DB := postgres://reward:reward@localhost:5432/reward?sslmode=disable
 
 .DEFAULT_GOAL := help
-.PHONY: help init verify verify-full pwa dart flutter api e2e containers
+.PHONY: help init verify verify-full node dart flutter api containers
 
 help: ## List the targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -23,16 +23,14 @@ init: ## Install every toolchain and point git at the committed hooks
 	git config core.hooksPath .githooks
 	@echo "hooks on: .githooks/pre-push runs make verify; skip once with git push --no-verify"
 
-verify: pwa dart flutter api ## The verify jobs that run without cloud credentials, in CI's order
+verify: node dart flutter api ## The verify jobs that run without cloud credentials, in CI's order
 	@echo "verify: every row passed"
 
-verify-full: verify e2e containers ## verify, then the accessibility gate and the container builds
+verify-full: verify containers ## verify, then the api container build
 
-pwa: ## Lint, typecheck, test, build: the PWA job, whose root scripts also cover infra and infra-repo
-	npm run lint
+node: ## Typecheck and test: the npm job, over infra and infra-repo
 	npm run typecheck
 	npm test
-	npm run build
 
 dart: ## Dart analyze and test: the workspace root and packages/domain
 	$(DART) pub get
@@ -51,9 +49,5 @@ api: ## Api analyze, spec lint and test; against docker compose when docker is u
 	  echo "api: docker is not running, so the integration group is skipped"; cd services/api && $(DART) test; \
 	fi
 
-e2e: ## The accessibility gate: Playwright against the built PWA
-	npm run test:e2e
-
-containers: ## Build both container images the way the container job does
-	docker build -f apps/pwa/Dockerfile -t reward-app:verify .
+containers: ## Build the api image the way the api job does
 	docker build -f services/api/Dockerfile -t reward-api:verify .

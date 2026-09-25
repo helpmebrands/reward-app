@@ -1,7 +1,7 @@
 /// The HelpMe Reward domain: the pure rules every implementation shares.
 ///
-/// Written against the product spec in `lat.md/product/`; the reference
-/// implementation is the PWA's `apps/pwa/src/domain/`.
+/// Written against the product spec in `lat.md/product/`; ported from the
+/// retired PWA's TypeScript domain (#174), and now the only implementation.
 library;
 
 export 'src/catalog.dart';

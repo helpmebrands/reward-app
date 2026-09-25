@@ -2,20 +2,20 @@
 
 The pure core of HelpMe Reward: cards, benefits, cycles, claims, and the selectors that resolve them into what every screen renders.
 
-The rules are pure functions of the data with no framework behind them, which is what makes this the part worth testing. The reference implementation is `apps/pwa/src/domain/`; the Dart port shared by the Flutter app and the service tier is `packages/domain`, ported one module at a time with its tests first.
+The rules are pure functions of the data with no framework behind them, which is what makes this the part worth testing. They live in `packages/domain`, shared by the Flutter app and the service tier, ported one module at a time with its tests first from the PWA retired in #174.
 
-Types live in `apps/pwa/src/domain/types.ts`. Everything else here is derived from `AppData`, which is `{ cards, benefits, claims, settings }`.
+Types live in `packages/domain/lib/src/types.dart`. Everything else here is derived from `AppData`, which is `{ cards, benefits, claims, settings }`.
 
 ## Calendar dates, not timestamps
 
 Dates that name a day are `YYYY-MM-DD` strings (`IsoDate`); instants such as when a claim was recorded are full ISO-8601 strings (`IsoInstant`). "September 2026" must not shift when the user crosses a timezone.
 
-All calendar arithmetic (`apps/pwa/src/domain/dates.ts`) computes in UTC, which has no DST transitions. Local-time date objects silently shift dates by a day twice a year in most timezones. Two rules follow:
+All calendar arithmetic (`packages/domain/lib/src/dates.dart`) computes in UTC, which has no DST transitions. Local-time date objects silently shift dates by a day twice a year in most timezones. Two rules follow:
 
-- [[apps/pwa/src/domain/dates.ts#addMonths]] clamps the day to the target month, so Jan 31 + 1 month is Feb 28, never March 3.
-- [[apps/pwa/src/domain/dates.ts#todayIso]] is the one exception: it reads the *local* clock, because the user experiences the issuer's calendar dates locally. At 23:30 local on the 16th, it is still the 16th even if UTC says the 17th.
+- `addMonths` clamps the day to the target month, so Jan 31 + 1 month is Feb 28, never March 3.
+- `todayIso` is the one exception: it reads the *local* clock, because the user experiences the issuer's calendar dates locally. At 23:30 local on the 16th, it is still the 16th even if UTC says the 17th.
 
-ISO dates are zero-padded, so lexical comparison is chronological ([[apps/pwa/src/domain/dates.ts#compareIsoDate]]).
+ISO dates are zero-padded, so lexical comparison is chronological (`compareIsoDate`).
 
 ## Card
 
@@ -27,7 +27,7 @@ Two of the same product are told apart by their labels. `defaultLabel` proposes 
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).
 - `archived` hides the card and its credits from every selector. Silencing a card is a member's choice, not the card's ([[domain#Member preferences]]).
 - `last4` is display only; a full PAN is never stored.
-- `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. The add-card catalogue can be filtered by kind ([[domain#Catalogue filter]]); the Cards screen cannot. A snapshot from before `kind` existed loads with every card `personal` ([[architecture#Persistence]]).
+- `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. The add-card catalogue can be filtered by kind ([[domain#Catalogue filter]]); the Cards screen cannot. A snapshot from before `kind` existed loads with every card `personal` (`appDataFromJson`).
 
 ## Member preferences
 
@@ -55,7 +55,7 @@ Fields with behaviour behind them:
 
 Six cadences: `monthly`, `quarterly`, `semiannual`, `annual`, `rolling` and `manual`. The first four span 1, 3, 6 and 12 months from an anchor; `rolling` spans `intervalMonths` from the last claim; `manual` never recurs.
 
-`rolling` is for credits the issuer counts from the last reimbursement, such as Global Entry every 48 months. The anchor is ignored: the window is open ("Eligible now") until a claim closes it for `intervalMonths`, so the app never suggests a credit the issuer would refuse ([[domain#Cycle]]). It is never at risk, never reminded about and never in the missed ledger, and [[apps/pwa/src/domain/cycles.ts#annualValueOf]] amortises it: $120 every 48 months is $30 a year.
+`rolling` is for credits the issuer counts from the last reimbursement, such as Global Entry every 48 months. The anchor is ignored: the window is open ("Eligible now") until a claim closes it for `intervalMonths`, so the app never suggests a credit the issuer would refuse ([[domain#Cycle]]). It is never at risk, never reminded about and never in the missed ledger, and `annualValueOf` amortises it: $120 every 48 months is $30 a year.
 
 `manual` covers credits no cycle can track at all. They are listed, given a stand-in "Untracked" window, and never counted as at risk, never reminded about, and never entered in the missed ledger. `annualValueOf` counts them once rather than once per notional year.
 
@@ -63,53 +63,53 @@ Six cadences: `monthly`, `quarterly`, `semiannual`, `annual`, `rolling` and `man
 
 A recurring cycle is measured from one of two origins, recorded per benefit rather than inferred from the cadence, because getting it wrong is the commonest way a credit is lost.
 
-- `calendar`: the Gregorian calendar. [[apps/pwa/src/domain/cycles.ts#anchorDateFor]] uses January 1st of the card's anniversary year as the origin, which puts quarters on Jan/Apr/Jul/Oct and halves on Jan/Jul, the windows issuers actually use.
+- `calendar`: the Gregorian calendar. `anchorDateFor` uses January 1st of the card's anniversary year as the origin, which puts quarters on Jan/Apr/Jul/Oct and halves on Jan/Jul, the windows issuers actually use.
 - `anniversary`: the day the account was opened, so the "cardmember year" of a Sapphire Reserve travel credit.
 
-The labels differ too ([[apps/pwa/src/domain/cycles.ts#cycleLabel]]): calendar windows get issuer shorthand ("Sep 2026", "Q3 2026", "H2 2026", "2026"), while anniversary windows are labelled by start date ("from Mar 14 2026") because a cardmember quarter is not Q3.
+The labels differ too (`cycleLabel`): calendar windows get issuer shorthand ("Sep 2026", "Q3 2026", "H2 2026", "2026"), while anniversary windows are labelled by start date ("from Mar 14 2026") because a cardmember quarter is not Q3.
 
 ## Cycle
 
 A cycle is the concrete window in which a benefit can be used: inclusive `start` and `end`, a `label`, and a `key` equal to `start` that claims attach to. Cycles are derived, never stored.
 
-[[apps/pwa/src/domain/cycles.ts#cycleFor]] finds the cycle containing a date by walking from the anchor in whole cycle-lengths. Because month arithmetic clamps, the naive `(years * 12 + months) / span` step count can land in the wrong window at month ends, so the step is corrected by comparison, bounded to at most one correction in each direction.
+`cycleFor` finds the cycle containing a date by walking from the anchor in whole cycle-lengths. Because month arithmetic clamps, the naive `(years * 12 + months) / span` step count can land in the wrong window at month ends, so the step is corrected by comparison, bounded to at most one correction in each direction.
 
 The invariant that matters, and that the tests assert: every day belongs to exactly one cycle, with no gaps and no overlaps, even for an anniversary on the 31st across short months.
 
-A rolling credit's window comes from the claim ledger, which [[apps/pwa/src/domain/cycles.ts#cycleFor]] takes as its last argument. The open window is keyed by the day the card was added, or the day after the last closed window; the first claim recorded under that key closes it to the claim day plus `intervalMonths` less a day, labelled "until Sep 2030", and a new open window keys from the day after. Keys never move, so a claim always finds its window. `nextCycle` and `previousCycle` are null for it, since only a claim opens the next.
+A rolling credit's window comes from the claim ledger, which `cycleFor` takes as its last argument. The open window is keyed by the day the card was added, or the day after the last closed window; the first claim recorded under that key closes it to the claim day plus `intervalMonths` less a day, labelled "until Sep 2030", and a new open window keys from the day after. Keys never move, so a claim always finds its window. `nextCycle` and `previousCycle` are null for it, since only a claim opens the next.
 
-A credit with `endsOn` has its final window's `end` clamped to that day, and `cycleFor` returns null once the day is past ([[apps/pwa/src/domain/cycles.ts#hasEnded]]), so `nextCycle`, `cyclesBetween` and the reminder schedule stop on their own. `closedCyclesBefore` still starts from the final window once it has passed, which is how the ledger keeps its shortfall.
+A credit with `endsOn` has its final window's `end` clamped to that day, and `cycleFor` returns null once the day is past (`hasEnded`), so `nextCycle`, `cyclesBetween` and the reminder schedule stop on their own. `closedCyclesBefore` still starts from the final window once it has passed, which is how the ledger keeps its shortfall.
 
-Helpers: [[apps/pwa/src/domain/cycles.ts#nextCycle]], [[apps/pwa/src/domain/cycles.ts#previousCycle]], [[apps/pwa/src/domain/cycles.ts#cyclesBetween]] (for reminder scheduling and history), and [[apps/pwa/src/domain/cycles.ts#closedCyclesBefore]] (for the missed ledger). [[apps/pwa/src/domain/cycles.ts#daysRemainingIn]] returns 0 on the final day and negative once closed.
+Helpers: `nextCycle`, `previousCycle`, `cyclesBetween` (for reminder scheduling and history), and `closedCyclesBefore` (for the missed ledger). `daysRemainingIn` returns 0 on the final day and negative once closed.
 
 ## Claims
 
 A claim records one use of a credit within one cycle. Partial claims are the normal case, several claims per cycle are summed, and a claim is keyed by `benefitId` plus `cycleKey`.
 
-Rules the app enforces (in the PWA, [[apps/pwa/src/stores/app.tsx#AppProvider]]):
+Rules the app enforces (in `AppStore`):
 
 - Claiming without an amount takes what is *left*, not the face value, so a second claim on a partly used credit cannot overshoot.
 - `unclaim` removes every claim against one cycle; `removeClaim` removes one. The snackbar's Undo and the sheet's Remove both remove the one claim just made.
 - Deleting a benefit or card deletes its claims with it.
 
-Claims are indexed once per resolve ([[apps/pwa/src/domain/selectors.ts#indexClaims]]) so resolving every credit stays linear.
+Claims are indexed once per resolve (`indexClaims`) so resolving every credit stays linear.
 
 ## Status ladder
 
 Every benefit instance sits on exactly one rung: `locked`, `manual`, `use_soon`, `available`, `captured` or `missed`. The status is computed, never stored.
 
-Precedence, from `statusFor` in `apps/pwa/src/domain/selectors.ts`:
+Precedence, from `statusFor` in `packages/domain/lib/src/selectors.dart`:
 
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
-3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met ([[apps/pwa/src/domain/selectors.ts#lockReason]] says which; enrolment outranks spend).
+3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met (`lockReason` says which; enrolment outranks spend).
 4. `available` for a `rolling` credit, whatever the day: its window has no deadline to miss, so it is never `use_soon` or `missed`.
 5. `missed` when the window has closed.
-6. `use_soon` when the window closes within `settings.useSoonDays` (default [[apps/pwa/src/domain/types.ts#USE_SOON_DAYS]], 30), otherwise `available`.
+6. `use_soon` when the window closes within `settings.useSoonDays` (default `useSoonDays`, 30), otherwise `available`.
 
-Instances sort by [[apps/pwa/src/domain/selectors.ts#compareByUrgency]]: status order (use soon, available, locked, manual, captured, missed), then soonest deadline, then most money at stake.
+Instances sort by `compareByUrgency`: status order (use soon, available, locked, manual, captured, missed), then soonest deadline, then most money at stake.
 
-Only `use_soon` and `available` are "claimable" ([[apps/pwa/src/domain/selectors.ts#isClaimable]]), and that is the set the headline number and the next-reset date are built from.
+Only `use_soon` and `available` are "claimable" (`isClaimable`), and that is the set the headline number and the next-reset date are built from.
 
 ### Locked is not unclaimed
 
@@ -132,14 +132,14 @@ Consequences:
 
 - Today's locked section says which lock applies: "Locked behind enrolment", "Locked behind a spend threshold", or both.
 - The detail sheet reads "Unlocks after $250,000 spend this year" and offers "I've reached it — unlock", which sets `spendMetAt`; revoking clears it.
-- `summarizeCard` counts nothing for a spend-locked credit in `annualValueCents`, and [[apps/pwa/src/domain/catalog.ts#templateAnnualValueCents]] leaves gated entries out of the catalogue price.
+- `summarizeCard` counts nothing for a spend-locked credit in `annualValueCents`, and `templateAnnualValueCents` leaves gated entries out of the catalogue price.
 - Reminders never mention a spend-locked credit, whatever the enrolment-reminder setting: no notification can reach a spend threshold ([[reminders#Schedule construction]]).
 
 ## The four totals
 
 Claimable, locked, captured and missed are four different quantities. Money you can still get and money you have already lost are never summed into one number.
 
-[[apps/pwa/src/domain/selectors.ts#totalsFor]] returns them side by side:
+`totalsFor` returns them side by side:
 
 | Figure | Meaning |
 | --- | --- |
@@ -152,7 +152,7 @@ Claimable, locked, captured and missed are four different quantities. Money you 
 
 An overlap is the same credit carried by two cards in the household, so that one booking cannot draw on both. It is the design's premise made visible.
 
-[[apps/pwa/src/domain/selectors.ts#findOverlaps]] groups claimable and locked instances by `merchant` when set, otherwise by credit name, both lower-cased. A group is an overlap only when it spans at least two distinct cards: two rows on the *same* card are two credits, not an overlap. Matching by merchant first is what lets "Uber Cash" on a Platinum match "Rideshare Credit" on a Reserve, while name alone would collide across issuers using the same wording.
+`findOverlaps` groups claimable and locked instances by `merchant` when set, otherwise by credit name, both lower-cased. A group is an overlap only when it spans at least two distinct cards: two rows on the *same* card are two credits, not an overlap. Matching by merchant first is what lets "Uber Cash" on a Platinum match "Rideshare Credit" on a Reserve, while name alone would collide across issuers using the same wording.
 
 Each group reports `sameProduct` (the same issuer and product held twice) and the combined unclaimed value. Today shows the top three; the compare sheet shows one side by side and stops short of ranking the two people.
 
@@ -160,39 +160,39 @@ Each group reports `sameProduct` (the same issuer and product held twice) and th
 
 A closed cycle with less claimed than its value is a miss for the shortfall. The ledger is computed from claims rather than stored, so it is always consistent with what the user actually logged.
 
-[[apps/pwa/src/domain/selectors.ts#missedCycles]] walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss, and rolling ones close only by claim, so neither appears. A credit that has ended keeps its final, clamped window in the ledger.
+`missedCycles` walks back through closed cycles (24 by default) and stops at the card's `createdAt`: the app cannot know whether a credit was used before it started tracking, so it never blames the user for windows that closed earlier. Manual credits have no window to miss, and rolling ones close only by claim, so neither appears. A credit that has ended keeps its final, clamped window in the ledger.
 
 Two views are built on it:
 
-- [[apps/pwa/src/domain/selectors.ts#biggestLeaks]] groups repeated misses of one credit into a single line ("Uber Cash × 8, Jan – Aug 2026, $120"), because a habit is fixable while eight $15 rows are noise.
-- [[apps/pwa/src/domain/selectors.ts#monthlyTotals]] bins captured by the month a claim was *logged* and missed by the month the window *closed*, which is when the money actually went away.
+- `biggestLeaks` groups repeated misses of one credit into a single line ("Uber Cash × 8, Jan – Aug 2026, $120"), because a habit is fixable while eight $15 rows are noise.
+- `monthlyTotals` bins captured by the month a claim was *logged* and missed by the month the window *closed*, which is when the money actually went away.
 
 ## Card value and the cardmember year
 
 A card is judged against its own annual fee, over its own cardmember year. Six cards with six fees cannot share a dollar axis, so the Value screen plots captured value as a percentage of fee, where 100% is break-even for every card.
 
-[[apps/pwa/src/domain/selectors.ts#summarizeCard]] builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit ([[apps/pwa/src/domain/selectors.ts#cardYearStart]]), and `capturedCents` is the sum of claims logged since that date ([[apps/pwa/src/domain/selectors.ts#claimedThisCardYear]]). `netCents` is captured minus fee; `feeProgress` is the break-even bar.
+`summarizeCard` builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit (`cardYearStart`), and `capturedCents` is the sum of claims logged since that date (`claimedThisCardYear`). `netCents` is captured minus fee; `feeProgress` is the break-even bar.
 
 This is why the Value tab and the Cards tab can disagree: Value covers the last nine calendar months, while each card's figure covers only its own fee period. A credit only pays for the fee it was issued against.
 
 ## Form rules
 
-`apps/pwa/src/domain/validation.ts` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
+`packages/domain/lib/src/validation.dart` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
 
-- [[apps/pwa/src/domain/validation.ts#requiredError]]: a text field must not be blank; the caller supplies the sentence.
-- [[apps/pwa/src/domain/validation.ts#moneyError]] and [[apps/pwa/src/domain/validation.ts#positiveMoneyError]]: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. [[apps/pwa/src/domain/validation.ts#parseMoney]] turns the typed text into whole cents.
-- [[apps/pwa/src/domain/validation.ts#anniversaryError]]: the cardmember year start is a real calendar date.
-- [[apps/pwa/src/domain/validation.ts#endsOnError]]: a credit's end date, if given, is a real calendar date; blank means it has none.
-- [[apps/pwa/src/domain/validation.ts#intervalMonthsError]]: a rolling credit's months between claims is a whole number above zero; every other cadence ignores it.
-- [[apps/pwa/src/domain/validation.ts#enrollmentUrlError]]: an enrolment page, if given, is an http or https URL.
+- `requiredError`: a text field must not be blank; the caller supplies the sentence.
+- `moneyError` and `positiveMoneyError`: an amount is a number, at or above zero for a fee or a threshold, above zero for a credit's value. `parseMoney` turns the typed text into whole cents.
+- `anniversaryError`: the cardmember year start is a real calendar date.
+- `endsOnError`: a credit's end date, if given, is a real calendar date; blank means it has none.
+- `intervalMonthsError`: a rolling credit's months between claims is a whole number above zero; every other cadence ignores it.
+- `enrollmentUrlError`: an enrolment page, if given, is an http or https URL.
 
 ## Card catalogue
 
-`apps/pwa/src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
+`packages/domain/lib/src/catalog.dart` holds starting templates for known cards: an onboarding aid, not a source of truth. Issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
 
-`packages/domain/lib/src/catalog.dart` was generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`. Since #210 it is edited by hand, because the PWA is frozen and the Dart templates carry stable credit ids the PWA lacks: `<template id>/<slug of the name>`, such as `amex-gold/uber-cash`. It seeds version 1 of the service tier's catalogue ([[domain#Catalogue versions]]). Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
+The file was generated from the PWA's TypeScript list. Since #210 it is edited by hand, and since #174 it is the only copy; its templates carry stable credit ids: `<template id>/<slug of the name>`, such as `amex-gold/uber-cash`. It seeds version 1 of the service tier's catalogue ([[domain#Catalogue versions]]). Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
-`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value; every Global Entry entry is one, at 48 months. An entry whose terms name a last day carries `endsOn`. Each template names its `kind`, which the add-card flow copies onto the new card: Business Platinum is `business`, everything else including `blank` is `personal`. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value; every Global Entry entry is one, at 48 months. An entry whose terms name a last day carries `endsOn`. Each template names its `kind`, which the add-card flow copies onto the new card: Business Platinum is `business`, everything else including `blank` is `personal`. `benefitsFromTemplate` stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
 
 ## Catalogue versions
 

@@ -45,13 +45,11 @@ describe('requiredChecks', () => {
     const jobs = (workflow.split(/^jobs:\s*$/m)[1] ?? '').match(/^ {2}[\w-]+:\s*$/gm) ?? []
     expect(contexts).toHaveLength(jobs.length)
     for (const name of [
-      'Lint, typecheck, test, build',
-      'Accessibility gate',
+      'Typecheck and test',
       'Infra typechecks and previews',
       'Dart analyze and test',
       'Flutter analyze and test',
       'Api analyze, test and container',
-      'Container builds',
     ]) {
       expect(contexts).toContain(`verify / ${name}`)
     }

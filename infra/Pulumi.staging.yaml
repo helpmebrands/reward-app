@@ -7,6 +7,8 @@ config:
   github:owner: helpmebrands
   reward-app:githubRepo: helpmebrands/reward-app
   reward-app:customDomain: staging.helpmereward.com
+  reward-app:pagesProject: helpmereward-staging
+  reward-app:siteBranch: develop
   reward-app:apiCustomDomain: api.staging.helpmereward.com
   reward-app:stateBucket: helpme-reward-staging-pulumi-state
   reward-app:secretsKey: projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
@@ -23,5 +25,9 @@ config:
   reward-app:appleServicesKey:
     secure: v1:kOoZbv2k4UacEYij:tW5OfD8vzG5Y84BVENG5Rem9mos8MaUiP9/1hFMLrRfzC9D72UsNFTdqpeNvVgVw6C1WPx7ZiHOrAu3yRGpWAPNrdfl8VfLs15YmFsaEp6Ix3JtXNK/LUL3qVk/hGWo/ND2RC8O49vrCeMRLrXRu7IoZPMNoxQBHxLnghSAM1ZQ+x2i5SrZu6jwBJqjBjAaFBz/ebJdJwPWv2o3Hi/mHNnGGbt17IgSxP8XnQVID8l7AvlBj43xlgIWRmBPdWVrBF38gsh4LPBmqsMaMgMhGeh3orgh3pHWd94FAzdATWop15XGhGOORO1zsgCRxg9Et8DYQxgUwIlPWk7YoIOmDJ1OcEkqfMkk2j+oKCgV8ZJr4
   reward-app:androidSha256Fingerprints: EF:99:92:B5:5C:6B:94:71:6E:FB:E1:4C:58:A4:E7:9A:B3:4A:42:AE:E1:B6:D3:14:2E:57:89:1C:2D:19:98:CE
+  cloudflare:apiToken:
+    secure: v1:L7q/hLvAR+fcYAlX:ORmjwHyDnEqpA89YsTXDown1cUVMO6HBIPpziCLGxz2wyUgOARQdF8Kl78otfV0MPo/+bOsvHauz2xODXgDxGFTPRNmH
+  reward-app:cloudflareAccountId: 031cd90fffb43577b9e720b13d00b72c
+  reward-app:cloudflareZoneId: 53f9e1ef830954a5aba6e7d12ec4083c
 secretsprovider: gcpkms://projects/helpme-reward-staging/locations/us-central1/keyRings/pulumi/cryptoKeys/staging
 encryptedkey: CiQAuVK5vIbBdYmWPlWeUwibzQo8Xj01h0bNWV+xaLUueimdwTkSSAAvEBIWtpaw7vHAOE9O6Gp/pN8m+K4ckDsjOalooRE+WoYHm9IeMZ2mJDEvnMqR8z53doPeH22wxqkhvH3He2XMt8x7e5asfg==

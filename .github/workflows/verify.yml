@@ -10,8 +10,10 @@ on:
   workflow_call:
 
 jobs:
+  # The npm workspaces are the two Pulumi programs; `npm test` also runs the
+  # repository config suites in infra/tests.
   verify:
-    name: Lint, typecheck, test, build
+    name: Typecheck and test
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -28,66 +30,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint and format check
-        run: npm run lint
-
       - name: Typecheck
         run: npm run typecheck
 
       - name: Test
         run: npm test
-
-      # `npm run build` typechecks again on its way through, but running it
-      # here also proves the production bundle and the PWA manifest generate.
-      - name: Build
-        run: npm run build
-
-      - name: Upload build output
-        uses: actions/upload-artifact@v7
-        with:
-          name: dist-${{ github.sha }}
-          path: apps/pwa/dist/
-          retention-days: 7
-
-  # Accessibility, against the real build. axe in jsdom (part of `npm test`)
-  # sees the DOM but no layout; this sees layout and colour, at four widths
-  # in both themes. It runs on the bundle the verify job just produced.
-  a11y:
-    name: Accessibility gate
-    runs-on: ubuntu-latest
-    needs: verify
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Download build output
-        uses: actions/download-artifact@v8
-        with:
-          name: dist-${{ github.sha }}
-          path: apps/pwa/dist/
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run axe at 320, 402, 768 and 1280px in both themes
-        run: npm run test:e2e
-
-      - name: Upload Playwright report
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-${{ github.sha }}
-          path: apps/pwa/playwright-report/
-          retention-days: 7
 
   # The Pulumi program is its own npm workspace with its own compiler settings.
   # A type error there is otherwise found by whoever next runs `pulumi up` by
@@ -305,64 +252,3 @@ jobs:
             *) echo "unexpected body"; exit 1 ;;
           esac
           docker rm -f reward-api-test
-
-  container:
-    name: Container builds
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: docker/setup-buildx-action@v4
-
-      # Build only — nothing is pushed from a pull request. This exists so a
-      # broken Dockerfile or nginx config fails review rather than the deploy.
-      - name: Build image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: apps/pwa/Dockerfile
-          push: false
-          load: true
-          tags: reward-app:pr-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Starts the real container and checks the things that are easy to break
-      # and silent in production: the SPA fallback, and the no-store header on
-      # the service worker that lets clients notice a new build at all.
-      - name: Smoke test the container
-        run: |
-          set -euo pipefail
-          docker run -d --name reward-app-test -p 8080:8080 reward-app:pr-${{ github.sha }}
-
-          for i in $(seq 1 30); do
-            if curl -fsS -o /dev/null http://localhost:8080/; then break; fi
-            if [ "$i" = "30" ]; then
-              echo "container never became ready"; docker logs reward-app-test; exit 1
-            fi
-            sleep 1
-          done
-
-          echo "--- index responds"
-          curl -fsS -o /dev/null -w '  / -> %{http_code}\n' http://localhost:8080/
-
-          echo "--- client-side route falls back to the shell"
-          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/credits)
-          [ "$code" = "200" ] || { echo "  /credits -> $code, expected 200"; exit 1; }
-          echo "  /credits -> 200"
-
-          echo "--- a missing asset 404s instead of returning HTML"
-          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/assets/nope.js)
-          [ "$code" = "404" ] || { echo "  /assets/nope.js -> $code, expected 404"; exit 1; }
-          echo "  /assets/nope.js -> 404"
-
-          echo "--- the service worker is not cacheable"
-          cc=$(curl -sS -D - -o /dev/null http://localhost:8080/sw.js | tr -d '\r' | grep -i '^cache-control:' || true)
-          case "$cc" in
-            *no-store*) echo "  sw.js -> $cc" ;;
-            *) echo "  sw.js cache-control was '$cc', expected no-store"; exit 1 ;;
-          esac
-
-          docker rm -f reward-app-test

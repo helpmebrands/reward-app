@@ -7,9 +7,7 @@ import 'package:test/test.dart';
 void main() {
   // @lat: [[tests#Snapshot JSON#The sample household round-trips unchanged]]
   test('the sample household round-trips through the codec unchanged', () {
-    final raw = File(
-      '../../apps/pwa/samples/sample-household.json',
-    ).readAsStringSync();
+    final raw = File('test/fixtures/sample-household.json').readAsStringSync();
     final json = jsonDecode(raw) as Map<String, dynamic>;
     final data = appDataFromJson(json);
     expect(data.cards, hasLength(2));
@@ -77,9 +75,7 @@ void main() {
 
   // @lat: [[tests#Snapshot JSON#The sample household rolls its Global Entry credits]]
   test('the sample household carries Global Entry as a rolling credit', () {
-    final raw = File(
-      '../../apps/pwa/samples/sample-household.json',
-    ).readAsStringSync();
+    final raw = File('test/fixtures/sample-household.json').readAsStringSync();
     final data = appDataFromJson(jsonDecode(raw) as Map<String, dynamic>);
     final globalEntry = data.benefits
         .where((b) => b.name.startsWith('Global Entry'))

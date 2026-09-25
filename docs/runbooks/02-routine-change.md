@@ -5,9 +5,10 @@ Google Cloud access.
 
 ## The loop
 
-The repository is a monorepo: `apps/pwa` (the frozen reference PWA, an npm
-workspace), `packages/domain` and `services/api` (Dart, a pub workspace) and
-`apps/mobile` (Flutter). Run the checks for the part you touched; CI runs them
+The repository is a monorepo: `packages/domain` and `services/api` (Dart, a
+pub workspace), `apps/mobile` (Flutter), `apps/site` (the static site, plain
+HTML and CSS) and `infra` and `infra-repo` (the Pulumi programs, the npm
+workspaces). Run the checks for the part you touched; CI runs them
 all.
 
 ```sh
@@ -28,9 +29,8 @@ The api's integration tests need a database and skip themselves without
 `DATABASE_URL`; `services/api/docker-compose.yml` starts the same `postgres:16`
 the CI job runs as a service container.
 
-CI runs on the pull request: for the PWA lint, typecheck, tests, production
-build, an accessibility pass and a container build that starts the image and
-checks the routes; for the Dart packages analysis and tests, the api's against
+CI runs on the pull request: for the npm workspaces a typecheck and the
+tests, including the repository config suites; for the Dart packages analysis and tests, the api's against
 a Postgres container; for the Flutter app analysis and tests; for `infra/` a
 typecheck and a `pulumi preview` against staging, so the review can read the
 exact infrastructure diff. Merge when it is green and reviewed.
@@ -46,7 +46,7 @@ Watch it:
 $ gh run watch
 ```
 
-About three minutes later the new PWA revision is live; the api takes a little
+About three minutes later the site's new files are live on Pages; the api takes a little
 longer because its migration job runs first. The run summary carries the
 commit, the image digest, and the URL.
 
@@ -55,9 +55,9 @@ commit, the image digest, and the URL.
 | Trigger | Runs | Deploys |
 | --- | --- | --- |
 | Pull request → `develop` | Verify (all of it, including `pulumi preview`) | No |
-| Merge → `develop` touching `apps/pwa`, `infra`, the npm manifests or anything not listed below | Verify, then `cd.yml` | The PWA |
+| Merge → `develop` touching `apps/site`, `infra`, the npm manifests or anything not listed below | Verify, then `cd.yml` | The site |
 | Merge → `develop` touching `services/api`, `packages/domain`, `pubspec.yaml`, `pubspec.lock` or the api workflows | Verify, then `cd-api.yml` | The api |
-| `gh workflow run cd.yml --ref develop` | Verify, then build and deploy | The PWA |
+| `gh workflow run cd.yml --ref develop` | Verify, then upload to Pages | The site |
 | `gh workflow run cd-api.yml --ref develop` | Verify, then build, migrate and deploy | The api |
 
 A merge that touches both deploys both. `cd.yml` ignores `services/api`,
@@ -86,36 +86,23 @@ in order, in its own transaction.
 
 ## Changing anything users are told
 
-HelpMe Reward's job is to notify people about money with a deadline. Two classes
-of change deserve more care than their diff suggests:
+HelpMe Reward's job is to notify people about money with a deadline. One class
+of change deserves more care than its diff suggests:
 
-**The reminder ladder** (`packages/domain/lib/src/ladder.dart`, mirrored by the
-frozen PWA's `apps/pwa/src/domain/ladder.ts`) decides when someone is warned.
+**The reminder ladder** (`packages/domain/lib/src/ladder.dart`) decides when
+someone is warned.
 A change here alters behaviour for every existing user at once, and the failure
 mode is silent: nobody reports a notification that did not arrive. The domain
 tests cover the schedule arithmetic — if you change the rungs, change the test
 spec in `lat.md/product/tests.md` and its test in the same commit and make sure
 it fails first.
 
-**The service worker** (`apps/pwa/src/sw.ts`) is what delivers them for the
-PWA. A broken worker leaves users on the previous one until they reload with
-the app closed. After any change here, verify on the deployed URL rather than
-trusting CI:
-
-```sh
-$ URL=<your run.app url>
-$ curl -sSI "$URL/sw.js" | grep -i cache-control   # no-store, or clients pin to the old build
-```
-
-Then load the app, open DevTools → Application → Service Workers, and confirm
-the new worker activates rather than sitting in *waiting*.
-
 ## Dependency updates
 
 ```sh
 $ npm outdated
 $ npm update            # within existing ranges
-$ npm test && npm run build
+$ npm test
 
 $ fvm dart pub outdated
 $ fvm dart pub upgrade  # within existing ranges, whole workspace
@@ -127,17 +114,13 @@ The root `Makefile` runs the verify workflow's jobs locally, in CI's order, and 
 
 | CI job | `make verify` row | Local command |
 | --- | --- | --- |
-| Lint, typecheck, test, build | `pwa` | `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`; the root scripts cover infra and infra-repo too |
-| Infra typechecks and previews | `pwa` for the typechecks | the previews need cloud credentials and stay in CI |
+| Typecheck and test | `node` | `npm run typecheck`, `npm test`: infra, infra-repo and the repository config suites in `infra/tests` |
+| Infra typechecks and previews | `node` for the typechecks | the previews need cloud credentials and stay in CI |
 | Dart analyze and test | `dart` | `fvm dart analyze --fatal-infos`, `fvm dart test` in `packages/domain` |
 | Flutter analyze and test | `flutter` | `make check` in `apps/mobile` |
-| Api analyze, test and container | `api` | `fvm dart test` in `services/api` against `docker compose`, or with the integration group skipped when docker is down |
-| Accessibility gate | `verify-full` only | `npm run test:e2e` |
-| Container builds | `verify-full` only | `docker build` of both Dockerfiles |
+| Api analyze, test and container | `api`; the image in `verify-full` | `fvm dart test` in `services/api` against `docker compose`, or with the integration group skipped when docker is down |
 
-Majors go in their own pull request so a revert is one click. The PWA is frozen
-as a reference and its stack is pinned deliberately — see the Solid note in
-`apps/pwa/README.md`. For Dart and Flutter, AGENTS.md rule 9 applies: only
+Majors go in their own pull request so a revert is one click. For Dart and Flutter, AGENTS.md rule 9 applies: only
 Flutter Favourite packages may be added without a human's approval, and the
 minimum Flutter version is 3.35.
 
@@ -145,10 +128,7 @@ minimum Flutter version is 3.35.
 
 Remember which side of the build it lands on:
 
-- **`VITE_*`** is inlined at **build** time. It must be a variable on the
-  `staging` environment (runbook 01 §5) and a `build-args` entry in `cd.yml`. Setting it on the `reward-app` Cloud
-  Run service has no effect whatsoever — the string is already baked into the
-  JavaScript.
+- **The site has none.** It is static files on Cloudflare Pages.
 - **The api reads its environment at runtime.** `PORT` comes from Cloud Run
   and `DATABASE_URL` from Secret Manager, both declared on the service in
   `infra/index.ts`. A new variable is an infrastructure change

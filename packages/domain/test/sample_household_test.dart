@@ -4,17 +4,13 @@ import 'dart:io';
 import 'package:domain/domain.dart';
 import 'package:test/test.dart';
 
-/// The sample household is the PWA's `samples/sample-household.json`, read
-/// straight from the frozen app so the two implementations are held to the
-/// same data. The expected ids come from the TypeScript `buildSchedule` run
-/// on 16 September 2026 at 08:00 local by `apps/pwa/scripts/schedule-ids.ts`.
+/// The sample household is `test/fixtures/sample-household.json`, generated
+/// by the retired PWA (#174). The expected ids are what its TypeScript
+/// `buildSchedule` produced on 16 September 2026 at 08:00 local, pinned so
+/// the Dart schedule cannot drift from the reference it was ported against.
 AppData loadSampleHousehold() {
   final json =
-      jsonDecode(
-            File(
-              '../../apps/pwa/samples/sample-household.json',
-            ).readAsStringSync(),
-          )
+      jsonDecode(File('test/fixtures/sample-household.json').readAsStringSync())
           as Map<String, dynamic>;
   return appDataFromJson(json);
 }

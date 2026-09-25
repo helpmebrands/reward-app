@@ -1,18 +1,20 @@
 /**
  * HelpMe Reward infrastructure.
  *
- * Everything the app needs to be built by GitHub and served by Cloud Run:
- * an image registry, the service itself, and a keyless trust path from this
- * repository into the project.
+ * Everything the service tier needs to be built by GitHub and served by Cloud
+ * Run (an image registry, the api, its database and jobs, and a keyless trust
+ * path from this repository into the project), plus the static site's
+ * Cloudflare Pages project and domain.
  *
  * The division of ownership is the thing to understand before changing
- * anything here. **Pulumi owns the shape of the service; CI owns which image is
+ * anything here. **Pulumi owns the shape of a service; CI owns which image is
  * running.** Every deploy points Cloud Run at a new digest, and if Pulumi also
  * managed the image it would revert to whatever the last `pulumi up` saw — so
  * the image field is explicitly ignored (see `ignoreChanges` below). Without
  * that, an infrastructure change quietly rolls production back.
  */
 
+import * as cloudflare from '@pulumi/cloudflare'
 import * as gcp from '@pulumi/gcp'
 import * as github from '@pulumi/github'
 import * as pulumi from '@pulumi/pulumi'
@@ -26,7 +28,18 @@ const region = gcpConfig.get('region') ?? 'us-central1'
 const serviceName = config.get('serviceName') ?? 'reward-app'
 const minInstances = config.getNumber('minInstances') ?? 0
 const maxInstances = config.getNumber('maxInstances') ?? 4
+/** The site's domain on Cloudflare Pages: staging.helpmereward.com on
+ * staging, the apex on prod (runbook 09). */
 const customDomain = config.get('customDomain') ?? ''
+/** The Cloudflare account and the helpmereward.com zone, set by hand per
+ * runbook 09. Until both are, the site's resources are left out, so a stack
+ * without Cloudflare access still previews. */
+const cloudflareAccountId = config.get('cloudflareAccountId') ?? ''
+const cloudflareZoneId = config.get('cloudflareZoneId') ?? ''
+/** One Pages project per stack, whose production branch is the git branch
+ * that deploys to it. */
+const pagesProjectName = config.get('pagesProject') ?? ''
+const siteBranch = config.get('siteBranch') ?? 'develop'
 /** The api's own domain, which invite links point at: iOS and Android only
  * hand a link to the app when the domain serves their association files. */
 const apiCustomDomain = config.get('apiCustomDomain') ?? ''
@@ -141,31 +154,7 @@ const repository = new gcp.artifactregistry.Repository(
 )
 
 // ---------------------------------------------------------------------------
-// Runtime identity
-// ---------------------------------------------------------------------------
-
-/**
- * The identity the container runs as.
- *
- * It is granted nothing. HelpMe Reward serves static files and holds all user
- * data in the browser, so the container has no reason to reach any Google API —
- * and running as the default compute service account (which is broadly
- * privileged) would hand an attacker who achieved RCE a project-wide identity
- * for no benefit.
- */
-const runtimeAccount = new gcp.serviceaccount.Account(
-  'runtime',
-  {
-    project,
-    accountId: `${serviceName}-run-${environment}`.slice(0, 30),
-    displayName: `HelpMe Reward runtime (${environment})`,
-    description: 'Runs the HelpMe Reward container. Intentionally holds no roles.',
-  },
-  dependsOnApis,
-)
-
-// ---------------------------------------------------------------------------
-// The service
+// Cloud Run conventions
 // ---------------------------------------------------------------------------
 
 /**
@@ -192,76 +181,6 @@ const ciOwnedServiceFields = [
  * within minutes, and `ignoreChanges` below keeps Pulumi from putting it back.
  */
 const BOOTSTRAP_IMAGE = 'us-docker.pkg.dev/cloudrun/container/hello'
-
-const service = new gcp.cloudrunv2.Service(
-  'app',
-  {
-    project,
-    location: region,
-    name: serviceName,
-    description: `HelpMe Reward (${environment})`,
-    labels: tags,
-    ingress: 'INGRESS_TRAFFIC_ALL',
-    // The app is a public website, so anyone may invoke it. This is the one
-    // genuinely public setting in the stack and is worth seeing explicitly.
-    // It is a service setting rather than an `allUsers` invoker binding
-    // because the organisation enforces domain-restricted sharing, which
-    // rejects `allUsers` in any IAM policy; skipping the invoker check for
-    // this one service is narrower than carving a policy exception for the
-    // whole project.
-    invokerIamDisabled: true,
-    // Guards against `pulumi destroy` taking production with it. Flip to false
-    // deliberately when you actually mean to remove the service.
-    deletionProtection: environment === 'prod',
-    template: {
-      serviceAccount: runtimeAccount.email,
-      // Serving static files is cheap; the ceiling exists to bound spend if the
-      // service is ever crawled hard.
-      scaling: { minInstanceCount: minInstances, maxInstanceCount: maxInstances },
-      // nginx handles many connections per instance happily, so a high
-      // concurrency keeps the instance count (and the bill) near zero.
-      maxInstanceRequestConcurrency: 80,
-      timeout: '30s',
-      containers: [
-        {
-          image: BOOTSTRAP_IMAGE,
-          // Cloud Run injects PORT to match; the nginx template reads it.
-          ports: { name: 'http1', containerPort: 8080 },
-          resources: {
-            limits: { cpu: '1', memory: '512Mi' },
-            // Billing only while a request is in flight, which for a static
-            // site is almost never.
-            cpuIdle: true,
-            startupCpuBoost: true,
-          },
-          startupProbe: {
-            // The container is nginx serving files from its own filesystem, so
-            // it is ready almost immediately; failing fast surfaces a broken
-            // image as a failed deploy rather than a hung one.
-            tcpSocket: { port: 8080 },
-            initialDelaySeconds: 0,
-            periodSeconds: 3,
-            failureThreshold: 10,
-            timeoutSeconds: 3,
-          },
-        },
-      ],
-    },
-  },
-  {
-    ...dependsOnApis,
-    // CI owns the image. See the note at the top of this file — without this,
-    // `pulumi up` would roll the service back to whichever digest the last
-    // `up` recorded, turning an unrelated infrastructure change into a silent
-    // deployment of old code.
-    // The API also reports back a service-level `scaling` block this program
-    // never sets (instance scaling lives in the template); without ignoring
-    // it, every preview proposes removing it. The deploy action also stamps
-    // `managed-by` and `commit-sha` labels and names the revision; those are
-    // CI's too, or every refreshed `up` rolls a new revision to strip them.
-    ignoreChanges: ciOwnedServiceFields,
-  },
-)
 
 // ---------------------------------------------------------------------------
 // The database
@@ -349,8 +268,8 @@ new gcp.secretmanager.SecretVersion('database-url-version', {
 })
 
 /**
- * The identity the api container runs as. Unlike the PWA's runtime account it
- * needs exactly two things: to open the Cloud SQL connector (`cloudsql.client`
+ * The identity the api container runs as, so it never runs as the broadly
+ * privileged default compute account. It needs exactly two things: to open the Cloud SQL connector (`cloudsql.client`
  * is only grantable project-wide) and to read the one secret above.
  */
 const apiRuntimeAccount = new gcp.serviceaccount.Account(
@@ -413,9 +332,10 @@ const databaseUrlEnv = {
 }
 
 /**
- * The api. Same ownership rule as the PWA service: Pulumi owns the shape, CI
- * owns the image, so the image is ignored after the bootstrap. Public like
- * the PWA (the apps call it directly; the api does its own authorization), running
+ * The api. Pulumi owns the shape, CI owns the image, so the image is ignored
+ * after the bootstrap. Public through `invokerIamDisabled` rather than an
+ * `allUsers` binding, which the organisation's domain-restricted sharing
+ * rejects (the apps call it directly; the api does its own authorization), running
  * as the api identity with the Cloud SQL connector mounted and the whole
  * connection URL injected from Secret Manager. Depends on the secret binding
  * because Cloud Run checks at revision creation that the identity can read
@@ -681,32 +601,12 @@ new gcp.artifactregistry.RepositoryIamMember('deployer-can-push', {
   member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
 })
 
-/**
- * Deploy revisions of this one service. `run.developer` scoped to the service
- * rather than `run.admin` on the project, so a compromised workflow cannot
- * create new services or touch anything else in Cloud Run.
- */
-new gcp.cloudrunv2.ServiceIamMember('deployer-can-deploy', {
-  project,
-  location: service.location,
-  name: service.name,
-  role: 'roles/run.developer',
-  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
-})
-
-/**
- * Deploying a service that runs *as* another identity requires permission to
- * act as it. Easy to miss, and it fails at deploy time with a message that
- * does not obviously say so.
- */
-new gcp.serviceaccount.IAMMember('deployer-can-act-as-runtime', {
-  serviceAccountId: runtimeAccount.name,
-  role: 'roles/iam.serviceAccountUser',
-  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
-})
-
-/** The same three grants for the api: deploy its service, run its job, act
- * as its identity. Still `run.developer` per resource, never project-wide. */
+/** Three grants for the api: deploy its service, run its job, act as its
+ * identity. `run.developer` per resource rather than `run.admin` on the
+ * project, so a compromised workflow cannot create services or touch anything
+ * else in Cloud Run. Deploying a service that runs *as* another identity
+ * requires acting as it, which fails at deploy time with a message that does
+ * not obviously say so. */
 new gcp.cloudrunv2.ServiceIamMember('deployer-can-deploy-api', {
   project,
   location: apiService.location,
@@ -798,8 +698,9 @@ new gcp.serviceaccount.IAMMember('play-impersonation', {
   member: pulumi.interpolate`principalSet://iam.googleapis.com/${pool.name}/attribute.repository/${githubRepo}`,
 })
 
-/** One container per piece of signing material; the workflow reads them by
- * these names through the ids written onto the GitHub environment below. */
+/** One container per piece of signing material, plus the Cloudflare token
+ * cd.yml deploys the site with; the workflows read them by these names
+ * through the ids written onto the GitHub environment below. */
 const signingSecrets = [
   'asc-api-key',
   'asc-api-key-id',
@@ -810,6 +711,7 @@ const signingSecrets = [
   'android-upload-keystore',
   'android-keystore-password',
   'android-key-password',
+  'cloudflare-api-token',
 ] as const
 
 const signingSecretIds: Record<string, pulumi.Output<string>> = {}
@@ -926,32 +828,51 @@ if (appleServicesId) {
 }
 
 // ---------------------------------------------------------------------------
-// Optional custom domain
+// The site: Cloudflare Pages
 // ---------------------------------------------------------------------------
 
 /**
- * Domain mapping is only created when a domain is configured, because it fails
- * unless the domain has already been verified in Search Console — a manual,
- * human step that cannot be automated from here. Runbook 03 covers it.
+ * The static site in `apps/site` is served by Cloudflare Pages, whose DNS
+ * already holds the zone. One project per stack, its production branch the
+ * git branch that deploys to it (`develop` for staging, `main` for prod), so
+ * each project's production deployment is the environment and its custom
+ * domain needs no branch alias. Direct upload: cd.yml pushes the files with
+ * wrangler and Pages builds nothing. The CNAME is proxied, which Pages needs
+ * to issue the certificate and serve the apex.
  */
-const domainMapping = customDomain
-  ? new gcp.cloudrun.DomainMapping(
-      'domain',
-      {
-        project,
-        location: region,
-        name: customDomain,
-        metadata: { namespace: project, labels: tags },
-        spec: { routeName: service.name },
-      },
-      dependsOnApis,
-    )
-  : undefined
+const site =
+  cloudflareAccountId && cloudflareZoneId && pagesProjectName && customDomain
+    ? (() => {
+        const pagesProject = new cloudflare.PagesProject('site', {
+          accountId: cloudflareAccountId,
+          name: pagesProjectName,
+          productionBranch: siteBranch,
+        })
+        new cloudflare.PagesDomain('site-domain', {
+          accountId: cloudflareAccountId,
+          projectName: pagesProject.name,
+          name: customDomain,
+        })
+        new cloudflare.DnsRecord(
+          'site-cname',
+          {
+            zoneId: cloudflareZoneId,
+            name: customDomain,
+            type: 'CNAME',
+            content: pagesProject.subdomain,
+            proxied: true,
+            ttl: 1,
+            comment: `HelpMe Reward site (${environment}), managed by Pulumi`,
+          },
+        )
+        return pagesProject
+      })()
+    : undefined
 
 /**
- * The api's domain, for invite links. Same prerequisite as the app's: the
- * parent domain verified in Search Console and a CNAME to
- * ghs.googlehosted.com (runbook 03).
+ * The api's domain, for invite links. Created only when configured, because
+ * it fails unless the parent domain is verified in Search Console, a human
+ * step, and it needs a CNAME to ghs.googlehosted.com (runbook 03).
  */
 const apiDomainMapping = apiCustomDomain
   ? new gcp.cloudrun.DomainMapping(
@@ -1005,7 +926,6 @@ const environmentVariables: Record<string, pulumi.Input<string>> = {
   GCP_PROJECT_ID: project,
   GCP_REGION: region,
   ARTIFACT_REPO: repository.repositoryId,
-  CLOUD_RUN_SERVICE: service.name,
   WIF_PROVIDER: provider.name,
   DEPLOY_SERVICE_ACCOUNT: deployAccount.email,
   API_CLOUD_RUN_SERVICE: apiService.name,
@@ -1013,6 +933,13 @@ const environmentVariables: Record<string, pulumi.Input<string>> = {
   API_REMIND_JOB: remindJob.name,
   PLAY_SERVICE_ACCOUNT: playAccount.email,
   ...signingSecretIds,
+  ...(site
+    ? {
+        CLOUDFLARE_ACCOUNT_ID: cloudflareAccountId,
+        PAGES_PROJECT: site.name,
+        SITE_URL: `https://${customDomain}`,
+      }
+    : {}),
 }
 
 for (const [variableName, value] of Object.entries(environmentVariables)) {
@@ -1069,25 +996,17 @@ new gcp.billing.Budget(
 // ---------------------------------------------------------------------------
 // Outputs
 // ---------------------------------------------------------------------------
-//
-// The first four are exactly the values GitHub needs as repository variables;
-// runbook 01 copies them across.
 
-export const serviceUrl = service.uri
 export const imageRepository = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${repository.repositoryId}`
-export const imageName = pulumi.interpolate`${region}-docker.pkg.dev/${project}/${repository.repositoryId}/${serviceName}`
 
 /** `WIF_PROVIDER` in GitHub. */
 export const workloadIdentityProvider = provider.name
 /** `DEPLOY_SERVICE_ACCOUNT` in GitHub. */
 export const deployServiceAccount = deployAccount.email
-/** `CLOUD_RUN_SERVICE` / `ARTIFACT_REPO` / `GCP_REGION` in GitHub. */
-export const cloudRunService = service.name
+/** `ARTIFACT_REPO` / `GCP_REGION` in GitHub. */
 export const artifactRepository = repository.repositoryId
 export const gcpRegion = region
 export const gcpProject = project
-
-export const runtimeServiceAccount = runtimeAccount.email
 
 /** `API_CLOUD_RUN_SERVICE` / `API_MIGRATION_JOB` in GitHub, for cd-api.yml. */
 export const apiCloudRunService = apiService.name
@@ -1121,6 +1040,6 @@ export const firebaseIosUrlScheme = firebaseIos.appId.apply(
 export const apiCustomDomainStatus = apiDomainMapping
   ? apiDomainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')
-export const customDomainStatus = domainMapping
-  ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
-  : pulumi.output('not configured')
+/** The site's Pages project and its pages.dev subdomain (runbook 09). */
+export const pagesProject = site ? site.name : pulumi.output('not configured')
+export const pagesSubdomain = site ? site.subdomain : pulumi.output('not configured')

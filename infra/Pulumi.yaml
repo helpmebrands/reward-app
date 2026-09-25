@@ -3,7 +3,7 @@ runtime:
   name: nodejs
   options:
     typescript: true
-description: Infrastructure for HelpMe Reward — Artifact Registry, Cloud Run, and keyless GitHub deploys.
+description: Infrastructure for HelpMe Reward — the api on Cloud Run, the site on Cloudflare Pages, and keyless GitHub deploys.
 
 # Only this project's own namespace is declared here. Provider settings
 # (gcp:project, gcp:region) are not — Pulumi requires a concrete `value` for a
@@ -14,7 +14,7 @@ config:
     description: The repository allowed to deploy, as "owner/name". Pins the trust boundary.
   serviceName:
     type: string
-    description: Cloud Run service name.
+    description: Prefixes the registry, the deploy and Play identities and the secrets. Named after the retired site service; renaming it recreates them.
     default: reward-app
   minInstances:
     type: integer
@@ -26,8 +26,24 @@ config:
     default: 4
   customDomain:
     type: string
-    description: Optional custom domain. Requires prior domain verification — see runbook 03.
+    description: The site's domain on Cloudflare Pages, e.g. staging.helpmereward.com; the apex on prod (runbook 09).
     default: ""
+  cloudflareAccountId:
+    type: string
+    description: The Cloudflare account holding the Pages project (runbook 09). Blank leaves the site out.
+    default: ""
+  cloudflareZoneId:
+    type: string
+    description: The Cloudflare zone id of helpmereward.com, where the site's CNAME goes (runbook 09).
+    default: ""
+  pagesProject:
+    type: string
+    description: The Cloudflare Pages project name for this stack, e.g. helpmereward-staging.
+    default: ""
+  siteBranch:
+    type: string
+    description: The git branch that deploys to this stack's Pages project, its production branch.
+    default: develop
   apiServiceName:
     type: string
     description: Cloud Run service name for the api; also prefixes its runtime identity and secret.

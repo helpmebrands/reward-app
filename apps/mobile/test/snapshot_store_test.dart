@@ -8,7 +8,11 @@ import 'package:reward/logic/app_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

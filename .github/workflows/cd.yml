@@ -1,29 +1,29 @@
-# Deploys `develop` to Cloud Run.
+# Deploys the static site in apps/site to Cloudflare Pages: `develop` to the
+# staging project (staging.helpmereward.com), `main` to the prod stack
+# (helpmereward.com). Runbook 09 sets Cloudflare up.
 #
-# Authentication is Workload Identity Federation, so there is no service-account
-# JSON key anywhere: GitHub mints a short-lived OIDC token, Google exchanges it
-# for an access token, and the trust is pinned to this repository. A leaked
-# long-lived key is the usual way a pipeline like this becomes an incident.
+# The Cloudflare API token lives in Secret Manager, not in GitHub: the job
+# authenticates to Google with Workload Identity Federation, which mints a
+# short-lived token pinned to this repository, and reads the secret with it.
+# No workflow here references a GitHub secret.
 name: CD
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
     # The api deploys through cd-api.yml; a merge confined to it, the shared
-    # domain package or the Flutter app does not redeploy the PWA.
+    # domain package or the Flutter app does not redeploy the site.
     paths-ignore:
       - 'services/api/**'
       - 'packages/domain/**'
       - 'apps/mobile/**'
       - '.github/workflows/cd-api.yml'
-  # Redeploying the current develop without an empty commit — for recovering a
-  # failed run, or re-rolling after an infrastructure change.
+  # Redeploying the current branch without an empty commit.
   workflow_dispatch:
 
-# One deploy at a time, and never cancel one in flight: interrupting a Cloud Run
-# rollout leaves traffic split between revisions.
+# One deploy per branch at a time, never cancelled in flight.
 concurrency:
-  group: deploy-develop
+  group: deploy-site-${{ github.ref_name }}
   cancel-in-progress: false
 
 permissions:
@@ -37,13 +37,14 @@ jobs:
     uses: ./.github/workflows/verify.yml
 
   deploy:
-    name: Build, push, deploy
+    name: Deploy to Cloudflare Pages
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
+    # Each stack writes its variables onto the environment named after it.
     environment:
-      name: staging
-      url: ${{ steps.deploy.outputs.url }}
+      name: ${{ github.ref_name == 'main' && 'prod' || 'staging' }}
+      url: ${{ vars.SITE_URL }}
 
     steps:
       - uses: actions/checkout@v7
@@ -57,66 +58,50 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v3
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-
-      - uses: docker/setup-buildx-action@v4
-
-      # Tagged with the commit SHA, never `latest`. A deploy then names an exact
-      # immutable artifact, which is what makes a rollback a one-line command
-      # rather than a rebuild.
-      - name: Build and push image
-        id: build
-        uses: docker/build-push-action@v7
+      - uses: actions/setup-node@v7
         with:
-          context: .
-          file: apps/pwa/Dockerfile
-          push: true
-          tags: |
-            ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-app:${{ github.sha }}
-          build-args: |
-            VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
-            VITE_PUSH_API=${{ vars.VITE_PUSH_API }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          node-version: 22
 
-      # Deploy by digest rather than by tag. A tag can be moved; a digest is the
-      # bytes that were tested a step ago. The run number in the revision name
-      # lets a manual dispatch redeploy a commit that is already live.
-      - name: Deploy to Cloud Run
-        id: deploy
-        uses: google-github-actions/deploy-cloudrun@v3
-        with:
-          service: ${{ vars.CLOUD_RUN_SERVICE }}
-          region: ${{ vars.GCP_REGION }}
-          image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-app@${{ steps.build.outputs.digest }}
-          flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}
+      # Masked before it is exported, so a failing step cannot print it.
+      - name: Read the Cloudflare token from Secret Manager
+        run: |
+          set -euo pipefail
+          token=$(gcloud secrets versions access latest --secret "${{ vars.SECRET_CLOUDFLARE_API_TOKEN }}" --project "${{ vars.GCP_PROJECT_ID }}")
+          echo "::add-mask::$token"
+          echo "CLOUDFLARE_API_TOKEN=$token" >> "$GITHUB_ENV"
 
-      # The deploy reporting success only means Cloud Run accepted the revision.
-      # These are the assertions that say the app is actually being served.
-      - name: Smoke test the deployed revision
+      # The branch is the project's production branch (runbook 09), so this
+      # is a production deployment of the stack's own project. Pinned, so a
+      # wrangler release cannot change what a deploy does.
+      - name: Deploy
         env:
-          URL: ${{ steps.deploy.outputs.url }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          PAGES_PROJECT: ${{ vars.PAGES_PROJECT }}
+        run: >-
+          npx --yes wrangler@4.140.0 pages deploy apps/site/public --project-name "$PAGES_PROJECT" --branch "${{ github.ref_name }}" --commit-hash "${{ github.sha }}" --commit-dirty=true
+
+      # A finished upload only means Pages accepted the files. These say the
+      # custom domain serves them, and that 404.html stops the single-page
+      # fallback from answering every missing path with the home page.
+      - name: Smoke test the site
+        env:
+          URL: ${{ vars.SITE_URL }}
         run: |
           set -euo pipefail
           echo "Serving at $URL"
 
-          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/")
-          [ "$code" = "200" ] || { echo "index -> $code"; exit 1; }
+          ok=""
+          for i in $(seq 1 12); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/" || true)
+            if [ "$code" = "200" ]; then ok=1; break; fi
+            sleep 5
+          done
+          [ -n "$ok" ] || { echo "index -> $code"; exit 1; }
           echo "  / -> 200"
 
-          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/credits")
-          [ "$code" = "200" ] || { echo "client route -> $code"; exit 1; }
-          echo "  /credits -> 200"
-
-          # If this regresses, clients silently keep an old service worker and
-          # an old reminder schedule — the failure this pipeline most needs to
-          # catch, because nothing else would surface it.
-          cc=$(curl -sS -D - -o /dev/null "$URL/sw.js" | tr -d '\r' | grep -i '^cache-control:' || true)
-          case "$cc" in
-            *no-store*) echo "  sw.js -> $cc" ;;
-            *) echo "  sw.js cache-control was '$cc', expected no-store"; exit 1 ;;
-          esac
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/nope")
+          [ "$code" = "404" ] || { echo "/nope -> $code, expected 404"; exit 1; }
+          echo "  /nope -> 404"
 
       - name: Summarise
         if: always()
@@ -127,6 +112,6 @@ jobs:
             echo "| | |"
             echo "| --- | --- |"
             echo "| Commit | \`${{ github.sha }}\` |"
-            echo "| Digest | \`${{ steps.build.outputs.digest }}\` |"
-            echo "| URL | ${{ steps.deploy.outputs.url }} |"
+            echo "| Branch | \`${{ github.ref_name }}\` |"
+            echo "| URL | ${{ vars.SITE_URL }} |"
           } >> "$GITHUB_STEP_SUMMARY"

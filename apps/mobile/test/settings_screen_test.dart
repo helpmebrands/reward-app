@@ -17,7 +17,11 @@ import 'package:reward/shell/router.dart';
 /// theme override driven by the store.
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

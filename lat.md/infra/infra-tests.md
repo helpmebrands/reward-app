@@ -4,9 +4,9 @@ What the repository-level suites pin: the Pulumi configuration, the runbooks tha
 
 ## Infrastructure config
 
-`apps/pwa/tests/infra-config.test.ts` pins the committed Pulumi configuration, the runbooks that quote it and the monorepo layout ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
+`infra/tests/infra-config.test.ts` pins the committed Pulumi configuration, the runbooks that quote it and the monorepo layout ([[deployment#Infrastructure]]). Drift here is only noticed when a deploy is rejected at the auth step.
 
-Tests that import program code live beside it (`infra-repo/verify-checks.test.ts`, run by that workspace's own `vitest`), because the PWA image typechecks `apps/pwa/tests` without the Pulumi workspaces present and a cross-workspace import breaks the container build.
+It runs under the `infra` workspace's `vitest`, outside that workspace's `tsc` (which covers only the program's top-level files). Tests that import program code live beside it, as `infra-repo/verify-checks.test.ts` does. The suite quotes the names it forbids, so its file scans skip `infra/tests/`.
 
 ### Project is named reward-app
 
@@ -50,7 +50,7 @@ Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `he
 
 ### No cardvantage in infrastructure names
 
-Nothing under `infra/`, `docs/`, `.github/`, `apps/pwa/deploy/` or `apps/pwa/Dockerfile` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
+Nothing under `infra/`, `docs/`, `.github/` or `apps/site/` names `cardvantage`. Service, image, registry and service-account ids all derive from `reward-app`.
 
 ### Runbook names the real state backend
 
@@ -100,7 +100,7 @@ Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC excha
 
 ### Every verify job is a required check
 
-Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all seven current job names, so a red Dart, Flutter, api or accessibility job blocks a merge.
+Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all five current job names, so a red npm, Pulumi, Dart, Flutter or api job blocks a merge.
 
 ### Staging names the GitHub owner
 
@@ -127,10 +127,6 @@ The same program declares the `github.RepositoryEnvironment` the variables are w
 ### Verify gate covers both Pulumi projects
 
 The `infra` job installs, typechecks and previews `infra-repo` as well as `infra` (`pulumi stack select repo` from `working-directory: infra-repo`) and runs its tests, so a broken ruleset program fails review like a broken environment program ([[deployment#Pipeline]]).
-
-### PWA image knows every workspace manifest
-
-`apps/pwa/Dockerfile` copies `infra-repo/package.json` beside the other manifests before `npm ci`, because npm refuses a lockfile whose workspaces are not all present.
 
 ### Runbook 01 no longer copies outputs into GitHub by hand
 
@@ -416,7 +412,7 @@ The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isread
 
 ### Api CD workflow is path-filtered to the api and the domain
 
-`cd-api.yml` triggers on `services/api/**` and `packages/domain/**` and never mentions `apps/pwa`; `cd.yml` carries a `paths-ignore` naming `services/api/**`, so a merge to one deployable does not roll the other ([[deployment#Pipeline]]).
+`cd-api.yml` triggers on `services/api/**` and `packages/domain/**` and never mentions `apps/site`; `cd.yml` carries a `paths-ignore` naming `services/api/**`, so a merge to one deployable does not roll the other ([[deployment#Pipeline]]).
 
 ### Api CD builds, migrates, deploys and smoke-tests
 
@@ -426,7 +422,7 @@ The smoke test reads `/health` (never `/healthz`) and posts a device without a t
 
 ### CD revision names carry the run number
 
-`cd.yml` and `cd-api.yml` pass `--revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}`, so a manual dispatch of an already-deployed commit makes a new revision instead of failing `ALREADY_EXISTS`.
+`cd-api.yml` passes `--revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}`, so a manual dispatch of an already-deployed commit makes a new revision instead of failing `ALREADY_EXISTS`.
 
 ### Api image carries the migrator and the migrations
 
@@ -464,27 +460,61 @@ That account holds `run.invoker` on that job only, and `cloudscheduler.googleapi
 
 ### Root package declares the workspaces
 
-The root `package.json` lists exactly `apps/pwa` and `infra` as npm workspaces, so one lockfile covers both and `npm test`, `lint`, `typecheck` and `build` delegate from the root ([[pwa#Source layout]]).
+The root `package.json` lists exactly `infra` and `infra-repo` as npm workspaces, so one lockfile covers both, and its only scripts are `test` and `typecheck`, which delegate to them ([[deployment#Pipeline]]).
 
-### The PWA lives in apps/pwa
+### The PWA is retired
 
-`apps/pwa/package.json` is still `@helpmebrands/reward-app`, and its `Dockerfile` and `deploy/nginx.conf.template` moved with it, so the frozen reference app is self-contained under one path.
+`apps/pwa` does not exist, and no root manifest, the lockfile, the Makefile, `.dockerignore`, a workflow, the Pulumi program or the site names it, so nothing can build or deploy it again (issue #174).
 
-### Workflows build the PWA image from its Dockerfile
+### The site is plain HTML and CSS
 
-Both `verify.yml` and `cd.yml` pass `file: apps/pwa/Dockerfile` with the repository root as the build context, which is what lets the image `npm ci` against the workspace lockfile ([[deployment#Container]]).
+`apps/site/public` holds `index.html`, `styles.css`, `404.html` and `_headers`, and `apps/site` has no `package.json`, `Dockerfile` or `deploy/`: Cloudflare Pages serves the files as they are ([[deployment#Site]]).
+
+### Pages headers carry the security policy
+
+`apps/site/public/_headers` applies to `/*` the Content Security Policy with `script-src 'none'`, `nosniff`, `DENY` framing, `no-referrer` and `Cache-Control: no-cache`, the headers nginx used to send.
+
+### CD deploys the site to Cloudflare Pages
+
+`cd.yml` runs on pushes to `develop` and `main` and deploys `apps/site/public` with a pinned `wrangler pages deploy`, the branch as `--branch`.
+
+The API token is read from Secret Manager with `gcloud`, never from `secrets.*`, and nothing touches Docker or Cloud Run.
+
+### The site smoke test checks the page and a 404
+
+After the deploy, `cd.yml` requires `vars.SITE_URL` to answer 200 at `/` and 404 at `/nope`, which also proves `404.html` stops Pages' single-page fallback ([[deployment#Pipeline#Smoke tests]]).
+
+### Verify has no accessibility gate or build output
+
+`verify.yml` has no `a11y` or `container` job, uploads and downloads no artifact, and runs neither `npm run build` nor `npm run lint`: the PWA's bundle, its Playwright gate and the site's nginx image went with it.
+
+### Pulumi declares the Pages project, its domain and its record
+
+`infra/index.ts` declares a `cloudflare.PagesProject` whose production branch is `siteBranch`, a `PagesDomain` for `customDomain` and a proxied CNAME to the project's `pages.dev` subdomain.
+
+It declares no Cloud Run service or domain mapping for the site, and writes `CLOUDFLARE_ACCOUNT_ID`, `PAGES_PROJECT`, `SITE_URL` and the token's secret id onto the environment.
+
+### Staging names its Pages project and keeps the Cloudflare token secret
+
+`infra/Pulumi.yaml` declares `cloudflareAccountId`, `cloudflareZoneId`, `pagesProject` and `siteBranch`; staging sets `helpmereward-staging` and `develop`, and `cloudflare:apiToken` is never plain text.
+
+### Runbook 09 sets up Cloudflare Pages
+
+`docs/runbooks/09-cloudflare-pages.md` sets up Cloudflare for the site as numbered steps, and the README links it.
+
+It covers the two tokens and their permissions, the account and zone config, the CI token's Secret Manager version, the cut-over of `staging.helpmereward.com` and the future `main` stack for `helpmereward.com`.
 
 ### The graph is split by area
 
-`apps/pwa/tests/lat-graph.test.ts` checks that `lat.md/` holds only its index at the top level and that `product/`, `pwa/` and `infra/` each hold at least one file, so every new section has to choose an owner.
+`infra/tests/lat-graph.test.ts` checks that `lat.md/` holds only its index at the top level, that `product/`, `mobile/`, `api/` and `infra/` each hold at least one file and that `pwa/` is gone, so every new section has to choose an owner.
 
-### The index names the three areas
+### The index names the four areas
 
-`lat.md/lat.md` links each subdirectory, so a reader landing on the index finds the product spec, the frozen PWA and the platform without guessing.
+`lat.md/lat.md` links each subdirectory, so a reader landing on the index finds the product spec, the app, the service tier and the platform without guessing.
 
 ### The product spec names no PWA technology
 
-No file under `lat.md/product/` mentions Solid, IndexedDB, Vite, the service worker or Web Push, because the Dart port and the Flutter app are written against it and must not inherit a browser decision by accident.
+No file under `lat.md/product/` mentions Solid, IndexedDB, Vite, the service worker or Web Push, because the Dart domain and the Flutter app are written against it and must not inherit a browser decision by accident.
 
 ### Every workflow action declares the Node 24 runtime
 

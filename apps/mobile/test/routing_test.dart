@@ -24,7 +24,11 @@ import 'package:reward/widgets/screen_title.dart';
 /// the PWA shows for them, so the PWA's fixtures still apply.
 AppData sampleHousehold() {
   final data = appDataFromJson(
-    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+    jsonDecode(
+          File(
+            '../../packages/domain/test/fixtures/sample-household.json',
+          ).readAsStringSync(),
+        )
         as Map<String, dynamic>,
   );
   const labels = {

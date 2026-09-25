@@ -1,13 +1,13 @@
 # Mobile
 
-The Flutter app in `apps/mobile`: the product in [[overview]] rebuilt on [[domain|the shared domain]] for iOS and Android, replacing the frozen [[pwa]] once it reaches parity.
+The Flutter app in `apps/mobile`: the product in [[overview]] rebuilt on [[domain|the shared domain]] for iOS and Android. It replaced the PWA, retired in issue #174 once it reached parity.
 
 - [[mobile-architecture]] — The UI, logic and data layers, the Nocturne theme and the workspace wiring.
 - [[mobile-tests]] — What the Flutter suites guard: the theme, the store, the Today, Credits, Cards, Value, Add a card, editor, Settings and not-found screens, the routing polish, the Field pattern, the credit sheet, the swipe row, the undo snackbar and push.
 
 ## Parity checklist
 
-Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], with the Flutter counterpart that covers it and the test that pins it; the input to the PWA retirement issue. One exclusion decided on epic #148 remains, with its follow-on.
+Every feature of the PWA, from [[design#Screens]], with the Flutter counterpart that covers it and the test that pins it; the input to the PWA's retirement in issue #174, where every row was ticked or closed.
 
 | PWA feature | Flutter counterpart | Pinned by |
 | --- | --- | --- |
@@ -32,8 +32,8 @@ Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], wi
 | Titles and focus, the not-found route, the notification message | `ScreenTitle`, `NotFoundScreen`, `handleNotificationTap` ([[mobile-architecture#Navigation#Routes and the shell]]) | [[mobile-tests#Routing]] |
 | Theme: Nocturne in both modes | `nocturneTheme` ([[mobile-architecture#Theme]]) | [[mobile-tests#Theme]] |
 | Reminder delivery: permission, push, periodic sync, the test notification | `PushController` and `FirebasePushMessaging`; the server sends ([[mobile-architecture#Push]], [[api-architecture#Reminder sender]]), so there is no periodic sync | [[mobile-tests#Push]] |
-| Your data: export and import a backup | **Excluded** on epic #148; returns as a debug feature in issue #176 | (none yet) |
+| Your data: export and import a backup | **Won't do**: issue #176 closed as not planned, since the service tier holds the household's data | (none) |
 | Forced colours | **Not applicable**: a browser mode; the platforms' high-contrast settings apply through Material | (none) |
 | Service worker, install prompt, PWA manifest | **Not applicable**: the store app has no worker | (none) |
 
-The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Retiring `apps/pwa` is issue #174, which waits on the remaining exclusion.
+The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Issue #174 retired `apps/pwa` and kept its web slot for [[deployment#Site|the static site]].

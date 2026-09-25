@@ -16,13 +16,17 @@ import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
 
 /// The Credits screen against what the PWA shows for the sample household on
-/// 16 September 2026, dumped by `apps/pwa/scripts/credits-snapshot.ts`.
+/// 16 September 2026, dumped once by the retired PWA (#174) and pinned.
 
 /// The PWA's sample household, its two Platinums labelled with the names
 /// the PWA shows for them, so the PWA's fixtures still apply.
 AppData sampleHousehold() {
   final data = appDataFromJson(
-    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+    jsonDecode(
+          File(
+            '../../packages/domain/test/fixtures/sample-household.json',
+          ).readAsStringSync(),
+        )
         as Map<String, dynamic>,
   );
   const labels = {

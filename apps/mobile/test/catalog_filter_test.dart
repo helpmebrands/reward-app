@@ -14,7 +14,11 @@ import 'package:reward/shell/router.dart';
 /// width up, its chips, counts and empty state.
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

@@ -17,7 +17,11 @@ import 'package:reward/widgets/credit_row.dart';
 /// and the screen reader hears the phone order at every width.
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 
