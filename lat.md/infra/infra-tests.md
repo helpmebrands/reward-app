@@ -176,6 +176,22 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 Step 3.6 of `08-mobile-setup.md` creates an Apple Push Notifications service key and uploads it under *APNs Authentication Key* with the team id `LMFUSVPCDH`, without which FCM cannot reach an iPhone ([[mobile-architecture#Push]]).
 
+### Runbook 07 no longer calls push unbuilt
+
+`07-mobile-release.md` drops "Push delivery itself is not built" and the claim that the APNs key is not its concern, and links runbook 08 §3.6 instead.
+
+### Runbook 08 turns on the reminder job
+
+§3.7 of `08-mobile-setup.md` is numbered steps: apply the stack, check `API_REMIND_JOB` on the environment, describe the scheduler, execute `reward-api-remind` and read the `sent N reminder and N notice pushes` line ([[api-architecture#Reminder sender]]).
+
+### Runbook 08 checks push on a device
+
+Part 4 has a numbered **Push reaches a device.** check: turn on Send me reminders, allow the prompt, and Send a test notification from Settings.
+
+### Runbook 05 covers push that does not arrive
+
+`05-troubleshooting.md` has "Push notifications do not reach the app", naming the APNs Authentication Key, `roles/firebasecloudmessaging.admin`, a job that sent 0 and tokens retired on `UNREGISTERED`.
+
 ### Runbook 08 has the store hand steps
 
 `08-mobile-setup.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
