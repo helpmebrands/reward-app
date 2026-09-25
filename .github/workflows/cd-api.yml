@@ -88,8 +88,10 @@ jobs:
             --region ${{ vars.GCP_REGION }} --wait --quiet
 
       # The reminder sender runs from the same image, so its next scheduled
-      # run sends with the code just migrated for.
+      # run sends with the code just migrated for. Skipped until the stack
+      # that declares the job has been applied and written its name.
       - name: Move the reminder job to the new image
+        if: vars.API_REMIND_JOB != ''
         env:
           IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
         run: |
