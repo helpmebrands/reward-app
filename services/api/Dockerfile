@@ -21,7 +21,8 @@ COPY packages/domain packages/domain
 COPY services/api services/api
 RUN dart pub get --offline \
   && dart compile exe services/api/bin/server.dart -o /app/server \
-  && dart compile exe services/api/bin/migrate.dart -o /app/migrate
+  && dart compile exe services/api/bin/migrate.dart -o /app/migrate \
+  && dart compile exe services/api/bin/remind.dart -o /app/remind
 
 # ---- runtime --------------------------------------------------------------
 # The minimal runtime image the Dart team publishes for AOT binaries: the
@@ -34,6 +35,8 @@ COPY --from=build /app/server /server
 # (`/migrate` resolves `../migrations/` beside itself, hence the root).
 COPY --from=build /app/migrate /migrate
 COPY --from=build /app/services/api/migrations /migrations
+# The reminder sender, run by the Cloud Run job Cloud Scheduler starts.
+COPY --from=build /app/remind /remind
 
 ENV PORT=8080
 EXPOSE 8080

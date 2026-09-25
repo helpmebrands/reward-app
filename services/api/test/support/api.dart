@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'package:api/api.dart';
 import 'package:api/auth.dart';
+import 'package:api/push.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 
@@ -24,8 +25,8 @@ TokenVerifier verifierFor(TestKey key) => FirebaseTokenVerifier(
 typedef Reply = ({int status, Object? body});
 
 class TestApi {
-  TestApi(this.key, Session? db)
-    : handler = buildHandler(db: db, verifier: verifierFor(key));
+  TestApi(this.key, Session? db, {PushSender? push})
+    : handler = buildHandler(db: db, verifier: verifierFor(key), push: push);
 
   final TestKey key;
   final Handler handler;

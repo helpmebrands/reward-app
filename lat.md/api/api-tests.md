@@ -290,9 +290,7 @@ A fixture whose second statement fails makes `migrate` throw the server error; i
 
 ## Devices
 
-`devices_test.dart` covers the body parser and the no-database answer without a connection; `devices_integration_test.dart` drives the routes through the handler against `DATABASE_URL` ([[api-architecture#Devices]]).
-
-The integration suite migrates `public` once in `setUpAll` and truncates `devices` before each test.
+`devices_test.dart` covers the body parser and the answer without sign-in, with no connection; `devices_integration_test.dart` drives the routes through the handler, signed in, against `DATABASE_URL` in its own schema ([[api-architecture#Devices]]).
 
 ### Registration body is validated field by field
 
@@ -300,17 +298,21 @@ A complete body parses to its four fields; each of `token`, `installationId`, `p
 
 A platform other than `ios` or `android`, or a zone not shaped like an IANA name, is named likewise.
 
-### Without a database the device routes answer 503
+### Without sign-in the device routes answer 503
 
-With `buildHandler()` given no session, `POST /v1/devices` and `DELETE /v1/devices/{token}` answer 503 `{"error":"no database"}` while `/health` is unaffected.
+With `buildHandler()` given no verifier, `POST /v1/devices` and `DELETE /v1/devices/{token}` answer 503 `{"error":"no auth"}` while `/health` is unaffected.
 
 ### The devices migration creates the table
 
-After the runner has applied `services/api/migrations/` to `public`, `to_regclass('public.devices')` is not null, proving `0002_devices.sql` ran through the same runner a deploy uses.
+After the runner has applied `services/api/migrations/` to the suite's schema, `to_regclass('devices')` is not null, proving the migrations ran through the same runner a deploy uses.
 
 ### Registering the same token twice upserts
 
 Two `POST /v1/devices` with one token and different installation, platform and zone both answer 200 echoing what was sent, and the table holds one row carrying the second body with `updated_at` at or after `registered_at`.
+
+### A device belongs to the member who registered it
+
+The row's `user_id` is the caller's; when another member registers the same token it moves to them, still one row.
 
 ### Missing or unknown timezone answers 400
 
@@ -319,3 +321,53 @@ A body without `timezone` answers 400 `{"error":"invalid","field":"timezone"}`; 
 ### Deleting a token removes it and a second delete is 404
 
 After a registration, `DELETE /v1/devices/{token}` answers 204 and the table is empty; the same delete again answers 404.
+
+### Another member's token is not found
+
+A member deleting a token another member registered gets 404, and the device stays.
+
+## Reminder sender
+
+`reminder_sender_integration_test.dart` runs `sendDueReminders` with a recording push sender against `DATABASE_URL`; `push_test.dart` covers the FCM request and answers without a network ([[api-architecture#Reminder sender]]).
+
+The fixture is one card the household maintains with a $10 monthly credit on the calendar month, so its last-day reminder `2026-10-31|urgent` fires at 09:00 on 31 October: 09:00Z in London and 13:00Z in New York.
+
+### A due reminder is sent once to each device
+
+A minute before 09:00 nothing goes; a minute after, the reminder goes to both of the member's devices with the schedule's title and body, its id and a url; a run 15 minutes later sends nothing new.
+
+### A reminder more than 36 hours late is dropped
+
+The first run 36 hours and a minute after the reminder fired sends nothing.
+
+### Nothing is sent to a member with reminders off
+
+A member who never turned reminders on gets nothing, device or not.
+
+### Each member gets it at their own time of day
+
+With one member's device in London and the other's in New York, the 09:01Z run reaches only the Londoner and the 13:01Z run then reaches the New Yorker, once each.
+
+### A muted card is silent for that member only
+
+A member who muted the card gets nothing, while the other member of the household gets the reminder.
+
+### An unregistered token deletes its device
+
+When the sender reports one of a member's two tokens unregistered, the other still gets the reminder and only its device row remains.
+
+### The summary counts the member's schedule
+
+`GET /v1/me/reminders/summary` for a member with reminders on counts more than zero and names a next reminder in the future with a title; a member with reminders off reads `{"count":0,"next":null}`.
+
+### The test push reaches every device of the caller
+
+`POST /v1/me/reminders/test` answers `{"sent":2}` for a member with two devices and sends to those two tokens and no one else's.
+
+### The FCM request carries the copy, the data and the tag
+
+`fcmRequestBody` is the v1 `message` with the token, the title and body as the notification, the data map, and the tag as the Android notification tag and the APNs collapse id.
+
+### FCM's answer decides the outcome
+
+A 2xx is sent, a 404 whose details carry `UNREGISTERED` is unregistered, and a 400 `INVALID_ARGUMENT` or a 503 is failed, so only a dead token ever deletes a device.

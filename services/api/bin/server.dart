@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:api/api.dart';
 import 'package:api/app_links.dart';
 import 'package:api/auth.dart';
+import 'package:api/push.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf_io.dart' as io;
 
@@ -11,7 +12,8 @@ import 'package:shelf/shelf_io.dart' as io;
 /// opens a connection pool for the storage-backed routes; without it only
 /// `/health` answers, which is what the container smoke test needs.
 /// `FIREBASE_PROJECT_ID` names the project whose ID tokens sign people in;
-/// without it the signed-in routes answer 503. `INVITE_LINK_BASE` is where
+/// without it the signed-in routes answer 503, and it is also the project
+/// FCM sends the test notification through. `INVITE_LINK_BASE` is where
 /// invite links point, `https://helpmereward.com/invite/` by default.
 Future<void> main() async {
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
@@ -32,6 +34,7 @@ Future<void> main() async {
         Platform.environment['INVITE_LINK_BASE'] ?? '',
       )?.takeIf((u) => u.hasScheme),
       appLinks: AppLinks.fromEnvironment(Platform.environment),
+      push: firebaseProject.isEmpty ? null : FcmSender(firebaseProject),
     ),
     InternetAddress.anyIPv4,
     port,

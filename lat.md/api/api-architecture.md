@@ -8,7 +8,7 @@ A shelf handler behind a small entrypoint, compiled ahead of time into a single 
 
 `buildApi` in `lib/api.dart` returns the api's shelf `Handler` and the routes it serves; `buildHandler` is that handler: a `shelf_router` router behind middleware that turns any uncaught error into a JSON 500, so a client never sees a stack trace.
 
-It takes an optional Postgres `Session` for the storage-backed routes: a `Connection` in tests, a `Pool` in the server, and none at all when only liveness is wanted, in which case those routes answer 503 `{"error":"no database"}` rather than pretending ([[api-tests#Devices#Without a database the device routes answer 503]]).
+It takes an optional Postgres `Session` for the storage-backed routes: a `Connection` in tests, a `Pool` in the server, and none at all when only liveness is wanted, in which case those routes answer 503 `{"error":"no database"}` rather than pretending; without a token verifier the signed-in ones answer 503 `no auth` first ([[api-tests#Devices#Without sign-in the device routes answer 503]]).
 
 `GET /health` is liveness for Cloud Run and the smoke tests: 200 with `{"status":"ok","version":…}` while the process serves, the version carried so a deploy can be told apart from the last one. Pinned by [[api-tests#Health]].
 
@@ -127,19 +127,34 @@ None needs sign-in. `INVITE_LINK_BASE` on the service is `https://<apiCustomDoma
 
 `bin/server.dart` reads `PORT` (Cloud Run injects it, 8080 otherwise) and serves the handler on every IPv4 interface, because a container bound to loopback answers nobody.
 
-With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped connection is replaced rather than poisoning every later request; without one it serves health only and says so on its startup line, which is what the container smoke test runs against. Without `FIREBASE_PROJECT_ID` it says "no sign-in" and the signed-in routes answer 503.
+With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped connection is replaced rather than poisoning every later request; without one it serves health only and says so on its startup line, which is what the container smoke test runs against. Without `FIREBASE_PROJECT_ID` it says "no sign-in" and the signed-in routes answer 503; with it, the same project is where FCM sends the test notification ([[api-architecture#Reminder sender]]).
 
 ## Devices
 
-Push-device registration in `lib/devices.dart`: the first real endpoint, replacing the `VITE_PUSH_API` backend the PWA never had ([[delivery#Delivery paths]]). A device row is not yet tied to a user; that comes with sign-in.
+Push-device registration in `lib/devices.dart`. A device belongs to the member who registered it, so a reminder reaches all of their devices and nobody else's. Pinned by [[api-tests#Devices]].
 
-Sending reminders is not built yet.
+Both routes are signed in. `POST /v1/devices` takes `{token, installationId, platform, timezone}`: the FCM token, an id the app generated for its own installation, `ios` or `android`, and an IANA zone name. `Device.parse` names the first field that is missing, blank or malformed as a 400 `{"error":"invalid","field":…}`; a body that is not a JSON object is field `body`. The zone's shape is checked in Dart and its existence by asking `pg_timezone_names`, so the api ships no zone list of its own. The row is upserted by token: a repeat registration replaces the member, installation, platform and zone and bumps `updated_at`, because whoever registers a token last is the one signed in on it. The response is 200 with the stored fields.
 
-`POST /v1/devices` takes `{token, installationId, platform, timezone}`: the FCM token, an id the app generated for its own installation, `ios` or `android`, and an IANA zone name. `Device.parse` names the first field that is missing, blank or malformed as a 400 `{"error":"invalid","field":…}`; a body that is not a JSON object is field `body`. The zone's shape is checked in Dart and its existence by asking `pg_timezone_names`, so the api ships no zone list of its own. The row is upserted by token: a repeat registration replaces installation, platform and zone and bumps `updated_at`. The response is 200 with the stored fields.
+`DELETE /v1/devices/{token}` removes one of the caller's devices, as the app does on sign-out: 204, or 404 when the caller has nothing under that token, which is also what another member's token answers.
 
-`DELETE /v1/devices/{token}` removes the row: 204, or 404 when nothing was registered under that token, so a client can tell the two apart.
+`0002_devices.sql` created `devices (token PRIMARY KEY, installation_id, platform CHECK ios|android, timezone, registered_at, updated_at)`; `0010_reminder_sends.sql` adds `user_id`, deleting the rows from before sign-in that belonged to nobody.
 
-`0002_devices.sql` creates `devices (token PRIMARY KEY, installation_id, platform CHECK ios|android, timezone, registered_at, updated_at)`. A token reissued by FCM leaves the old row behind under the same installation id; reconciling those is a later concern, once something sends. Pinned by [[api-tests#Devices]].
+## Reminder sender
+
+The server decides and sends reminders, so they arrive even when the app has not been opened for months (`lib/reminder_sender.dart`, `lib/push.dart`, `bin/remind.dart`). Pinned by [[api-tests#Reminder sender]].
+
+Cloud Scheduler starts the Cloud Run job `reward-api-remind` every 15 minutes ([[deployment#Infrastructure]]). `sendDueReminders` takes every member with reminders on and at least one device, and for each:
+
+1. Builds their schedule with the domain's `buildSchedule` ([[reminders#Schedule construction]]) from their household's data, their preferences and mutes ([[api-architecture#Member preferences]]), starting 36 hours ago.
+2. Keeps the reminders whose real instant falls in the last 36 hours, the same grace the domain's `dueReminders` gives a device. Anything later is dropped rather than resurfaced.
+3. Claims each in `reminder_sends (user_id, reminder_id)` before sending, so a retried or overlapping run skips it; the id is the schedule's own (`2026-10-31|urgent`), stable across recomputes.
+4. Sends it to every one of the member's devices. If no device took it and none was retired, the claim is dropped so the next run retries.
+
+A member's zone is their most recently registered device's, UTC before they have one. The domain schedules in the process's local time, which on Cloud Run is UTC and nobody's, so `scheduleIn` builds the schedule from the member's wall clock and turns each reminder's wall-clock time back into an instant with Postgres's tz database (`AT TIME ZONE`), which knows every zone's daylight saving rules. Two members of one household in different zones each hear at their own `timeOfDay`.
+
+`PushSender` is the seam: `FcmSender` posts to FCM HTTP v1 (`projects/<FIREBASE_PROJECT_ID>/messages:send`), which also reaches APNs, authorised by an OAuth token from the metadata server as the api identity, so no key file exists. The request carries the reminder's title and body, `data` with `reminderId` and `url`, and the reminder's tag as the Android notification tag and the APNs collapse id, so a newer notice for the same day replaces the older one. Only an `UNREGISTERED` error code retires a token, deleting its device row; any other failure keeps the device. Tests use a fake that records.
+
+Two signed-in routes serve the app's Settings screen. `GET /v1/me/reminders/summary` is `{count, next}`: how many reminders the caller's schedule holds from now over the horizon, and the next one's instant, title and body, or null. `POST /v1/me/reminders/test` sends a test notification to each of the caller's devices and answers `{sent}`; without an FCM project it is 503 `no push`.
 
 ## Migrations
 
@@ -159,4 +174,4 @@ A file is `NNNN_name.sql`. `listMigrations` sorts the `.sql` files by numeric ve
 
 `services/api/Dockerfile` is two stages built from the repository root, because the workspace lockfile lives there and the api depends on `packages/domain` by path ([[deployment#Container]] does the same for the PWA).
 
-The build stage on the Dart SDK image copies the workspace manifests, drops the Flutter app from its copy of the root manifest (a plain Dart SDK cannot resolve a Flutter package and the api never depends on it), resolves, then `dart compile exe` produces two AOT binaries: the server and the migrator. The runtime stage is `scratch` plus the Dart image's `/runtime/` (root certificates and runtime libraries), `/server`, `/migrate` and `/migrations/` beside it, because the migrator resolves its files relative to its own path ([[api-architecture#Migrations]]). There is no `HEALTHCHECK`; Cloud Run runs its own probes. The `api` job of the verify gate builds it and smoke-tests `/health` ([[infra-tests#Infrastructure config#Verify gate builds and smoke-tests the api]]); the Cloud Run migration job runs `/migrate` from it before each deploy ([[infra-tests#Infrastructure config#Api image carries the migrator and the migrations]]).
+The build stage on the Dart SDK image copies the workspace manifests, drops the Flutter app from its copy of the root manifest (a plain Dart SDK cannot resolve a Flutter package and the api never depends on it), resolves, then `dart compile exe` produces three AOT binaries: the server, the migrator and the reminder sender. The runtime stage is `scratch` plus the Dart image's `/runtime/` (root certificates and runtime libraries), `/server`, `/migrate` and `/migrations/` beside it, because the migrator resolves its files relative to its own path ([[api-architecture#Migrations]]). There is no `HEALTHCHECK`; Cloud Run runs its own probes. The `api` job of the verify gate builds it and smoke-tests `/health` ([[infra-tests#Infrastructure config#Verify gate builds and smoke-tests the api]]); the Cloud Run migration job runs `/migrate` from it before each deploy ([[infra-tests#Infrastructure config#Api image carries the migrator and the migrations]]). A third binary, `/remind`, is the reminder sender the scheduled job runs ([[infra-tests#Infrastructure config#Api image carries the reminder sender]]).

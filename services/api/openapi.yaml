@@ -1067,16 +1067,62 @@ paths:
           $ref: '#/components/responses/Unavailable'
 
 
+  /v1/me/reminders/summary:
+    get:
+      tags: [me]
+      operationId: getReminderSummary
+      summary: How many reminders the caller has scheduled, and the next
+      description: |
+        The caller's own schedule from now on, in the zone of their most
+        recently registered device (UTC before they have one), with their
+        preferences and mutes. Reminders off is a count of 0.
+      responses:
+        '200':
+          description: The summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderSummary'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/me/reminders/test:
+    post:
+      tags: [me]
+      operationId: sendTestReminder
+      summary: Send a test notification to each of the caller's devices
+      description: |
+        A token FCM reports unregistered is removed. 503 `no push` when the
+        server has no FCM project.
+      responses:
+        '200':
+          description: How many devices took it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestPush'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/devices:
     post:
       tags: [devices]
       operationId: registerDevice
-      security: []
-      summary: Register a device for push
+      summary: Register one of the caller's devices for push
       description: |
-        Upserts by token: a repeat registration replaces the installation,
-        platform and zone. The zone must be known to Postgres's
-        `pg_timezone_names`.
+        Upserts by token: a repeat registration replaces the member,
+        installation, platform and zone, since whoever registers a token
+        last is the one signed in on it. The zone must be known to
+        Postgres's `pg_timezone_names`; the newest device's zone is the one
+        the caller's reminders keep.
       requestBody:
         required: true
         content:
@@ -1092,6 +1138,8 @@ paths:
                 $ref: '#/components/schemas/Device'
         '400':
           $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
         '500':
           $ref: '#/components/responses/Internal'
         '503':
@@ -1101,8 +1149,7 @@ paths:
     delete:
       tags: [devices]
       operationId: unregisterDevice
-      security: []
-      summary: Unregister a device
+      summary: Unregister one of the caller's devices, as on sign-out
       parameters:
         - name: token
           in: path
@@ -1113,6 +1160,8 @@ paths:
       responses:
         '204':
           description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -1190,6 +1239,39 @@ components:
           type: string
           minLength: 1
           description: An IANA zone name, such as `Europe/London`.
+
+    ReminderSummary:
+      type: object
+      required: [count, next]
+      additionalProperties: false
+      properties:
+        count:
+          type: integer
+          minimum: 0
+          description: Reminders scheduled over the schedule's horizon.
+        next:
+          oneOf:
+            - type: 'null'
+            - type: object
+              required: [fireAt, title, body]
+              additionalProperties: false
+              properties:
+                fireAt:
+                  type: string
+                  format: date-time
+                title:
+                  type: string
+                body:
+                  type: string
+
+    TestPush:
+      type: object
+      required: [sent]
+      additionalProperties: false
+      properties:
+        sent:
+          type: integer
+          minimum: 0
 
     TemplateCredit:
       type: object

@@ -179,7 +179,7 @@ describe('api deploy workflow', () => {
     expect(cdApi).toMatch(/reward-api@\$\{\{ steps\.build\.outputs\.digest \}\}/)
     expect(cdApi).toContain('/health')
     expect(cdApi).not.toContain('/healthz')
-    expect(cdApi).toContain('Mars/Olympus_Mons')
+    expect(cdApi).toContain('"error":"unauthenticated"')
   })
 
   // @lat: [[infra-tests#Infrastructure config#CD revision names carry the run number]]
@@ -200,10 +200,10 @@ describe('api deploy workflow', () => {
   })
 
   // @lat: [[infra-tests#Infrastructure config#Api service runs on the gen2 execution environment]]
-  it('runs the api service and job on the second-generation execution environment', () => {
+  it('runs the api service and both jobs on the second-generation execution environment', () => {
     const program = read('infra/index.ts')
     const api = program.split('// The api service and its migration job')[1] ?? ''
-    expect(api.match(/executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2'/g)).toHaveLength(2)
+    expect(api.match(/executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2'/g)).toHaveLength(3)
   })
 
   // @lat: [[infra-tests#Infrastructure config#Stack outputs name the api service and job]]
@@ -212,6 +212,66 @@ describe('api deploy workflow', () => {
     expect(program).toMatch(/^export const apiCloudRunService = /m)
     expect(program).toMatch(/^export const apiServiceUrl = /m)
     expect(program).toMatch(/^export const apiMigrationJob = /m)
+  })
+})
+
+describe('reminder sender job', () => {
+  const program = () => read('infra/index.ts')
+  const remindJob = () =>
+    program().split("new gcp.cloudrunv2.Job(\n  'api-remind'")[1]?.split('\n)\n')[0] ?? ''
+
+  // @lat: [[infra-tests#Infrastructure config#Api image carries the reminder sender]]
+  it('compiles the reminder sender into the api image', () => {
+    const dockerfile = read('services/api/Dockerfile')
+    expect(dockerfile).toContain('dart compile exe services/api/bin/remind.dart -o /app/remind')
+    expect(dockerfile).toMatch(/^COPY --from=build \/app\/remind \/remind$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The reminder job runs /remind as the api identity]]
+  it('declares a Cloud Run job that runs /remind as the api identity with the database', () => {
+    const job = remindJob()
+    expect(job).toContain('name: `${apiServiceName}-remind`')
+    expect(job).toContain("commands: ['/remind']")
+    expect(job).toContain('serviceAccount: apiRuntimeAccount.email')
+    expect(job).toContain('databaseUrlEnv')
+    expect(job).toContain("{ name: 'FIREBASE_PROJECT_ID', value: project }")
+    expect(job).toContain("'template.template.containers[0].image'")
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Cloud Scheduler runs the reminder job every 15 minutes]]
+  it('runs the job from Cloud Scheduler every 15 minutes with its own invoker identity', () => {
+    const text = program()
+    expect(text).toContain("'cloudscheduler.googleapis.com'")
+    const scheduler = text.split('new gcp.cloudscheduler.Job(')[1]?.split('\n)\n')[0] ?? ''
+    expect(scheduler).toContain("schedule: '*/15 * * * *'")
+    expect(scheduler).toContain("timeZone: 'Etc/UTC'")
+    expect(scheduler).toMatch(
+      /uri: pulumi\.interpolate`https:\/\/run\.googleapis\.com\/v2\/projects\/\$\{project\}\/locations\/\$\{region\}\/jobs\/\$\{remindJob\.name\}:run`/,
+    )
+    expect(scheduler).toContain('oauthToken: { serviceAccountEmail: schedulerAccount.email }')
+    expect(text).toMatch(
+      /new gcp\.cloudrunv2\.JobIamMember\('scheduler-runs-reminders'[\s\S]*?role: 'roles\/run\.invoker'/,
+    )
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The api identity may send through FCM]]
+  it('lets the api identity send through FCM with no key file', () => {
+    const text = program()
+    expect(text).toContain("'fcm.googleapis.com'")
+    expect(text).toMatch(
+      /role: 'roles\/firebasecloudmessaging\.admin',\s*member: pulumi\.interpolate`serviceAccount:\$\{apiRuntimeAccount\.email\}`/,
+    )
+    expect(text).not.toMatch(/serviceaccount\.Key\(/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#CD moves the reminder job to each new image]]
+  it('moves the reminder job to the image CD just built, and lets the deployer do it', () => {
+    const cdApi = read('.github/workflows/cd-api.yml')
+    expect(cdApi).toContain('gcloud run jobs update ${{ vars.API_REMIND_JOB }}')
+    const text = program()
+    expect(text).toContain('API_REMIND_JOB: remindJob.name')
+    expect(text).toMatch(/^export const apiRemindJob = remindJob\.name$/m)
+    expect(text).toMatch(/new gcp\.cloudrunv2\.JobIamMember\('deployer-can-update-reminders'/)
   })
 })
 
@@ -473,6 +533,7 @@ describe('GitHub environment per stack', () => {
     for (const name of [
       'API_CLOUD_RUN_SERVICE',
       'API_MIGRATION_JOB',
+      'API_REMIND_JOB',
       'ARTIFACT_REPO',
       'CLOUD_RUN_SERVICE',
       'DEPLOY_SERVICE_ACCOUNT',

@@ -92,6 +92,8 @@ const services = [
   'androidpublisher.googleapis.com',
   'firebase.googleapis.com',
   'identitytoolkit.googleapis.com',
+  'cloudscheduler.googleapis.com',
+  'fcm.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -378,6 +380,21 @@ const apiRuntimeReadsDatabaseUrl = new gcp.secretmanager.SecretIamMember(
   },
 )
 
+/**
+ * The api sends pushes through FCM HTTP v1 (the reminder job, and the
+ * service's test notification) with an OAuth token from the metadata server,
+ * so this role is all it takes: no key file exists anywhere.
+ */
+new gcp.projects.IAMMember(
+  'api-runtime-sends-fcm',
+  {
+    project,
+    role: 'roles/firebasecloudmessaging.admin',
+    member: pulumi.interpolate`serviceAccount:${apiRuntimeAccount.email}`,
+  },
+  dependsOnApis,
+)
+
 // ---------------------------------------------------------------------------
 // The api service and its migration job
 // ---------------------------------------------------------------------------
@@ -504,6 +521,85 @@ const migrateJob = new gcp.cloudrunv2.Job(
   },
 )
 
+/**
+ * The reminder sender: the same image with `/remind` as its command, as the
+ * api identity (the database and FCM), started by Cloud Scheduler every 15
+ * minutes. No retries: the next run is 15 minutes away and its send record
+ * keeps it from repeating anything this one sent. CI moves its image with
+ * each deploy (`cd-api.yml`).
+ */
+const remindJob = new gcp.cloudrunv2.Job(
+  'api-remind',
+  {
+    project,
+    location: region,
+    name: `${apiServiceName}-remind`,
+    labels: tags,
+    deletionProtection: environment === 'prod',
+    template: {
+      template: {
+        serviceAccount: apiRuntimeAccount.email,
+        executionEnvironment: 'EXECUTION_ENVIRONMENT_GEN2',
+        maxRetries: 0,
+        timeout: '600s',
+        volumes: [cloudSqlVolume],
+        containers: [
+          {
+            image: BOOTSTRAP_IMAGE,
+            commands: ['/remind'],
+            resources: { limits: { cpu: '1', memory: '512Mi' } },
+            envs: [databaseUrlEnv, { name: 'FIREBASE_PROJECT_ID', value: project }],
+            volumeMounts: [cloudSqlMount],
+          },
+        ],
+      },
+    },
+  },
+  {
+    dependsOn: [...services, apiRuntimeReadsDatabaseUrl],
+    ignoreChanges: ['template.template.containers[0].image', 'client', 'clientVersion'],
+  },
+)
+
+/** The identity Cloud Scheduler presents to start the job, and nothing else. */
+const schedulerAccount = new gcp.serviceaccount.Account(
+  'scheduler',
+  {
+    project,
+    accountId: `${apiServiceName}-sched-${environment}`.slice(0, 30),
+    displayName: `HelpMe Reward scheduler (${environment})`,
+    description: 'Starts the reminder job. Invoker on that one job.',
+  },
+  dependsOnApis,
+)
+
+new gcp.cloudrunv2.JobIamMember('scheduler-runs-reminders', {
+  project,
+  location: remindJob.location,
+  name: remindJob.name,
+  role: 'roles/run.invoker',
+  member: pulumi.interpolate`serviceAccount:${schedulerAccount.email}`,
+})
+
+new gcp.cloudscheduler.Job(
+  'remind-every-15-minutes',
+  {
+    project,
+    region,
+    name: `${apiServiceName}-remind`,
+    description: 'Sends the reminders that fell due since the last run.',
+    schedule: '*/15 * * * *',
+    timeZone: 'Etc/UTC',
+    attemptDeadline: '180s',
+    httpTarget: {
+      httpMethod: 'POST',
+      uri: pulumi.interpolate`https://run.googleapis.com/v2/projects/${project}/locations/${region}/jobs/${remindJob.name}:run`,
+      oauthToken: { serviceAccountEmail: schedulerAccount.email },
+    },
+  },
+  dependsOnApis,
+)
+
 // ---------------------------------------------------------------------------
 // Keyless deploys from GitHub
 // ---------------------------------------------------------------------------
@@ -623,6 +719,14 @@ new gcp.cloudrunv2.JobIamMember('deployer-can-run-migrations', {
   project,
   location: migrateJob.location,
   name: migrateJob.name,
+  role: 'roles/run.developer',
+  member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
+})
+
+new gcp.cloudrunv2.JobIamMember('deployer-can-update-reminders', {
+  project,
+  location: remindJob.location,
+  name: remindJob.name,
   role: 'roles/run.developer',
   member: pulumi.interpolate`serviceAccount:${deployAccount.email}`,
 })
@@ -906,6 +1010,7 @@ const environmentVariables: Record<string, pulumi.Input<string>> = {
   DEPLOY_SERVICE_ACCOUNT: deployAccount.email,
   API_CLOUD_RUN_SERVICE: apiService.name,
   API_MIGRATION_JOB: migrateJob.name,
+  API_REMIND_JOB: remindJob.name,
   PLAY_SERVICE_ACCOUNT: playAccount.email,
   ...signingSecretIds,
 }
@@ -987,6 +1092,8 @@ export const runtimeServiceAccount = runtimeAccount.email
 /** `API_CLOUD_RUN_SERVICE` / `API_MIGRATION_JOB` in GitHub, for cd-api.yml. */
 export const apiCloudRunService = apiService.name
 export const apiMigrationJob = migrateJob.name
+/** `API_REMIND_JOB` in GitHub: cd-api.yml moves it to each new image. */
+export const apiRemindJob = remindJob.name
 export const apiServiceUrl = apiService.uri
 
 /** The api's identity, database and secret, for runbook 06. */

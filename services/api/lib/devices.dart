@@ -6,8 +6,12 @@ import 'dart:convert';
 
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
+import 'package:shelf_router/shelf_router.dart';
+
+import 'auth.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
+import 'src/signed_in.dart';
 
 /// A registration body that fails validation, naming the field at fault.
 class InvalidField implements Exception {
@@ -82,39 +86,44 @@ Future<bool> isKnownTimezone(Session db, String name) async {
   return rows.isNotEmpty;
 }
 
-/// Inserts the device or, when the token is already registered, replaces
-/// its installation, platform and zone and bumps `updated_at`.
-Future<void> upsertDevice(Session db, Device device) => db.execute(
-  Sql.named('''
-    INSERT INTO devices (token, installation_id, platform, timezone)
-    VALUES (@token, @installationId, @platform, @timezone)
-    ON CONFLICT (token) DO UPDATE SET
-      installation_id = EXCLUDED.installation_id,
-      platform        = EXCLUDED.platform,
-      timezone        = EXCLUDED.timezone,
-      updated_at      = now()
-  '''),
-  parameters: device.toJson(),
-);
+/// Inserts [userId]'s device or, when the token is already registered,
+/// replaces its member, installation, platform and zone and bumps
+/// `updated_at`: a token is one installation, and whoever registers it
+/// last is signed in there.
+Future<void> upsertDevice(Session db, String userId, Device device) =>
+    db.execute(
+      Sql.named('''
+        INSERT INTO devices (token, user_id, installation_id, platform, timezone)
+        VALUES (@token, @user::uuid, @installationId, @platform, @timezone)
+        ON CONFLICT (token) DO UPDATE SET
+          user_id         = EXCLUDED.user_id,
+          installation_id = EXCLUDED.installation_id,
+          platform        = EXCLUDED.platform,
+          timezone        = EXCLUDED.timezone,
+          updated_at      = now()
+      '''),
+      parameters: {...device.toJson(), 'user': userId},
+    );
 
-/// Removes the token; false when nothing was registered under it.
-Future<bool> deleteDevice(Session db, String token) async {
+/// Removes [userId]'s token; false when they have nothing under it.
+Future<bool> deleteDevice(Session db, String userId, String token) async {
   final result = await db.execute(
-    Sql.named('DELETE FROM devices WHERE token = @token'),
-    parameters: {'token': token},
+    Sql.named(
+      'DELETE FROM devices WHERE token = @token AND user_id = @user::uuid',
+    ),
+    parameters: {'token': token, 'user': userId},
   );
   return result.affectedRows > 0;
 }
 
-/// Adds `POST /v1/devices` and `DELETE /v1/devices/<token>` to [routes].
-/// Without a [db] both answer 503, so a health-only process (the container
-/// smoke test, a misconfigured deploy) says so instead of pretending.
-void addDeviceRoutes(RouteTable routes, Session? db) {
+/// Adds `POST /v1/devices` and `DELETE /v1/devices/<token>` to [routes],
+/// both signed in: a device is registered to the caller, and only the
+/// caller can remove it.
+void addDeviceRoutes(RouteTable routes, SignedIn signedIn) {
   Response invalid(String field) =>
       jsonResponse({'error': 'invalid', 'field': field}, status: 400);
 
-  Future<Response> register(Request request) async {
-    if (db == null) return _noDatabase();
+  Future<Response> register(Request request, Caller caller, Session db) async {
     final Device device;
     try {
       device = Device.parse(jsonDecode(await request.readAsString()));
@@ -126,22 +135,19 @@ void addDeviceRoutes(RouteTable routes, Session? db) {
     if (!await isKnownTimezone(db, device.timezone)) {
       return invalid('timezone');
     }
-    await upsertDevice(db, device);
+    await upsertDevice(db, caller.userId, device);
     return jsonResponse(device.toJson());
   }
 
-  Future<Response> unregister(Request request, String token) async {
-    if (db == null) return _noDatabase();
-    return await deleteDevice(db, token)
-        ? Response(204)
-        : jsonResponse({'error': 'not found'}, status: 404);
-  }
+  Future<Response> unregister(
+    Request request,
+    Caller caller,
+    Session db,
+  ) async => await deleteDevice(db, caller.userId, request.params['token']!)
+      ? Response(204)
+      : jsonResponse({'error': 'not found'}, status: 404);
 
   routes
-    ..add('POST', '/v1/devices', register)
-    ..add('DELETE', '/v1/devices/<token>', unregister);
+    ..add('POST', '/v1/devices', signedIn(register))
+    ..add('DELETE', '/v1/devices/<token>', signedIn(unregister));
 }
-
-/// A fresh response each time: a shelf body can be read only once, so one
-/// shared instance answered the first request and broke every later one.
-Response _noDatabase() => jsonResponse({'error': 'no database'}, status: 503);
