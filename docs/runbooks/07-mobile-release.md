@@ -106,6 +106,12 @@ $ git push origin v0.1.0-rc.1
 $ gh run watch                     # pick the "Release mobile" run
 ```
 
+The workflow refuses any ref but a `v*` tag: its first job fails before
+either platform builds. A build from a branch would reach the stores under a
+name no tag gave it, as 1.0.0 (2) from `develop` once did, and it could only
+be expired by hand. *Run workflow* in the Actions tab is for rerunning a
+tag: pick the tag, not a branch, under *Use workflow from*.
+
 The **build name** is the tag without `v` and without any pre-release
 suffix (`v0.1.0-rc.1` builds `0.1.0`), because the stores accept only
 `x.y.z` there. The **build number** is the workflow run number, so it always

@@ -195,6 +195,12 @@ Part 4 has a numbered **Push reaches a device.** check: turn on Send me reminder
 
 `release-mobile.yml` triggers on `v*` tags with an `android` job on `ubuntu-latest` and an `ios` job on `macos-latest`, both in the `staging` environment and both passing `--build-name` and `--build-number ${{ github.run_number }}` ([[deployment#Pipeline]]).
 
+### Release workflow refuses anything but a version tag
+
+A `tag` job fails with `exit 1` unless `github.ref` starts with `refs/tags/v`, checks nothing out, and both platform jobs `needs: tag`; `workflow_dispatch` stays so a tag can be rerun by hand.
+
+A hand-started run on `develop` once put an untagged 1.0.0 (2) on TestFlight that had to be expired through the App Store Connect API (#265).
+
 ### Release workflow stores nothing in GitHub secrets
 
 The release workflow references no `secrets.*` except `GITHUB_TOKEN`, so the signing material can only come from Secret Manager at build time.
@@ -228,6 +234,10 @@ Flutter still prints the plugin warning for `firebase_core` and `firebase_auth`:
 ### Runbook 07 describes the tag-driven release
 
 `07-mobile-release.md` names `release-mobile.yml`, shows `git tag v…`, explains Apple's processing failure, and no longer says CI does not yet build a release.
+
+### Runbook 07 releases only from a tag
+
+The *Getting it to testers* section of `07-mobile-release.md` says the workflow refuses any ref but a `v*` tag, and that *Run workflow* is only for rerunning a tag.
 
 ### Info.plist answers export compliance
 
