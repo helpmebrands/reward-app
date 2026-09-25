@@ -100,7 +100,7 @@ Both `ci.yml` and `cd.yml` grant `id-token: write`, without which the OIDC excha
 
 ### Every verify job is a required check
 
-Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all six current job names, so a red npm, Pulumi, Dart, Flutter, api or container job blocks a merge.
+Applied to the real `verify.yml`, the derivation yields exactly one context per job and includes all five current job names, so a red npm, Pulumi, Dart, Flutter or api job blocks a merge.
 
 ### Staging names the GitHub owner
 
@@ -468,19 +468,41 @@ The root `package.json` lists exactly `infra` and `infra-repo` as npm workspaces
 
 ### The site is plain HTML and CSS
 
-`apps/site` holds `public/index.html` and `public/styles.css`, a `Dockerfile` and `deploy/` with the nginx config; it has no `package.json`. The image is `nginx-unprivileged` copying `public/` as is, with no Node build stage ([[deployment#Container]]).
+`apps/site/public` holds `index.html`, `styles.css`, `404.html` and `_headers`, and `apps/site` has no `package.json`, `Dockerfile` or `deploy/`: Cloudflare Pages serves the files as they are ([[deployment#Container]]).
 
-### Workflows build the site image from its Dockerfile
+### Pages headers carry the security policy
 
-Both `verify.yml` and `cd.yml` pass `file: apps/site/Dockerfile` with the repository root as the build context, and neither passes build args, since a static page has nothing to inline.
+`apps/site/public/_headers` applies to `/*` the Content Security Policy with `script-src 'none'`, `nosniff`, `DENY` framing, `no-referrer` and `Cache-Control: no-cache`, the headers nginx used to send.
+
+### CD deploys the site to Cloudflare Pages
+
+`cd.yml` runs on pushes to `develop` and `main` and deploys `apps/site/public` with a pinned `wrangler pages deploy`, the branch as `--branch`.
+
+The API token is read from Secret Manager with `gcloud`, never from `secrets.*`, and nothing touches Docker or Cloud Run.
 
 ### The site smoke test checks the page and a 404
 
-The container job and the post-deploy step in `cd.yml` both require `/` to answer 200 and `/nope` to answer 404, and neither checks `sw.js` any more ([[deployment#Pipeline#Smoke tests]]).
+After the deploy, `cd.yml` requires `vars.SITE_URL` to answer 200 at `/` and 404 at `/nope`, which also proves `404.html` stops Pages' single-page fallback ([[deployment#Pipeline#Smoke tests]]).
 
 ### Verify has no accessibility gate or build output
 
-`verify.yml` has no `a11y` job, uploads and downloads no artifact, and runs neither `npm run build` nor `npm run lint`: the PWA's bundle, its Playwright gate and its Biome config went with it.
+`verify.yml` has no `a11y` or `container` job, uploads and downloads no artifact, and runs neither `npm run build` nor `npm run lint`: the PWA's bundle, its Playwright gate and the site's nginx image went with it.
+
+### Pulumi declares the Pages project, its domain and its record
+
+`infra/index.ts` declares a `cloudflare.PagesProject` whose production branch is `siteBranch`, a `PagesDomain` for `customDomain` and a proxied CNAME to the project's `pages.dev` subdomain.
+
+It declares no Cloud Run service or domain mapping for the site, and writes `CLOUDFLARE_ACCOUNT_ID`, `PAGES_PROJECT`, `SITE_URL` and the token's secret id onto the environment.
+
+### Staging names its Pages project and keeps the Cloudflare token secret
+
+`infra/Pulumi.yaml` declares `cloudflareAccountId`, `cloudflareZoneId`, `pagesProject` and `siteBranch`; staging sets `helpmereward-staging` and `develop`, and `cloudflare:apiToken` is never plain text.
+
+### Runbook 09 sets up Cloudflare Pages
+
+`docs/runbooks/09-cloudflare-pages.md` sets up Cloudflare for the site as numbered steps, and the README links it.
+
+It covers the two tokens and their permissions, the account and zone config, the CI token's Secret Manager version, the cut-over of `staging.helpmereward.com` and the future `main` stack for `helpmereward.com`.
 
 ### The graph is split by area
 

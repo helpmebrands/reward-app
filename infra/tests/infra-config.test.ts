@@ -286,8 +286,8 @@ describe('runbook README', () => {
       'helpme-reward-staging',
       'us-central1',
       'gs://helpme-reward-staging-pulumi-state',
-      'https://reward-app-bduraqeztq-uc.a.run.app',
       'https://staging.helpmereward.com',
+      'helpmereward-staging',
     ]) {
       expect(readme).toContain(fact)
     }
@@ -375,7 +375,6 @@ describe('runbooks for two services', () => {
   it('records the api service, its job, the database and the secret in the README table', () => {
     const readme = read('docs/runbooks/README.md')
     for (const fact of [
-      '`reward-app`',
       '`reward-api`',
       '`reward-api-migrate`',
       '`reward-api-db-staging`',
@@ -479,52 +478,116 @@ describe('monorepo layout', () => {
   })
 
   // @lat: [[infra-tests#Infrastructure config#The site is plain HTML and CSS]]
-  it('keeps the site as static files, a Dockerfile and an nginx config under apps/site', () => {
-    for (const path of [
-      'apps/site/public/index.html',
-      'apps/site/public/styles.css',
-      'apps/site/Dockerfile',
-      'apps/site/deploy/nginx.conf.template',
-      'apps/site/deploy/security-headers.conf',
-    ]) {
-      expect(existsSync(join(root, path)), path).toBe(true)
+  it('keeps the site as static files under apps/site/public, with no server config', () => {
+    for (const path of ['index.html', 'styles.css', '404.html', '_headers']) {
+      expect(existsSync(join(root, 'apps/site/public', path)), path).toBe(true)
     }
-    expect(existsSync(join(root, 'apps/site/package.json'))).toBe(false)
-    const dockerfile = read('apps/site/Dockerfile')
-    expect(dockerfile).not.toMatch(/^FROM node/m)
-    expect(dockerfile).toMatch(/^FROM nginxinc\/nginx-unprivileged:/m)
-    expect(dockerfile).toContain('COPY apps/site/public /usr/share/nginx/html')
+    for (const path of ['package.json', 'Dockerfile', 'deploy']) {
+      expect(existsSync(join(root, 'apps/site', path)), path).toBe(false)
+    }
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Workflows build the site image from its Dockerfile]]
-  it('builds the site image from apps/site/Dockerfile in verify and cd, with no build args', () => {
-    for (const workflow of ['verify.yml', 'cd.yml']) {
-      const text = read(`.github/workflows/${workflow}`)
-      expect(text, workflow).toContain('file: apps/site/Dockerfile')
-      expect(text, workflow).not.toMatch(/VITE_|build-args:/)
+  // @lat: [[infra-tests#Infrastructure config#Pages headers carry the security policy]]
+  it('sets the security headers and no-cache for every path in _headers', () => {
+    const headers = read('apps/site/public/_headers')
+    expect(headers).toMatch(/^\/\*$/m)
+    for (const header of [
+      "Content-Security-Policy: default-src 'self'; script-src 'none'",
+      'X-Content-Type-Options: nosniff',
+      'X-Frame-Options: DENY',
+      'Referrer-Policy: no-referrer',
+      'Cache-Control: no-cache',
+    ]) {
+      expect(headers, header).toContain(header)
     }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#CD deploys the site to Cloudflare Pages]]
+  it('deploys apps/site/public with a pinned wrangler for develop and main, keylessly', () => {
+    const cd = read('.github/workflows/cd.yml')
+    const trigger = cd.split(/^jobs:\s*$/m)[0] ?? ''
+    expect(trigger).toMatch(/branches: \[develop, main\]/)
+    expect(cd).toMatch(
+      /npx --yes wrangler@\d+\.\d+\.\d+ pages deploy apps\/site\/public --project-name "\$PAGES_PROJECT" --branch "\$\{\{ github\.ref_name \}\}"/,
+    )
+    expect(cd).toContain('PAGES_PROJECT: ${{ vars.PAGES_PROJECT }}')
+    expect(cd).toContain('CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}')
+    expect(cd).toMatch(/gcloud secrets versions access latest --secret "\$\{\{ vars\.SECRET_CLOUDFLARE_API_TOKEN \}\}"/)
+    expect(cd).not.toMatch(/secrets\.|docker|deploy-cloudrun|CLOUD_RUN_SERVICE/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#The site smoke test checks the page and a 404]]
-  it('smoke-tests / as 200 and a missing path as 404 in the container job and after deploy', () => {
-    const verify = read('.github/workflows/verify.yml')
-    const container =
-      verify.split(/^ {2}container:\s*$/m)[1]?.split(/^ {2}[\w-]+:\s*$/m)[0] ?? ''
-    for (const [name, text] of [
-      ['container job', container],
-      ['cd.yml', read('.github/workflows/cd.yml')],
-    ] as const) {
-      expect(text, name).toMatch(/\/nope/)
-      expect(text, name).toMatch(/"404"/)
-      expect(text, name).not.toContain('sw.js')
-    }
+  it('smoke-tests / as 200 and a missing path as 404 on the environment URL after deploy', () => {
+    const cd = read('.github/workflows/cd.yml')
+    expect(cd).toContain('URL: ${{ vars.SITE_URL }}')
+    expect(cd).toMatch(/\/nope/)
+    expect(cd).toMatch(/"404"/)
+    expect(cd).not.toContain('sw.js')
   })
 
   // @lat: [[infra-tests#Infrastructure config#Verify has no accessibility gate or build output]]
-  it('drops the PWA accessibility gate and the dist upload from verify', () => {
+  it('drops the PWA accessibility gate, the dist upload and the site container from verify', () => {
     const verify = read('.github/workflows/verify.yml')
-    expect(verify).not.toMatch(/^ {2}a11y:\s*$/m)
+    expect(verify).not.toMatch(/^ {2}(a11y|container):\s*$/m)
     expect(verify).not.toMatch(/upload-artifact|download-artifact|playwright|npm run build|npm run lint/)
+    expect(verify).not.toContain('apps/site/Dockerfile')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Pulumi declares the Pages project, its domain and its record]]
+  it('declares the Pages project, custom domain and proxied CNAME, and no Cloud Run site', () => {
+    const program = read('infra/index.ts')
+    expect(program).toMatch(/import \* as cloudflare from '@pulumi\/cloudflare'/)
+    expect(program).toMatch(/new cloudflare\.PagesProject\(/)
+    expect(program).toMatch(/productionBranch: siteBranch/)
+    expect(program).toMatch(/new cloudflare\.PagesDomain\(/)
+    const record = program.split('new cloudflare.DnsRecord(')[1]?.split('\n)')[0] ?? ''
+    expect(record).toMatch(/type: 'CNAME'/)
+    expect(record).toMatch(/proxied: true/)
+    expect(record).toMatch(/content: pagesProject\.subdomain/)
+    expect(program).not.toMatch(/new gcp\.cloudrunv2\.Service\(\s*'app'/)
+    expect(program.match(/new gcp\.cloudrun\.DomainMapping\(/g)?.length).toBe(1)
+    expect(program).not.toMatch(/runtimeAccount\b/)
+    const declared = program.split('const environmentVariables')[1]?.split('\n}')[0] ?? ''
+    for (const name of ['CLOUDFLARE_ACCOUNT_ID', 'PAGES_PROJECT', 'SITE_URL']) {
+      expect(declared, name).toMatch(new RegExp(`^\\s+${name}:`, 'm'))
+    }
+    expect(declared).not.toMatch(/CLOUD_RUN_SERVICE:/)
+    const secrets = program.split('const signingSecrets')[1]?.split(']')[0] ?? ''
+    expect(secrets).toContain("'cloudflare-api-token'")
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Staging names its Pages project and keeps the Cloudflare token secret]]
+  it('names the staging Pages project and branch, and never the Cloudflare token in plain text', () => {
+    const config = read('infra/Pulumi.yaml').split(/^config:\s*$/m)[1] ?? ''
+    for (const key of ['cloudflareAccountId', 'cloudflareZoneId', 'pagesProject', 'siteBranch']) {
+      expect(config, key).toMatch(new RegExp(`^ {2}${key}:\\s*$`, 'm'))
+    }
+    const staging = read('infra/Pulumi.staging.yaml')
+    expect(staging).toMatch(/^\s+reward-app:pagesProject:\s*helpmereward-staging\s*$/m)
+    expect(staging).toMatch(/^\s+reward-app:siteBranch:\s*develop\s*$/m)
+    expect(staging).not.toMatch(/^\s+cloudflare:apiToken:\s*\S+\s*$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 09 sets up Cloudflare Pages]]
+  it('has runbook 09 set up Cloudflare for both branches as numbered steps', () => {
+    const path = 'docs/runbooks/09-cloudflare-pages.md'
+    expect(existsSync(join(root, path))).toBe(true)
+    const runbook = read(path)
+    for (const fact of [
+      'pulumi config set --secret cloudflare:apiToken',
+      'pulumi config set reward-app:cloudflareAccountId',
+      'pulumi config set reward-app:cloudflareZoneId',
+      'gcloud secrets versions add reward-app-cloudflare-api-token-staging',
+      'staging.helpmereward.com',
+      'helpmereward.com',
+      'main',
+      'Cloudflare Pages:Edit',
+      'DNS:Edit',
+    ]) {
+      expect(runbook, fact).toContain(fact)
+    }
+    expect(runbook).toMatch(/^1\. /m)
+    expect(read('docs/runbooks/README.md')).toContain('09-cloudflare-pages.md')
   })
 })
 
@@ -612,7 +675,10 @@ describe('GitHub environment per stack', () => {
 
   // @lat: [[infra-tests#Infrastructure config#Workflows run in the stack's environment]]
   it('runs the deploy and preview jobs in the staging environment', () => {
-    for (const name of ['cd.yml', 'cd-api.yml']) {
+    expect(read('.github/workflows/cd.yml')).toMatch(
+      /environment:\s*\n\s+name: \$\{\{ github\.ref_name == 'main' && 'production' \|\| 'staging' \}\}\s*$/m,
+    )
+    for (const name of ['cd-api.yml']) {
       expect(read(`.github/workflows/${name}`), name).toMatch(
         /environment:\s*\n\s+name: staging\s*$/m,
       )

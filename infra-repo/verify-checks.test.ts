@@ -50,7 +50,6 @@ describe('requiredChecks', () => {
       'Dart analyze and test',
       'Flutter analyze and test',
       'Api analyze, test and container',
-      'Container builds',
     ]) {
       expect(contexts).toContain(`verify / ${name}`)
     }
