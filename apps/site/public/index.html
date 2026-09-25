@@ -4,13 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Never leave a credit card benefit unclaimed." />
-    <meta name="theme-color" content="#161826" />
+    <meta name="theme-color" content="#161826" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f3f5fe" media="(prefers-color-scheme: light)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <link rel="stylesheet" href="/styles.css" />
     <title>HelpMe Reward</title>
   </head>
   <body>
     <main>
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="/logo-dark.png" />
+        <img class="logo" src="/logo.png" alt="HelpMe reward" width="329" height="60" />
+      </picture>
       <h1>HelpMe Reward</h1>
       <p class="tagline">Never leave a credit card benefit unclaimed.</p>
       <p>The app is coming to the App Store and Google Play.</p>
