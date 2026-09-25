@@ -398,7 +398,7 @@ const databaseUrlEnv = {
 /**
  * The api. Same ownership rule as the PWA service: Pulumi owns the shape, CI
  * owns the image, so the image is ignored after the bootstrap. Public like
- * the PWA (there are no accounts; a device registers its own token), running
+ * the PWA (the apps call it directly; the api does its own authorization), running
  * as the api identity with the Cloud SQL connector mounted and the whole
  * connection URL injected from Secret Manager. Depends on the secret binding
  * because Cloud Run checks at revision creation that the identity can read

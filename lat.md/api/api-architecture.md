@@ -131,9 +131,9 @@ With `DATABASE_URL` set it opens a driver `Pool` on that URL, so a dropped conne
 
 ## Devices
 
-Push-device registration in `lib/devices.dart`: the first real endpoint, replacing the `VITE_PUSH_API` backend the PWA never had ([[delivery#Delivery paths]]). There are no accounts ([[overview]]), so the FCM token is the only identity the service holds.
+Push-device registration in `lib/devices.dart`: the first real endpoint, replacing the `VITE_PUSH_API` backend the PWA never had ([[delivery#Delivery paths]]). A device row is not yet tied to a user; that comes with sign-in.
 
-Sending reminders is not in this epic.
+Sending reminders is not built yet.
 
 `POST /v1/devices` takes `{token, installationId, platform, timezone}`: the FCM token, an id the app generated for its own installation, `ios` or `android`, and an IANA zone name. `Device.parse` names the first field that is missing, blank or malformed as a 400 `{"error":"invalid","field":…}`; a body that is not a JSON object is field `body`. The zone's shape is checked in Dart and its existence by asking `pg_timezone_names`, so the api ships no zone list of its own. The row is upserted by token: a repeat registration replaces installation, platform and zone and bumps `updated_at`. The response is 200 with the stored fields.
 

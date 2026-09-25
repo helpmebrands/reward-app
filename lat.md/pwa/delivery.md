@@ -6,8 +6,8 @@ How the PWA gets a reminder from the computed schedule ([[reminders#Schedule con
 
 No single delivery mechanism works everywhere, so there are two. The app is fully usable with only the second.
 
-1. **Web Push** reaches a user whose browser is closed. It needs a server holding the VAPID private key: the client subscribes ([[apps/pwa/src/services/notifications.ts#subscribeToPush]]) and ships the subscription to `VITE_PUSH_API` ([[apps/pwa/src/services/notifications.ts#registerSubscription]]). Without `VITE_VAPID_PUBLIC_KEY` both are no-ops. The backend is not in this repository.
-2. **Service-worker replay** needs no server. See [[delivery#Service-worker replay]].
+1. **Web Push** reaches a user whose browser is closed. It needs a server holding the VAPID private key: the client subscribes ([[apps/pwa/src/services/notifications.ts#subscribeToPush]]) and ships the subscription to `VITE_PUSH_API` ([[apps/pwa/src/services/notifications.ts#registerSubscription]]). Without `VITE_VAPID_PUBLIC_KEY` both are no-ops. The PWA was never connected to a push backend.
+2. **Service-worker replay** works without a server. See [[delivery#Service-worker replay]].
 
 Enabling reminders in Settings is a three-step negotiation: ask notification permission, subscribe to push where configured, and request Periodic Background Sync ([[apps/pwa/src/services/notifications.ts#requestPeriodicSync]], Chromium-only, installed apps only, 12-hour minimum interval). Only the first can fail in a way the user needs to hear about.
 

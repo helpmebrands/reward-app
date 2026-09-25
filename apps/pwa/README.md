@@ -53,7 +53,7 @@ Delivery takes two paths, because no single one works everywhere:
    the VAPID private key; set `VITE_VAPID_PUBLIC_KEY` and `VITE_PUSH_API`.
 2. **Service-worker replay** — the worker keeps the computed schedule in
    IndexedDB and fires anything that came due while the app was shut, on the
-   next Periodic Background Sync, push, or launch. No server required. This is
+   next Periodic Background Sync, push, or launch. Works without a server. This is
    the path on iOS, where Periodic Sync is unavailable.
 
 > **iOS:** notifications only reach apps added to the Home Screen. Settings
@@ -92,9 +92,8 @@ TypeScript 7 · Solid 1.9 · Vite 8 · vite-plugin-pwa (injectManifest) · Biome
 Vitest 5. No CSS framework and no component library — the design system is the
 component library.
 
-State is a single Solid store snapshotted to IndexedDB. Everything stays on the
-device; there is no account and nothing is uploaded, so the export in Settings
-is the only backup.
+State is a single Solid store snapshotted to IndexedDB. This reference app has
+no server sync, so for a PWA user the export in Settings is the backup.
 
 ## Running it
 
@@ -174,7 +173,7 @@ vendored so the implementation can be checked against the source.
 - The card catalogue is a **starting point, not a source of truth**. Issuers
   change these terms constantly. Everything it creates is an ordinary editable
   credit, and the add-card flow says so.
-- Web Push needs a backend that is not in this repository. Without it the app
+- This app's Web Push path was never connected to a backend. Without it the app
   falls back to service-worker replay, which is fully functional but only fires
   while the browser is running or when the app is next opened.
 - Solid 2.0 is in release candidate; this targets the current stable 1.9.
