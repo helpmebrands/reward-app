@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../theme/nocturne_tokens.dart';
 
-/// How far the row travels to fully expose an action.
+/// How far the row travels to fully expose one action; a side with two
+/// parks at twice this.
 const double swipeActionWidth = 84;
 
 /// Horizontal movement needed before the gesture counts as a swipe.
@@ -17,8 +18,9 @@ const double _commitRatio = 0.55;
 /// Logical pixels per millisecond past which a short flick still commits.
 const double _flickVelocity = 0.45;
 
-/// `accent` for the constructive action, `quiet` for a reversible one.
-enum SwipeTone { accent, quiet, locked }
+/// `accent` for the constructive action, `quiet` for a reversible one,
+/// `away` for one that takes the credit off the list.
+enum SwipeTone { accent, quiet, locked, away }
 
 class SwipeAction {
   const SwipeAction({
@@ -52,7 +54,7 @@ class SwipeRow extends StatefulWidget {
     super.key,
     required this.child,
     this.leading,
-    this.trailing,
+    this.trailing = const [],
     this.disabled = false,
   });
 
@@ -61,8 +63,9 @@ class SwipeRow extends StatefulWidget {
   /// Revealed by swiping right (the row moves right).
   final SwipeAction? leading;
 
-  /// Revealed by swiping left (the row moves left).
-  final SwipeAction? trailing;
+  /// Revealed by swiping left (the row moves left), side by side in this
+  /// order.
+  final List<SwipeAction> trailing;
 
   /// Disables the gesture, for rows with nothing to act on.
   final bool disabled;
@@ -91,14 +94,20 @@ class _SwipeRowState extends State<SwipeRow>
     super.dispose();
   }
 
-  bool _available(double delta) =>
-      delta > 0 ? widget.leading != null : widget.trailing != null;
+  /// How far the side [delta] points at opens: one action width per
+  /// action, or zero when it has none.
+  double _width(double delta) => delta > 0
+      ? (widget.leading == null ? 0 : swipeActionWidth)
+      : swipeActionWidth * widget.trailing.length;
 
-  /// Resistance past the action width, so the row never feels unbounded.
+  bool _available(double delta) => _width(delta) > 0;
+
+  /// Resistance past the actions' width, so the row never feels unbounded.
   double _rubberBand(double delta) {
-    if (delta.abs() <= swipeActionWidth) return delta;
-    final excess = delta.abs() - swipeActionWidth;
-    return delta.sign * (swipeActionWidth + excess * 0.28);
+    final width = _width(delta);
+    if (delta.abs() <= width) return delta;
+    final excess = delta.abs() - width;
+    return delta.sign * (width + excess * 0.28);
   }
 
   void _animateTo(double target) {
@@ -128,15 +137,11 @@ class _SwipeRowState extends State<SwipeRow>
     final travelled = _offset;
     final flicked =
         velocity.abs() > _flickVelocity && velocity.sign == travelled.sign;
-    final committed =
-        travelled.abs() > swipeActionWidth * _commitRatio || flicked;
+    final width = _width(travelled);
+    final committed = travelled.abs() > width * _commitRatio || flicked;
     // Park open rather than firing: an action a flick away should still need
     // a deliberate tap.
-    _animateTo(
-      committed && _available(travelled)
-          ? travelled.sign * swipeActionWidth
-          : 0,
-    );
+    _animateTo(committed && width > 0 ? travelled.sign * width : 0);
   }
 
   void _act(SwipeAction action) {
@@ -147,7 +152,8 @@ class _SwipeRowState extends State<SwipeRow>
   @override
   Widget build(BuildContext context) {
     final open = _offset != 0;
-    final action = _offset > 0 ? widget.leading : widget.trailing;
+    final leading = widget.leading;
+    final actions = _offset > 0 ? [?leading] : widget.trailing;
     final content = Transform.translate(
       offset: Offset(_offset, 0),
       child: KeyedSubtree(key: const Key('swipe-content'), child: widget.child),
@@ -173,19 +179,31 @@ class _SwipeRowState extends State<SwipeRow>
           borderRadius: const BorderRadius.all(Radius.circular(Radii.md)),
           child: Stack(
             children: [
-              // The action sits behind the content, which slides over it. A
-              // closed row keeps it out of the tree and the semantics.
-              if (open && action != null)
+              // The actions sit behind the content, which slides over them. A
+              // closed row keeps them out of the tree and the semantics.
+              if (open && actions.isNotEmpty)
                 Positioned.fill(
                   child: Align(
                     alignment: _offset > 0
                         ? Alignment.centerLeft
                         : Alignment.centerRight,
-                    child: _ActionButton(
-                      action: action,
-                      width: math.max(_offset.abs(), swipeActionWidth),
-                      leading: _offset > 0,
-                      onPressed: () => _act(action),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final action in actions)
+                          _ActionButton(
+                            action: action,
+                            width:
+                                math.max(_offset.abs(), _width(_offset)) /
+                                actions.length,
+                            align: _offset > 0
+                                ? CrossAxisAlignment.start
+                                : actions.length > 1
+                                ? CrossAxisAlignment.center
+                                : CrossAxisAlignment.end,
+                            onPressed: () => _act(action),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -202,13 +220,15 @@ class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.action,
     required this.width,
-    required this.leading,
+    required this.align,
     required this.onPressed,
   });
 
   final SwipeAction action;
   final double width;
-  final bool leading;
+
+  /// Toward the row's edge for a lone action, centred for a pair.
+  final CrossAxisAlignment align;
   final VoidCallback onPressed;
 
   @override
@@ -218,6 +238,7 @@ class _ActionButton extends StatelessWidget {
       SwipeTone.accent => (tokens.accentRamp[800]!, tokens.accentRamp[100]!),
       SwipeTone.quiet => (tokens.neutral[900]!, tokens.neutral[300]!),
       SwipeTone.locked => (tokens.locked.ground, tokens.locked.foreground),
+      SwipeTone.away => (tokens.neutral[800]!, tokens.neutral[100]!),
     };
     return SizedBox(
       width: width,
@@ -228,14 +249,12 @@ class _ActionButton extends StatelessWidget {
           onTap: onPressed,
           child: Padding(
             padding: EdgeInsets.only(
-              left: leading ? Space.s6 : Space.s3,
-              right: leading ? Space.s3 : Space.s6,
+              left: align == CrossAxisAlignment.start ? Space.s6 : Space.s3,
+              right: align == CrossAxisAlignment.end ? Space.s6 : Space.s3,
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: leading
-                  ? CrossAxisAlignment.start
-                  : CrossAxisAlignment.end,
+              crossAxisAlignment: align,
               children: [
                 Icon(action.icon, size: 18, color: foreground),
                 const SizedBox(height: Space.s1),

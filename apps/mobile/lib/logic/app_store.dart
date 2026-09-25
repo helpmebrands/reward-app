@@ -652,11 +652,15 @@ class AppStore extends ChangeNotifier {
       updateBenefit(id, (b) => b.copyWith(optedOutAt: _now));
 
   /// Tracks an opted-out credit again from today, so the windows that closed
-  /// while it was opted out are never counted as missed.
-  Future<bool> reactivateBenefit(String id) => updateBenefit(
-    id,
-    (b) => b.copyWith(optedOutAt: null, trackedFrom: today),
-  );
+  /// while it was opted out are never counted as missed. With [resume] false
+  /// it only clears the opt-out, which is how an Undo takes one back.
+  Future<bool> reactivateBenefit(String id, {bool resume = true}) =>
+      updateBenefit(
+        id,
+        (b) => resume
+            ? b.copyWith(optedOutAt: null, trackedFrom: today)
+            : b.copyWith(optedOutAt: null),
+      );
 
   /// Records that the user has ticked the issuer's enrolment box.
   Future<bool> confirmEnrollment(String id) =>

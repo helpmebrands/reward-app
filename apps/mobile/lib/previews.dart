@@ -275,7 +275,8 @@ Widget creditRows() {
 }
 
 /// Rows with their actions wired to the store: swipe right to log, left
-/// to silence, tap the bell, or tap the row; the snackbar shows the undo.
+/// to park on Silence and Opt out side by side, tap the bell, or tap the
+/// row; the snackbar shows the undo.
 @Preview(name: 'Credit rows, swipe to act', size: Size(402, 500))
 Widget creditRowsSwipe() {
   final store = _store();
@@ -299,6 +300,7 @@ Widget creditRowsSwipe() {
                       snackbar.show('Would open ${instance.benefit.name}.'),
                   onLogAll: () => actions.logAll(instance),
                   onToggleMute: () => actions.toggleMute(instance),
+                  onOptOut: () => actions.optOut(instance),
                 ),
               ),
           ],

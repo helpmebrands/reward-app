@@ -55,6 +55,22 @@ class CreditActions {
     );
   }
 
+  /// Opts out of a credit the household will never use, with an undo that
+  /// brings it back as it was, without restarting its tracking.
+  Future<void> optOut(BenefitInstance instance) async {
+    final id = instance.benefit.id;
+    final name = instance.benefit.name;
+    await store.optOutBenefit(id);
+    snackbar.show(
+      'Opted out of $name. Reactivate it from the card’s setup.',
+      action: SnackbarAction(
+        label: 'Undo',
+        semanticsLabel: 'Undo opting out of $name',
+        onAct: () => store.reactivateBenefit(id, resume: false),
+      ),
+    );
+  }
+
   /// Records the issuer's enrolment box as ticked, with an undo.
   Future<void> confirmEnrollment(BenefitInstance instance) async {
     final id = instance.benefit.id;

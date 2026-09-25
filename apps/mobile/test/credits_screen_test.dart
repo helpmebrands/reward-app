@@ -258,8 +258,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.widget<CreditRow>(resy).tone, RowTone.soon);
 
-    // Swipes while open: left parks on Silence, a tap away closes it.
-    await tester.drag(resy, const Offset(-60, 0));
+    // Swipes while open: left parks on Silence and Opt out, a tap away closes it.
+    await tester.drag(resy, const Offset(-120, 0));
     await tester.pumpAndSettle();
     expect(find.text('Silence').hitTestable(), findsOneWidget);
     // Just below the row, in the gap before the next one.

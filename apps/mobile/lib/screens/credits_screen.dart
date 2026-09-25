@@ -451,6 +451,9 @@ class _Group extends StatelessWidget {
                 onToggleMute: actions == null
                     ? null
                     : () => actions.toggleMute(instance),
+                onOptOut: actions == null || !actions.store.canWrite
+                    ? null
+                    : () => actions.optOut(instance),
               ),
             ),
           if (grouping == CreditsGrouping.card)

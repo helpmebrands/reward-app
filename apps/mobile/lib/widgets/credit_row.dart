@@ -23,7 +23,7 @@ RowTone toneFor(BenefitStatus status) => switch (status) {
 /// money at stake with the deadline.
 ///
 /// Every row is reachable three ways: tap to open the detail sheet, swipe
-/// right to log the whole credit, swipe left to silence it. The swipe is an
+/// right to log the whole credit, swipe left to silence it or opt out of it. The swipe is an
 /// accelerator, because a gesture nobody discovers is not a feature: the bell
 /// silences by name, the sheet carries the same actions, and each is a
 /// semantics action a screen reader and a switch can reach. A row without
@@ -36,6 +36,7 @@ class CreditRow extends StatelessWidget {
     this.onOpen,
     this.onLogAll,
     this.onToggleMute,
+    this.onOptOut,
   });
 
   final BenefitInstance instance;
@@ -52,6 +53,9 @@ class CreditRow extends StatelessWidget {
 
   /// Silences or unsilences the credit.
   final VoidCallback? onToggleMute;
+
+  /// Opts out of the credit, taking it off every list.
+  final VoidCallback? onOptOut;
 
   RowTone get tone => toneFor(instance.status);
 
@@ -102,6 +106,7 @@ class CreditRow extends StatelessWidget {
     final logAll = onLogAll;
     final logAction = claimable ? logAll : null;
     final toggleMute = onToggleMute;
+    final optOut = onOptOut;
 
     final body = Padding(
       padding: const EdgeInsets.symmetric(
@@ -204,12 +209,13 @@ class CreditRow extends StatelessWidget {
         const CustomSemanticsAction(label: 'Log the full credit'): ?logAction,
         CustomSemanticsAction(label: muted ? 'Unsilence' : 'Silence'):
             ?toggleMute,
+        const CustomSemanticsAction(label: 'Opt out'): ?optOut,
       },
       child: SwipeRow(
         // Nothing to log and nothing to silence on a captured or untracked
-        // row; a locked row can still be silenced.
+        // row; a locked row can still be silenced or opted out of.
         disabled:
-            (logAll == null && toggleMute == null) ||
+            (logAll == null && toggleMute == null && optOut == null) ||
             (!claimable && instance.status != BenefitStatus.locked),
         leading: logAll == null || !claimable
             ? null
@@ -219,16 +225,24 @@ class CreditRow extends StatelessWidget {
                 tone: SwipeTone.accent,
                 onAct: logAll,
               ),
-        trailing: toggleMute == null
-            ? null
-            : SwipeAction(
-                label: muted ? 'Unmute' : 'Silence',
-                icon: muted
-                    ? Icons.notifications_outlined
-                    : Icons.notifications_off_outlined,
-                tone: SwipeTone.quiet,
-                onAct: toggleMute,
-              ),
+        trailing: [
+          if (toggleMute != null)
+            SwipeAction(
+              label: muted ? 'Unmute' : 'Silence',
+              icon: muted
+                  ? Icons.notifications_outlined
+                  : Icons.notifications_off_outlined,
+              tone: SwipeTone.quiet,
+              onAct: toggleMute,
+            ),
+          if (optOut != null)
+            SwipeAction(
+              label: 'Opt out',
+              icon: Icons.do_not_disturb_on_outlined,
+              tone: SwipeTone.away,
+              onAct: optOut,
+            ),
+        ],
         child: card,
       ),
     );

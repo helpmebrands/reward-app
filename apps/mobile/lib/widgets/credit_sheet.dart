@@ -561,6 +561,15 @@ class _SheetBodyState extends State<_SheetBody> {
             TextButton.icon(
               onPressed: () {
                 widget.onClose();
+                actions.optOut(instance);
+              },
+              icon: const Icon(Icons.do_not_disturb_on_outlined, size: 14),
+              label: const Text('Opt out — I won\'t use this'),
+            ),
+          if (store.canWrite)
+            TextButton.icon(
+              onPressed: () {
+                widget.onClose();
                 context.go(benefitPath(benefit.id));
               },
               icon: const Icon(Icons.edit_outlined, size: 14),
