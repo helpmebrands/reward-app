@@ -34,6 +34,8 @@ Future<void> pumpLockup(
       ),
     ),
   );
+  // MaterialApp animates a theme change; settle so the new one is in force.
+  await tester.pumpAndSettle();
 }
 
 String drawnAsset(WidgetTester tester) {
@@ -41,7 +43,8 @@ String drawnAsset(WidgetTester tester) {
   return (image.image as AssetImage).assetName;
 }
 
-Size drawnSize(WidgetTester tester) => tester.getSize(find.byType(Image));
+/// The size on screen, after any scaling down.
+Size drawnSize(WidgetTester tester) => tester.getRect(find.byType(Image)).size;
 
 void main() {
   // @lat: [[mobile-tests#Brand lockup#The lockup fits down to a 308 window]]

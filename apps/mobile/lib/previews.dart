@@ -21,6 +21,7 @@ import 'screens/today_screen.dart';
 import 'screens/value_screen.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
+import 'widgets/brand_lockup.dart';
 import 'widgets/credit_row.dart';
 import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
@@ -181,6 +182,25 @@ Widget _themed(Widget child, Brightness brightness) => MaterialApp(
   theme: nocturneTheme(brightness),
   home: Scaffold(body: SafeArea(child: child)),
 );
+
+/// The lockup in the width the app bar gives it: a 402 window, then a 300
+/// one where only the wordmark fits.
+Widget _lockupIn(double window, Brightness brightness) => _themed(
+  Padding(
+    padding: const EdgeInsets.all(20),
+    child: SizedBox(width: window - 84, child: const BrandLockup()),
+  ),
+  brightness,
+);
+
+@Preview(name: 'Brand lockup, dark', size: Size(402, 72))
+Widget brandLockupDark() => _lockupIn(402, Brightness.dark);
+
+@Preview(name: 'Brand lockup, light', size: Size(402, 72))
+Widget brandLockupLight() => _lockupIn(402, Brightness.light);
+
+@Preview(name: 'Brand lockup, 300 wide shows the wordmark', size: Size(300, 72))
+Widget brandLockupNarrow() => _lockupIn(300, Brightness.light);
 
 @Preview(name: 'Welcome slideshow, dark', size: Size(402, 874))
 Widget welcomeDark() => _themed(WelcomeScreen(onDone: () {}), Brightness.dark);
