@@ -847,8 +847,15 @@ class AppStore extends ChangeNotifier {
     return data == null ? const [] : missedCycles(data, today);
   }
 
-  Totals get totals =>
-      totalsFor(instances, missed.fold(0, (sum, m) => sum + m.missedCents));
+  /// The five totals. Unlike [instances] they see the opted-out credits,
+  /// which count only in their own figure.
+  Totals get totals {
+    final data = _data;
+    return totalsFor(
+      data == null ? const [] : currentInstances(data, today, _preferences),
+      missed.fold(0, (sum, m) => sum + m.missedCents),
+    );
+  }
 
   List<BenefitInstance> get soon => byStatus(instances, BenefitStatus.useSoon);
   List<BenefitInstance> get locked => byStatus(instances, BenefitStatus.locked);

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reward/screens/cards_screen.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/main.dart';
@@ -115,11 +116,11 @@ void main() {
     tester,
   ) async {
     await pumpShell(tester, const Size(402, 874));
-    final addCard = find.byKey(const Key('add-card'), skipOffstage: false);
-    expect(addCard, findsNothing);
+    final cards = find.byType(CardsScreen);
+    expect(cards, findsNothing);
     await tester.tap(find.text('Cards'));
     await tester.pumpAndSettle();
-    expect(addCard, findsOneWidget);
+    expect(cards, findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       2,

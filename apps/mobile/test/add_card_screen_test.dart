@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reward/screens/cards_screen.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
@@ -248,10 +249,7 @@ void main() {
     await tester.tap(find.text('Discard'));
     await tester.pumpAndSettle();
     expect(find.byType(AddCardScreen), findsNothing);
-    expect(
-      find.text('Add a card from the catalogue', skipOffstage: false),
-      findsOneWidget,
-    );
+    expect(find.byType(CardsScreen), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Add a card#Short fields pair from expanded]]

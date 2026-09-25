@@ -474,14 +474,40 @@ class _CardStat extends StatelessWidget {
       ),
     );
 
+    // What the credits are worth in a year: the usable value, and once
+    // anything is opted out the potential beside it.
+    final potential = formatMoney(summary.potentialValueCents);
+    final usable = formatMoney(summary.annualValueCents);
+    final out = formatMoney(summary.optedOutCents);
+    final (worth, worthSpoken) = summary.optedOutCents > 0
+        ? (
+            '$potential potential · $usable usable · $out opted out',
+            'Credits worth $potential a year: $usable usable, $out opted out',
+          )
+        : ('Credits worth $usable a year', 'Credits worth $usable a year');
     final pct = block(
       3,
       Padding(
         padding: const EdgeInsets.only(top: Space.s2),
-        child: Text(
-          '${(summary.feeProgress * 100).round()}% of the fee earned back · '
-          '${summary.daysUntilRenewal} days to renewal',
-          style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${(summary.feeProgress * 100).round()}% of the fee earned back · '
+              '${summary.daysUntilRenewal} days to renewal',
+              style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+            ),
+            Semantics(
+              container: true,
+              label: worthSpoken,
+              excludeSemantics: true,
+              child: Text(
+                worth,
+                key: ValueKey('card-worth-${card.id}'),
+                style: text.bodySmall?.copyWith(color: tokens.textSecondary),
+              ),
+            ),
+          ],
         ),
       ),
     );

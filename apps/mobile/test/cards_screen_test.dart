@@ -170,6 +170,106 @@ void main() {
     expect(find.text('Add a card from the catalogue'), findsOneWidget);
   });
 
+  // @lat: [[mobile-tests#Cards#A card states its usable value, and its potential once anything is opted out]]
+  testWidgets('a card reads its usable value, then potential · usable · out', (
+    tester,
+  ) async {
+    final pumped = await pumpCards(tester);
+    final store = pumped.store;
+    CardSummary jim() =>
+        store.cardSummaries.firstWhere((s) => s.card.id == 'card-0001');
+
+    final before = jim();
+    expect(before.optedOutCents, 0);
+    final plain =
+        'Credits worth ${formatMoney(before.annualValueCents)} a year';
+    expect(within('card-0001', plain), findsOneWidget);
+    // Both Platinums are worth the same, so look inside Jim's.
+    expect(
+      find.descendant(
+        of: card('card-0001'),
+        matching: find.bySemanticsLabel(plain),
+      ),
+      findsOneWidget,
+    );
+
+    await store.optOutBenefit('ben-0012');
+    await tester.pumpAndSettle();
+    final after = jim();
+    final potential = formatMoney(after.potentialValueCents);
+    final usable = formatMoney(after.annualValueCents);
+    final out = formatMoney(after.optedOutCents);
+    expect(after.optedOutCents, greaterThan(0));
+    expect(
+      within(
+        'card-0001',
+        '$potential potential · $usable usable · $out opted out',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        'Credits worth $potential a year: $usable usable, $out opted out',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // @lat: [[mobile-tests#Cards#The verdict never counts opted-out credits]]
+  testWidgets('opting out an open credit takes it out of the verdict', (
+    tester,
+  ) async {
+    final pumped = await pumpCards(tester);
+    final store = pumped.store;
+    CardSummary jim() =>
+        store.cardSummaries.firstWhere((s) => s.card.id == 'card-0001');
+    final oura = store.instanceFor('ben-0012')!;
+    expect(isClaimable(oura), isTrue);
+    final before = jim();
+
+    await store.optOutBenefit('ben-0012');
+    await tester.pumpAndSettle();
+    final after = jim();
+    expect(after.claimableCents, before.claimableCents - oura.remainingCents);
+    expect(after.lockedCents, before.lockedCents);
+    final verdict = cardVerdict(after);
+    expect(
+      find.descendant(
+        of: card('card-0001'),
+        matching: find.textContaining(verdict.body),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // @lat: [[mobile-tests#Cards#The value line holds at compact and expanded]]
+  testWidgets('the value line stays inside the card at both widths', (
+    tester,
+  ) async {
+    final household = sampleHousehold();
+    final data = household.copyWith(
+      benefits: [
+        for (final b in household.benefits)
+          b.id == 'ben-0012'
+              ? b.copyWith(optedOutAt: '2026-05-01T09:00:00.000Z')
+              : b,
+      ],
+    );
+    for (final widthClass in [WidthClass.compact, WidthClass.expanded]) {
+      await pumpCards(tester, data: data, widthClass: widthClass);
+      final line = find.descendant(
+        of: card('card-0001'),
+        matching: find.textContaining(' potential · '),
+      );
+      expect(line, findsOneWidget);
+      expect(
+        tester.getRect(line).right,
+        lessThanOrEqualTo(tester.getRect(card('card-0001')).right),
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   // @lat: [[mobile-tests#Cards#A business card carries a Business mark]]
   testWidgets('a business card shows a Business tag and a personal one none', (
     tester,

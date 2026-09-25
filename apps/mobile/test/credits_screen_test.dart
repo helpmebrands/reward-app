@@ -292,6 +292,58 @@ void main() {
     expect(total('Missed').right, lessThanOrEqualTo(720 - 28));
   });
 
+  // @lat: [[mobile-tests#Credits#Opted out is its own yearly figure]]
+  testWidgets('an Opted out figure appears per year once a credit is out', (
+    tester,
+  ) async {
+    final store = await pumpCredits(tester);
+    final tile = find.byKey(const Key('total-Opted out'));
+    expect(tile, findsNothing, reason: 'hidden while zero');
+
+    final oura = store.data!.benefits.firstWhere((b) => b.id == 'ben-0012');
+    final claimable = store.totals.claimableCents;
+    await store.optOutBenefit(oura.id);
+    await tester.pumpAndSettle();
+    final yearly = formatMoney(annualValueCents(oura));
+    expect(tile, findsOneWidget);
+    expect(
+      find.descendant(of: tile, matching: find.text('$yearly a year')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Opted out, $yearly a year'), findsOneWidget);
+    expect(store.totals.claimableCents, lessThan(claimable));
+  });
+
+  // @lat: [[mobile-tests#Credits#Five totals hold at compact and expanded]]
+  testWidgets('the five totals wrap at compact and sit in one row wide', (
+    tester,
+  ) async {
+    final household = sampleHousehold();
+    final data = household.copyWith(
+      benefits: [
+        for (final b in household.benefits)
+          b.id == 'ben-0012'
+              ? b.copyWith(optedOutAt: '2026-05-01T09:00:00.000Z')
+              : b,
+      ],
+    );
+    Rect total(String label) => tester.getRect(find.byKey(Key('total-$label')));
+    const labels = ['Claimable', 'Locked', 'Captured', 'Missed', 'Opted out'];
+
+    await pumpCredits(tester, data: data);
+    for (final label in labels) {
+      expect(total(label).right, lessThanOrEqualTo(WidthClass.compact.column));
+    }
+    expect(total('Opted out').top, greaterThan(total('Missed').top));
+
+    await pumpCredits(tester, data: data, widthClass: WidthClass.expanded);
+    for (final label in labels) {
+      expect(total(label).top, total('Claimable').top, reason: label);
+      expect(total(label).right, lessThanOrEqualTo(720 - 28));
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   // @lat: [[mobile-tests#Credits#Segments carry labels and a selected state]]
   testWidgets('the filters and groupings are labelled and show selection', (
     tester,

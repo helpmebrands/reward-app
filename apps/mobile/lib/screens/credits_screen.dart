@@ -176,10 +176,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
         : CreditActions(store: store, snackbar: ui.snackbar);
     final live = store.instances;
     final missed = missedRows(store);
-    final totals = totalsFor(
-      live,
-      missed.fold(0, (sum, row) => sum + row.remainingCents),
-    );
+    final totals = store.totals;
     final rows = filterRows([...live, ...missed], _filter);
     final groups = groupRows(rows, _grouping, _filter);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
@@ -198,22 +195,25 @@ class _CreditsScreenState extends State<CreditsScreen> {
       ],
     );
 
-    // Four totals kept deliberately apart: two by two on a phone, four
-    // across from medium.
+    // The totals kept deliberately apart: two by two on a phone, one row
+    // from medium. Opted out joins them, stated per year, once anything is
+    // opted out.
+    final tiles = [
+      ('Claimable', totals.claimableCents, true),
+      ('Locked', totals.lockedCents, false),
+      ('Captured', totals.capturedCents, false),
+      ('Missed', totals.missedCents, totals.missedCents > 0),
+      if (totals.optedOutCents > 0) ('Opted out', totals.optedOutCents, false),
+    ];
     final totalsGrid = LayoutBuilder(
       builder: (context, constraints) {
-        final across = widthClass == WidthClass.compact ? 2 : 4;
+        final across = widthClass == WidthClass.compact ? 2 : tiles.length;
         final width = (constraints.maxWidth - Space.s3 * (across - 1)) / across;
         return Wrap(
           spacing: Space.s3,
           runSpacing: Space.s3,
           children: [
-            for (final (label, cents, emphasis) in [
-              ('Claimable', totals.claimableCents, true),
-              ('Locked', totals.lockedCents, false),
-              ('Captured', totals.capturedCents, false),
-              ('Missed', totals.missedCents, totals.missedCents > 0),
-            ])
+            for (final (label, cents, emphasis) in tiles)
               SizedBox(
                 width: width,
                 child: _Total(
@@ -222,6 +222,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
                   cents: cents,
                   emphasis: emphasis,
                   missed: label == 'Missed',
+                  perYear: label == 'Opted out',
                 ),
               ),
           ],
@@ -309,6 +310,7 @@ class _Total extends StatelessWidget {
     required this.cents,
     required this.emphasis,
     required this.missed,
+    this.perYear = false,
   });
 
   final String label;
@@ -316,12 +318,18 @@ class _Total extends StatelessWidget {
   final bool emphasis;
   final bool missed;
 
+  /// A year's value rather than this cycle's, said as "… a year".
+  final bool perYear;
+
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final line = missed && emphasis ? tokens.missed.line : tokens.surfaceLine;
-    return Container(
+    final figure = perYear
+        ? '${formatMoney(cents)} a year'
+        : formatMoney(cents);
+    final tile = Container(
       padding: const EdgeInsets.all(Space.s4),
       decoration: BoxDecoration(
         color: tokens.surfaceRaised,
@@ -341,7 +349,7 @@ class _Total extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              formatMoney(cents),
+              figure,
               style: text.titleMedium?.copyWith(
                 fontWeight: FontWeight.w500,
                 color: missed && emphasis ? tokens.missed.foreground : null,
@@ -351,6 +359,14 @@ class _Total extends StatelessWidget {
         ],
       ),
     );
+    return perYear
+        ? Semantics(
+            container: true,
+            label: '$label, $figure',
+            excludeSemantics: true,
+            child: tile,
+          )
+        : tile;
   }
 }
 
