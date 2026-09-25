@@ -87,6 +87,8 @@ jobs:
           gcloud run jobs execute ${{ vars.API_MIGRATION_JOB }} \
             --region ${{ vars.GCP_REGION }} --wait --quiet
 
+      # The run number in the revision name lets a manual dispatch redeploy a
+      # commit that is already live.
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@v3
@@ -94,7 +96,7 @@ jobs:
           service: ${{ vars.API_CLOUD_RUN_SERVICE }}
           region: ${{ vars.GCP_REGION }}
           image: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-api@${{ steps.build.outputs.digest }}
-          flags: --revision-suffix=sha-${{ github.sha }}
+          flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}
 
       # Liveness on /health (Google's edge answers the conventional z-suffixed
       # path itself), then one request that has to reach the database: a zone
