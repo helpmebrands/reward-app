@@ -16,6 +16,31 @@ Dark: `#9184d9`, `#232532`, `#e9e9ed`, `#161826`. Light: `#5d5294`, `#ffffff`, `
 
 With the platform reporting dark, the running app resolves the dark accent as primary and the dark "use soon" ground from the extension, so the system setting is what picks the theme.
 
+
+## Brand lockup
+
+`brand_lockup_test.dart` pumps `BrandLockup` in a box the width the app bar gives it (the window less 84) in both themes and checks which file is drawn and at what size ([[mobile-architecture#Brand lockup]]).
+
+### The lockup fits down to a 308 window
+
+At 402, 320 and 308 windows the lockup is drawn at 224 x 32, the `-dark` file in the dark theme and the other in the light.
+
+### Below that the wordmark
+
+At a 300 window the wordmark is drawn at 154 x 22, the `-dark` file in the dark theme.
+
+### A narrower bar scales the wordmark down
+
+At a 220 window the wordmark is narrower than 154, keeps its 7:1 shape, fits the box and nothing overflows.
+
+### The text scale leaves the size alone
+
+At text scale 2.0 the lockup is still 224 x 32: it is artwork, not text.
+
+### An image, not a heading
+
+The semantics tree has one node labelled "HelpMe reward", flagged as an image and not as a header, so each screen keeps its one level-one heading.
+
 ## Today
 
 `today_screen_test.dart` renders the screen over the PWA's sample household with today fixed at 16 September 2026 and compares it with what the PWA shows for that date ([[mobile-architecture#Today screen]]).
