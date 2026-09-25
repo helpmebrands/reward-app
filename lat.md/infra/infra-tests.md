@@ -296,11 +296,15 @@ The check comes first rather than after a rejected upload: a checkout from befor
 `08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
 ### Runbook 08 checks the profile's entitlements before storing it
 
-The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
+The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `aps-environment`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
 
 The API route stays as an appendix.
 
 The first pass of the runbook stored a profile made for a second, hand-registered app id, and a later one stored a profile without Associated Domains (release run 35960067543). Both fail only at signing, so the check comes before the version is added.
+### Runbook 08 re-checks the stored profile for push
+
+Part 4 decodes the stored profile and greps the four names §1.7 requires, `aps-environment` among them, so a profile without Push Notifications is caught before a release.
+
 ### Runbook 08 reads binaries back with --out-file
 
 The *Check everything* part of `08-mobile-setup.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.

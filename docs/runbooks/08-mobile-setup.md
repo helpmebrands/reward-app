@@ -837,10 +837,13 @@ $ security delete-keychain check.keychain-db
 $ gcloud secrets versions access latest --secret reward-app-ios-provisioning-profile-$STACK \
     --project "$PROJECT_ID" --out-file check.mobileprovision
 $ security cms -D -i check.mobileprovision | plutil -p - \
-    | grep -E 'application-identifier|com.apple.developer.applesignin|com.apple.developer.associated-domains'
+    | grep -E 'application-identifier|aps-environment|com.apple.developer.applesignin|com.apple.developer.associated-domains'
 ```
 
-The last command must show the same three names as in 1.7.
+The last command must show the same four names as in 1.7. A missing
+`aps-environment` means the profile was made without Push Notifications:
+the next release fails to sign and no iPhone gets a push. Re-make it as
+*Later: re-making the iOS profile* describes.
 
 **Both sign-in providers are on:**
 
