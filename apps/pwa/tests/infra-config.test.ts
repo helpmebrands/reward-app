@@ -182,6 +182,15 @@ describe('api deploy workflow', () => {
     expect(cdApi).toContain('Mars/Olympus_Mons')
   })
 
+  // @lat: [[infra-tests#Infrastructure config#CD revision names carry the run number]]
+  it('suffixes both CD revision names with the SHA and the run number', () => {
+    for (const file of ['.github/workflows/cd.yml', '.github/workflows/cd-api.yml']) {
+      expect(read(file)).toContain(
+        'flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}',
+      )
+    }
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Api image carries the migrator and the migrations]]
   it('compiles the migrator into the api image beside the migrations', () => {
     const dockerfile = read('services/api/Dockerfile')

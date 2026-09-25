@@ -398,6 +398,10 @@ The `api` job in `verify.yml` declares a `postgres:16` service with a `pg_isread
 
 The smoke test reads `/health` (never `/healthz`) and posts a device with the zone `Mars/Olympus_Mons`, expecting the database-backed 400.
 
+### CD revision names carry the run number
+
+`cd.yml` and `cd-api.yml` pass `--revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}`, so a manual dispatch of an already-deployed commit makes a new revision instead of failing `ALREADY_EXISTS`.
+
 ### Api image carries the migrator and the migrations
 
 `services/api/Dockerfile` compiles `bin/migrate.dart` to `/app/migrate` and the runtime stage copies it to `/migrate` with `migrations/` at `/migrations`, where the binary resolves them ([[api-architecture#Container]]).
