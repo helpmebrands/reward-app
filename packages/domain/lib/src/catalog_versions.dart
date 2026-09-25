@@ -71,6 +71,8 @@ class LinkedBenefitState {
     this.spendMetAt,
     this.lastCallOnly = false,
     this.active = true,
+    this.optedOutAt,
+    this.trackedFrom,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -84,6 +86,8 @@ class LinkedBenefitState {
   final IsoInstant? spendMetAt;
   final bool lastCallOnly;
   final bool active;
+  final IsoInstant? optedOutAt;
+  final IsoDate? trackedFrom;
   final IsoInstant createdAt;
   final IsoInstant updatedAt;
 }
@@ -126,6 +130,8 @@ Benefit benefitFromCredit(
     notes: credit.notes,
     lastCallOnly: state.lastCallOnly,
     active: state.active,
+    optedOutAt: state.optedOutAt,
+    trackedFrom: state.trackedFrom,
     createdAt: state.createdAt,
     updatedAt: state.updatedAt,
   );

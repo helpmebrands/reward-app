@@ -32,6 +32,7 @@ Benefit _benefit({
   bool enrollmentRequired = false,
   IsoInstant? enrolledAt,
   int? spendThresholdCents,
+  IsoInstant? optedOutAt,
 }) => Benefit(
   id: id,
   cardId: cardId,
@@ -46,6 +47,7 @@ Benefit _benefit({
   redemptionSteps: const [],
   lastCallOnly: false,
   active: true,
+  optedOutAt: optedOutAt,
   createdAt: _stamp,
   updatedAt: _stamp,
 );
@@ -423,6 +425,22 @@ void main() {
       expect(prefs.minValueCents, 100);
       expect(h.saved.settings.useSoonDays, 14);
       expect(h.notifications, 2);
+    });
+  });
+
+  group('derived views', () {
+    // @lat: [[mobile-tests#Store#Opted-out credits stay off the lists]]
+    test('instances and instanceFor leave opted-out credits out', () async {
+      final h = await _load(
+        _data(
+          benefits: [
+            _benefit(),
+            _benefit(id: 'oura', optedOutAt: '2026-05-01T09:00:00.000Z'),
+          ],
+        ),
+      );
+      expect(h.store.instances.map((i) => i.benefit.id), ['benefit-1']);
+      expect(h.store.instanceFor('oura'), isNull);
     });
   });
 

@@ -52,6 +52,8 @@ Benefit makeBenefit(
   IsoDate? endsOn,
   bool lastCallOnly = false,
   bool active = true,
+  IsoInstant? optedOutAt,
+  IsoDate? trackedFrom,
 }) {
   return Benefit(
     id: id,
@@ -71,6 +73,8 @@ Benefit makeBenefit(
     redemptionSteps: const [],
     lastCallOnly: lastCallOnly,
     active: active,
+    optedOutAt: optedOutAt,
+    trackedFrom: trackedFrom,
     createdAt: '2020-03-14T00:00:00.000Z',
     updatedAt: '2020-03-14T00:00:00.000Z',
   );

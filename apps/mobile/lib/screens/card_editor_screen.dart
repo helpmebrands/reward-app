@@ -466,7 +466,7 @@ class _BenefitLink extends StatelessWidget {
       cadenceLabel(benefit.cadence),
       formatMoney(benefit.valueCents),
       ?lock,
-      if (!benefit.active) 'paused',
+      if (!benefit.active || benefit.optedOutAt != null) 'paused',
     ].join(' · ');
     return Material(
       color: tokens.surfaceRaised,

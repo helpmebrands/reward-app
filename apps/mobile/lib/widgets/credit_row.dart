@@ -13,7 +13,9 @@ RowTone toneFor(BenefitStatus status) => switch (status) {
   BenefitStatus.useSoon => RowTone.soon,
   BenefitStatus.available => RowTone.available,
   BenefitStatus.locked => RowTone.locked,
-  BenefitStatus.captured || BenefitStatus.manual => RowTone.captured,
+  BenefitStatus.captured ||
+  BenefitStatus.manual ||
+  BenefitStatus.optedOut => RowTone.captured,
   BenefitStatus.missed => RowTone.missed,
 };
 

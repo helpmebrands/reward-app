@@ -1,4 +1,4 @@
-/// Selectors: statuses, the four totals, overlaps, the missed ledger and card
+/// Selectors: statuses, the five totals, overlaps, the missed ledger and card
 /// value, resolved from [AppData] for a given day.
 library;
 
@@ -65,6 +65,7 @@ BenefitStatus _statusFor(
   bool locked,
   int useSoonHorizon,
 ) {
+  if (benefit.optedOutAt != null) return BenefitStatus.optedOut;
   if (claimedCents >= benefit.valueCents) return BenefitStatus.captured;
   if (benefit.cadence == Cadence.manual) return BenefitStatus.manual;
   if (locked) return BenefitStatus.locked;
@@ -172,6 +173,7 @@ const Map<BenefitStatus, int> _statusOrder = {
   BenefitStatus.manual: 3,
   BenefitStatus.captured: 4,
   BenefitStatus.missed: 5,
+  BenefitStatus.optedOut: 6,
 };
 
 /// Ladder position first, then soonest deadline, then biggest amount at stake.
@@ -205,7 +207,7 @@ int sumClaimed(Iterable<BenefitInstance> instances) {
   return instances.fold(0, (sum, i) => sum + i.claimedCents);
 }
 
-/// The four figures the Credits screen insists on keeping apart. Adding money
+/// The five figures the Credits screen insists on keeping apart. Adding money
 /// you can still get to money you have already lost would be meaningless, so
 /// they are never summed into one total.
 class Totals {
@@ -214,6 +216,7 @@ class Totals {
     required this.lockedCents,
     required this.capturedCents,
     required this.missedCents,
+    this.optedOutCents = 0,
   });
 
   /// Open and spendable. Today's headline number.
@@ -228,30 +231,47 @@ class Totals {
   /// Windows that closed unused, this calendar year.
   final int missedCents;
 
+  /// A year's value of the credits the household opted out of.
+  final int optedOutCents;
+
   @override
   bool operator ==(Object other) =>
       other is Totals &&
       other.claimableCents == claimableCents &&
       other.lockedCents == lockedCents &&
       other.capturedCents == capturedCents &&
-      other.missedCents == missedCents;
+      other.missedCents == missedCents &&
+      other.optedOutCents == optedOutCents;
 
   @override
-  int get hashCode =>
-      Object.hash(claimableCents, lockedCents, capturedCents, missedCents);
+  int get hashCode => Object.hash(
+    claimableCents,
+    lockedCents,
+    capturedCents,
+    missedCents,
+    optedOutCents,
+  );
 
   @override
   String toString() =>
       'Totals(claimable: $claimableCents, locked: $lockedCents, '
-      'captured: $capturedCents, missed: $missedCents)';
+      'captured: $capturedCents, missed: $missedCents, '
+      'optedOut: $optedOutCents)';
 }
 
 Totals totalsFor(List<BenefitInstance> instances, int missedCents) {
+  final optedOut = byStatus(instances, BenefitStatus.optedOut);
   return Totals(
     claimableCents: sumRemaining(instances.where(isClaimable)),
     lockedCents: sumRemaining(byStatus(instances, BenefitStatus.locked)),
-    capturedCents: sumClaimed(instances),
+    capturedCents: sumClaimed(
+      instances.where((i) => i.status != BenefitStatus.optedOut),
+    ),
     missedCents: missedCents,
+    optedOutCents: optedOut.fold(
+      0,
+      (sum, i) => sum + annualValueCents(i.benefit),
+    ),
   );
 }
 
@@ -369,6 +389,7 @@ List<MissedCycle> missedCycles(
   for (final benefit in data.benefits) {
     // Manual credits have no window to miss; rolling ones close only by claim.
     if (!benefit.active ||
+        benefit.optedOutAt != null ||
         benefit.cadence == Cadence.manual ||
         benefit.cadence == Cadence.rolling) {
       continue;
@@ -376,6 +397,9 @@ List<MissedCycle> missedCycles(
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
     final trackedFrom = card.createdAt.substring(0, 10);
+    // A credit reactivated after an opt-out is not blamed for the windows
+    // that closed while it was opted out.
+    final resumedOn = benefit.trackedFrom;
 
     for (final cycle in closedCyclesBefore(
       benefit,
@@ -384,6 +408,7 @@ List<MissedCycle> missedCycles(
       lookbackCycles,
     )) {
       if (compareIsoDate(cycle.start, trackedFrom) < 0) break;
+      if (resumedOn != null && compareIsoDate(cycle.end, resumedOn) < 0) break;
       final claimed = claimedIn(claims, benefit.id, cycle.key);
       final shortfall = benefit.valueCents - claimed;
       if (shortfall > 0) {
@@ -526,7 +551,9 @@ class CardSummary {
   const CardSummary({
     required this.card,
     required this.instances,
+    required this.potentialValueCents,
     required this.annualValueCents,
+    required this.optedOutCents,
     required this.capturedCents,
     required this.claimableCents,
     required this.lockedCents,
@@ -540,8 +567,16 @@ class CardSummary {
   final Card card;
   final List<BenefitInstance> instances;
 
-  /// Value this card releases over a full year.
+  /// Value this card could release over a full year, opted-out credits
+  /// included and spend-gated ones left out.
+  final int potentialValueCents;
+
+  /// Value the household will use over a full year: [potentialValueCents]
+  /// without the opted-out credits. The card's verdict is judged on this.
   final int annualValueCents;
+
+  /// A year's value of this card's opted-out credits.
+  final int optedOutCents;
 
   /// Claimed so far this cardmember year.
   final int capturedCents;
@@ -571,18 +606,23 @@ CardSummary summarizeCard(
   final mine = instances.where((i) => i.card.id == card.id).toList();
   final benefits = data.benefits.where((b) => b.cardId == card.id && b.active);
   final capturedCents = claimedThisCardYear(card, data, day);
+  // A spend-gated credit is not the card's to give until the spend is met.
+  int valueOf(Iterable<Benefit> benefits) => benefits.fold(
+    0,
+    (sum, b) =>
+        sum +
+        (lockReason(b, card, day) == LockReason.spend
+            ? 0
+            : annualValueCents(b)),
+  );
+  final potential = valueOf(benefits);
+  final optedOut = valueOf(benefits.where((b) => b.optedOutAt != null));
   return CardSummary(
     card: card,
     instances: mine,
-    // A spend-gated credit is not the card's to give until the spend is met.
-    annualValueCents: benefits.fold(
-      0,
-      (sum, b) =>
-          sum +
-          (lockReason(b, card, day) == LockReason.spend
-              ? 0
-              : annualValueCents(b)),
-    ),
+    potentialValueCents: potential,
+    annualValueCents: potential - optedOut,
+    optedOutCents: optedOut,
     capturedCents: capturedCents,
     claimableCents: sumRemaining(mine.where(isClaimable)),
     lockedCents: sumRemaining(
@@ -700,4 +740,5 @@ String statusLabel(BenefitStatus status) => switch (status) {
   BenefitStatus.captured => 'Captured',
   BenefitStatus.manual => 'Manual',
   BenefitStatus.missed => 'Missed',
+  BenefitStatus.optedOut => 'Opted out',
 };

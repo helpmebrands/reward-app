@@ -29,13 +29,53 @@ The suite is `packages/domain/test/`, ported case for case from the retired PWA'
 
 - Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrolment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
 - Ordering puts what closes soonest first and locked below open.
-- The four totals stay apart. `nextReset` reports the nearest open window.
+- The totals stay apart. `nextReset` reports the nearest open window.
 - Overlaps: one credit on two cards is flagged with `sameProduct`; different issuers match by merchant; two credits on the same card do not overlap; the group totals what is still unclaimed.
 - The missed ledger counts closed windows with nothing claimed, counts only the shortfall for partial use, never blames windows before tracking began, and ignores manual credits. Leaks group repeats and rank by money lost. Monthly totals bin claims by when logged and misses by when the window shut.
 - `summarizeCard` reports net against the fee; `cardLabel` names the holder and prefers a nickname.
 - A credit with `endsOn` goes Use soon against the clamped end, is absent the day after it ends, and leaves its final shortfall in the missed ledger.
 - A spend-gated credit is locked for `spend` until `spendMetAt` falls in the current year (calendar or cardmember, by anchor), enrolment is named first when both apply, and `summarizeCard` counts nothing for it while gated.
 - A rolling credit is Available until claimed, Captured until its interval ends, Available again under a new key, never Use soon or missed even with a partial claim, and worth its amortised value on the card.
+
+## Opted-out credits
+
+`packages/domain/test/opted_out_test.dart` pins credits the household will never use ([[domain#Status ladder#Opted out is a choice, not a status of the window]]).
+
+### Opted out outranks every other rung
+
+A credit with `optedOutAt` is `optedOut` even when fully claimed or locked, and is never claimable. `statusLabel` calls it "Opted out".
+
+### Opted out is its own total
+
+`totalsFor` puts the annual value of opted-out credits in `optedOutCents`, and leaves them out of claimable, locked and captured, even with a claim logged this cycle.
+
+### Opted out is never missed
+
+A credit opted out all year adds nothing to the missed ledger.
+
+### Opted out is never reminded
+
+`buildSchedule` produces no reminder for an opted-out credit.
+
+### Windows closed before tracking resumed are not missed
+
+With `trackedFrom` set, `missedCycles` skips every window that closed before that day, so reactivating a credit never counts the gap as missed.
+
+### A card has a potential and a usable value
+
+`summarizeCard` reports `potentialValueCents` with opted-out credits included and spend-gated ones left out, `annualValueCents` without either, and `optedOutCents` for the difference.
+
+### Opted out and tracked from round-trip
+
+`optedOutAt` and `trackedFrom` survive the codec and are omitted when absent.
+
+### A paused credit loads as opted out
+
+A legacy `active: false` credit that had not ended by its `updatedAt` loads active and opted out at that instant; one whose `endsOn` had passed stays inactive.
+
+### A linked credit carries its opt-out
+
+`benefitFromCredit` copies `optedOutAt` and `trackedFrom` from the household's `LinkedBenefitState`.
 
 ## Ladder and schedule
 

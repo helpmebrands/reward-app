@@ -199,7 +199,9 @@ void main() {
     }) => CardSummary(
       card: sampleHousehold().cards.first,
       instances: const [],
+      potentialValueCents: 0,
       annualValueCents: 0,
+      optedOutCents: 0,
       capturedCents: fee + net,
       claimableCents: claimable,
       lockedCents: locked,
