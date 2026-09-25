@@ -616,6 +616,23 @@ Each draws `helpmereward-logo.png`, the `-dark` file in the dark theme, and the 
 
 Each has exactly one level-one heading, and the two "HelpMe reward" nodes, the bar's lockup and the logo, are images and not headers.
 
+
+## Entry logo
+
+`entry_logo_test.dart` pumps Welcome and Sign in on their own, in both themes and on a small phone at a large text size ([[mobile-architecture#Sign-in#The stacked logo]]).
+
+### The stacked logo replaces the piggy bank
+
+Neither draws `Icons.savings_outlined`; each draws `helpmereward-logo-vertical.png`, the `-dark` file in the dark theme, centred on the 402 window.
+
+### The buttons stay reachable on a small phone at 2.0
+
+At 320 x 568 with text scale 2.0 nothing overflows, and Welcome's Next and Sign in's Google button can be scrolled fully into view.
+
+### One heading, the logo is an image
+
+Each has exactly one level-one heading, and the "HelpMe reward" node is an image, not a header.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.
