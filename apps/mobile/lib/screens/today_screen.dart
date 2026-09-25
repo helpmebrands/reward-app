@@ -89,6 +89,9 @@ class _TodayBody extends StatelessWidget {
           ? null
           : () => actions.logAll(instance),
       onToggleMute: actions == null ? null : () => actions.toggleMute(instance),
+      onOptOut: actions == null || !store.canWrite
+          ? null
+          : () => actions.optOut(instance),
     );
   }
 

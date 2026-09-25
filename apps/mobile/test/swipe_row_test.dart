@@ -7,13 +7,18 @@ import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
 import 'package:reward/widgets/swipe_row.dart';
 
-/// The swipe row: right to log, left to silence, parked open rather than
+/// The swipe row: right to log, left to silence or opt out, parked open rather than
 /// fired, direction-locked so the list still scrolls, and every gesture
 /// reachable as a semantics action.
 
 const _stamp = '2026-01-01T00:00:00.000Z';
 
-Benefit _benefit(String id, String name, int valueCents) => Benefit(
+Benefit _benefit(
+  String id,
+  String name,
+  int valueCents, {
+  bool enrollmentRequired = false,
+}) => Benefit(
   id: id,
   cardId: 'jim',
   name: name,
@@ -21,7 +26,7 @@ Benefit _benefit(String id, String name, int valueCents) => Benefit(
   valueCents: valueCents,
   cadence: Cadence.quarterly,
   anchor: CycleAnchor.calendar,
-  enrollmentRequired: false,
+  enrollmentRequired: enrollmentRequired,
   redemptionSteps: const [],
   lastCallOnly: false,
   active: true,
@@ -29,7 +34,7 @@ Benefit _benefit(String id, String name, int valueCents) => Benefit(
   updatedAt: _stamp,
 );
 
-/// Twelve open credits so the list scrolls, and one captured credit.
+/// Twelve open credits so the list scrolls, one captured and one locked.
 AppData _household() => AppData(
   version: 1,
   cards: const [
@@ -49,6 +54,7 @@ AppData _household() => AppData(
   benefits: [
     for (var i = 0; i < 12; i++) _benefit('b$i', 'Credit $i', 10000),
     _benefit('done', 'Captured credit', 1500),
+    _benefit('lock', 'Locked credit', 5000, enrollmentRequired: true),
   ],
   claims: const [
     Claim(
@@ -66,6 +72,7 @@ class Calls {
   final List<String> opened = [];
   final List<String> logged = [];
   final List<String> muted = [];
+  final List<String> optedOut = [];
 }
 
 Future<Calls> pumpRows(WidgetTester tester, {double textScale = 1}) async {
@@ -93,6 +100,7 @@ Future<Calls> pumpRows(WidgetTester tester, {double textScale = 1}) async {
                   onOpen: () => calls.opened.add(instance.benefit.id),
                   onLogAll: () => calls.logged.add(instance.benefit.id),
                   onToggleMute: () => calls.muted.add(instance.benefit.id),
+                  onOptOut: () => calls.optedOut.add(instance.benefit.id),
                 ),
               ),
           ],
@@ -182,19 +190,64 @@ void main() {
     expect(slide(tester, 'b0'), swipeActionWidth);
   });
 
-  // @lat: [[mobile-tests#Swipe row#A drag left parks the row open on Silence]]
-  testWidgets('60 px left parks on Silence, which mutes', (tester) async {
+  // @lat: [[mobile-tests#Swipe row#A drag left parks the row open on Silence and Opt out]]
+  testWidgets('120 px left parks on Silence and Opt out, side by side', (
+    tester,
+  ) async {
     final calls = await pumpRows(tester);
 
-    await tester.drag(row('b1'), const Offset(-60, 0));
-    await tester.pumpAndSettle();
-    expect(slide(tester, 'b1'), -swipeActionWidth);
-    expect(find.text('Silence').hitTestable(), findsOneWidget);
+    Future<void> open() async {
+      await tester.drag(row('b1'), const Offset(-120, 0));
+      await tester.pumpAndSettle();
+      expect(slide(tester, 'b1'), -2 * swipeActionWidth);
+    }
 
-    await tester.tap(find.text('Silence'));
+    await open();
+    final silence = find.text('Silence').hitTestable();
+    final optOut = find.text('Opt out').hitTestable();
+    expect(silence, findsOneWidget);
+    expect(optOut, findsOneWidget);
+    expect(tester.getCenter(silence).dx, lessThan(tester.getCenter(optOut).dx));
+    for (final label in ['Silence', 'Opt out']) {
+      final button = find.ancestor(
+        of: find.text(label),
+        matching: find.byType(InkWell),
+      );
+      expect(tester.getSize(button.first).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(button.first).height, greaterThanOrEqualTo(48));
+    }
+    expect(calls.muted, isEmpty, reason: 'parking must not fire');
+
+    await tester.tap(silence);
     await tester.pumpAndSettle();
     expect(calls.muted, ['b1']);
     expect(slide(tester, 'b1'), 0);
+
+    await open();
+    await tester.tap(find.text('Opt out'));
+    await tester.pumpAndSettle();
+    expect(calls.optedOut, ['b1']);
+    expect(slide(tester, 'b1'), 0);
+
+    await open();
+    await tester.tapAt(tester.getCenter(row('b3')));
+    await tester.pumpAndSettle();
+    expect(slide(tester, 'b1'), 0);
+    expect(calls.muted, ['b1']);
+    expect(calls.optedOut, ['b1']);
+  });
+
+  // @lat: [[mobile-tests#Swipe row#A locked row offers both left actions]]
+  testWidgets('a locked row opens left on Silence and Opt out', (tester) async {
+    await pumpRows(tester);
+    await tester.scrollUntilVisible(row('lock'), 200);
+    await tester.pumpAndSettle();
+
+    await tester.drag(row('lock'), const Offset(-120, 0));
+    await tester.pumpAndSettle();
+    expect(slide(tester, 'lock'), -2 * swipeActionWidth);
+    expect(find.text('Silence').hitTestable(), findsOneWidget);
+    expect(find.text('Opt out').hitTestable(), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Swipe row#A captured row has nothing to log]]
@@ -210,7 +263,7 @@ void main() {
   });
 
   // @lat: [[mobile-tests#Swipe row#Every gesture is a semantics action]]
-  testWidgets('the row exposes Log the full credit and Silence as actions', (
+  testWidgets('the row exposes Log, Silence and Opt out as actions', (
     tester,
   ) async {
     final calls = await pumpRows(tester);
@@ -220,7 +273,10 @@ void main() {
     final labels = {
       for (final id in ids) CustomSemanticsAction.getAction(id)!.label: id,
     };
-    expect(labels.keys, containsAll(['Log the full credit', 'Silence']));
+    expect(
+      labels.keys,
+      containsAll(['Log the full credit', 'Silence', 'Opt out']),
+    );
 
     final owner = node.owner!;
     owner.performAction(
@@ -233,10 +289,16 @@ void main() {
       SemanticsAction.customAction,
       labels['Silence'],
     );
+    owner.performAction(
+      node.id,
+      SemanticsAction.customAction,
+      labels['Opt out'],
+    );
     await tester.pump();
 
     expect(calls.logged, ['b2']);
     expect(calls.muted, ['b2']);
+    expect(calls.optedOut, ['b2']);
     expect(slide(tester, 'b2'), 0);
   });
 

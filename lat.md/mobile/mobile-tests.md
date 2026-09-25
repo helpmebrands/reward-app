@@ -702,6 +702,10 @@ The two claims appear newest first, $20 above $10; "Remove the $20 logged on Sep
 
 The switch labelled "Silence reminders for …" mutes the benefit and "Last call only for …" sets `lastCallOnly`.
 
+### Opting out from the sheet closes it and leaves Today
+
+"Opt out — I won't use this" closes the sheet, opts the credit out with the same snackbar as the swipe, and the credit's row leaves Today.
+
 ### A locked credit unlocks from the sheet
 
 A locked credit shows the "Not enrolled." note and no logging; "I've enrolled — unlock this credit" stamps `enrolledAt` and the full-amount button appears.
@@ -762,9 +766,13 @@ A drag of 6 across and 40 down scrolls the list and leaves the row at rest.
 
 A 30 pixel fling at 1200 pixels per second parks the row open although it never reached 55%.
 
-### A drag left parks the row open on Silence
+### A drag left parks the row open on Silence and Opt out
 
-A 60 pixel drag left parks the row at minus 84 with "Silence" tappable; tapping it silences and closes.
+A 120 pixel drag left parks the row at minus 168 with "Silence" and "Opt out" side by side, each at least 48dp. Tapping either fires it and closes the row; a tap elsewhere closes it without firing.
+
+### A locked row offers both left actions
+
+A locked row dragged left parks open on "Silence" and "Opt out" like an open one.
 
 ### A captured row has nothing to log
 
@@ -772,7 +780,7 @@ A captured row dragged right stays at rest and logs nothing.
 
 ### Every gesture is a semantics action
 
-The row's semantics node carries custom actions "Log the full credit" and "Silence"; performing each fires the matching callback with the row still at rest.
+The row's semantics node carries custom actions "Log the full credit", "Silence" and "Opt out"; performing each fires the matching callback with the row still at rest.
 
 ### The bell silences by name
 
@@ -797,6 +805,10 @@ At a 2.0 text scale a tap opens the credit and a 60 pixel drag still parks the r
 ### Muting has an Undo that restores the previous state
 
 `toggleMute` silences with "Silenced … It is still tracked." and "Undo silencing …", whose Undo unmutes; from muted it says "Reminders back on for …" with "Undo reminders back on for …", whose Undo mutes again.
+
+### Opting out has an Undo that brings the credit back
+
+`optOut` takes Resy off the store's instances and says "Opted out of Resy Dining Credit. Reactivate it from the card’s setup." with "Undo opting out of Resy Dining Credit"; the Undo brings it back without setting `trackedFrom`.
 
 ### Unlocking has an Undo that revokes
 
