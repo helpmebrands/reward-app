@@ -582,6 +582,23 @@ On Credits at rest the bar is the page colour; after scrolling the list 300 up i
 
 At 402 the lockup's left edge is 20 from the window, and the gear's 24 glyph ends 20 from the right edge.
 
+
+## Pushed route bars
+
+`pushed_route_bars_test.dart` opens Settings, the benefit editor, Add card, the card editor and Change the terms on the sample household at 402 wide and checks their bars ([[mobile-architecture#Brand app bar#Pushed routes]]).
+
+### Back and the title in a 64-high bar
+
+Each has one `AppBar`, 64 high like the tabs' bar, holding Back and the screen's `ScreenTitle`, and exactly one level-one heading on the screen.
+
+### No gear on a pushed route
+
+None of them draws the Settings gear or a "Settings" tooltip.
+
+### The same colours as the tab bar
+
+Settings' bar is the page colour at rest and the surface-container colour once its list scrolls under it.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.
