@@ -9,12 +9,10 @@ import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/main.dart';
 import 'package:reward/widgets/credit_row.dart';
-import 'package:reward/widgets/nudge_preview.dart';
 
 /// Today as the user touches it: rows open the sheet, the household filter
-/// narrows the screen, overlap cards open the compare sheet, and "Preview
-/// nudge" shows the next reminder. On the PWA's sample household, dated
-/// 16 September 2026.
+/// narrows the screen and overlap cards open the compare sheet. On the PWA's
+/// sample household, dated 16 September 2026.
 
 AppData sampleHousehold() => appDataFromJson(
   jsonDecode(
@@ -210,48 +208,11 @@ void main() {
     expect(creditSheet, findsOneWidget);
   });
 
-  // @lat: [[mobile-tests#Today interactions#Preview nudge shows the stand-in when nothing is scheduled]]
-  testWidgets('Preview nudge shows the stand-in with reminders off', (
-    tester,
-  ) async {
+  // @lat: [[mobile-tests#Today interactions#Today has no Preview nudge]]
+  testWidgets('Today has no Preview nudge button', (tester) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('Preview nudge'));
-    await tester.pumpAndSettle();
-
-    final sample = sampleReminder(189890, now);
-    expect(sample.title, '\$1,898.90 on the line — one week left');
-    expect(find.text(sample.title), findsOneWidget);
-    expect(find.text(sample.body), findsOneWidget);
-
-    await tester.pump(const Duration(seconds: 7));
-    await tester.pumpAndSettle();
-    expect(find.text(sample.title), findsNothing);
-  });
-
-  // @lat: [[mobile-tests#Today interactions#Preview nudge shows the next scheduled reminder]]
-  testWidgets('Preview nudge shows what buildSchedule produces', (
-    tester,
-  ) async {
-    final data = sampleHousehold();
-    final enabled = defaultMemberPreferences.copyWith(enabled: true);
-    final expected = buildSchedule(
-      data,
-      enabled,
-      now,
-    ).reminders.firstWhere((r) => r.fireAt > now.millisecondsSinceEpoch);
-    final app = await pumpApp(tester, data: data, prefs: enabled);
-
-    await tester.tap(find.text('Preview nudge'));
-    await tester.pumpAndSettle();
-
-    expect(app.ui.nudge?.id, expected.id);
-    expect(find.text(expected.title), findsOneWidget);
-    expect(find.text(expected.body), findsOneWidget);
-
-    await tester.tap(find.bySemanticsLabel('Dismiss preview'));
-    await tester.pumpAndSettle();
-    expect(app.ui.nudge, isNull);
-    expect(find.text(expected.title), findsNothing);
+    expect(find.text('Preview nudge'), findsNothing);
+    expect(find.bySemanticsLabel('Preview nudge'), findsNothing);
   });
 }

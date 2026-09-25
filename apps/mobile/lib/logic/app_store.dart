@@ -134,9 +134,6 @@ class AppStore extends ChangeNotifier {
   /// resumed the next morning shows that morning's deadlines.
   IsoDate get today => todayIso(_clock());
 
-  /// The instant, for the schedule and the nudge preview.
-  DateTime get now => _clock();
-
   IsoInstant get _now => _clock().toUtc().toIso8601String();
 
   Future<void> load() async {

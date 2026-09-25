@@ -82,13 +82,9 @@ The Platinums are labelled "Jim's Platinum" and "Kathy's Platinum"; "Log $300 on
 
 Tapping Kathy's side closes the compare and opens the credit sheet for Kathy's hotel credit.
 
-### Preview nudge shows the stand-in when nothing is scheduled
+### Today has no Preview nudge
 
-With reminders off, "Preview nudge" shows "$1,898.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
-
-### Preview nudge shows the next scheduled reminder
-
-With reminders on, the preview is the first reminder `buildSchedule` produces after the clock, by id, title and body; "Dismiss preview" clears it.
+Real push reminders replaced the in-app preview (#289), so Today draws no "Preview nudge" button, by text or by label.
 
 ## Credits
 
@@ -680,9 +676,9 @@ With a snapshot store whose load is held open, `addCardFromTemplate` lands first
 
 Opening a credit sets the benefit id and notifies once, opening another replaces it, closing clears it, and closing an already closed sheet notifies nobody.
 
-### The compare sheet and the nudge are the other two
+### The compare sheet is the other one
 
-The overlap label and the nudge reminder are opened and cleared the same way, one notification each.
+The overlap label is opened and cleared the same way, one notification each, and repeating either is not a change.
 
 ## Credit sheet
 

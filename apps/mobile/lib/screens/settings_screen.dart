@@ -18,8 +18,8 @@ import 'join_screen.dart';
 
 /// Settings: reminder preferences, the ladder table and the theme.
 ///
-/// The reminder preferences are persisted here and drive the nudge preview;
-/// with [push], turning reminders on asks for notification permission and
+/// The reminder preferences are persisted here and drive the server's
+/// schedule; with [push], turning reminders on asks for notification permission and
 /// registers the device, and the server's summary and a test button show
 /// beneath the switch. The theme
 /// choice writes `Settings.theme`, which `RewardApp` reads from the store

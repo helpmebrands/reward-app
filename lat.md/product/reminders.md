@@ -45,8 +45,6 @@ One decision per notification. The title leads with the total at stake and the r
 - `permissive` reads "$X just opened"; `notice` reads "$X on the line — one week left"; `urgent` reads "$X expires tonight" on the last day.
 - A single-item body names the credit, merchant and the card by its display name ("Uber Cash at Uber on Travel card. $15 untouched."); a multi-item body names the largest, on its card, and counts the rest. The PWA still names the holder.
 
-## Nudge preview
+## No nudge preview
 
-Notification permission is a big ask on faith. The "Preview nudge" button on Today shows the next real reminder from the stored schedule, with the user's own numbers, in-app and without permission.
-
-When nothing is scheduled yet, `sampleReminder` builds a stand-in from the claimable total.
+Today once had a "Preview nudge" button that showed the next reminder in-app before permission was asked. Real push reminders replaced it and it was removed (#289).
