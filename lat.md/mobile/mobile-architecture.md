@@ -19,6 +19,15 @@ The layout under `apps/mobile/lib/` follows Flutter's recommended architecture, 
 
 The dark tokens are Nocturne verbatim; the light tokens are the PWA's derived light theme, copied from the PWA's `tokens.css` so the app kept its colours. Where Nocturne and Material disagree on looks, Nocturne wins: `ColorScheme.primary` is the accent, primary actions are outlined, the surfaces are the three Nocturne grounds, and there is no alarm red. Material supplies compact density and 48dp minimum targets. The theme mode is `Settings.theme` read from the store by `RewardApp` on every notification, so Dark or Light overrides the platform the moment it is saved and System follows the platform brightness as before; pinned by [[mobile-tests#Theme]] and [[mobile-tests#Settings]].
 
+
+## Brand lockup
+
+`BrandLockup` draws the brand in the app bar: the lockup (icon and one-line wordmark) at 224 x 32 when given at least 224 wide, otherwise the wordmark alone at 154 x 22, scaled down when even that does not fit.
+
+The bar reserves 84 for its margins, the gear and 8 of breathing room, so the lockup holds down to a 308 window. The size ignores the text scale, since it is artwork. It picks the `-dark` file in the dark theme, whose text is light grey. It is one semantics node, an image labelled "HelpMe reward" and never a header, so each screen keeps its one level-one `ScreenTitle` ([[mobile-architecture#Accessibility]]).
+
+The sources are the sixteen PNGs in the repo's `assets/logo/` (epic #279). The app bundles copies under `apps/mobile/assets/logo/` with the transparent padding trimmed and resized to 3x the drawn size, since Flutter only bundles assets from inside the package. No SVG exports exist, so there is no `flutter_svg`. Pinned by [[mobile-tests#Brand lockup]]; previews in both themes and at a 300 window.
+
 ## The snapshot store
 
 The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves one `AppData`, and `SharedPreferencesSnapshotStore` keeps it as a JSON string under the PWA's `app-data` key through the `shared_preferences` package, a Flutter Favorite.
