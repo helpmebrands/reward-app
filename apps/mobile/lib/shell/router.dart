@@ -141,7 +141,8 @@ GoRouter appRouter(
   redirect: session == null
       ? null
       : (context, state) => signInRedirect(session, state),
-  errorBuilder: (context, state) => const NotFoundScreen(),
+  errorBuilder: (context, state) =>
+      NotFoundScreen(showSettings: session?.signedIn ?? true),
   routes: [
     if (session != null) ...[
       GoRoute(
@@ -171,6 +172,7 @@ GoRouter appRouter(
         store: AppScope.of(context),
         ui: UiScope.of(context),
         code: state.pathParameters['code']!.toUpperCase(),
+        showSettings: session?.signedIn ?? true,
       ),
     ),
     StatefulShellRoute.indexedStack(

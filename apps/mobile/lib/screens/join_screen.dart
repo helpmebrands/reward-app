@@ -3,24 +3,34 @@ import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
 import '../logic/ui_state.dart';
+import '../shell/brand_app_bar.dart';
 import '../shell/router.dart';
+import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/screen_title.dart';
 
 /// Joining a household with an invite, from a link (`/invite/<code>`) or a
 /// code typed in. Leaving a household that holds cards asks first; a used,
 /// expired or unknown code says so and stays.
+///
+/// Reached from a link, so it carries the brand: the lockup in the bar
+/// instead of Back and a title, and the two-line logo above the message.
 class JoinScreen extends StatefulWidget {
   const JoinScreen({
     super.key,
     required this.store,
     required this.code,
     this.ui,
+    this.showSettings = false,
   });
 
   final AppStore store;
   final String code;
   final UiState? ui;
+
+  /// The gear in the bar, shown only when signed in.
+  final bool showSettings;
 
   @override
   State<JoinScreen> createState() => _JoinScreenState();
@@ -100,12 +110,11 @@ class _JoinScreenState extends State<JoinScreen> {
     final text = Theme.of(context).textTheme;
     final error = _error;
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(Paths.today),
-        ),
+      appBar: BrandAppBar(
+        widthClass: WidthClass.forWidth(MediaQuery.sizeOf(context).width),
+        onSettings: widget.showSettings
+            ? () => context.push(Paths.settings)
+            : null,
       ),
       body: SafeArea(
         child: Center(
@@ -116,12 +125,8 @@ class _JoinScreenState extends State<JoinScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(
-                    Icons.group_add_outlined,
-                    size: 48,
-                    color: tokens.accent,
-                  ),
-                  const SizedBox(height: Space.s4),
+                  const Center(child: BrandLogo()),
+                  const SizedBox(height: Space.s6),
                   ScreenTitle(
                     label: 'Join a household',
                     style: text.headlineSmall,
@@ -150,6 +155,12 @@ class _JoinScreenState extends State<JoinScreen> {
                     key: const Key('join'),
                     onPressed: _busy ? null : _join,
                     child: const Text('Join this household'),
+                  ),
+                  // The bar has no Back, so the way out is here.
+                  const SizedBox(height: Space.s2),
+                  TextButton(
+                    onPressed: () => context.go(Paths.today),
+                    child: const Text('Not now'),
                   ),
                   if (error != null) ...[
                     const SizedBox(height: Space.s4),

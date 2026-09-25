@@ -729,5 +729,9 @@ Widget settingsOn() {
 Widget settingsLight() =>
     _themed(SettingsScreen(store: _store(), ui: UiState()), Brightness.light);
 
-@Preview(name: 'Not found', size: Size(402, 500))
+@Preview(name: 'Not found, dark', size: Size(402, 600))
 Widget notFound() => _themed(const NotFoundScreen(), Brightness.dark);
+
+@Preview(name: 'Not found, light, signed in', size: Size(402, 600))
+Widget notFoundLight() =>
+    _themed(const NotFoundScreen(showSettings: true), Brightness.light);

@@ -12,11 +12,7 @@ import 'width_class.dart';
 /// the pushed routes' bars. The lockup is a labelled image, not a heading,
 /// so the bar adds no heading of its own ([AppBar.excludeHeaderSemantics]).
 class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const BrandAppBar({
-    super.key,
-    required this.widthClass,
-    required this.onSettings,
-  });
+  const BrandAppBar({super.key, required this.widthClass, this.onSettings});
 
   static const double height = 64;
 
@@ -28,7 +24,10 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
   static const double _breathing = 8;
 
   final WidthClass widthClass;
-  final VoidCallback onSettings;
+
+  /// Opens Settings; without it there is no gear, as on the screens a
+  /// signed-out person can reach from a link.
+  final VoidCallback? onSettings;
 
   @override
   Size get preferredSize => const Size.fromHeight(height);
@@ -47,7 +46,9 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Padding(
             padding: EdgeInsetsDirectional.only(
               start: widthClass.padding,
-              end: widthClass.padding - _gearOverhang,
+              end: onSettings == null
+                  ? widthClass.padding
+                  : widthClass.padding - _gearOverhang,
             ),
             child: Row(
               children: [
@@ -63,20 +64,21 @@ class BrandAppBar extends StatelessWidget implements PreferredSizeWidget {
                 // A label for the screen reader and a tooltip for the
                 // pointer; the tooltip stays out of the semantics so the
                 // name is read once.
-                MergeSemantics(
-                  child: Semantics(
-                    label: 'Settings',
-                    child: Tooltip(
-                      message: 'Settings',
-                      excludeFromSemantics: true,
-                      child: IconButton(
-                        onPressed: onSettings,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        icon: const Icon(Icons.settings_outlined, size: 24),
+                if (onSettings != null)
+                  MergeSemantics(
+                    child: Semantics(
+                      label: 'Settings',
+                      child: Tooltip(
+                        message: 'Settings',
+                        excludeFromSemantics: true,
+                        child: IconButton(
+                          onPressed: onSettings,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          icon: const Icon(Icons.settings_outlined, size: 24),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
