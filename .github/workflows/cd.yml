@@ -90,18 +90,21 @@ jobs:
           set -euo pipefail
           echo "Serving at $URL"
 
-          ok=""
-          for i in $(seq 1 12); do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/" || true)
-            if [ "$code" = "200" ]; then ok=1; break; fi
-            sleep 5
-          done
-          [ -n "$ok" ] || { echo "index -> $code"; exit 1; }
-          echo "  / -> 200"
+          # A freshly attached domain can answer 522 for a few seconds after
+          # it first serves /, so every path gets the same minute to settle.
+          expect_code() {
+            local code=""
+            for i in $(seq 1 12); do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL$1" || true)
+              if [ "$code" = "$2" ]; then echo "  $1 -> $2"; return 0; fi
+              sleep 5
+            done
+            echo "$1 -> $code, expected $2"
+            return 1
+          }
 
-          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/nope")
-          [ "$code" = "404" ] || { echo "/nope -> $code, expected 404"; exit 1; }
-          echo "  /nope -> 404"
+          expect_code / 200
+          expect_code /nope 404
 
       - name: Summarise
         if: always()

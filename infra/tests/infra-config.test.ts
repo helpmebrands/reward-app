@@ -521,7 +521,7 @@ describe('monorepo layout', () => {
     const cd = read('.github/workflows/cd.yml')
     expect(cd).toContain('URL: ${{ vars.SITE_URL }}')
     expect(cd).toMatch(/\/nope/)
-    expect(cd).toMatch(/"404"/)
+    expect(cd).toMatch(/\b404\b/)
     expect(cd).not.toContain('sw.js')
   })
 
