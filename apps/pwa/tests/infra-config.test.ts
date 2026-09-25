@@ -703,6 +703,15 @@ describe('mobile release trust', () => {
     expect(program()).toMatch(/SECRET_\$\{name\.toUpperCase\(\)\.replace\(\/-\/g, '_'\)\}/)
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 uploads the APNs key to Firebase]]
+  it('has runbook 08 upload an APNs key to Firebase Cloud Messaging', () => {
+    const runbook = read('docs/runbooks/08-mobile-setup.md')
+    const step = runbook.split(/^### 3\.6 .*APNs.*$/m)[1]?.split(/^##/m)[0] ?? ''
+    expect(step).toMatch(/Apple\s+Push\s+Notifications\s+service\s+\(APNs\)/)
+    expect(step).toMatch(/APNs\s+Authentication\s+Key/)
+    expect(step).toContain('LMFUSVPCDH')
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 08 has the store hand steps]]
   it('tells runbook 08 how to link the Play identity and add secret versions', () => {
     const runbook = read('docs/runbooks/08-mobile-setup.md')

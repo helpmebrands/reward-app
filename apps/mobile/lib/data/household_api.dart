@@ -78,6 +78,52 @@ class Invite {
   final String expiresAt;
 }
 
+/// One installation as the api registers it for push: its FCM token, an
+/// id the app made for itself, `ios` or `android`, and its IANA zone.
+class PushDevice {
+  const PushDevice({
+    required this.token,
+    required this.installationId,
+    required this.platform,
+    required this.timezone,
+  });
+
+  final String token;
+  final String installationId;
+  final String platform;
+  final String timezone;
+
+  Map<String, Object?> toJson() => {
+    'token': token,
+    'installationId': installationId,
+    'platform': platform,
+    'timezone': timezone,
+  };
+}
+
+/// How many reminders the server has scheduled for this member, and the
+/// next one.
+class ReminderSummary {
+  const ReminderSummary({required this.count, this.next});
+
+  factory ReminderSummary.fromJson(Map<String, dynamic> json) {
+    final next = json['next'] as Map<String, dynamic>?;
+    return ReminderSummary(
+      count: json['count'] as int,
+      next: next == null
+          ? null
+          : (
+              fireAt: DateTime.parse(next['fireAt'] as String),
+              title: next['title'] as String,
+              body: next['body'] as String,
+            ),
+    );
+  }
+
+  final int count;
+  final ({DateTime fireAt, String title, String body})? next;
+}
+
 /// The service tier as the app uses it; `ApiClient` is the real one, tests
 /// stand in their own. Bodies are the domain's JSON spelling.
 abstract interface class HouseholdApi {
@@ -110,6 +156,15 @@ abstract interface class HouseholdApi {
   Future<void> deleteBenefit(String id);
   Future<Claim> postClaim(String idempotencyKey, Map<String, Object?> body);
   Future<void> deleteClaim(String id);
+
+  /// Registers this installation for push, or updates its token and zone.
+  Future<void> registerDevice(PushDevice device);
+  Future<void> unregisterDevice(String token);
+  Future<ReminderSummary> reminderSummary();
+
+  /// Sends a test notification to each of the member's devices; how many
+  /// took it.
+  Future<int> sendTestReminder();
 }
 
 /// A request and its answer, as the client needs them: a seam so the
@@ -242,6 +297,25 @@ class ApiClient implements HouseholdApi {
       ..remove('mutedCardIds')
       ..remove('mutedBenefitIds'),
   );
+
+  @override
+  Future<void> registerDevice(PushDevice device) =>
+      _send('POST', '/v1/devices', body: device.toJson());
+
+  @override
+  Future<void> unregisterDevice(String token) =>
+      _send('DELETE', '/v1/devices/${Uri.encodeComponent(token)}');
+
+  @override
+  Future<ReminderSummary> reminderSummary() async => ReminderSummary.fromJson(
+    (await _send('GET', '/v1/me/reminders/summary'))! as Map<String, dynamic>,
+  );
+
+  @override
+  Future<int> sendTestReminder() async =>
+      ((await _send('POST', '/v1/me/reminders/test', body: const {}))!
+              as Map<String, dynamic>)['sent']
+          as int;
 
   @override
   Future<void> setMute({

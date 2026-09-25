@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../logic/push.dart';
 import '../logic/session.dart';
 import '../screens/add_card_screen.dart';
 import '../screens/benefit_editor_screen.dart';
@@ -125,11 +126,12 @@ final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
 /// are the refresh listenable, so the sign-in redirect re-evaluates when
 /// either changes, and an unknown path renders the not-found screen.
 /// Without a session (tests of the screens behind sign-in) there is no
-/// redirect.
+/// redirect. [push] reaches Settings, for the permission and the summary.
 GoRouter appRouter(
   AppStore store, {
   String initialLocation = Paths.today,
   Session? session,
+  PushController? push,
 }) => GoRouter(
   navigatorKey: rootNavigatorKey,
   refreshListenable: session == null
@@ -200,6 +202,7 @@ GoRouter appRouter(
                     store: AppScope.of(context),
                     ui: UiScope.of(context),
                     session: session,
+                    push: push,
                   ),
                 ),
               ],
