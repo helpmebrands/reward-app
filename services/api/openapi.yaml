@@ -957,7 +957,7 @@ paths:
       tags: [household data]
       operationId: deleteBenefit
       summary: Delete a household credit and its claims
-      description: A linked credit is 409 `system maintained`; set `active` false in its state instead.
+      description: A linked credit is 409 `system maintained`; opt out of it through its state instead.
       parameters:
         - name: benefitId
           in: path
@@ -986,8 +986,8 @@ paths:
       operationId: putBenefitState
       summary: Change a credit's household state
       description: |
-        Enrolment, spend met, last call only and active, on any credit,
-        linked or not. Absent keys stay as they are; null clears.
+        Enrolment, spend met, last call only, active, opted out and tracked
+        from, on any credit, linked or not. Absent keys stay as they are; null clears.
       parameters:
         - name: benefitId
           in: path
@@ -1590,6 +1590,11 @@ components:
           type: boolean
         active:
           type: boolean
+        optedOutAt:
+          type: string
+        trackedFrom:
+          type: string
+          format: date
         createdAt:
           type: string
         updatedAt:
@@ -1808,6 +1813,13 @@ components:
           type: boolean
         active:
           type: boolean
+        optedOutAt:
+          type: [string, 'null']
+          description: When the household opted out of the credit; null reactivates it.
+        trackedFrom:
+          type: [string, 'null']
+          format: date
+          description: The day tracking resumed after an opt-out.
 
     NewClaim:
       type: object

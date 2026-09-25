@@ -196,6 +196,18 @@ Another user's edit or delete of the card is 404, and their snapshot is empty.
 
 After a claim on a Gold's credit, deleting the card leaves no card, credit or claim.
 
+### Opting out and reactivating are household state
+
+`household_data_integration_test.dart` opts a linked credit out through its state route and reads `optedOutAt` back, then reactivates it with `trackedFrom`.
+
+Converting the card in between keeps the opt-out on the new credit. A non-string `optedOutAt` or a `trackedFrom` that is not a date is 400.
+
+### Paused credits migrate to opted out
+
+`opted_out_migration_integration_test.dart` seeds paused rows under the migrations before `0012_opted_out.sql`, then applies it.
+
+A paused credit that had not ended by its `updated_at` is active and opted out at that instant, own or linked; one that had ended, by its own `ends_on` or its catalogue credit's, stays inactive.
+
 ## Conversion
 
 `convert_integration_test.dart` converts a Gold with claims, enrolment and two members' mutes against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).

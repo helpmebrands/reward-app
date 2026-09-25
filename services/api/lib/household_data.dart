@@ -165,7 +165,7 @@ Future<HouseholdData> loadHousehold(
              active, created_at, updated_at, name, description, category,
              icon, merchant, value_cents, cadence, anchor, interval_months,
              enrollment_required, spend_threshold_cents, ends_on,
-             redemption_steps, notes
+             redemption_steps, notes, opted_out_at, tracked_from
       FROM benefits WHERE household_id = @h::uuid ORDER BY created_at, id
     '''),
     parameters: {'h': householdId},
@@ -182,6 +182,8 @@ Future<HouseholdData> loadHousehold(
       spendMetAt: r[6] as String?,
       lastCallOnly: r[7]! as bool,
       active: r[8]! as bool,
+      optedOutAt: r[25] as String?,
+      trackedFrom: _date(r[26]),
       createdAt: _iso(r[9]),
       updatedAt: _iso(r[10]),
     );
@@ -656,11 +658,17 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         ('enrollmentNote', 'enrollment_note'),
         ('enrollmentUrl', 'enrollment_url'),
         ('spendMetAt', 'spend_met_at'),
+        ('optedOutAt', 'opted_out_at'),
+        ('trackedFrom', 'tracked_from'),
       ]) {
         if (!_has(body, key)) continue;
         final value = body[key];
         if (value != null && value is! String) return _invalid(key);
         sets[column] = value;
+      }
+      final trackedFrom = sets['tracked_from'];
+      if (trackedFrom is String && anniversaryError(trackedFrom) != null) {
+        return _invalid('trackedFrom');
       }
       final url = sets['enrollment_url'];
       if (url is String && enrollmentUrlError(url) != null) {
@@ -678,7 +686,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         await tx.execute(
           Sql.named(
             'UPDATE benefits SET '
-            '${sets.keys.map((c) => '$c = @$c').join(', ')}, '
+            '${sets.keys.map((c) => '$c = @$c${_casts[c] ?? ''}').join(', ')}, '
             'updated_at = now() WHERE id = @id::uuid',
           ),
           parameters: {...sets, 'id': id},
@@ -845,6 +853,8 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
           'spend_met_at': b.spendMetAt,
           'last_call_only': b.lastCallOnly,
           'active': b.active,
+          'opted_out_at': b.optedOutAt,
+          'tracked_from': b.trackedFrom,
         };
         final columns = {...terms, ...state};
         final newId =
@@ -909,6 +919,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
 const _casts = {
   'anniversary_on': '::date',
   'ends_on': '::date',
+  'tracked_from': '::date',
   'interval_months': '::int',
   'spend_threshold_cents': '::int',
   'redemption_steps': '::jsonb',
