@@ -586,3 +586,11 @@ Its background is the named colour `LaunchBackground`, the Nocturne light page c
 
 Both `launch_background.xml` files draw `@color/splash_background` with the `splash_icon` bitmap over it, and that colour is the light page colour in `values` and the dark one in `values-night`.
 
+### The manifest names the notification icon and colour
+
+`AndroidManifest.xml` sets Firebase's `default_notification_icon` to `@drawable/ic_notification` and `default_notification_color` to a colour defined in `values/colors.xml`.
+
+### The notification icon is a white silhouette at 24dp
+
+`drawable-*dpi/ic_notification.png` is 24dp square at each density, every drawn pixel is pure white, and at least a fifth of the square is drawn, so the glyph is not lost.
+

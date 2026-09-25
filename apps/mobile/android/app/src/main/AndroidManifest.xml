@@ -36,6 +36,14 @@
                       android:pathPrefix="/invite/"/>
             </intent-filter>
         </activity>
+        <!-- Push reminders: the white glyph Android draws in the status bar
+             and the brand maroon it tints the notification with. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_colour" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

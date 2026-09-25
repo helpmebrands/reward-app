@@ -181,3 +181,40 @@ describe('launch screen', () => {
     }
   })
 })
+
+describe('Android notification icon', () => {
+  const manifest = () =>
+    readFileSync(join(root, 'apps/mobile/android/app/src/main/AndroidManifest.xml'), 'utf8')
+  const metaData = (name: string) =>
+    manifest().match(
+      new RegExp(`<meta-data\\s+android:name="${name.replace(/\./g, '\\.')}"\\s+android:resource="([^"]+)"`),
+    )?.[1]
+
+  // @lat: [[infra-tests#Brand icons#The manifest names the notification icon and colour]]
+  it('names the icon and a colour for Firebase notifications', () => {
+    expect(metaData('com.google.firebase.messaging.default_notification_icon')).toBe(
+      '@drawable/ic_notification',
+    )
+    const colour = metaData('com.google.firebase.messaging.default_notification_color')
+    expect(colour).toMatch(/^@color\/\w+$/)
+    const colours = readFileSync(join(res, 'values', 'colors.xml'), 'utf8')
+    expect(colours).toMatch(new RegExp(`<color name="${colour!.split('/')[1]}">#[0-9A-Fa-f]{6}</color>`))
+  })
+
+  // @lat: [[infra-tests#Brand icons#The notification icon is a white silhouette at 24dp]]
+  it('is 24dp in every density and only white or transparent', () => {
+    for (const [density, factor] of Object.entries(densities)) {
+      const png = readPng(join(res, `drawable-${density}`, 'ic_notification.png'))
+      expect(png.width, density).toBe(24 * factor)
+      expect(png.height, density).toBe(24 * factor)
+      const pixels = png.pixels()
+      let drawn = 0
+      for (let i = 0; i < pixels.length; i += 4) {
+        if (pixels[i + 3] === 0) continue
+        drawn++
+        expect([pixels[i], pixels[i + 1], pixels[i + 2]], `${density} pixel ${i / 4}`).toEqual([255, 255, 255])
+      }
+      expect(drawn, density).toBeGreaterThan(png.width * png.height * 0.2)
+    }
+  })
+})
