@@ -101,7 +101,7 @@ The store and every later notifier follow Flutter's guidance for view models: th
 
 ### UI state
 
-`UiState` is the PWA's `UiProvider` as a `ChangeNotifier`: the open credit's benefit id, the open compare group's label and the nudge preview's reminder, each with an open and a close, notifying once per change.
+`UiState` is the PWA's `UiProvider` as a `ChangeNotifier`: the open credit's benefit id, and the open compare group's label, each with an open and a close, notifying once per change.
 
 It notifies not at all when nothing changes, and it also owns the `SnackbarState` ([[mobile-architecture#Undo and the snackbar]]).
 
@@ -201,7 +201,7 @@ Every new screen has a Widget Preview: the join screen in both themes.
 
 `TodayScreen` is the PWA's Today ([[design#Screens]]) as Material widgets: the number, the countdown, the rows behind them, and every interaction the PWA has.
 
-It shows the header with the date and the "Preview nudge" button, the headline counting only what is claimable, the use-soon rows with the reset countdown, up to three overlap cards on the section ground, the locked section with its own total, and the captured rows.
+It shows the header with the date and the Settings gear, the headline counting only what is claimable, the use-soon rows with the reset countdown, up to three overlap cards on the section ground, the locked section with its own total, and the captured rows.
 
 `CreditRow` draws every status in one of five tones from the token set (soon, available, locked, captured, missed), with the card's display name in the subtitle when the household has more than one card, the claimed amount on a captured row, and "Eligible now" in place of a deadline on an open rolling credit. Given callbacks it is the interactive row of [[mobile-architecture#The swipe row]]. The headline number shrinks to fit the column rather than overflow. Every component has a Widget Preview in `lib/previews.dart`. Pinned by [[mobile-tests#Today]].
 
@@ -212,7 +212,7 @@ The screen takes the `UiState` beside the store; without it the screen is static
 With it, every row gets `onOpen` (the credit sheet by benefit id), `onLogAll` and `onToggleMute` through the shared `CreditActions` ([[mobile-architecture#Undo and the snackbar]]), so a tap, a swipe and a sheet button all do the same thing and the headline follows a claim at once.
 
 - **Compare sheet**: tapping an overlap card opens `CompareSheet` for the group, through `UiState.openOverlap` and `AppStore.overlapFor`. It is the PWA's: the two sides side by side, each a button that opens that credit (closing the compare first), the "What to do" advice that is concrete about one booking drawing on one card and stops short of ranking the two people, and a "Log … on …'s card" button per unlocked side that claims through `CreditActions` and closes. The shell hosts it above the credit sheet in a `SheetHost` with `wide: dialog`, so it stays a centred dialog at expanded where the credit sheet docks.
-- **Nudge preview**: "Preview nudge" shows the next reminder from `buildSchedule` over the current snapshot at the store's clock, or `sampleReminder` built from the claimable total when nothing is scheduled ([[reminders#Nudge preview]]), through `UiState.showNudge`. `NudgePreview` is drawn by the shell at the top of the content column: the app name, "preview", the title and the body, a Dismiss with its own label, a six-second clock of its own, and a tap that dismisses and goes to the reminder's route. It is in-app and needs no permission; delivery on the device is a later epic.
+- **No nudge preview**: the "Preview nudge" button is gone now that push delivers real reminders ([[reminders#No nudge preview]]).
 
 Pinned by [[mobile-tests#Today interactions]].
 
@@ -264,7 +264,7 @@ Cards are ranked worst-first on a percentage-of-fee axis, each with its label, i
 
 `SettingsScreen` is the PWA's Settings ([[design#Screens]]) at `/settings` without the "Your data" section: reminder preferences, the ladder table and the appearance choice, one column at every width because the ladder table needs it.
 
-The reminders section is the "Send me reminders" switch and, once on, "Send them at" (a time as HH:MM with a clock button that opens Material's time picker), "Ignore anything under" on the Field pattern with `moneyError`, and "Nudge me about locked credits"; every control writes this member's preferences through `updatePreferences` as soon as its value is valid and reads the stored value back on rebuild. These preferences drive the nudge preview and the server's schedule. With push ([[mobile-architecture#Push]]), turning the switch on asks for notification permission first and a refusal leaves it off with "Reminders stay off until notifications are allowed." in the snackbar; once on, the server's summary ("3 reminders scheduled. Next on Oct 31: $10 expires tonight.") and "Send a test notification" sit under the fields. Sign out unregisters the device before signing out. The ladder table lists the four scheduled cadences with `ladderSummary` ([[reminders#The ladder]]). Appearance is three choice chips, System, Dark and Light, writing `Settings.theme`, which the app reads into its theme mode ([[mobile-architecture#Theme]]). Today's header carries the gear that leads here, the only way into Settings and therefore into turning reminders on, so it lives on the screen people open every day. Pinned by [[mobile-tests#Settings]]; previews with reminders off, on, and in light.
+The reminders section is the "Send me reminders" switch and, once on, "Send them at" (a time as HH:MM with a clock button that opens Material's time picker), "Ignore anything under" on the Field pattern with `moneyError`, and "Nudge me about locked credits"; every control writes this member's preferences through `updatePreferences` as soon as its value is valid and reads the stored value back on rebuild. These preferences drive the server's schedule. With push ([[mobile-architecture#Push]]), turning the switch on asks for notification permission first and a refusal leaves it off with "Reminders stay off until notifications are allowed." in the snackbar; once on, the server's summary ("3 reminders scheduled. Next on Oct 31: $10 expires tonight.") and "Send a test notification" sit under the fields. Sign out unregisters the device before signing out. The ladder table lists the four scheduled cadences with `ladderSummary` ([[reminders#The ladder]]). Appearance is three choice chips, System, Dark and Light, writing `Settings.theme`, which the app reads into its theme mode ([[mobile-architecture#Theme]]). Today's header carries the gear that leads here, the only way into Settings and therefore into turning reminders on, so it lives on the screen people open every day. Pinned by [[mobile-tests#Settings]]; previews with reminders off, on, and in light.
 
 ## Push
 

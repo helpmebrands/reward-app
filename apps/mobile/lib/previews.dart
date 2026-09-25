@@ -27,7 +27,6 @@ import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/field.dart';
-import 'widgets/nudge_preview.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
@@ -459,42 +458,6 @@ Widget compareSheet() {
     Brightness.dark,
   );
 }
-
-@Preview(name: 'Nudge preview', size: Size(402, 160))
-Widget nudgePreview() => _themed(
-  Align(
-    alignment: Alignment.topCenter,
-    child: NudgePreview(
-      reminder: sampleReminder(165890, DateTime(2026, 9, 16)),
-      onDismiss: () {},
-      onOpen: () {},
-    ),
-  ),
-  Brightness.dark,
-);
-
-@Preview(name: 'Nudge preview, urgent', size: Size(402, 160))
-Widget nudgePreviewUrgent() => _themed(
-  Align(
-    alignment: Alignment.topCenter,
-    child: NudgePreview(
-      reminder: const Reminder(
-        id: 'r',
-        fireAt: 0,
-        title: '\$100 on the line — last call',
-        body: 'Resy Dining Credit closes tonight. Kathy’s card.',
-        tag: 'last-call',
-        url: '/',
-        items: [],
-        totalCents: 10000,
-        tone: Tone.urgent,
-      ),
-      onDismiss: () {},
-      onOpen: () {},
-    ),
-  ),
-  Brightness.dark,
-);
 
 @Preview(name: 'Credits, dark', size: Size(402, 874))
 Widget creditsDark() =>
