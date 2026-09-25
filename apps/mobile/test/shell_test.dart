@@ -11,7 +11,11 @@ import 'package:reward/main.dart';
 /// The shell at the three width classes of `design#Responsive layout`.
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

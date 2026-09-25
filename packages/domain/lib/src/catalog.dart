@@ -6,10 +6,9 @@
 /// the field worth getting right: it is the difference between a credit the
 /// user is failing to spend and one they cannot spend at all.
 ///
-/// The templates were generated from the PWA's `src/domain/catalog.ts` by
-/// `apps/pwa/scripts/emit-catalog.ts`. The PWA is frozen and the templates
-/// now carry stable ids it lacks, so this file is edited by hand; it seeds
-/// version 1 of the service tier's versioned catalogue.
+/// The templates were first generated from the retired PWA's catalogue
+/// (#174). This file is now their only source and is edited by hand; it
+/// seeds version 1 of the service tier's versioned catalogue.
 library;
 
 import 'cycles.dart';

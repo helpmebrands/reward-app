@@ -10,7 +10,7 @@ on:
   push:
     branches: [develop]
     # The api deploys through cd-api.yml; a merge confined to it, the shared
-    # domain package or the Flutter app does not redeploy the PWA.
+    # domain package or the Flutter app does not redeploy the site.
     paths-ignore:
       - 'services/api/**'
       - 'packages/domain/**'
@@ -70,13 +70,10 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: apps/pwa/Dockerfile
+          file: apps/site/Dockerfile
           push: true
           tags: |
             ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.ARTIFACT_REPO }}/reward-app:${{ github.sha }}
-          build-args: |
-            VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
-            VITE_PUSH_API=${{ vars.VITE_PUSH_API }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -93,7 +90,7 @@ jobs:
           flags: --revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}
 
       # The deploy reporting success only means Cloud Run accepted the revision.
-      # These are the assertions that say the app is actually being served.
+      # These are the assertions that say the site is actually being served.
       - name: Smoke test the deployed revision
         env:
           URL: ${{ steps.deploy.outputs.url }}
@@ -105,18 +102,9 @@ jobs:
           [ "$code" = "200" ] || { echo "index -> $code"; exit 1; }
           echo "  / -> 200"
 
-          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/credits")
-          [ "$code" = "200" ] || { echo "client route -> $code"; exit 1; }
-          echo "  /credits -> 200"
-
-          # If this regresses, clients silently keep an old service worker and
-          # an old reminder schedule — the failure this pipeline most needs to
-          # catch, because nothing else would surface it.
-          cc=$(curl -sS -D - -o /dev/null "$URL/sw.js" | tr -d '\r' | grep -i '^cache-control:' || true)
-          case "$cc" in
-            *no-store*) echo "  sw.js -> $cc" ;;
-            *) echo "  sw.js cache-control was '$cc', expected no-store"; exit 1 ;;
-          esac
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL/nope")
+          [ "$code" = "404" ] || { echo "/nope -> $code, expected 404"; exit 1; }
+          echo "  /nope -> 404"
 
       - name: Summarise
         if: always()

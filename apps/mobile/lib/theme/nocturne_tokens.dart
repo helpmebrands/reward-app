@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Nocturne's tokens, as the PWA's `apps/pwa/src/styles/tokens.css` records
+/// Nocturne's tokens, as the retired PWA's `tokens.css` recorded
 /// them: the dark system verbatim, and the light theme the PWA derived from
 /// it. Every colour a widget uses resolves to one of these, so re-theming is
 /// a token swap rather than a sweep through components.

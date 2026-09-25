@@ -12,8 +12,8 @@ import 'package:reward/theme/nocturne_tokens.dart';
 import 'package:reward/theme/theme.dart';
 
 /// Token contrast, WCAG 1.4.3 (text, 4.5:1) and 1.4.11 (controls, 3:1),
-/// computed over the theme extension the way `apps/pwa/tests/contrast.test.ts`
-/// computes it over `tokens.css`, so a copied token cannot drift.
+/// computed over the theme extension the way the retired PWA computed it over
+/// its `tokens.css`, so a changed token cannot slip below the ratios.
 
 double _channel(double c) =>
     c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4).toDouble();
@@ -124,7 +124,7 @@ void main() {
           appDataFromJson(
             jsonDecode(
                   File(
-                    '../pwa/samples/sample-household.json',
+                    '../../packages/domain/test/fixtures/sample-household.json',
                   ).readAsStringSync(),
                 )
                 as Map<String, dynamic>,

@@ -1,7 +1,7 @@
 import 'package:domain/domain.dart';
 
 /// Test fixtures, so each test states only what it is actually about. The
-/// values mirror the PWA's `apps/pwa/tests/factories.ts`.
+/// values mirror the retired PWA's `factories.ts`.
 
 /// The PWA's default settings: a 30-day use-soon horizon. Reminders are a
 /// member's, in [defaultMemberPreferences].

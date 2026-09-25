@@ -15,7 +15,11 @@ import 'package:reward/widgets/credit_row.dart';
 /// without clipping or overlap (`mobile-architecture#Accessibility`).
 
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

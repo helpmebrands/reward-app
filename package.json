@@ -2,20 +2,14 @@
   "name": "helpmebrands-reward",
   "version": "0.1.0",
   "private": true,
-  "description": "HelpMe Reward monorepo: the reference PWA, the Pulumi infrastructure and, as they land, the Flutter app and the service tier.",
+  "description": "HelpMe Reward monorepo: the Flutter app, the service tier, the static site and the Pulumi infrastructure. The npm workspaces are the two Pulumi programs.",
   "workspaces": [
-    "apps/pwa",
     "infra",
     "infra-repo"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/pwa",
-    "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "test:e2e": "npm run test:e2e -w apps/pwa",
-    "typecheck": "npm run typecheck --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present",
-    "format": "npm run format --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "allowScripts": {
     "protobufjs@7.6.6": true,

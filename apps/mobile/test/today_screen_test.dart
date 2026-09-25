@@ -10,11 +10,15 @@ import 'package:reward/screens/today_screen.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
 
-/// The PWA's sample household, read from the frozen app, and what its Today
-/// screen shows for 16 September 2026, dumped by
-/// `apps/pwa/scripts/today-snapshot.ts`.
+/// The sample household, from `packages/domain/test/fixtures`, and what the
+/// PWA's Today screen showed for 16 September 2026, dumped once by the
+/// retired PWA (#174) and pinned.
 AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+  jsonDecode(
+        File(
+          '../../packages/domain/test/fixtures/sample-household.json',
+        ).readAsStringSync(),
+      )
       as Map<String, dynamic>,
 );
 

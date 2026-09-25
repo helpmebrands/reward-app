@@ -147,8 +147,8 @@ const repository = new gcp.artifactregistry.Repository(
 /**
  * The identity the container runs as.
  *
- * It is granted nothing. HelpMe Reward serves static files and holds all user
- * data in the browser, so the container has no reason to reach any Google API —
+ * It is granted nothing. The site is static files and holds no data, so the
+ * container has no reason to reach any Google API —
  * and running as the default compute service account (which is broadly
  * privileged) would hand an attacker who achieved RCE a project-wide identity
  * for no benefit.
@@ -349,7 +349,7 @@ new gcp.secretmanager.SecretVersion('database-url-version', {
 })
 
 /**
- * The identity the api container runs as. Unlike the PWA's runtime account it
+ * The identity the api container runs as. Unlike the site's runtime account it
  * needs exactly two things: to open the Cloud SQL connector (`cloudsql.client`
  * is only grantable project-wide) and to read the one secret above.
  */
@@ -413,9 +413,9 @@ const databaseUrlEnv = {
 }
 
 /**
- * The api. Same ownership rule as the PWA service: Pulumi owns the shape, CI
+ * The api. Same ownership rule as the site's service: Pulumi owns the shape, CI
  * owns the image, so the image is ignored after the bootstrap. Public like
- * the PWA (the apps call it directly; the api does its own authorization), running
+ * the site (the apps call it directly; the api does its own authorization), running
  * as the api identity with the Cloud SQL connector mounted and the whole
  * connection URL injected from Secret Manager. Depends on the secret binding
  * because Cloud Run checks at revision creation that the identity can read

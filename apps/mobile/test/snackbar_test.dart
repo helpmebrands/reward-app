@@ -166,7 +166,9 @@ void main() {
   group('in the shell', () {
     AppData sampleHousehold() => appDataFromJson(
       jsonDecode(
-            File('../pwa/samples/sample-household.json').readAsStringSync(),
+            File(
+              '../../packages/domain/test/fixtures/sample-household.json',
+            ).readAsStringSync(),
           )
           as Map<String, dynamic>,
     );
