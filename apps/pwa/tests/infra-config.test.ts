@@ -217,7 +217,8 @@ describe('api deploy workflow', () => {
 
 describe('reminder sender job', () => {
   const program = () => read('infra/index.ts')
-  const remindJob = () => program().split("new gcp.cloudrunv2.Job(\n  'api-remind'")[1]?.split('\n)\n')[0] ?? ''
+  const remindJob = () =>
+    program().split("new gcp.cloudrunv2.Job(\n  'api-remind'")[1]?.split('\n)\n')[0] ?? ''
 
   // @lat: [[infra-tests#Infrastructure config#Api image carries the reminder sender]]
   it('compiles the reminder sender into the api image', () => {
@@ -244,16 +245,22 @@ describe('reminder sender job', () => {
     const scheduler = text.split('new gcp.cloudscheduler.Job(')[1]?.split('\n)\n')[0] ?? ''
     expect(scheduler).toContain("schedule: '*/15 * * * *'")
     expect(scheduler).toContain("timeZone: 'Etc/UTC'")
-    expect(scheduler).toMatch(/uri: pulumi\.interpolate`https:\/\/run\.googleapis\.com\/v2\/projects\/\$\{project\}\/locations\/\$\{region\}\/jobs\/\$\{remindJob\.name\}:run`/)
+    expect(scheduler).toMatch(
+      /uri: pulumi\.interpolate`https:\/\/run\.googleapis\.com\/v2\/projects\/\$\{project\}\/locations\/\$\{region\}\/jobs\/\$\{remindJob\.name\}:run`/,
+    )
     expect(scheduler).toContain('oauthToken: { serviceAccountEmail: schedulerAccount.email }')
-    expect(text).toMatch(/new gcp\.cloudrunv2\.JobIamMember\('scheduler-runs-reminders'[\s\S]*?role: 'roles\/run\.invoker'/)
+    expect(text).toMatch(
+      /new gcp\.cloudrunv2\.JobIamMember\('scheduler-runs-reminders'[\s\S]*?role: 'roles\/run\.invoker'/,
+    )
   })
 
   // @lat: [[infra-tests#Infrastructure config#The api identity may send through FCM]]
   it('lets the api identity send through FCM with no key file', () => {
     const text = program()
     expect(text).toContain("'fcm.googleapis.com'")
-    expect(text).toMatch(/role: 'roles\/firebasecloudmessaging\.admin',\s*member: pulumi\.interpolate`serviceAccount:\$\{apiRuntimeAccount\.email\}`/)
+    expect(text).toMatch(
+      /role: 'roles\/firebasecloudmessaging\.admin',\s*member: pulumi\.interpolate`serviceAccount:\$\{apiRuntimeAccount\.email\}`/,
+    )
     expect(text).not.toMatch(/serviceaccount\.Key\(/)
   })
 
