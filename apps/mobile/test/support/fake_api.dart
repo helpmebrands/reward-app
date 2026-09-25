@@ -288,6 +288,38 @@ class FakeApi implements HouseholdApi {
     return newId;
   }
 
+  /// Registered devices by token, as the api holds them for this member.
+  final devices = <String, PushDevice>{};
+
+  /// What `GET /v1/me/reminders/summary` answers.
+  ReminderSummary summary = const ReminderSummary(count: 0);
+  int testSends = 0;
+
+  @override
+  Future<void> registerDevice(PushDevice device) async {
+    _check();
+    devices[device.token] = device;
+  }
+
+  @override
+  Future<void> unregisterDevice(String token) async {
+    _check();
+    devices.remove(token);
+  }
+
+  @override
+  Future<ReminderSummary> reminderSummary() async {
+    _check();
+    return summary;
+  }
+
+  @override
+  Future<int> sendTestReminder() async {
+    _check();
+    testSends++;
+    return devices.length;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
