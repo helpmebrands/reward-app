@@ -85,6 +85,8 @@ The credit sheet ([[apps/pwa/src/ui/CreditSheet.tsx#CreditSheet]]) makes logging
 
 A custom dropdown would be worse in every way that matters: no keyboard accessory, no scroll wheel, no VoiceOver rotor. The control hides itself when there is only one person, because a filter with one option is furniture.
 
+The Flutter app has no household filter. Cards carry a label instead of a holder, so there is no member to filter by, and sign-in brings real members ([[domain#Card]]).
+
 ## Responsive layout
 
 Three width classes, Material's compact, medium and expanded, decide the navigation and the content column on every client. The phone design is the compact class; the wider ones re-flow it and never re-order it.

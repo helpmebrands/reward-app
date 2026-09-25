@@ -38,6 +38,12 @@ With both pinned, the stack can never fall back to the empty passphrase it start
 
 `githubRepo` is `helpmebrands/reward-app`. The WIF attribute condition and the impersonation binding are built from it, so a wrong value rejects every deploy.
 
+### Staging lists the Play app signing fingerprint
+
+`Pulumi.staging.yaml` sets `androidSha256Fingerprints` to one or more colon-separated SHA-256 fingerprints, which `infra/index.ts` passes to the api for `assetlinks.json` ([[api-architecture#Invite links]]).
+
+The value is the app signing key Play generated when the first bundle was uploaded (#115), not the upload keystore in Secret Manager; with the wrong one Android never opens invite links in the app.
+
 ### No stale repository or project names
 
 Nothing under `infra/`, `docs/` or `.github/` names `oravecz/cardvantage` or `helpme-rewards-`.
@@ -166,10 +172,9 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 `environmentVariables` carries `PLAY_SERVICE_ACCOUNT` and one `SECRET_<NAME>` per signing secret, so the release workflow hard-codes no identity and no secret id.
 
-### Runbook 07 has the two hand steps
+### Runbook 08 has the store hand steps
 
-`07-mobile-release.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
-
+`08-mobile-setup.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
 ### Release workflow runs on version tags in the environment
 
 `release-mobile.yml` triggers on `v*` tags with an `android` job on `ubuntu-latest` and an `ios` job on `macos-latest`, both in the `staging` environment and both passing `--build-name` and `--build-number ${{ github.run_number }}` ([[deployment#Pipeline]]).
@@ -187,6 +192,22 @@ Every `SECRET_<NAME>` on the environment is read with `gcloud secrets versions a
 `apps/mobile/scripts/play-upload.sh` drives the Play Developer API (edit, bundle, `tracks/internal`, `:commit`) and the iOS `Fastfile` imports the certificate and calls `upload_to_testflight` with an API key.
 
 The workflow calls both, so the store logic is reviewable code beside the app rather than YAML.
+
+### Release builds sign with the upload key from key.properties
+
+`apps/mobile/android/app/build.gradle.kts` loads `key.properties` when it exists, declares a `release` signing config from its four keys, and the `release` build type uses it, falling back to the debug config without the file.
+
+Play refuses a debug-signed bundle, and both the laptop build in runbook 08 and `release-mobile.yml` write `key.properties` and expect Gradle to read it (#115). The fallback keeps `flutter run --release` and the verify job working with no secrets.
+
+### Android app uses AGP built-in Kotlin
+
+`gradle.properties` sets `android.builtInKotlin=true`, the app module applies no Kotlin plugin and keeps only `kotlin { compilerOptions }`, and `settings.gradle.kts` pins KGP with `apply false`.
+
+The template's `builtInKotlin=false` opt-out made `firebase_core` and `firebase_auth` apply the Kotlin Gradle Plugin themselves, which Flutter warns will stop building (#247).
+
+Built-in Kotlin needs Flutter 3.47, whose Gradle plugin stops force-applying `kotlin-android` to plugin subprojects. The `apply false` line stays because AGP 9 bundles Kotlin 2.2.10 and Flutter 3.47 requires 2.2.20, as its own template does.
+
+Flutter still prints the plugin warning for `firebase_core` and `firebase_auth`: it matches `apply plugin: 'kotlin-android'` in their build files as text, although both only run that line when built-in Kotlin is off.
 
 ### Runbook 07 describes the tag-driven release
 
@@ -206,30 +227,65 @@ Step 3 of `01-initial-deployment.md` never mentions `infra-repo`, and a numbered
 
 Every `pulumi import` in runbook 01 ends in `reward-app:<id>`, the repository name without the owner, because the GitHub provider rejects `owner/name` and a bare id alike; an operator copying the block gets the form that works.
 
-### Runbook 07 walks through every piece of signing material
+### Runbook 08 is the one mobile setup flow
 
-The *Signing material* section of `07-mobile-release.md` has a subsection each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each ending in `gcloud secrets versions add`.
+`08-mobile-setup.md` replaces `08-sign-in-providers.md` in the README and everywhere under `docs/`. It has a part for Apple, one for Google Play and one for both platforms, with the auth handler URL and the `appleSignInConfig` PATCH.
+
+The setup steps used to be split over 07 and 08 in the order they were written, and following them made three provisioning profiles, the last still missing an entitlement.
+
+### Runbook 08 Part 2 says what the first Android release taught
+
+Part 2 of `08-mobile-setup.md` says it was rehearsed on 2026-09-24, names the `403` symptom of a missing invite, gives the *Protected with Play* path to the *Classical key* fingerprint, and matches the keystore's `HelpMe Reward Upload` owner.
+
+Step 3.3 also names the `invalid_rapt` reauth error and points at runbook 05. Each of these cost a round trip during #115: the 403 read as an IAM problem, the *App integrity* path no longer exists in the console, and the runbook's lower-case `upload` did not match the keytool output.
+
+### Runbook 08 turns on every capability before the profile
+
+The capabilities step of `08-mobile-setup.md` ticks Push Notifications, Sign in with Apple and Associated Domains, and comes before the provisioning-profile step, so one profile carries every entitlement the app declares.
+### Runbook 08 stores credentials as stack secrets
+
+Runbook 08 sets the OAuth client secret and the Apple `.p8` key with `pulumi config set --secret`, and the three ids with plain `pulumi config set`. The sign-in credentials never go to Secret Manager: only Pulumi and Identity Platform use them.
+
+### Runbook 08 re-makes the profile end to end
+
+*Later: re-making the iOS profile* in `08-mobile-setup.md` names the `doesn't include the … entitlement` failure, deletes the old profile, checks and stores the new one, updates the README *iOS signing* row and releases again.
+
+A changed capability is then one procedure rather than steps spread across runbooks.
+
+### Runbook 07 leaves setup to runbook 08
+
+`07-mobile-release.md` has no *Signing material* or *Play publisher identity* section and links to `08-mobile-setup.md`, so each hand step is written once.
+
+### Runbook 08 walks through every piece of signing material
+
+`08-mobile-setup.md` has a step each for the upload keystore, the App Store Connect API key, the distribution certificate and the provisioning profile, each with its `gcloud secrets versions add`.
 
 Its setup block exports `STACK=staging` beside `PROJECT_ID`, because every `versions add` names its secret as `reward-app-<name>-$STACK` and a copied block with `STACK` unset targets an id that does not exist.
 
 It also names the Play App Signing first-upload quirk, so the first failed upload is not a mystery.
 
-### Runbook 07 says store records are per app id
+The keystore step gives every `keytool` value, `-storetype PKCS12` and a `-dname` among them, and says a PKCS12 keystore has one password, which goes into both password secrets: keytool ignores a separate `-keypass`.
+### Runbook 08 writes key.properties step by step
 
-`07-mobile-release.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
+The first-bundle step of `08-mobile-setup.md` shows the four `key.properties` lines, writes them from Secret Manager, checks Gradle reads the file, proves the bundle is not debug-signed, and deletes the file.
 
-### Runbook 07 verifies the profile before storing it
+The check comes first rather than after a rejected upload: a checkout from before #115 still signs releases with the debug key ([[infra-tests#Infrastructure config#Release builds sign with the upload key from key.properties]]).
 
-The provisioning-profile subsection of `07-mobile-release.md` points at the Xcode-registered `XC com helpmebrands reward` id, offers the API route, and checks `application-identifier` before `gcloud secrets versions add`.
+### Runbook 08 says store records are per app id
 
-The first pass of the runbook stored a profile made for a second, hand-registered app id; the build would have failed at signing. The `security cms -D` check comes before the version is added so that cannot recur.
+`08-mobile-setup.md` states there is one record per app, not per environment, so nobody creates a staging app in either store by mistake.
+### Runbook 08 checks the profile's entitlements before storing it
 
-### Runbook 07 reads binaries back with --out-file
+The profile step of `08-mobile-setup.md` uses the `XC com helpmebrands reward` id and checks `application-identifier`, `com.apple.developer.applesignin` and `com.apple.developer.associated-domains` before `gcloud secrets versions add`.
 
-The *Check and clean up* subsection of `07-mobile-release.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.
+The API route stays as an appendix.
+
+The first pass of the runbook stored a profile made for a second, hand-registered app id, and a later one stored a profile without Associated Domains (release run 35960067543). Both fail only at signing, so the check comes before the version is added.
+### Runbook 08 reads binaries back with --out-file
+
+The *Check everything* part of `08-mobile-setup.md` reads the certificate and profile with `--out-file`, imports the `.p12` into a throwaway keychain, parses the profile, and says stdout redirection corrupts binary payloads.
 
 The key id and issuer id are entered with `read -r` rather than inline placeholders, because the placeholder was once stored verbatim as a version.
-
 ### README records the iOS signing expiry
 
 The environment table in `docs/runbooks/README.md` has an *iOS signing* row naming the certificate and profile ids and their expiry date, so renewal is a dated task rather than a surprise.
@@ -287,6 +343,40 @@ Checked: `PLATFORMS` includes `macos` and `build-macos` calls `fvm flutter build
 ### Root Makefile runs the verify gate locally
 
 The root `Makefile` has `verify` and `verify-full` targets, `init` points `core.hooksPath` at `.githooks`, the committed `pre-push` hook is executable and calls `make verify`, and runbook 02 names it as the step before a push ([[infra#Local verify]]).
+
+### Identity Platform signs people in with Google and Apple
+
+`infra/index.ts` enables the Firebase and Identity Toolkit APIs, adds Firebase to the project, turns on Identity Platform, and declares the `google.com` and `apple.com` providers from the runbook 08 config ([[api-architecture#Sign-in]]).
+
+Each provider is declared only once its keys are set, so the preview passes before the hand steps are done.
+
+### The app is registered with Firebase on both platforms
+
+`infra/index.ts` declares a Firebase Apple app and Android app for `com.helpmebrands.reward` and exports each app id, each API key read from the app's config file, and the iOS URL scheme, which the app's Firebase options are copied from ([[mobile-architecture#Sign-in]]).
+
+### Google sign-in returns to the app on iOS
+
+`Info.plist` registers the staging `firebaseIosUrlScheme` so Google's web flow comes back to the app, and the Identity Platform config declares email and phone sign-in off so previews stay clean.
+
+### Invite links have the api's own domain
+
+`infra/index.ts` maps `apiCustomDomain` to the api service and sets `INVITE_LINK_BASE` and `ANDROID_SHA256_FINGERPRINTS` on it; the staging stack sets `apiCustomDomain` to `api.staging.helpmereward.com` ([[api-architecture#Invite links]]).
+
+### The sign-in credentials are the runbook's keys
+
+`Pulumi.yaml` declares every key runbook 08 sets, and the runbook names each one; the staging stack commits `appleTeamId: LMFUSVPCDH`, which is not secret.
+
+### The api knows its Firebase project
+
+The api service's container sets `FIREBASE_PROJECT_ID` to the stack's project, so the tokens it accepts are this environment's.
+
+### The api define is tested with and without it
+
+The `flutter` job of `verify.yml` and `make check` in `apps/mobile` both run `flutter test test/api_config_test.dart --dart-define=API_BASE_URL=https://example.test` after the plain run, so both cases of [[mobile-tests#Api config]] run in review.
+
+### The api spec is linted as OpenAPI in CI and locally
+
+The `api` job of `verify.yml` and the `api` target of the root `Makefile` both run `npx --yes @redocly/cli@<pinned> lint services/api/openapi.yaml`, so an invalid spec fails review before the contract test reads it ([[api-architecture#Contract]]).
 
 ### Verify gate builds and smoke-tests the api
 

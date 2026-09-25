@@ -42,12 +42,16 @@ Future<AppStore> pumpToday(WidgetTester tester, {AppData? data}) async {
   return store;
 }
 
+/// The PWA's fixture names each card's holder, which the app no longer
+/// stores; the sample household's two cards are Jim's and Kathy's.
+const holderOf = {'card-0001': 'Jim', 'card-0002': 'Kathy'};
+
 List<Map<String, Object?>> renderedRows(WidgetTester tester) =>
     tester.widgetList<CreditRow>(find.byType(CreditRow)).map((row) {
       final i = row.instance;
       return {
         'name': i.benefit.name,
-        'holder': i.card.holder,
+        'holder': holderOf[i.card.id],
         'tone': row.tone.name,
         'cents': i.status == BenefitStatus.captured
             ? i.claimedCents
@@ -113,7 +117,6 @@ void main() {
       enrollmentRequired: false,
       spendThresholdCents: 500000,
       redemptionSteps: const [],
-      muted: false,
       lastCallOnly: false,
       active: true,
       createdAt: '2026-01-01T00:00:00.000Z',

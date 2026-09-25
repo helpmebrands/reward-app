@@ -18,15 +18,15 @@ import 'package:reward/widgets/sheet_host.dart';
 
 const _stamp = '2026-01-01T00:00:00.000Z';
 
-Card _card(String id, String holder) => Card(
+Card _card(String id, String label) => Card(
   id: id,
   issuer: 'American Express',
   product: 'Platinum',
-  holder: holder,
+  label: label,
   network: CardNetwork.amex,
+  kind: CardKind.personal,
   annualFeeCents: 89500,
   anniversaryOn: '2021-03-14',
-  muted: false,
   archived: false,
   createdAt: _stamp,
   updatedAt: _stamp,
@@ -53,7 +53,6 @@ Benefit _benefit(
   enrollmentRequired: enrollmentRequired,
   spendThresholdCents: spendThresholdCents,
   redemptionSteps: steps,
-  muted: false,
   lastCallOnly: false,
   active: true,
   createdAt: _stamp,
@@ -328,7 +327,10 @@ void main() {
       await tester.ensureVisible(silence);
       await tester.tap(silence);
       await tester.pumpAndSettle();
-      expect(app.store.data!.benefits.first.muted, isTrue);
+      expect(
+        app.store.isBenefitMuted(app.store.data!.benefits.first.id),
+        isTrue,
+      );
 
       await tester.tap(
         find.bySemanticsLabel('Last call only for Resy Dining Credit'),

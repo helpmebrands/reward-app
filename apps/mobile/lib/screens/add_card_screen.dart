@@ -3,23 +3,43 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
+import '../logic/catalog_filter_controller.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/benefit_icon.dart';
+import '../widgets/catalog_filter_panel.dart';
 import '../widgets/field.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/snackbar_host.dart';
+import 'card_editor_screen.dart' show KindChoice, networkLabel;
 
-/// Add a card, in two steps: pick the product, then say whose it is and when
-/// the cardmember year turns over.
+/// Add a card, in two steps: pick the product, then label it and say when the
+/// cardmember year turns over.
 ///
-/// The holder is asked for rather than inferred, because the whole app turns
-/// on telling two identical Platinums apart. Save is never disabled: an
+/// A second card of a product the household already holds gets a numbered
+/// label, "American Express Platinum (1)", because every card's display name
+/// is unique and the app turns on telling two identical Platinums apart.
+/// Save is never disabled: an
 /// invalid submit shows the errors and focuses the first, since a disabled
 /// button never says why. Back with a draft asks first.
 class AddCardScreen extends StatefulWidget {
-  const AddCardScreen({super.key, required this.store, this.ui});
+  const AddCardScreen({
+    super.key,
+    required this.store,
+    this.ui,
+    this.initialTemplate,
+    this.initialFilter,
+  });
+
+  /// A template already picked, which opens the screen on step two. For the
+  /// Widget Preview; the route always starts on the catalogue.
+  final CardTemplate? initialTemplate;
+
+  /// A filter already applied to the catalogue. For the Widget Preview; the
+  /// route always starts unfiltered.
+  final CatalogFilter? initialFilter;
 
   final AppStore store;
   final UiState? ui;
@@ -31,19 +51,22 @@ class AddCardScreen extends StatefulWidget {
 class _AddCardScreenState extends State<AddCardScreen> {
   CardTemplate? _picked;
   bool _submitted = false;
+  CardKind _kind = CardKind.personal;
 
-  late final String _initialHolder;
+  String _initialLabel = '';
   late final String _today;
   final _issuer = TextEditingController();
   final _product = TextEditingController();
-  final _holder = TextEditingController();
+  final _label = TextEditingController();
   final _anniversary = TextEditingController();
-  final _nickname = TextEditingController();
   final _issuerFocus = FocusNode(debugLabel: 'issuer');
   final _productFocus = FocusNode(debugLabel: 'product');
-  final _holderFocus = FocusNode(debugLabel: 'holder');
+  final _labelFocus = FocusNode(debugLabel: 'label');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
-  final _nicknameFocus = FocusNode(debugLabel: 'nickname');
+  late final _filter = CatalogFilterController(
+    templates: () => store.templates,
+  );
+  final _filtersFocus = FocusNode(debugLabel: 'filters');
 
   AppStore get store => widget.store;
   bool get _isBlank => _picked?.id == 'blank';
@@ -51,30 +74,32 @@ class _AddCardScreenState extends State<AddCardScreen> {
   @override
   void initState() {
     super.initState();
-    final data = store.data;
-    _initialHolder = data == null ? '' : (holders(data).firstOrNull ?? '');
     _today = store.today;
-    _holder.text = _initialHolder;
+    final initial = widget.initialTemplate;
+    if (initial != null) _apply(initial);
+    final filter = widget.initialFilter;
+    if (filter != null) _filter.update((_) => filter);
     _anniversary.text = _today;
-    for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
+    for (final c in [_issuer, _product, _label, _anniversary]) {
       c.addListener(_changed);
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_issuer, _product, _holder, _anniversary, _nickname]) {
+    for (final c in [_issuer, _product, _label, _anniversary]) {
       c.dispose();
     }
     for (final f in [
       _issuerFocus,
       _productFocus,
-      _holderFocus,
+      _labelFocus,
       _anniversaryFocus,
-      _nicknameFocus,
     ]) {
       f.dispose();
     }
+    _filter.dispose();
+    _filtersFocus.dispose();
     super.dispose();
   }
 
@@ -86,24 +111,45 @@ class _AddCardScreenState extends State<AddCardScreen> {
   String? get _productError => _isBlank
       ? requiredError(_product.text, 'Enter the name of the card.')
       : null;
-  String? get _holderError =>
-      requiredError(_holder.text, 'Enter whose card this is.');
+  List<Card> get _cards => store.data?.cards ?? const [];
+
+  /// The label the card is saved with: what was typed or, when nothing was,
+  /// the numbered default for a product the household already holds.
+  String get _effectiveLabel {
+    final typed = _label.text.trim();
+    if (typed.isNotEmpty) return typed;
+    return defaultLabel(_cards, _issuer.text.trim(), _product.text.trim()) ??
+        '';
+  }
+
+  String? get _labelError => labelError(
+    _effectiveLabel,
+    cards: _cards,
+    issuer: _issuer.text.trim(),
+    product: _product.text.trim(),
+  );
   String? get _anniversaryError => anniversaryError(_anniversary.text);
 
   /// Anything typed since the template was picked.
   bool get _dirty =>
-      _holder.text != _initialHolder ||
+      _label.text != _initialLabel ||
       _anniversary.text != _today ||
-      _nickname.text.isNotEmpty ||
       (_isBlank && (_issuer.text.isNotEmpty || _product.text.isNotEmpty));
 
   void _pick(CardTemplate template) {
-    setState(() {
-      _picked = template;
-      _submitted = false;
-      _issuer.text = template.id == 'blank' ? '' : template.issuer;
-      _product.text = template.id == 'blank' ? '' : template.product;
-    });
+    setState(() => _apply(template));
+  }
+
+  void _apply(CardTemplate template) {
+    _picked = template;
+    _submitted = false;
+    _kind = template.kind;
+    _issuer.text = template.id == 'blank' ? '' : template.issuer;
+    _product.text = template.id == 'blank' ? '' : template.product;
+    _initialLabel = template.id == 'blank'
+        ? ''
+        : defaultLabel(_cards, template.issuer, template.product) ?? '';
+    _label.text = _initialLabel;
   }
 
   void _leave() => context.go(Paths.cards);
@@ -147,7 +193,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
     final firstInvalid = [
       (_issuerError, _issuerFocus),
       (_productError, _productFocus),
-      (_holderError, _holderFocus),
+      (_labelError, _labelFocus),
       (_anniversaryError, _anniversaryFocus),
     ].where((e) => e.$1 != null).firstOrNull;
     if (firstInvalid != null) {
@@ -155,14 +201,14 @@ class _AddCardScreenState extends State<AddCardScreen> {
       return;
     }
 
-    final nickname = _nickname.text.trim();
+    final label = _effectiveLabel;
     final card = await store.addCardFromTemplate(
       template,
-      holder: _holder.text.trim(),
+      label: label.isEmpty ? null : label,
       anniversaryOn: _anniversary.text,
-      nickname: nickname.isEmpty ? null : nickname,
       issuer: _isBlank ? _issuer.text.trim() : null,
       product: _isBlank ? _product.text.trim() : null,
+      kind: _kind,
     );
     final count = template.benefits.length;
     widget.ui?.snackbar.show(
@@ -225,7 +271,13 @@ class _AddCardScreenState extends State<AddCardScreen> {
               child: Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: widthClass.column),
+                  // From medium up the catalogue breaks out of the column
+                  // to put the filter panel beside the list.
+                  constraints: BoxConstraints(
+                    maxWidth: picked == null && widthClass != WidthClass.compact
+                        ? 1080
+                        : widthClass.column,
+                  ),
                   child: Builder(
                     builder: (context) =>
                         picked == null ? _catalogue(context) : _form(context),
@@ -248,14 +300,146 @@ class _AddCardScreenState extends State<AddCardScreen> {
         : SnackbarHost(snackbar: snackbar, child: child);
   }
 
+  void _pickBlank() => _pick(findTemplate('blank')!);
+
+  Future<void> _openFilters() async {
+    await showCatalogFilterSheet(context, _filter);
+    // Back to the button that opened it; gone if the window grew meanwhile.
+    if (mounted) _filtersFocus.requestFocus();
+  }
+
   Widget _catalogue(BuildContext context) {
+    final widthClass = WidthClass.of(context);
+    return ListenableBuilder(
+      listenable: _filter,
+      builder: (context, _) {
+        final list = _results(context);
+        if (widthClass == WidthClass.compact) return list;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: widthClass == WidthClass.medium ? 200 : 240,
+              child: CatalogFilterPanel(
+                controller: _filter,
+                padding: EdgeInsetsDirectional.fromSTEB(
+                  widthClass.padding,
+                  widthClass.padding,
+                  0,
+                  widthClass.padding,
+                ),
+              ),
+            ),
+            Expanded(child: list),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _results(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
+    final filter = _filter.filter;
+    final templates = _filter.results;
+    final chips = <(String, CatalogFilter Function(CatalogFilter))>[
+      for (final b in filter.feeBands) (b.label, (f) => f.toggleFeeBand(b)),
+      for (final n in filter.networks)
+        (networkLabel(n), (f) => f.toggleNetwork(n)),
+      for (final k in filter.kinds) (kindLabel(k), (f) => f.toggleKind(k)),
+      for (final i in filter.issuers) (i, (f) => f.toggleIssuer(i)),
+      for (final m in filter.merchants) (m, (f) => f.toggleMerchant(m)),
+    ];
     return ListView(
+      key: const Key('catalog-results'),
       padding: EdgeInsets.all(widthClass.padding),
       children: [
+        // Manual entry leads, so a card the catalogue lacks is one tap away.
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: Space.s4,
+          runSpacing: Space.s3,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Card catalogue', style: text.titleMedium),
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    '${templates.length} of ${_filter.total} cards',
+                    style: note,
+                  ),
+                ),
+              ],
+            ),
+            Wrap(
+              spacing: Space.s3,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (widthClass == WidthClass.compact)
+                  OutlinedButton.icon(
+                    key: const Key('filters-button'),
+                    focusNode: _filtersFocus,
+                    onPressed: _openFilters,
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.standard,
+                    ),
+                    icon: Badge(
+                      isLabelVisible: filter.activeCount > 0,
+                      label: Text('${filter.activeCount}'),
+                      child: const Icon(Icons.tune, size: 18),
+                    ),
+                    label: const Text('Filters'),
+                  ),
+                if (!filter.isEmpty)
+                  TextButton(
+                    key: const Key('clear-all'),
+                    onPressed: _filter.clear,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      visualDensity: VisualDensity.standard,
+                    ),
+                    child: const Text('Clear all'),
+                  ),
+                FilledButton.icon(
+                  key: const Key('add-manually-top'),
+                  onPressed: _pickBlank,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 48),
+                    visualDensity: VisualDensity.standard,
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(
+                    widthClass == WidthClass.compact
+                        ? 'Add card'
+                        : 'Add card manually',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        if (chips.isNotEmpty) ...[
+          const SizedBox(height: Space.s4),
+          Wrap(
+            spacing: Space.s3,
+            runSpacing: Space.s3,
+            children: [
+              for (final (label, remove) in chips)
+                InputChip(
+                  label: Text(label),
+                  onDeleted: () => _filter.update(remove),
+                  deleteButtonTooltipMessage: 'Remove $label filter',
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: Space.s4),
         Text(
           'Pick a card and its credits arrive pre-filled, including which ones '
           'need enrolment. Everything stays editable — treat the catalogue as '
@@ -263,21 +447,50 @@ class _AddCardScreenState extends State<AddCardScreen> {
           style: note,
         ),
         const SizedBox(height: Space.s6),
-        for (final template in cardTemplates)
-          if (template.id != 'blank')
+        if (templates.isEmpty) ...[
+          Text(
+            'No cards match. Try removing a filter, or add your card manually.',
+            style: text.bodyMedium,
+          ),
+          const SizedBox(height: Space.s4),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: OutlinedButton.icon(
+              key: const Key('add-manually-empty'),
+              onPressed: _pickBlank,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Add card manually'),
+            ),
+          ),
+        ] else ...[
+          for (final template in templates)
             Padding(
               padding: const EdgeInsets.only(bottom: Space.s3),
               child: _TemplateTile(
                 key: ValueKey('template-${template.id}'),
                 template: template,
+                matched: matchedBenefits(template, filter),
                 onTap: () => _pick(template),
               ),
             ),
-        OutlinedButton.icon(
-          onPressed: () => _pick(findTemplate('blank')!),
-          icon: const Icon(Icons.edit_outlined, size: 16),
-          label: const Text('Set one up by hand'),
-        ),
+          const SizedBox(height: Space.s3),
+          Text(
+            "Don't see your card?",
+            textAlign: TextAlign.center,
+            style: note,
+          ),
+          Center(
+            child: TextButton(
+              key: const Key('add-manually-end'),
+              onPressed: _pickBlank,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                visualDensity: VisualDensity.standard,
+              ),
+              child: const Text('Enter it manually'),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -288,8 +501,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
     final widthClass = WidthClass.of(context);
     final template = _picked!;
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
-    final data = store.data;
-    final known = data == null ? const <String>[] : holders(data);
 
     Widget field(
       String key,
@@ -340,16 +551,14 @@ class _AddCardScreenState extends State<AddCardScreen> {
         ),
       ],
       field(
-        'field-holder',
-        'Whose card is it?',
-        required: true,
+        'field-label',
+        'Label (optional)',
         hint:
-            'Two people holding the same product is the case this app exists '
-            'for — the name is how their credits stay apart.'
-            '${known.isEmpty ? '' : ' Known: ${known.join(', ')}.'}',
-        error: _holderError,
-        controller: _holder,
-        focusNode: _holderFocus,
+            'How the household tells this card apart. Blank shows the card’s '
+            'name, which no other card may already show.',
+        error: _labelError,
+        controller: _label,
+        focusNode: _labelFocus,
       ),
       field(
         'field-anniversary',
@@ -368,12 +577,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
           onPressed: _pickDate,
         ),
       ),
-      field(
-        'field-nickname',
-        'Nickname (optional)',
-        error: null,
-        controller: _nickname,
-        focusNode: _nicknameFocus,
+      KindChoice(
+        kind: _kind,
+        onChanged: (kind) => setState(() => _kind = kind),
       ),
     ];
 
@@ -446,9 +652,18 @@ class _AddCardScreenState extends State<AddCardScreen> {
 }
 
 class _TemplateTile extends StatelessWidget {
-  const _TemplateTile({super.key, required this.template, required this.onTap});
+  const _TemplateTile({
+    super.key,
+    required this.template,
+    this.matched = const [],
+    required this.onTap,
+  });
 
   final CardTemplate template;
+
+  /// The credits a selected merchant or the search matched, tagged so the
+  /// row says why it is listed.
+  final List<BenefitTemplate> matched;
   final VoidCallback onTap;
 
   @override
@@ -476,6 +691,19 @@ class _TemplateTile extends StatelessWidget {
                   children: [
                     Text(template.issuer, style: note),
                     Text(template.product, style: text.titleSmall),
+                    if (matched.isNotEmpty) ...[
+                      const SizedBox(height: Space.s2),
+                      Semantics(
+                        label:
+                            'Matches ${matched.map((b) => '${b.name}, ${_perCycle(b)}').join('; ')}',
+                        excludeSemantics: true,
+                        child: Wrap(
+                          spacing: Space.s2,
+                          runSpacing: Space.s2,
+                          children: [for (final b in matched) _MatchTag(b)],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: Space.s2),
                     Wrap(
                       spacing: Space.s3,
@@ -505,6 +733,57 @@ class _TemplateTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+String _perCycle(BenefitTemplate b) =>
+    formatValuePerCycle(b.valueCents, b.cadence, b.intervalMonths);
+
+/// One matched credit: its category icon, name and value per cycle, on the
+/// accent container.
+class _MatchTag extends StatelessWidget {
+  const _MatchTag(this.benefit);
+
+  final BenefitTemplate benefit;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
+    // The light ramp runs the other way, so these two are the container
+    // pair in both themes.
+    final ground = tokens.accentRamp[900]!;
+    final foreground = tokens.accentRamp[200]!;
+    final style = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: foreground);
+    return Container(
+      key: ValueKey('match-${benefit.name}'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: Space.s3,
+        vertical: Space.s1,
+      ),
+      decoration: BoxDecoration(
+        color: ground,
+        borderRadius: const BorderRadius.all(Radius.circular(Radii.sm)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            benefitCategoryIcon(benefit.category),
+            size: 14,
+            color: foreground,
+          ),
+          const SizedBox(width: Space.s2),
+          Flexible(child: Text(benefit.name, style: style)),
+          const SizedBox(width: Space.s2),
+          Text(
+            _perCycle(benefit),
+            style: style?.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ],
       ),
     );
   }

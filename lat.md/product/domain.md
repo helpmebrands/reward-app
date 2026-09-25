@@ -19,12 +19,23 @@ ISO dates are zero-padded, so lexical comparison is chronological ([[apps/pwa/sr
 
 ## Card
 
-A card belongs to one person in the household. The `holder` field is what distinguishes two of the same product; `nickname` wins over `issuer product` in the UI when set.
+A card belongs to the household, not to a person. Its display name (`cardLabel`) is its optional `label`, or `issuer product` when there is none, and it must be unique within the household.
+
+Two of the same product are told apart by their labels. `defaultLabel` proposes the first free "American Express Platinum (n)" from 1 for a duplicate, and the proposal is stored, so deleting a card renames nothing. `labelError` refuses a label, or a blank one, whose display name another card already shows, ignoring case and surrounding space. The Dart domain dropped the PWA's `holder` and `nickname` (#208); the frozen PWA keeps them, and the Dart codec ignores `holder` when it reads the PWA's sample.
 
 - `anniversaryOn` anchors anniversary cycles and the annual-fee countdown. Only month and day matter for recurrence.
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).
-- `muted` silences every credit on the card without losing their state. `archived` hides the card and its credits from every selector.
+- `archived` hides the card and its credits from every selector. Silencing a card is a member's choice, not the card's ([[domain#Member preferences]]).
 - `last4` is display only; a full PAN is never stored.
+- `kind` says whether it is a `personal` or a `business` product. Classification only: the card editors offer the choice, the Cards screen marks business cards, and a template's kind lands on the card it creates. The add-card catalogue can be filtered by kind ([[domain#Catalogue filter]]); the Cards screen cannot. A snapshot from before `kind` existed loads with every card `personal` ([[architecture#Persistence]]).
+
+## Member preferences
+
+The household's cards, credits and claims are shared by its members; reminder settings and mutes are not, so `MemberPreferences` holds one member's.
+
+They are whether reminders are on, the time of day, the value floor, the annual-fee and enrolment switches, and the muted card and credit ids.
+
+`isMuted(benefit)` is true when the member muted the credit or its card. `buildSchedule(data, prefs)` and `currentInstances(data, on, prefs)` read them, so one household scheduled for two members gives two schedules, and one member's mute leaves the household's data untouched (#209). The Dart domain dropped the PWA's `Card.muted`, `Benefit.muted` and `Settings.notifications`; the codec ignores them in the PWA's sample. `defaultMemberPreferences` are the PWA's defaults: off, 09:00, a $1 floor, both switches on, nothing muted.
 
 ## Benefit
 
@@ -36,7 +47,7 @@ Fields with behaviour behind them:
 - `enrollmentRequired` with no `enrolledAt` makes the credit `locked` ([[domain#Status ladder#Locked is not unclaimed]]).
 - `spendThresholdCents` is the second kind of lock: spend the issuer asks for in a year before the credit opens (Business Platinum's $250K credits, the Dell bonus). Until `spendMetAt` falls inside the current year the credit is `locked` for spend ([[domain#Status ladder#A spend threshold is the other lock]]).
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
-- `muted` silences reminders for this credit only; `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]).
+- `lastCallOnly` collapses its ladder to the final rung ([[reminders#The ladder]]). Silencing a credit is a member's choice ([[domain#Member preferences]]).
 - `active: false` keeps history but stops tracking.
 - `endsOn` is the last day the credit can be used, for credits the issuer has announced an end to (Grubhub, Instacart). The final window is clamped to it and nothing follows ([[domain#Cycle]]); afterwards the credit is skipped the way an inactive one is, while its final shortfall stays in the [[domain#Missed ledger]]. `annualValueCents` is not prorated for a credit ending mid-year.
 
@@ -179,6 +190,33 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 
 `apps/pwa/src/domain/catalog.ts` holds starting templates for known cards. It is an onboarding aid, not a source of truth: issuers change terms constantly, so everything it creates becomes an ordinary editable benefit and the add-card flow says so.
 
-`packages/domain/lib/src/catalog.dart` is generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`, so there is one catalogue. Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
+`packages/domain/lib/src/catalog.dart` was generated from the TypeScript list by `apps/pwa/scripts/emit-catalog.ts`. Since #210 it is edited by hand, because the PWA is frozen and the Dart templates carry stable credit ids the PWA lacks: `<template id>/<slug of the name>`, such as `amex-gold/uber-cash`. It seeds version 1 of the service tier's catalogue ([[domain#Catalogue versions]]). Icons are Phosphor names in kebab-case (`car-profile`), the form the PWA's icon component takes.
 
-`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+`enrollmentRequired` is the field worth getting right in a template, since it decides whether a credit lands as locked or spendable. `spendThresholdCents` is the other: a gated entry is copied onto the benefit and left out of the template's annual value, so a card's catalogue price is what an ordinary cardholder can reach. A `rolling` entry carries `intervalMonths` and is priced at its amortised value; every Global Entry entry is one, at 48 months. An entry whose terms name a last day carries `endsOn`. Each template names its `kind`, which the add-card flow copies onto the new card: Business Platinum is `business`, everything else including `blank` is `personal`. [[apps/pwa/src/domain/catalog.ts#benefitsFromTemplate]] stamps template entries into real benefits with fresh ids; a `blank` template exists for cards the catalogue does not know.
+
+## Catalogue versions
+
+A card template changes over time, so the catalogue keeps versions of it, and a card linked to a template takes its terms from them rather than holding copies (`packages/domain/lib/src/catalog_versions.dart`).
+
+A `TemplateVersion` is a whole `CardTemplate` with its `version` and `effectiveFrom`; `versionInForce(versions, date)` is the latest whose date has passed. A linked card stores `templateId` and each linked benefit `templateBenefitId`, the stable credit id; `maintainedBy(card)` is `system` for a linked card and `user` otherwise, derived and never stored.
+
+`resolveLinkedBenefit(versions, state, card, on)` builds today's `Benefit` from the household's `LinkedBenefitState` (its own id, which claims point at, enrolment, spend and the flags) and the credit's terms, so selectors, `buildSchedule` and the screens need no change:
+
+- The version in force at the start of the current cycle supplies the terms, so a cycle already running keeps them when a new version lands.
+- A credit added in a version appears from its `effectiveFrom` with that version's terms, locked if it needs enrolment.
+- A credit dropped from a version ends the day before that version's `effectiveFrom`.
+
+Catalogue storage, drafts and publishing live in the service tier (#214, #215); these are the pure rules both sides share.
+
+## Catalogue filter
+
+`packages/domain/lib/src/catalog_filter.dart` narrows and orders the catalogue on the add-card screen. It is Dart only, since the PWA is frozen. The blank template is never a result, because manual entry has its own buttons.
+
+A `CatalogFilter` holds the selected fee bands, networks, card kinds, issuers and merchants, plus the search text. Its `activeCount` counts the selected values only, so the Filters badge ignores typing.
+
+- Values in one facet are OR-ed. Facets are AND-ed with each other and with the search.
+- The search is a case-insensitive substring match on issuer, product, benefit name and merchant.
+- `FeeBand` splits the annual fee, in cents, into No fee (0), Under $100 (1–9,999), $100–$399 (10,000–39,999), $400–$599 (40,000–59,999) and $600+ (60,000 and up).
+- `facetCounts` counts, for each option, the cards that selecting it would return. Every other facet and the search apply, but the option's own facet does not. An option stays listed at zero. The fee bands keep band order, networks and kinds keep enum order and appear only if the catalogue has them, and issuers and merchants are alphabetical.
+- `sortByValue` is the only order. It puts the highest `templateAnnualValueCents` first, and ties keep catalogue order. There is no sort control.
+- `matchedBenefits` names the benefits that a selected merchant or the search matched, so a row can say why it is listed.

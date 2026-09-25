@@ -6,9 +6,8 @@ import 'dart:convert';
 
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
-import 'package:shelf_router/shelf_router.dart';
-
 import 'src/responses.dart';
+import 'src/routes.dart';
 
 /// A registration body that fails validation, naming the field at fault.
 class InvalidField implements Exception {
@@ -107,15 +106,15 @@ Future<bool> deleteDevice(Session db, String token) async {
   return result.affectedRows > 0;
 }
 
-/// Adds `POST /v1/devices` and `DELETE /v1/devices/<token>` to [router].
+/// Adds `POST /v1/devices` and `DELETE /v1/devices/<token>` to [routes].
 /// Without a [db] both answer 503, so a health-only process (the container
 /// smoke test, a misconfigured deploy) says so instead of pretending.
-void addDeviceRoutes(Router router, Session? db) {
+void addDeviceRoutes(RouteTable routes, Session? db) {
   Response invalid(String field) =>
       jsonResponse({'error': 'invalid', 'field': field}, status: 400);
 
   Future<Response> register(Request request) async {
-    if (db == null) return _noDatabase;
+    if (db == null) return _noDatabase();
     final Device device;
     try {
       device = Device.parse(jsonDecode(await request.readAsString()));
@@ -132,15 +131,17 @@ void addDeviceRoutes(Router router, Session? db) {
   }
 
   Future<Response> unregister(Request request, String token) async {
-    if (db == null) return _noDatabase;
+    if (db == null) return _noDatabase();
     return await deleteDevice(db, token)
         ? Response(204)
         : jsonResponse({'error': 'not found'}, status: 404);
   }
 
-  router
-    ..post('/v1/devices', register)
-    ..delete('/v1/devices/<token>', unregister);
+  routes
+    ..add('POST', '/v1/devices', register)
+    ..add('DELETE', '/v1/devices/<token>', unregister);
 }
 
-final _noDatabase = jsonResponse({'error': 'no database'}, status: 503);
+/// A fresh response each time: a shelf body can be read only once, so one
+/// shared instance answered the first request and broke every later one.
+Response _noDatabase() => jsonResponse({'error': 'no database'}, status: 503);

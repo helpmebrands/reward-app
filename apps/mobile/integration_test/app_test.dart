@@ -73,11 +73,10 @@ void main() {
     await show(tester, platinum);
     await tester.tap(platinum);
     await settle(tester);
-    await tester.enterText(find.byKey(const Key('field-holder')), 'Kathy');
     await tester.tap(find.text('Add this card'));
     await settle(tester);
     expect(find.byType(CardEditorScreen), findsOneWidget);
-    expect(find.text('American Express Platinum — Kathy'), findsWidgets);
+    expect(find.text('American Express Platinum'), findsWidgets);
     await tester.tap(find.byTooltip('Back'));
     await settle(tester);
 
@@ -148,13 +147,13 @@ void main() {
     // Mute the card from Cards.
     await tab(tester, 'Cards');
     await tester.tap(
-      find.bySemanticsLabel('Menu for American Express Platinum — Kathy'),
+      find.bySemanticsLabel('Menu for American Express Platinum'),
     );
     await settle(tester);
     await tester.tap(find.text('Mute'));
     await settle(tester);
     expect(
-      find.text('Silenced every credit on American Express Platinum — Kathy.'),
+      find.text('Silenced every credit on American Express Platinum.'),
       findsOneWidget,
     );
 

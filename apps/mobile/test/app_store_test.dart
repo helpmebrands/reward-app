@@ -12,15 +12,14 @@ import 'package:reward/logic/app_store.dart';
 final DateTime _now = DateTime(2026, 9, 16, 10, 30);
 const IsoInstant _stamp = '2020-03-14T00:00:00.000Z';
 
-Card _card({String id = 'card-1', bool muted = false}) => Card(
+Card _card({String id = 'card-1'}) => Card(
   id: id,
   issuer: 'American Express',
   product: 'Platinum',
-  holder: 'Jim',
   network: CardNetwork.amex,
+  kind: CardKind.personal,
   annualFeeCents: 89500,
   anniversaryOn: '2020-03-14',
-  muted: muted,
   archived: false,
   createdAt: _stamp,
   updatedAt: _stamp,
@@ -45,7 +44,6 @@ Benefit _benefit({
   enrolledAt: enrolledAt,
   spendThresholdCents: spendThresholdCents,
   redemptionSteps: const [],
-  muted: false,
   lastCallOnly: false,
   active: true,
   createdAt: _stamp,
@@ -100,6 +98,17 @@ class _Harness {
     expect(appDataToJson(memory.data!), appDataToJson(store.data!));
     return memory.data!;
   }
+
+  /// The member's preferences as the store exposes them, and as they were
+  /// saved.
+  MemberPreferences get savedPreferences {
+    expect(memory.preferences, isNotNull, reason: 'preferences not saved');
+    expect(
+      memberPreferencesToJson(memory.preferences!),
+      memberPreferencesToJson(store.preferences),
+    );
+    return memory.preferences!;
+  }
 }
 
 Future<_Harness> _load([AppData? data]) => _Harness(data ?? _data()).loaded();
@@ -115,8 +124,7 @@ void main() {
 
         final card = await h.store.addCardFromTemplate(
           template,
-          holder: 'Ann',
-          nickname: 'Ann Plat',
+          label: 'Ann Plat',
           anniversaryOn: '2024-05-01',
         );
 
@@ -125,8 +133,7 @@ void main() {
         expect(saved.cards.map((c) => c.id), [card.id]);
         expect(card.issuer, template.issuer);
         expect(card.product, template.product);
-        expect(card.holder, 'Ann');
-        expect(card.nickname, 'Ann Plat');
+        expect(card.label, 'Ann Plat');
         expect(card.anniversaryOn, '2024-05-01');
         expect(card.createdAt, _now.toUtc().toIso8601String());
         expect(card.updatedAt, card.createdAt);
@@ -147,7 +154,6 @@ void main() {
 
       final card = await h.store.addCardFromTemplate(
         blank,
-        holder: 'Jim',
         issuer: 'Chase',
         product: 'Sapphire',
       );
@@ -164,30 +170,36 @@ void main() {
 
       await h.store.updateCard(
         'card-1',
-        (card) => card.copyWith(nickname: 'Work card', last4: '1234'),
+        (card) => card.copyWith(label: 'Work card', last4: '1234'),
       );
 
       expect(h.notifications, 1);
       final card = h.saved.cards.single;
-      expect(card.nickname, 'Work card');
+      expect(card.label, 'Work card');
       expect(card.last4, '1234');
       expect(card.createdAt, _stamp);
       expect(card.updatedAt, _now.toUtc().toIso8601String());
     });
 
-    // @lat: [[mobile-tests#Store#Mute and archive are card patches]]
-    test('toggleCardMute flips muted and archiveCard sets archived', () async {
-      final h = await _load();
+    // @lat: [[mobile-tests#Store#Mute is the member's and archive is a card patch]]
+    test(
+      'toggleCardMute flips the member’s mute and archiveCard archives',
+      () async {
+        final h = await _load();
+        final before = appDataToJson(h.store.data!);
 
-      await h.store.toggleCardMute('card-1');
-      expect(h.saved.cards.single.muted, isTrue);
-      await h.store.toggleCardMute('card-1');
-      expect(h.saved.cards.single.muted, isFalse);
-      await h.store.archiveCard('card-1');
-      expect(h.saved.cards.single.archived, isTrue);
-      expect(h.notifications, 3);
-      expect(h.store.hasCards, isFalse);
-    });
+        await h.store.toggleCardMute('card-1');
+        expect(h.savedPreferences.mutedCardIds, {'card-1'});
+        expect(h.store.isCardMuted('card-1'), isTrue);
+        await h.store.toggleCardMute('card-1');
+        expect(h.savedPreferences.mutedCardIds, isEmpty);
+        expect(appDataToJson(h.store.data!), before);
+        await h.store.archiveCard('card-1');
+        expect(h.saved.cards.single.archived, isTrue);
+        expect(h.notifications, 3);
+        expect(h.store.hasCards, isFalse);
+      },
+    );
 
     // @lat: [[mobile-tests#Store#Deleting a card cascades]]
     test(
@@ -241,22 +253,31 @@ void main() {
     });
 
     // @lat: [[mobile-tests#Store#Benefit patches stamp updatedAt]]
-    test('updateBenefit and toggleBenefitMute patch and stamp', () async {
+    test('updateBenefit patches and stamps', () async {
       final h = await _load();
 
       await h.store.updateBenefit(
         'benefit-1',
         (b) => b.copyWith(name: 'Uber Cash', valueCents: 1500),
       );
-      var benefit = h.saved.benefits.single;
+      final benefit = h.saved.benefits.single;
       expect(benefit.name, 'Uber Cash');
       expect(benefit.valueCents, 1500);
       expect(benefit.updatedAt, _now.toUtc().toIso8601String());
+      expect(h.notifications, 1);
+    });
+
+    // @lat: [[mobile-tests#Store#Muting a credit leaves the household alone]]
+    test('toggleBenefitMute writes the member’s preferences only', () async {
+      final h = await _load();
+      final before = appDataToJson(h.store.data!);
 
       await h.store.toggleBenefitMute('benefit-1');
-      benefit = h.saved.benefits.single;
-      expect(benefit.muted, isTrue);
-      expect(h.notifications, 2);
+
+      expect(h.savedPreferences.mutedBenefitIds, {'benefit-1'});
+      expect(appDataToJson(h.store.data!), before);
+      expect(h.store.instances.single.muted, isTrue);
+      expect(h.notifications, 1);
     });
 
     // @lat: [[mobile-tests#Store#Enrolment is confirmed and revoked]]
@@ -383,30 +404,26 @@ void main() {
 
   group('settings', () {
     // @lat: [[mobile-tests#Store#Settings patches keep the rest]]
-    test(
-      'updateSettings and updateNotificationSettings patch in place',
-      () async {
-        final h = await _load();
+    test('updateSettings and updatePreferences patch in place', () async {
+      final h = await _load();
 
-        await h.store.updateSettings(
-          (s) => s.copyWith(holderFilter: 'Jim', theme: ThemeSetting.dark),
-        );
-        var settings = h.saved.settings;
-        expect(settings.holderFilter, 'Jim');
-        expect(settings.theme, ThemeSetting.dark);
-        expect(settings.useSoonDays, 30);
+      await h.store.updateSettings(
+        (s) => s.copyWith(useSoonDays: 14, theme: ThemeSetting.dark),
+      );
+      var settings = h.saved.settings;
+      expect(settings.useSoonDays, 14);
+      expect(settings.theme, ThemeSetting.dark);
 
-        await h.store.updateNotificationSettings(
-          (n) => n.copyWith(enabled: true, timeOfDay: '08:00'),
-        );
-        settings = h.saved.settings;
-        expect(settings.notifications.enabled, isTrue);
-        expect(settings.notifications.timeOfDay, '08:00');
-        expect(settings.notifications.minValueCents, 100);
-        expect(settings.holderFilter, 'Jim');
-        expect(h.notifications, 2);
-      },
-    );
+      await h.store.updatePreferences(
+        (p) => p.copyWith(enabled: true, timeOfDay: '08:00'),
+      );
+      final prefs = h.savedPreferences;
+      expect(prefs.enabled, isTrue);
+      expect(prefs.timeOfDay, '08:00');
+      expect(prefs.minValueCents, 100);
+      expect(h.saved.settings.useSoonDays, 14);
+      expect(h.notifications, 2);
+    });
   });
 
   group('load', () {
@@ -419,10 +436,7 @@ void main() {
       store.addListener(() => notifications++);
 
       final loading = store.load();
-      final card = await store.addCardFromTemplate(
-        findTemplate('blank')!,
-        holder: 'Ann',
-      );
+      final card = await store.addCardFromTemplate(findTemplate('blank')!);
       expect(store.data!.cards.map((c) => c.id), [card.id]);
 
       gate.complete();
@@ -453,4 +467,10 @@ class _GatedSnapshotStore implements SnapshotStore {
 
   @override
   Future<void> save(AppData data) async => saved = data;
+
+  @override
+  Future<MemberPreferences?> loadPreferences() async => null;
+
+  @override
+  Future<void> savePreferences(MemberPreferences preferences) async {}
 }

@@ -122,6 +122,29 @@ export function CardEditor() {
               />
             </div>
 
+            <div class="field">
+              <span class="field__label">Kind</span>
+              <div class="seg">
+                <button
+                  type="button"
+                  class="seg__opt"
+                  aria-pressed={current().kind === 'personal'}
+                  onClick={() => app.updateCard(current().id, { kind: 'personal' })}
+                >
+                  Personal
+                </button>
+                <button
+                  type="button"
+                  class="seg__opt"
+                  aria-pressed={current().kind === 'business'}
+                  onClick={() => app.updateCard(current().id, { kind: 'business' })}
+                >
+                  Business
+                </button>
+              </div>
+              <p class="section-note">Business cards are marked on the Cards screen.</p>
+            </div>
+
             <Field id="card-fee" label="Annual fee" required error={errors.fee()}>
               {(control) => (
                 <input

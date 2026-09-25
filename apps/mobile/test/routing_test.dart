@@ -20,10 +20,21 @@ import 'package:reward/widgets/screen_title.dart';
 /// title per screen, focus on navigation, and a notification payload that
 /// opens its screen.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them, so the PWA's fixtures still apply.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 final DateTime now = DateTime(2026, 9, 16, 8);
 

@@ -139,20 +139,29 @@ class _CardsBody extends StatelessWidget {
       label: const Text('Add a card from the catalogue'),
     );
 
-    final cards = [
-      for (final summary in summaries)
-        _CardStat(
-          key: ValueKey('card-${summary.card.id}'),
-          summary: summary,
-          store: store,
-          snackbar: ui?.snackbar,
-          wide: widthClass == WidthClass.expanded,
-        ),
+    Widget stat(CardSummary summary) => _CardStat(
+      key: ValueKey('card-${summary.card.id}'),
+      summary: summary,
+      store: store,
+      snackbar: ui?.snackbar,
+      wide: widthClass == WidthClass.expanded,
+    );
+
+    // Cards the catalogue keeps up to date, then the household's own, each
+    // group named when it has cards. A local household with no linked card
+    // (no service tier) shows its cards without names.
+    final system = [
+      for (final s in summaries)
+        if (maintainedBy(s.card) == MaintainedBy.system) s,
+    ];
+    final user = [
+      for (final s in summaries)
+        if (maintainedBy(s.card) == MaintainedBy.user) s,
     ];
 
     // One column on a phone, two across at medium, one wide row per card at
     // expanded with the verdict beside the figures.
-    final Widget grid = widthClass == WidthClass.medium
+    Widget grid(List<Widget> cards) => widthClass == WidthClass.medium
         ? LayoutBuilder(
             builder: (context, constraints) {
               final width = (constraints.maxWidth - Space.s4) / 2;
@@ -175,14 +184,55 @@ class _CardsBody extends StatelessWidget {
             ],
           );
 
+    Widget group(String key, String title, String about) => Padding(
+      key: Key(key),
+      padding: const EdgeInsets.only(bottom: Space.s3),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Semantics(
+            header: true,
+            headingLevel: 2,
+            child: Text(title, style: text.titleSmall),
+          ),
+          Text(about, style: note),
+        ],
+      ),
+    );
+
+    final List<Widget> body = !store.remote && system.isEmpty
+        ? [
+            grid([for (final s in user) stat(s)]),
+          ]
+        : [
+            if (system.isNotEmpty) ...[
+              group(
+                'cards-system',
+                'Kept up to date',
+                'Their credits follow the catalogue as issuers change them.',
+              ),
+              grid([for (final s in system) stat(s)]),
+            ],
+            if (system.isNotEmpty && user.isNotEmpty)
+              const SizedBox(height: Space.s4),
+            if (user.isNotEmpty) ...[
+              group(
+                'cards-user',
+                'Maintained by you',
+                'Cards whose terms you keep yourself.',
+              ),
+              grid([for (final s in user) stat(s)]),
+            ],
+          ];
+
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
         header,
         const SizedBox(height: Space.s6),
-        grid,
+        ...body,
         if (widthClass == WidthClass.medium) const SizedBox(height: Space.s4),
-        addCard,
+        if (store.canWrite) addCard,
         if (summaries.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
@@ -236,7 +286,7 @@ class _CardStat extends StatelessWidget {
   Future<void> _act(BuildContext context, _CardAction action) async {
     switch (action) {
       case _CardAction.mute:
-        final wasMuted = card.muted;
+        final wasMuted = store.isCardMuted(card.id);
         await store.toggleCardMute(card.id);
         snackbar?.show(
           wasMuted
@@ -339,23 +389,27 @@ class _CardStat extends StatelessWidget {
                 itemBuilder: (context) => [
                   PopupMenuItem(
                     value: _CardAction.mute,
-                    child: Text(card.muted ? 'Unmute' : 'Mute'),
+                    child: Text(store.isCardMuted(card.id) ? 'Unmute' : 'Mute'),
                   ),
-                  const PopupMenuItem(
-                    value: _CardAction.archive,
-                    child: Text('Archive'),
-                  ),
-                  const PopupMenuItem(
-                    value: _CardAction.delete,
-                    child: Text('Delete'),
-                  ),
+                  if (store.canWrite) ...const [
+                    PopupMenuItem(
+                      value: _CardAction.archive,
+                      child: Text('Archive'),
+                    ),
+                    PopupMenuItem(
+                      value: _CardAction.delete,
+                      child: Text('Delete'),
+                    ),
+                  ],
                 ],
                 icon: Icon(
-                  card.muted
+                  store.isCardMuted(card.id)
                       ? Icons.notifications_off_outlined
                       : Icons.more_vert,
                   size: 18,
-                  color: card.muted ? tokens.accent : tokens.textSecondary,
+                  color: store.isCardMuted(card.id)
+                      ? tokens.accent
+                      : tokens.textSecondary,
                 ),
               ),
             ),
@@ -482,6 +536,8 @@ class _CardStat extends StatelessWidget {
                 palette: tokens.missed,
               ),
             _Tag('$count credit${count == 1 ? '' : 's'}'),
+            if (summary.card.kind == CardKind.business)
+              const _Tag('Business', icon: Icons.work_outline),
           ],
         ),
       ),
@@ -515,14 +571,22 @@ class _CardStat extends StatelessWidget {
                 flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [verdictText, tags, edit],
+                  children: [verdictText, tags, if (store.canWrite) edit],
                 ),
               ),
             ],
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [head, figures, bar, pct, verdictText, tags, edit],
+            children: [
+              head,
+              figures,
+              bar,
+              pct,
+              verdictText,
+              tags,
+              if (store.canWrite) edit,
+            ],
           );
 
     return Container(

@@ -27,6 +27,12 @@ const serviceName = config.get('serviceName') ?? 'reward-app'
 const minInstances = config.getNumber('minInstances') ?? 0
 const maxInstances = config.getNumber('maxInstances') ?? 4
 const customDomain = config.get('customDomain') ?? ''
+/** The api's own domain, which invite links point at: iOS and Android only
+ * hand a link to the app when the domain serves their association files. */
+const apiCustomDomain = config.get('apiCustomDomain') ?? ''
+/** SHA-256 fingerprints of the Android signing certificates, comma separated,
+ * for assetlinks.json; empty until the Play signing key exists (#115). */
+const androidSha256Fingerprints = config.get('androidSha256Fingerprints') ?? ''
 const apiServiceName = config.get('apiServiceName') ?? 'reward-api'
 const dbTier = config.get('dbTier') ?? 'db-f1-micro'
 /** Bootstrapped by hand before the stack exists (runbook 01); the deployer is
@@ -37,6 +43,12 @@ const secretsKey = config.require('secretsKey')
  * public and a billing account id is a foothold for social engineering. */
 const billingAccount = config.requireSecret('billingAccount')
 const budgetAmount = config.getNumber('budgetAmount') ?? 25
+/** Sign-in credentials, set by hand per runbook 08. Until they are, the
+ * providers are left out rather than failing the preview. */
+const googleOAuthClientId = config.get('googleOAuthClientId') ?? ''
+const googleOAuthClientSecret = config.getSecret('googleOAuthClientSecret')
+const appleServicesId = config.get('appleServicesId') ?? ''
+const appleTeamId = config.get('appleTeamId') ?? ''
 
 /**
  * The repository permitted to deploy, as `owner/name`.
@@ -78,6 +90,8 @@ const services = [
   'cloudkms.googleapis.com',
   'billingbudgets.googleapis.com',
   'androidpublisher.googleapis.com',
+  'firebase.googleapis.com',
+  'identitytoolkit.googleapis.com',
 ].map(
   (service) =>
     new gcp.projects.Service(`api-${service.split('.')[0]}`, {
@@ -421,7 +435,17 @@ const apiService = new gcp.cloudrunv2.Service(
             cpuIdle: true,
             startupCpuBoost: true,
           },
-          envs: [databaseUrlEnv],
+          envs: [
+            databaseUrlEnv,
+            // The project whose Firebase ID tokens sign people in.
+            { name: 'FIREBASE_PROJECT_ID', value: project },
+            // Where an invite's link points, and which Android certificates
+            // may open it.
+            ...(apiCustomDomain
+              ? [{ name: 'INVITE_LINK_BASE', value: `https://${apiCustomDomain}/invite/` }]
+              : []),
+            { name: 'ANDROID_SHA256_FINGERPRINTS', value: androidSha256Fingerprints },
+          ],
           volumeMounts: [cloudSqlMount],
           startupProbe: {
             tcpSocket: { port: 8080 },
@@ -645,7 +669,7 @@ new gcp.kms.CryptoKeyIAMMember('deployer-can-decrypt-secrets', {
  *
  * - An identity for the Google Play Developer API that the workflow assumes
  *   keylessly through the same pool as the deployer. Play Console links a
- *   service account by email (runbook 07); no key file ever exists.
+ *   service account by email (runbook 08); no key file ever exists.
  * - Secret Manager containers for the signing material, with no versions:
  *   the values are added by hand once and rotated by hand, and the deployer
  *   may read exactly these secrets, so a workflow fetches them at build time
@@ -706,6 +730,98 @@ for (const name of signingSecrets) {
 }
 
 // ---------------------------------------------------------------------------
+// Sign-in: Firebase Authentication on Identity Platform
+// ---------------------------------------------------------------------------
+
+/**
+ * People sign in with Google or Apple through Firebase Authentication on
+ * Identity Platform in this project. Adding Firebase gives the project its
+ * `<project>.firebaseapp.com` auth handler, which both providers redirect to,
+ * and makes the ID tokens the api verifies (issuer
+ * `securetoken.google.com/<project>`, audience the project id).
+ */
+const firebaseProject = new gcp.firebase.Project('firebase', { project }, dependsOnApis)
+
+/**
+ * The app's two Firebase registrations, whose ids and API keys go into the
+ * app as its Firebase options (`apps/mobile/lib/firebase_options.dart`).
+ * None of them is a secret: they ship in every copy of the app.
+ */
+const appId = 'com.helpmebrands.reward'
+const firebaseIos = new gcp.firebase.AppleApp(
+  'firebase-ios',
+  {
+    project,
+    displayName: `HelpMe Reward (${environment})`,
+    bundleId: appId,
+    teamId: appleTeamId || undefined,
+  },
+  { dependsOn: [firebaseProject] },
+)
+const firebaseAndroid = new gcp.firebase.AndroidApp(
+  'firebase-android',
+  { project, displayName: `HelpMe Reward (${environment})`, packageName: appId },
+  { dependsOn: [firebaseProject] },
+)
+const iosConfig = gcp.firebase.getAppleAppConfigOutput({ project, appId: firebaseIos.appId })
+const androidConfig = gcp.firebase.getAndroidAppConfigOutput({
+  project,
+  appId: firebaseAndroid.appId,
+})
+
+const identityPlatform = new gcp.identityplatform.Config(
+  'identity-platform',
+  {
+    project,
+    // Google and Apple only: email and phone sign-in stay off, declared so
+    // the provider's defaults do not show as a change on every preview.
+    signIn: {
+      allowDuplicateEmails: false,
+      email: { enabled: false, passwordRequired: false },
+      phoneNumber: { enabled: false, testPhoneNumbers: {} },
+    },
+    multiTenant: { allowTenants: false },
+  },
+  { dependsOn: [...services, firebaseProject] },
+)
+
+/**
+ * The providers need credentials only a person can create (runbook 08), so
+ * each is declared once its keys are in the stack config. Apple's
+ * `appleSignInConfig` (bundle ids and the code-flow key) has no field in
+ * this provider version and is set by the PATCH in runbook 08; the client
+ * secret Apple needs is minted by Identity Platform from that key, so none
+ * is given here.
+ */
+if (googleOAuthClientId && googleOAuthClientSecret) {
+  new gcp.identityplatform.DefaultSupportedIdpConfig(
+    'idp-google',
+    {
+      project,
+      idpId: 'google.com',
+      clientId: googleOAuthClientId,
+      clientSecret: googleOAuthClientSecret,
+      enabled: true,
+    },
+    { dependsOn: [identityPlatform] },
+  )
+}
+
+if (appleServicesId) {
+  new gcp.identityplatform.DefaultSupportedIdpConfig(
+    'idp-apple',
+    {
+      project,
+      idpId: 'apple.com',
+      clientId: appleServicesId,
+      clientSecret: '',
+      enabled: true,
+    },
+    { dependsOn: [identityPlatform] },
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Optional custom domain
 // ---------------------------------------------------------------------------
 
@@ -723,6 +839,25 @@ const domainMapping = customDomain
         name: customDomain,
         metadata: { namespace: project, labels: tags },
         spec: { routeName: service.name },
+      },
+      dependsOnApis,
+    )
+  : undefined
+
+/**
+ * The api's domain, for invite links. Same prerequisite as the app's: the
+ * parent domain verified in Search Console and a CNAME to
+ * ghs.googlehosted.com (runbook 03).
+ */
+const apiDomainMapping = apiCustomDomain
+  ? new gcp.cloudrun.DomainMapping(
+      'api-domain',
+      {
+        project,
+        location: region,
+        name: apiCustomDomain,
+        metadata: { namespace: project, labels: tags },
+        spec: { routeName: apiService.name },
       },
       dependsOnApis,
     )
@@ -858,6 +993,27 @@ export const apiServiceUrl = apiService.uri
 export const apiRuntimeServiceAccount = apiRuntimeAccount.email
 export const databaseInstanceConnectionName = dbInstance.connectionName
 export const databaseUrlSecretId = databaseUrlSecret.secretId
+/** The app's Firebase options, copied into `firebase_options.dart`. */
+export const firebaseIosAppId = firebaseIos.appId
+export const firebaseAndroidAppId = firebaseAndroid.appId
+export const firebaseIosApiKey = iosConfig.configFileContents.apply(
+  (b64) =>
+    /<key>API_KEY<\/key>\s*<string>([^<]+)<\/string>/.exec(
+      Buffer.from(b64, 'base64').toString(),
+    )?.[1] ?? '',
+)
+export const firebaseAndroidApiKey = androidConfig.configFileContents.apply(
+  (b64) =>
+    JSON.parse(Buffer.from(b64, 'base64').toString()).client?.[0]?.api_key?.[0]
+      ?.current_key ?? '',
+)
+/** The URL scheme Google sign-in returns to on iOS: the app id, encoded. */
+export const firebaseIosUrlScheme = firebaseIos.appId.apply(
+  (id) => `app-${id.replace(/:/g, '-')}`,
+)
+export const apiCustomDomainStatus = apiDomainMapping
+  ? apiDomainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
+  : pulumi.output('not configured')
 export const customDomainStatus = domainMapping
   ? domainMapping.statuses.apply((s) => s?.[0]?.resourceRecords ?? 'pending')
   : pulumi.output('not configured')

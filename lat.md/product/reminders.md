@@ -27,9 +27,9 @@ The tone climbs along the rungs, from `permissive` ("You can use me") through `n
 
 ## Schedule construction
 
-[[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon. It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
+[[apps/pwa/src/domain/reminders.ts#buildSchedule]] turns `AppData` into a sorted list of reminders over a 200-day horizon, for one member: the Dart port takes that member's preferences ([[domain#Member preferences]]). It is recomputed on every data change, so a stale schedule is never more than one write away from correct.
 
-A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the credit or its card is muted, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
+A credit is skipped when reminders are disabled, the credit is inactive, manual, rolling or past its `endsOn`, the member has muted the credit or its card, the credit's value is below `minValueCents`, it is locked behind a spend threshold, or it is locked behind enrolment and enrolment reminders are off. For each remaining cycle in the horizon with money still unclaimed, each rung fires at `cycle.end - daysBefore`, at the user's `timeOfDay` in local time. Rungs already in the past are dropped.
 
 ### Grouping
 
@@ -43,7 +43,7 @@ One decision per notification. The title leads with the total at stake and the r
 
 - When more than half the money in a group is locked, the title becomes "$X is still locked": telling someone to spend money they cannot reach is worse than silence.
 - `permissive` reads "$X just opened"; `notice` reads "$X on the line — one week left"; `urgent` reads "$X expires tonight" on the last day.
-- A single-item body names the credit, merchant and holder; a multi-item body names the largest and counts the rest.
+- A single-item body names the credit, merchant and the card by its display name ("Uber Cash at Uber on Travel card. $15 untouched."); a multi-item body names the largest, on its card, and counts the rest. The PWA still names the holder.
 
 ## Nudge preview
 

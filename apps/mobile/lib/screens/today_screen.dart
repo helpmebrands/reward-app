@@ -10,7 +10,6 @@ import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
-import '../widgets/holder_filter.dart';
 import '../widgets/nudge_preview.dart';
 import '../widgets/screen_title.dart';
 
@@ -62,7 +61,11 @@ class _TodayBody extends StatelessWidget {
     final now = store.now;
     final at = now.millisecondsSinceEpoch;
     Reminder? next;
-    for (final reminder in buildSchedule(data, now).reminders) {
+    for (final reminder in buildSchedule(
+      data,
+      store.preferences,
+      now,
+    ).reminders) {
       if (reminder.fireAt > at) {
         next = reminder;
         break;
@@ -81,7 +84,10 @@ class _TodayBody extends StatelessWidget {
       instance: instance,
       showCard: showCard,
       onOpen: ui == null ? null : () => ui.openCredit(instance.benefit.id),
-      onLogAll: actions == null ? null : () => actions.logAll(instance),
+      // A reader sees the household but logs nothing in it.
+      onLogAll: actions == null || !store.canWrite
+          ? null
+          : () => actions.logAll(instance),
       onToggleMute: actions == null ? null : () => actions.toggleMute(instance),
     );
   }
@@ -174,8 +180,6 @@ class _TodayBody extends StatelessWidget {
         ],
       ),
     );
-
-    final filter = HolderFilter(store: store);
 
     final headline = _Section(
       order: 1,
@@ -389,7 +393,6 @@ class _TodayBody extends StatelessWidget {
       children: [
         header,
         const SizedBox(height: Space.s8),
-        filter,
         headline,
         body,
       ],
@@ -460,11 +463,7 @@ class _OverlapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
-    final holders = overlap.instances
-        .map(
-          (i) => i.card.holder.isNotEmpty ? i.card.holder : cardLabel(i.card),
-        )
-        .join(' and ');
+    final cards = overlap.instances.map((i) => cardLabel(i.card)).join(' and ');
     final onCompare = this.onCompare;
     return Material(
       color: tokens.section,
@@ -493,7 +492,7 @@ class _OverlapCard extends StatelessWidget {
               // Neutral-300, not the secondary text colour: on the section
               // ground the light theme's secondary text falls short of 4.5:1.
               Text(
-                '${formatMoney(overlap.remainingCents)} unclaimed across $holders.',
+                '${formatMoney(overlap.remainingCents)} unclaimed across $cards.',
                 style: text.bodySmall?.copyWith(color: tokens.neutral[300]),
               ),
               if (onCompare != null) ...[

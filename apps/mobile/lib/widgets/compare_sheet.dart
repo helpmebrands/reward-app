@@ -35,20 +35,20 @@ class CompareSheet extends StatelessWidget {
     final ahead = identical(behind, first) ? second : first;
     if (behind.status == BenefitStatus.locked &&
         ahead.status != BenefitStatus.locked) {
-      return "${behind.card.holder}'s side is still behind an enrolment box, "
-          "so only ${ahead.card.holder}'s ${formatMoney(ahead.remainingCents)} "
-          'can actually be spent today. Unlock it first — the money is already '
-          'on the card.';
+      return 'The ${cardLabel(behind.card)} side is still behind an enrolment '
+          'box, so only the ${formatMoney(ahead.remainingCents)} on '
+          '${cardLabel(ahead.card)} can actually be spent today. Unlock it '
+          'first — the money is already on the card.';
     }
     if (behind.remainingCents == ahead.remainingCents) {
       return 'Both sides are untouched at ${formatMoney(behind.remainingCents)} '
           'each. They cannot be combined, so this needs two separate purchases '
           '— not one larger one.';
     }
-    return "${behind.card.holder}'s side is the one at risk: "
-        "${formatMoney(behind.remainingCents)} against ${ahead.card.holder}'s "
-        '${formatMoney(ahead.remainingCents)}. One purchase cannot draw on both '
-        'cards, so clear the larger one first.';
+    return 'The ${cardLabel(behind.card)} side is the one at risk: '
+        '${formatMoney(behind.remainingCents)} against '
+        '${formatMoney(ahead.remainingCents)} on ${cardLabel(ahead.card)}. One '
+        'purchase cannot draw on both cards, so clear the larger one first.';
   }
 
   @override
@@ -149,7 +149,8 @@ class CompareSheet extends StatelessWidget {
           ),
           const SizedBox(height: Space.s6),
           for (final instance in overlap.instances)
-            if (instance.status != BenefitStatus.locked)
+            if (instance.status != BenefitStatus.locked &&
+                actions.store.canWrite)
               Padding(
                 padding: const EdgeInsets.only(bottom: Space.s2),
                 child: OutlinedButton.icon(
@@ -160,7 +161,7 @@ class CompareSheet extends StatelessWidget {
                   icon: const Icon(Icons.check_circle_outline, size: 16),
                   label: Text(
                     'Log ${formatMoney(instance.remainingCents)} on '
-                    '${instance.card.holder}’s card',
+                    '${cardLabel(instance.card)}',
                   ),
                 ),
               ),
@@ -187,9 +188,7 @@ class _Side extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final locked = instance.status == BenefitStatus.locked;
     final palette = locked ? tokens.locked : tokens.available;
-    final holder = instance.card.holder.isNotEmpty
-        ? instance.card.holder
-        : cardLabel(instance.card);
+    final name = cardLabel(instance.card);
     return Material(
       color: tokens.surfaceQuiet,
       shape: RoundedRectangleBorder(
@@ -205,7 +204,7 @@ class _Side extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                holder,
+                name,
                 style: text.labelSmall?.copyWith(color: tokens.textSecondary),
               ),
               Text(

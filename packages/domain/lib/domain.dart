@@ -5,6 +5,8 @@
 library;
 
 export 'src/catalog.dart';
+export 'src/catalog_filter.dart';
+export 'src/catalog_versions.dart';
 export 'src/cycles.dart';
 export 'src/dates.dart';
 export 'src/format.dart';

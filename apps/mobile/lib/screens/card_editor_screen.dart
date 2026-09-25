@@ -42,12 +42,10 @@ class CardEditorScreen extends StatefulWidget {
 }
 
 class _CardEditorScreenState extends State<CardEditorScreen> {
-  final _holder = TextEditingController();
-  final _nickname = TextEditingController();
+  final _label = TextEditingController();
   final _fee = TextEditingController();
   final _anniversary = TextEditingController();
-  final _holderFocus = FocusNode(debugLabel: 'holder');
-  final _nicknameFocus = FocusNode(debugLabel: 'nickname');
+  final _labelFocus = FocusNode(debugLabel: 'label');
   final _feeFocus = FocusNode(debugLabel: 'fee');
   final _anniversaryFocus = FocusNode(debugLabel: 'anniversary');
 
@@ -65,52 +63,53 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     super.initState();
     final current = card;
     if (current != null) {
-      _holder.text = current.holder;
-      _nickname.text = current.nickname ?? '';
+      _label.text = current.label ?? '';
       _fee.text = (current.annualFeeCents / 100).toString();
       _anniversary.text = current.anniversaryOn;
     }
-    for (final c in [_holder, _nickname, _fee, _anniversary]) {
+    for (final c in [_label, _fee, _anniversary]) {
       c.addListener(_changed);
     }
   }
 
   @override
   void dispose() {
-    for (final c in [_holder, _nickname, _fee, _anniversary]) {
+    for (final c in [_label, _fee, _anniversary]) {
       c.dispose();
     }
-    for (final f in [
-      _holderFocus,
-      _nicknameFocus,
-      _feeFocus,
-      _anniversaryFocus,
-    ]) {
+    for (final f in [_labelFocus, _feeFocus, _anniversaryFocus]) {
       f.dispose();
     }
     super.dispose();
   }
 
-  String? get _holderError =>
-      requiredError(_holder.text, 'Enter whose card this is.');
+  String? get _labelError {
+    final current = card;
+    if (current == null) return null;
+    return labelError(
+      _label.text,
+      cards: store.data?.cards ?? const [],
+      issuer: current.issuer,
+      product: current.product,
+      cardId: current.id,
+    );
+  }
+
   String? get _feeError => moneyError(_fee.text);
   String? get _anniversaryError => anniversaryError(_anniversary.text);
   bool get _unsaved =>
-      _holderError != null || _feeError != null || _anniversaryError != null;
+      _labelError != null || _feeError != null || _anniversaryError != null;
 
   /// Writes every valid draft; the invalid ones wait, showing their error.
   void _changed() {
     final current = card;
     if (current == null) return;
-    final holder = _holder.text.trim();
-    final nickname = _nickname.text.trim();
+    final label = _label.text.trim();
     final cents = parseMoney(_fee.text);
     final anniversary = _anniversary.text;
     final patch = <Card Function(Card)>[
-      if (_holderError == null && holder != current.holder)
-        (c) => c.copyWith(holder: holder),
-      if ((current.nickname ?? '') != nickname)
-        (c) => c.copyWith(nickname: nickname.isEmpty ? null : nickname),
+      if (_labelError == null && (current.label ?? '') != label)
+        (c) => c.copyWith(label: label.isEmpty ? null : label),
       if (cents != null && cents >= 0 && cents != current.annualFeeCents)
         (c) => c.copyWith(annualFeeCents: cents),
       if (_anniversaryError == null && anniversary != current.anniversaryOn)
@@ -155,7 +154,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         anchor: CycleAnchor.calendar,
         enrollmentRequired: false,
         redemptionSteps: const [],
-        muted: false,
         lastCallOnly: false,
         active: true,
         createdAt: '',
@@ -212,6 +210,9 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
+    // A card the catalogue keeps up to date: its terms are the catalogue's,
+    // its household fields the household's.
+    final system = maintainedBy(current) == MaintainedBy.system;
 
     Widget field(
       String key,
@@ -222,6 +223,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
       required FocusNode focusNode,
       bool required = false,
       TextInputType? keyboardType,
+      bool readOnly = false,
     }) => Field(
       label: label,
       hint: hint,
@@ -233,6 +235,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         controller: controller,
         focusNode: control.focusNode,
         keyboardType: keyboardType,
+        readOnly: readOnly,
         decoration: control.decoration,
       ),
     );
@@ -240,24 +243,48 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
+        if (system) ...[
+          Container(
+            padding: const EdgeInsets.all(Space.s4),
+            decoration: BoxDecoration(
+              color: tokens.surfaceQuiet,
+              borderRadius: const BorderRadius.all(Radius.circular(Radii.md)),
+              border: Border.all(color: tokens.surfaceLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Kept up to date', style: text.titleSmall),
+                const SizedBox(height: Space.s1),
+                Text(
+                  'Its fee and credits follow the catalogue, so a change by '
+                  'the issuer reaches it without you. The label, renewal date '
+                  'and kind are yours.',
+                  style: note,
+                ),
+                const SizedBox(height: Space.s3),
+                OutlinedButton(
+                  key: const Key('change-terms'),
+                  onPressed: () => context.go(convertPath(current.id)),
+                  child: const Text('Change the terms'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: Space.s4),
+        ],
         Text('Fields marked * are required.', style: note),
         const SizedBox(height: Space.s4),
         FieldGrid(
           fields: [
             field(
-              'field-holder',
-              'Cardholder',
-              required: true,
-              error: _holderError,
-              controller: _holder,
-              focusNode: _holderFocus,
-            ),
-            field(
-              'field-nickname',
-              'Nickname',
-              hint: '${current.issuer} ${current.product} when blank.',
-              controller: _nickname,
-              focusNode: _nicknameFocus,
+              'field-label',
+              'Label',
+              hint:
+                  '${productName(current.issuer, current.product)} when blank.',
+              error: _labelError,
+              controller: _label,
+              focusNode: _labelFocus,
             ),
             field(
               'field-fee',
@@ -266,6 +293,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               error: _feeError,
               controller: _fee,
               focusNode: _feeFocus,
+              readOnly: system,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -291,14 +319,21 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                     child: Text(networkLabel(network)),
                   ),
               ],
-              onChanged: (network) {
-                if (network != null) {
-                  store.updateCard(
-                    current.id,
-                    (c) => c.copyWith(network: network),
-                  );
-                }
-              },
+              onChanged: system
+                  ? null
+                  : (network) {
+                      if (network != null) {
+                        store.updateCard(
+                          current.id,
+                          (c) => c.copyWith(network: network),
+                        );
+                      }
+                    },
+            ),
+            KindChoice(
+              kind: current.kind,
+              onChanged: (kind) =>
+                  store.updateCard(current.id, (c) => c.copyWith(kind: kind)),
             ),
           ],
           wide: [
@@ -306,7 +341,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               title: 'Silence every credit',
               note: 'Keeps tracking them, sends nothing.',
               label: 'Silence every credit',
-              value: current.muted,
+              value: store.isCardMuted(current.id),
               onChanged: (_) => store.toggleCardMute(current.id),
             ),
             SwitchRow(
@@ -330,11 +365,12 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                 child: Text('Credits', style: text.titleSmall),
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: _addBenefit,
-              icon: const Icon(Icons.add, size: 14),
-              label: const Text('Add'),
-            ),
+            if (!system)
+              OutlinedButton.icon(
+                onPressed: _addBenefit,
+                icon: const Icon(Icons.add, size: 14),
+                label: const Text('Add'),
+              ),
           ],
         ),
         const SizedBox(height: Space.s3),
@@ -352,6 +388,57 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               onTap: () => context.go(benefitPath(benefit.id)),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Personal or business, as two choice chips. Classification only: business
+/// cards are marked on the Cards screen and nothing else changes yet.
+class KindChoice extends StatelessWidget {
+  const KindChoice({super.key, required this.kind, required this.onChanged});
+
+  final CardKind kind;
+  final ValueChanged<CardKind> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
+    final note = Theme.of(
+      context,
+    ).textTheme.bodySmall?.copyWith(color: tokens.textSecondary);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Kind', style: note),
+        const SizedBox(height: Space.s2),
+        Semantics(
+          label: 'Kind',
+          container: true,
+          explicitChildNodes: true,
+          child: Wrap(
+            spacing: Space.s2,
+            runSpacing: Space.s2,
+            children: [
+              for (final (value, label) in const [
+                (CardKind.personal, 'Personal'),
+                (CardKind.business, 'Business'),
+              ])
+                ChoiceChip(
+                  label: Text(label),
+                  selected: kind == value,
+                  onSelected: (_) => onChanged(value),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: Space.s1),
+          child: Text(
+            'Business cards are marked on the Cards screen.',
+            style: note,
+          ),
+        ),
       ],
     );
   }

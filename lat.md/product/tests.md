@@ -85,6 +85,92 @@ Blank and whitespace-only pass, since most credits have no end; an impossible (m
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
+## Card labels
+
+`selectors_test.dart`, `reminders_test.dart` and `json_test.dart` pin the display name that replaced the holder ([[domain#Card]]).
+
+### A card shows its label or its product name
+
+A card without a label, or with a blank one, shows "American Express Platinum"; one labelled "The travel one" shows that.
+
+### A duplicate product proposes a numbered label
+
+With no Platinum there is nothing to propose; after one it proposes "American Express Platinum (1)", after that "(2)"; another product proposes nothing.
+
+### Deleting a card renames nothing
+
+Of three identical cards, removing the unlabelled first leaves "(1)" and "(2)" as they were, and a fourth card needs no number because the product name is free again.
+
+### A label may not repeat another card's display name
+
+A label equal to another card's display name, in any case and with spaces around it, is refused with a sentence naming it.
+
+A card's own label, a fresh one, and a blank label on a product nobody else shows pass; a blank label on a product another card shows is refused.
+
+### Notification copy names the card by its display name
+
+A single-credit reminder on a card labelled "Travel card" reads "Uber Cash at Uber on Travel card. $15 untouched."
+
+### A label round-trips and is omitted when absent
+
+`label` reads and writes under its own key, and a card without one writes no key.
+
+## Member preferences
+
+`reminders_test.dart`, `selectors_test.dart` and `json_test.dart` pin the split of reminder settings and mutes from the household ([[domain#Member preferences]]).
+
+### Two members of one household get their own schedules
+
+Two cards with a monthly credit each; the member with nothing muted is reminded about both, the member who muted the first card only about the second.
+
+### Mutes come from the member, not the household
+
+Without preferences no instance is muted; a benefit mute marks only that credit, and a card mute marks every credit on the card.
+
+### Member preferences round-trip
+
+Every field reads back as written, and the muted ids write as sorted lists so the same preferences always give the same JSON.
+
+## Catalogue versions
+
+`catalog_versions_test.dart` pins the versioned catalogue ([[domain#Catalogue versions]]) with a two-version Platinum: version 2 from 15 October 2026 raises Uber from $15 to $20, drops Resy and adds a locked Equinox credit.
+
+### Every template credit has a stable id
+
+Every credit in `cardTemplates` has an id under its template's, in lower-case kebab slugs and unique within the template; `amex-gold/uber-cash` finds the Gold's Uber Cash.
+
+### The version in force is the latest that has started
+
+Nothing is in force before version 1; version 1 applies the day before version 2's date and version 2 from it, in either list order.
+
+### A cycle resolves against the version in force at its start
+
+On 20 October the Uber cycle began on the 1st, under version 1, so it is still $15; on 5 November it is $20 and names its stable credit id.
+
+### Claims attach across versions by the stable id
+
+October's and November's resolved Uber benefits share the household's id, so a claim logged against that id counts in November's cycle.
+
+### A credit dropped from a version stops at its effectiveFrom
+
+Resy resolved on 20 October ends on 14 October and has ended; in September it has no end.
+
+### A credit added in a version appears from its effectiveFrom
+
+Equinox does not exist on 14 October; on 20 October it is $25 and locked behind enrolment.
+
+### A template link makes a card system-maintained
+
+A card without `templateId` is maintained by the user, one with it by the system.
+
+### Templates and versions round-trip as JSON
+
+Every catalogue template, as a version, writes `id`, `version`, `effectiveFrom`, the template's fields and its credits, and reads back to the same JSON; an absent `endsOn` is left out. This is the service tier's wire format for the catalogue.
+
+### The links round-trip in the snapshot
+
+`templateId` and `templateBenefitId` read back as written, and are left out when absent.
+
 ## Snapshot JSON
 
 `packages/domain/test/json_test.dart` pins the codec for the persisted snapshot, which the Flutter store and any export share with the PWA's stored record and export file.
@@ -92,6 +178,14 @@ Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 ### The sample household round-trips unchanged
 
 The PWA's sample household decodes to two cards, twenty-four benefits and twenty claims, and encodes back to JSON equal to the file, so nothing is dropped or renamed in either direction.
+
+### A card without a kind loads as personal
+
+A card record with no `kind` decodes as `CardKind.personal` and encodes `kind: personal`; `business` round-trips and `copyWith` can change it, so a snapshot from before the field existed loads with every card personal.
+
+### The sample household rolls its Global Entry credits
+
+The sample's two Global Entry credits are `rolling` with `intervalMonths` 48 and nothing in it is `manual`, so the fixtures dumped from it exercise the rolling window.
 
 ### Enums use the PWA's spellings
 
@@ -125,6 +219,26 @@ Every credit in every template has an icon name and a value above zero, so a tem
 
 `templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrolment box.
 
+### Business Platinum is priced at its unconditional credits
+
+The shipped `amex-business-platinum` template gates the Dell $5K bonus and the two $250K credits, and `templateAnnualValueCents` equals the sum of the rest, well under four times the fee. Covered in both languages.
+
+### Every Global Entry credit rolls every 48 months
+
+Every shipped credit named "Global Entry…" is `rolling` with `intervalMonths` 48 and amortises to $30 a year, and no shipped credit is `manual` any more. Covered in both languages.
+
+### Dated credits carry their end
+
+The Sapphire Reserve's StubHub, Peloton and two DoorDash credits end on 2027-12-31 and its Lyft credit on 2027-09-30; the United Quest's two Instacart credits end on 2027-12-31. Covered in both languages.
+
+### Every template names its kind
+
+The Business Platinum template is `business`, the blank one `personal`, and every template carries one of the two. Covered in both languages.
+
+### The IHG spend credit is gated
+
+The IHG Premier's "$20K Spend Statement Credit" carries a $20,000 threshold. Covered in both languages.
+
 ### A template amortises a rolling credit
 
 A $120 credit every 48 months beside a $15 monthly one prices at $210 a year, and `benefitsFromTemplate` carries the cadence and the interval onto the benefit. Covered in both languages.
@@ -147,6 +261,52 @@ Covered in both languages: the PWA's `catalog.test.ts` and the Dart port stamp t
 
 Every credit's icon names a class in the bundled Phosphor stylesheet (kebab-case, e.g. `device-mobile`), so imported catalogue data with PascalCase names cannot ship blank icons. PWA-only, since the stylesheet lives there.
 
+## Catalogue filter
+
+`packages/domain/test/catalog_filter_test.dart` pins [[domain#Catalogue filter]]. Dart only. The cases use synthetic templates for the semantics and the shipped catalogue for the counts.
+
+### Fee bands split at their cent boundaries
+
+0 is No fee, 1 and 9,999 are Under $100, 10,000 and 39,999 are $100–$399, 40,000 and 59,999 are $400–$599, and 60,000 is $600+. The labels are fixed.
+
+### Values OR within a facet and facets AND together
+
+Two selected issuers return their union, adding a merchant intersects that union, a network no card has returns nothing, and results keep the given order.
+
+### Search matches issuer, product, benefit name and merchant
+
+"UbEr" matches cards only through a benefit name or merchant, including the Platinum. "chase" matches through the issuer, and "sapphire p" matches only the Sapphire Preferred.
+
+### The blank template never appears
+
+Neither `filterTemplates` nor `facetCounts` returns `blank`, so no empty issuer, no "other" network and no zero-fee card is counted.
+
+### A facet's counts ignore its own selection
+
+With Chase selected, the issuer counts equal the unfiltered ones (Chase is 4). Each merchant count equals the number of Chase cards carrying that merchant, and the fee band counts add up to 4.
+
+### Options stay listed at zero and follow a fixed order
+
+With Wells Fargo selected, all five fee bands are listed and $600+ reads 0. Networks are Amex, Visa and Mastercard, with Amex at 0. The six issuers are alphabetical. The merchants are unique and alphabetical ignoring case, and Uber reads 0.
+
+### The kind facet ORs its kinds and counts past its own selection
+
+Business alone returns only the Business Platinum, and Business plus Personal returns every card. The kind counts stay 15 personal and 1 business with Business selected, and fall to 4 and 0 once Chase is also selected.
+
+A catalogue with no business template does not offer the Business option.
+
+### The catalogue sorts by annual value, ties in catalogue order
+
+`sortByValue` puts the highest `templateAnnualValueCents` first and keeps equal values in their given order, for both synthetic templates and the shipped catalogue.
+
+### The active count leaves out the search text
+
+An empty filter is empty with a count of 0. Two selected values plus search text count 2, toggling one off counts 1, and search text alone makes the filter non-empty.
+
+### Matched benefits come from the merchant or the search
+
+With no merchant and no search, the Platinum has no matched benefits. With Uber selected it has only Uber benefits, "resy" matches only its Resy credits, and "platinum" matches the card but none of its benefits.
+
 ## Formatting
 
 `packages/domain/test/format_test.dart` pins the display forms in `format.dart`. The PWA's equivalents are locale-driven `Intl` calls exercised only through components; the port hand-rolls them, so these specs are what the two must agree on.
@@ -158,6 +318,10 @@ Every credit's icon names a class in the bundled Phosphor stylesheet (kebab-case
 ### Typed money becomes whole cents
 
 `parseMoneyToCents` strips currency symbols and commas before parsing and refuses blanks, words and negatives; `parseMoney` (the form rule) accepts a sign, rejects commas and rounds to whole cents.
+
+### A credit's value reads with its cadence
+
+`formatValuePerCycle` gives "$15/mo", "$50/qtr", "$300/half", "$200/yr" and "$12.95/mo". A rolling credit reads "$120/48 mo", and a manual one is the bare "$50". Dart only; the catalogue's matched-credit tags use it.
 
 ### Dates show the year only outside the current one
 

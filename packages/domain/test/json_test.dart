@@ -16,7 +16,102 @@ void main() {
     expect(data.benefits, hasLength(24));
     expect(data.claims, hasLength(20));
     expect(data.benefits.first.merchant, 'Uber');
-    expect(jsonDecode(jsonEncode(appDataToJson(data))), json);
+    // The frozen PWA still writes `holder`, `holderFilter`, the mutes and the
+    // notification block; Dart drops them, since reminders are a member's.
+    final expected = jsonDecode(raw) as Map<String, dynamic>;
+    for (final card in expected['cards'] as List) {
+      (card as Map).remove('holder');
+      card.remove('muted');
+    }
+    for (final benefit in expected['benefits'] as List) {
+      (benefit as Map).remove('muted');
+    }
+    final settings = expected['settings'] as Map;
+    settings.remove('holderFilter');
+    settings.remove('notifications');
+    expect(jsonDecode(jsonEncode(appDataToJson(data))), expected);
+  });
+
+  // @lat: [[tests#Member preferences#Member preferences round-trip]]
+  test('member preferences round-trip, mutes as sorted lists', () {
+    final prefs = defaultMemberPreferences.copyWith(
+      enabled: true,
+      timeOfDay: '07:30',
+      minValueCents: 500,
+      annualFeeReminder: false,
+      mutedCardIds: {'c2', 'c1'},
+      mutedBenefitIds: {'b1'},
+    );
+    final json = memberPreferencesToJson(prefs);
+    expect(json['mutedCardIds'], ['c1', 'c2']);
+    final back = memberPreferencesFromJson(
+      jsonDecode(jsonEncode(json)) as Map<String, dynamic>,
+    );
+    expect(memberPreferencesToJson(back), json);
+    expect(back.mutedCardIds, {'c1', 'c2'});
+    expect(back.enrollmentReminder, isTrue);
+  });
+
+  // @lat: [[tests#Card labels#A label round-trips and is omitted when absent]]
+  test('a card label round-trips and is left out when there is none', () {
+    final card = cardFromJson({
+      'id': 'c',
+      'issuer': 'Chase',
+      'product': 'Ink',
+      'label': 'Office',
+      'network': 'visa',
+      'annualFeeCents': 0,
+      'anniversaryOn': '2021-03-14',
+      'muted': false,
+      'archived': false,
+      'createdAt': 't',
+      'updatedAt': 't',
+    });
+    expect(card.label, 'Office');
+    expect(cardToJson(card)['label'], 'Office');
+    expect(
+      cardToJson(card.copyWith(label: null)).containsKey('label'),
+      isFalse,
+    );
+  });
+
+  // @lat: [[tests#Snapshot JSON#The sample household rolls its Global Entry credits]]
+  test('the sample household carries Global Entry as a rolling credit', () {
+    final raw = File(
+      '../../apps/pwa/samples/sample-household.json',
+    ).readAsStringSync();
+    final data = appDataFromJson(jsonDecode(raw) as Map<String, dynamic>);
+    final globalEntry = data.benefits
+        .where((b) => b.name.startsWith('Global Entry'))
+        .toList();
+    expect(globalEntry, hasLength(2));
+    for (final benefit in globalEntry) {
+      expect(benefit.cadence, Cadence.rolling);
+      expect(benefit.intervalMonths, 48);
+    }
+    expect(data.benefits.any((b) => b.cadence == Cadence.manual), isFalse);
+  });
+
+  // @lat: [[tests#Snapshot JSON#A card without a kind loads as personal]]
+  test('reads a card saved before kinds existed as personal', () {
+    final legacy = {
+      'id': 'c',
+      'issuer': 'Chase',
+      'product': 'Ink',
+      'network': 'visa',
+      'annualFeeCents': 0,
+      'anniversaryOn': '2021-03-14',
+      'muted': false,
+      'archived': false,
+      'createdAt': 't',
+      'updatedAt': 't',
+    };
+    expect(cardFromJson(legacy).kind, CardKind.personal);
+    expect(cardToJson(cardFromJson(legacy))['kind'], 'personal');
+    final business = cardFromJson({...legacy, 'kind': 'business'});
+    expect(business.kind, CardKind.business);
+    expect(cardToJson(business)['kind'], 'business');
+    expect(business.copyWith(kind: CardKind.personal).kind, CardKind.personal);
   });
 
   // @lat: [[tests#Snapshot JSON#Enums use the PWA's spellings]]

@@ -63,6 +63,15 @@ describe('staging stack config', () => {
   it('trusts helpmebrands/reward-app to deploy', () => {
     expect(staging()).toMatch(/^\s+[\w-]+:githubRepo:\s*helpmebrands\/reward-app\s*$/m)
   })
+
+  // @lat: [[infra-tests#Infrastructure config#Staging lists the Play app signing fingerprint]]
+  it('lists the Play app signing key fingerprint for assetlinks.json', () => {
+    const line = staging().match(/^\s+reward-app:androidSha256Fingerprints:\s*(\S+)\s*$/m)
+    expect(line, 'androidSha256Fingerprints is set').not.toBeNull()
+    for (const fingerprint of (line?.[1] ?? '').split(',')) {
+      expect(fingerprint).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/)
+    }
+  })
 })
 
 describe('verify workflow', () => {
@@ -210,6 +219,82 @@ describe('runbook README', () => {
     ]) {
       expect(readme).toContain(fact)
     }
+  })
+})
+
+describe('runbook 08 mobile setup', () => {
+  const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
+  const part = (title: RegExp) => runbook08().split(title)[1]?.split(/^## /m)[0] ?? ''
+  const step = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 is the one mobile setup flow]]
+  it('replaces the sign-in runbook with one setup flow, a part per platform and one for both', () => {
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toContain('(08-mobile-setup.md)')
+    expect(existsSync(join(root, 'docs/runbooks/08-sign-in-providers.md'))).toBe(false)
+    for (const file of filesUnder('docs')) {
+      expect(read(file), file).not.toContain('08-sign-in-providers')
+    }
+    const runbook = runbook08()
+    expect(runbook).toMatch(/^## Part 1 — Apple/m)
+    expect(runbook).toMatch(/^## Part 2 — Google Play/m)
+    expect(runbook).toMatch(/^## Part 3 — .*both platforms/m)
+    expect(runbook).toContain('https://helpme-reward-staging.firebaseapp.com/__/auth/handler')
+    expect(runbook).toContain('appleSignInConfig')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 Part 2 says what the first Android release taught]]
+  it('records the Android rehearsal: the console paths, the 403 symptom and the keystore owner', () => {
+    const play = part(/^## Part 2 — Google Play.*$/m)
+    expect(play).not.toMatch(/not rehearsed/i)
+    expect(play).toMatch(/rehearsed on 2026-09-24/i)
+    const identity = step(/^### 2\.2 .*$/m)
+    expect(identity).toContain('The caller does not have permission')
+    const fingerprint = step(/^### 2\.5 .*$/m)
+    expect(fingerprint).toContain('Protected with Play')
+    expect(fingerprint).toContain('Classical key')
+    expect(fingerprint).not.toContain('App integrity')
+    expect(runbook08()).not.toContain('HelpMe Reward upload')
+    expect(runbook08()).toContain('CN=HelpMe Reward Upload, OU=Mobile, O=HelpMe Brands')
+    const apply = step(/^### 3\.3 .*$/m)
+    expect(apply).toContain('invalid_rapt')
+    expect(apply).toContain('05-troubleshooting.md')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 turns on every capability before the profile]]
+  it('ticks every capability on the app id before any profile is made', () => {
+    const runbook = runbook08()
+    const capabilities = step(/^### .*capabilit.*$/im)
+    for (const capability of ['Push Notifications', 'Sign in with Apple', 'Associated Domains']) {
+      expect(capabilities, capability).toContain(capability)
+    }
+    expect(runbook.search(/^### .*capabilit/im)).toBeGreaterThan(-1)
+    expect(runbook.search(/^### .*capabilit/im)).toBeLessThan(
+      runbook.search(/^### .*provisioning profile/im),
+    )
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 stores credentials as stack secrets]]
+  it('stores each credential as stack config, the secret ones with --secret', () => {
+    const runbook = runbook08()
+    for (const key of ['googleOAuthClientSecret', 'appleServicesKey']) {
+      expect(runbook, key).toMatch(new RegExp(`pulumi config set --secret reward-app:${key}`))
+    }
+    for (const key of ['googleOAuthClientId', 'appleServicesId', 'appleKeyId']) {
+      expect(runbook, key).toMatch(new RegExp(`pulumi config set reward-app:${key}`))
+    }
+    expect(runbook).not.toMatch(/gcloud secrets versions add\s+\\?\s*reward-app-(google|apple)/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 re-makes the profile end to end]]
+  it('re-makes the profile from deleting the old one to releasing again', () => {
+    const remake = part(/^## Later: re-making the iOS profile.*$/m)
+    expect(remake).toMatch(/delete|remove/i)
+    expect(remake).toContain('security cms -D')
+    expect(remake).toContain('gcloud secrets versions add')
+    expect(remake).toContain('iOS signing')
+    expect(remake).toMatch(/git tag v/)
+    expect(remake).toContain("doesn't include the")
   })
 })
 
@@ -548,9 +633,9 @@ describe('mobile release trust', () => {
     expect(program()).toMatch(/SECRET_\$\{name\.toUpperCase\(\)\.replace\(\/-\/g, '_'\)\}/)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 has the two hand steps]]
-  it('tells runbook 07 how to link the Play identity and add secret versions', () => {
-    const runbook = read('docs/runbooks/07-mobile-release.md')
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 has the store hand steps]]
+  it('tells runbook 08 how to link the Play identity and add secret versions', () => {
+    const runbook = read('docs/runbooks/08-mobile-setup.md')
     expect(runbook).toContain('gcloud secrets versions add')
     expect(runbook).toMatch(/Users\s+and\s+permissions/)
     expect(runbook).not.toMatch(/putting the signing material in GitHub\s+secrets/)
@@ -620,6 +705,36 @@ describe('mobile release workflow', () => {
     expect(workflow()).toContain('fastlane')
   })
 
+  // @lat: [[infra-tests#Infrastructure config#Release builds sign with the upload key from key.properties]]
+  it('signs release builds from key.properties and keeps the debug fallback without it', () => {
+    const gradle = read('apps/mobile/android/app/build.gradle.kts')
+    expect(gradle).toContain('rootProject.file("key.properties")')
+    expect(gradle).toMatch(/^import java\.util\.Properties$/m)
+    const signing = gradle.split(/signingConfigs\s*\{/)[1]?.split(/^ {4}\}/m)[0] ?? ''
+    expect(signing).toContain('create("release")')
+    for (const key of ['keyAlias', 'keyPassword', 'storeFile', 'storePassword']) {
+      expect(signing, key).toContain(key)
+    }
+    const release = gradle.split(/^ {8}release\s*\{/m)[1]?.split(/^ {8}\}/m)[0] ?? ''
+    expect(release).toContain('signingConfigs.getByName("release")')
+    expect(release).toContain('signingConfigs.getByName("debug")')
+    expect(release).not.toMatch(/TODO: Add your own signing config/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Android app uses AGP built-in Kotlin]]
+  it('opts into built-in Kotlin and applies no Kotlin Gradle Plugin to the app module', () => {
+    const properties = read('apps/mobile/android/gradle.properties')
+    expect(properties).toMatch(/^android\.builtInKotlin=true$/m)
+    expect(properties).not.toMatch(/^android\.builtInKotlin=false$/m)
+    // Built-in Kotlin still reads its KGP version from this declaration; AGP 9 bundles 2.2.10
+    // and Flutter 3.47 requires at least 2.2.20, as Flutter's own app template does.
+    const settings = read('apps/mobile/android/settings.gradle.kts')
+    expect(settings).toMatch(/id\("org\.jetbrains\.kotlin\.android"\) version "[\d.]+" apply false/)
+    const gradle = read('apps/mobile/android/app/build.gradle.kts')
+    expect(gradle).not.toMatch(/kotlin-android|org\.jetbrains\.kotlin\.android|kotlinOptions/)
+    expect(gradle).toContain('JvmTarget.JVM_17')
+  })
+
   // @lat: [[infra-tests#Infrastructure config#Runbook 07 describes the tag-driven release]]
   it('turns runbook 07 into the release procedure', () => {
     const runbook = read('docs/runbooks/07-mobile-release.md')
@@ -670,64 +785,91 @@ describe('runbook 01 keeps the two Pulumi projects apart', () => {
 })
 
 describe('signing material procedure and token record', () => {
-  const runbook07 = () => read('docs/runbooks/07-mobile-release.md')
+  const runbook08 = () => read('docs/runbooks/08-mobile-setup.md')
+  const section = (title: RegExp) => runbook08().split(title)[1]?.split(/^##+ /m)[0] ?? ''
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 walks through every piece of signing material]]
-  it('has a subsection for the keystore, the API key, the certificate and the profile', () => {
-    const signing =
-      runbook07()
-        .split(/^## Signing material/m)[1]
-        ?.split(/^## /m)[0] ?? ''
+  // @lat: [[infra-tests#Infrastructure config#Runbook 07 leaves setup to runbook 08]]
+  it('keeps runbook 07 to releasing and points it at runbook 08 for setup', () => {
+    const runbook = read('docs/runbooks/07-mobile-release.md')
+    expect(runbook).not.toMatch(/^## Signing material/m)
+    expect(runbook).not.toMatch(/^## The Play publisher identity/m)
+    expect(runbook).toContain('(08-mobile-setup.md)')
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 walks through every piece of signing material]]
+  it('has a step for the keystore, the API key, the certificate and the profile', () => {
+    const runbook = runbook08()
     for (const heading of [
       'upload keystore',
       'App Store Connect API key',
       'distribution certificate',
       'provisioning profile',
     ]) {
-      expect(signing, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
+      expect(runbook, heading).toMatch(new RegExp(`^### .*${heading}`, 'im'))
+      expect(section(new RegExp(`^### .*${heading}.*$`, 'im')), heading).toContain(
+        'gcloud secrets versions add',
+      )
     }
-    expect(signing).toContain('gcloud secrets versions add')
-    expect(signing).toMatch(/^\$ export STACK=staging$/m)
-    expect(signing).toMatch(/Play App Signing/)
+    expect(runbook).toMatch(/^\$ export STACK=staging$/m)
+    expect(runbook).toMatch(/Play App Signing/)
+    const keystore = section(/^### .*upload keystore.*$/im)
+    expect(keystore).toContain('-storetype PKCS12')
+    expect(keystore).toContain('-dname')
+    expect(keystore).toMatch(/one password/i)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 says store records are per app id]]
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 writes key.properties step by step]]
+  it('writes key.properties from Secret Manager and checks the bundle is not debug-signed', () => {
+    const bundle = section(/^### .*first bundle.*$/im)
+    for (const line of ['storeFile=', 'storePassword=', 'keyPassword=', 'keyAlias=upload']) {
+      expect(bundle, line).toContain(line)
+    }
+    expect(bundle).toContain('build.gradle.kts')
+    expect(bundle).toContain('> android/key.properties')
+    expect(bundle).toContain('keytool -printcert -jarfile')
+    expect(bundle).toMatch(/rm android\/key\.properties/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 says store records are per app id]]
   it('states that store records are per app id, not per environment', () => {
-    expect(runbook07()).toMatch(/one record\s+per app/i)
+    expect(runbook08()).toMatch(/one record\s+per app/i)
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 verifies the profile before storing it]]
-  it('checks the profile is for the app id before adding the secret version', () => {
-    const runbook = runbook07()
-    const profile =
-      runbook.split(/^### iOS: the provisioning profile/m)[1]?.split(/^### /m)[0] ?? ''
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 checks the profile's entitlements before storing it]]
+  it('checks the profile is for the app id and carries every entitlement before adding the version', () => {
+    const runbook = runbook08()
+    const profile = section(/^### .*provisioning profile.*$/im)
     expect(runbook).toContain('XC com helpmebrands reward')
-    expect(profile).toContain('/v1/profiles')
+    expect(runbook).toContain('/v1/profiles')
     expect(profile).toContain('security cms -D')
-    expect(profile.indexOf('application-identifier')).toBeGreaterThan(-1)
-    expect(profile.indexOf('application-identifier')).toBeLessThan(
-      profile.indexOf('gcloud secrets versions add'),
-    )
+    const stored = profile.indexOf('gcloud secrets versions add')
+    for (const line of [
+      'application-identifier',
+      'com.apple.developer.applesignin',
+      'com.apple.developer.associated-domains',
+    ]) {
+      expect(profile.indexOf(line), line).toBeGreaterThan(-1)
+      expect(profile.indexOf(line), line).toBeLessThan(stored)
+    }
   })
 
-  // @lat: [[infra-tests#Infrastructure config#Runbook 07 reads binaries back with --out-file]]
+  // @lat: [[infra-tests#Infrastructure config#Runbook 08 reads binaries back with --out-file]]
   it('reads the binaries back with --out-file and proves them in the check step', () => {
-    const signing =
-      runbook07()
-        .split(/^## Signing material/m)[1]
-        ?.split(/^## /m)[0] ?? ''
-    const check = signing.split(/^### Check and clean up/m)[1] ?? ''
+    const runbook = runbook08()
+    const check = runbook.split(/^## Part 4 — Check.*$/m)[1]?.split(/^## /m)[0] ?? ''
     expect(check).toMatch(/--out-file check\.p12/)
     expect(check).toMatch(/security import check\.p12/)
     expect(check).toMatch(/security cms -D -i check\.mobileprovision/)
     expect(check).toMatch(/stdout/)
-    expect(signing).not.toMatch(/'X{10}' \| gcloud/)
-    expect(signing).toMatch(/read -r ASC_KEY_ID/)
+    expect(runbook).not.toMatch(/'X{10}' \| gcloud/)
+    expect(runbook).toMatch(/read -r ASC_KEY_ID/)
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the iOS signing expiry]]
   it('records the iOS certificate expiry in the README table', () => {
-    expect(read('docs/runbooks/README.md')).toMatch(/^\| iOS signing \|.*2027-09-21.*\|$/m)
+    const readme = read('docs/runbooks/README.md')
+    expect(readme).toMatch(/^\| iOS signing \|.*`F43PSVY32N`.*2027-09-21.*\|$/m)
+    expect(readme).not.toContain('SHU9W3JD44')
   })
 
   // @lat: [[infra-tests#Infrastructure config#README records the GitHub token]]
@@ -825,6 +967,119 @@ describe('local verify', () => {
     expect(hook).toMatch(/make verify/)
     expect(statSync(join(root, '.githooks/pre-push')).mode & 0o111).not.toBe(0)
     expect(read('docs/runbooks/02-routine-change.md')).toContain('make verify')
+  })
+})
+
+describe('sign-in', () => {
+  const program = () => read('infra/index.ts')
+
+  // @lat: [[infra-tests#Infrastructure config#Identity Platform signs people in with Google and Apple]]
+  it('turns on Firebase and Identity Platform with the Google and Apple providers', () => {
+    const p = program()
+    expect(p).toContain("'identitytoolkit.googleapis.com'")
+    expect(p).toContain("'firebase.googleapis.com'")
+    expect(p).toMatch(/new gcp\.firebase\.Project\(/)
+    expect(p).toMatch(/new gcp\.identityplatform\.Config\(/)
+    expect(p).toMatch(/idpId: 'google\.com'/)
+    expect(p).toMatch(/idpId: 'apple\.com'/)
+    expect(p).toMatch(/config\.getSecret\('googleOAuthClientSecret'\)/)
+    for (const key of ['googleOAuthClientId', 'appleServicesId']) {
+      expect(p, key).toMatch(new RegExp(`config\\.get\\('${key}'\\)`))
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The app is registered with Firebase on both platforms]]
+  it('registers the iOS and Android apps and exports their options', () => {
+    const p = program()
+    expect(p).toMatch(/new gcp\.firebase\.AppleApp\(/)
+    expect(p).toMatch(/new gcp\.firebase\.AndroidApp\(/)
+    expect(p).toMatch(/const appId = 'com\.helpmebrands\.reward'/)
+    for (const output of [
+      'firebaseIosAppId',
+      'firebaseAndroidAppId',
+      'firebaseIosApiKey',
+      'firebaseAndroidApiKey',
+      'firebaseIosUrlScheme',
+    ]) {
+      expect(p, output).toMatch(new RegExp(`^export const ${output} = `, 'm'))
+    }
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Invite links have the api's own domain]]
+  it('maps the api to its own domain and tells it where invites point', () => {
+    const p = program()
+    expect(p).toMatch(/const apiCustomDomain = config\.get\('apiCustomDomain'\)/)
+    expect(p).toMatch(/new gcp\.cloudrun\.DomainMapping\(\s*'api-domain'/)
+    const api = p.split("new gcp.cloudrunv2.Service(\n  'api',")[1]?.split('\n)\n')[0] ?? ''
+    expect(api).toMatch(/name: 'INVITE_LINK_BASE'/)
+    expect(api).toMatch(/name: 'ANDROID_SHA256_FINGERPRINTS'/)
+    expect(read('infra/Pulumi.staging.yaml')).toMatch(
+      /^ {2}reward-app:apiCustomDomain: api\.staging\.helpmereward\.com$/m,
+    )
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#Google sign-in returns to the app on iOS]]
+  it('registers the Firebase iOS app URL scheme in Info.plist', () => {
+    expect(read('apps/mobile/ios/Runner/Info.plist')).toContain(
+      '<string>app-1-133269731559-ios-40cae6fc6e557ad9a38a42</string>',
+    )
+    expect(program()).toMatch(/phoneNumber: \{ enabled: false/)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The sign-in credentials are the runbook's keys]]
+  it('declares the runbook 08 keys and commits the Apple team id', () => {
+    const project = read('infra/Pulumi.yaml')
+    for (const key of [
+      'googleOAuthClientId',
+      'googleOAuthClientSecret',
+      'appleServicesId',
+      'appleKeyId',
+      'appleServicesKey',
+      'appleTeamId',
+    ]) {
+      expect(project, key).toMatch(new RegExp(`^  ${key}:$`, 'm'))
+      expect(read('docs/runbooks/08-mobile-setup.md'), key).toContain(`reward-app:${key}`)
+    }
+    expect(read('infra/Pulumi.staging.yaml')).toMatch(/^ {2}reward-app:appleTeamId: LMFUSVPCDH$/m)
+  })
+
+  // @lat: [[infra-tests#Infrastructure config#The api knows its Firebase project]]
+  it('tells the api which Firebase project its tokens come from', () => {
+    const api = program().split("new gcp.cloudrunv2.Service(\n  'api',")[1]?.split('\n)\n')[0] ?? ''
+    expect(api).toMatch(/name: 'FIREBASE_PROJECT_ID'/)
+  })
+})
+
+describe('mobile api config', () => {
+  // @lat: [[infra-tests#Infrastructure config#The api define is tested with and without it]]
+  it('runs the api config test with the define in CI and make check', () => {
+    const define =
+      /test test\/api_config_test\.dart --dart-define=API_BASE_URL=https:\/\/example\.test/
+    const flutter =
+      read('.github/workflows/verify.yml')
+        .split(/^ {2}flutter:$/m)[1]
+        ?.split(/^ {2}\w+:$/m)[0] ?? ''
+    expect(flutter, 'the flutter job').toMatch(define)
+    const check =
+      read('apps/mobile/Makefile')
+        .split(/^check:/m)[1]
+        ?.split(/^\w+:/m)[0] ?? ''
+    expect(check, 'make check').toMatch(define)
+  })
+})
+
+describe('api contract', () => {
+  // @lat: [[infra-tests#Infrastructure config#The api spec is linted as OpenAPI in CI and locally]]
+  it('lints services/api/openapi.yaml with a pinned Redocly CLI in the api job and make api', () => {
+    const lint = /npx --yes @redocly\/cli@\d+\.\d+\.\d+ lint services\/api\/openapi\.yaml/
+    const api =
+      read('.github/workflows/verify.yml')
+        .split(/^ {2}api:$/m)[1]
+        ?.split(/^ {2}\w+:$/m)[0] ?? ''
+    expect(api, 'the api job').toMatch(lint)
+    const target = read('Makefile').split(/^api:/m)[1]?.split(/^\w+:/m)[0] ?? ''
+    expect(target, 'make api').toMatch(lint)
+    expect(existsSync(join(root, 'services/api/openapi.yaml'))).toBe(true)
   })
 })
 

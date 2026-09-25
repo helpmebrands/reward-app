@@ -26,6 +26,8 @@ The expected rows are `test/fixtures/sample-today.json`, dumped by `apps/pwa/scr
 
 Every `CreditRow` on the screen, in order, has the name, holder, tone and amount of the PWA's use-soon, locked and captured rows for that date, so the two apps agree on what is at risk and how it is drawn.
 
+The app stores no holder, so the test names each row's holder from its card id, card-0001 Jim's and card-0002 Kathy's.
+
 ### The headline counts only what is claimable
 
 The headline digits are the claimable total from the fixture, the subtitle names the nearest reset, and the section titles carry the reset date and the captured total.
@@ -60,23 +62,21 @@ With no snapshot the screen shows "Start with one card" and no rows.
 
 ### A row opens the sheet and logging moves it to captured
 
-Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, drops the headline from $1,658.90 to $1,558.90, draws that row in the captured tone and shows the undo snackbar.
+Tapping Kathy's Resy row opens its sheet; "Mark the full $100 used" closes it, drops the headline from $1,898.90 to $1,798.90, draws that row in the captured tone and shows the undo snackbar.
 
 ### Swiping a row logs it with an undo
 
 A 60 pixel swipe on the same row and a tap on "Log it" drops the headline the same way, and "Undo logging Resy Dining Credit" restores it.
 
-### The household filter narrows the screen
+### Today has no household filter
 
-The filter reads "Everyone in the household"; choosing Jim writes the setting, leaves only Jim's rows, and the headline becomes the claimable total of Jim's instances.
-
-### One holder has no filter
-
-With only Jim's card and benefits the filter is not rendered.
+With two Platinums in the household no filter renders, and the headline is the claimable total of every card's instances.
 
 ### An overlap card opens the compare sheet
 
-Tapping "Hotel Credit (FHR / THC) × 2" opens the compare sheet with Jim's and Kathy's sides, "Both sides are untouched at $300", and a log button per side; "Log $300 on Jim's card" closes it and records a $300 claim on Jim's hotel credit.
+Tapping "Hotel Credit (FHR / THC) × 2" opens the compare sheet with a side per labelled Platinum, "Both sides are untouched at $300", and a log button per side.
+
+The Platinums are labelled "Jim's Platinum" and "Kathy's Platinum"; "Log $300 on Jim's Platinum" closes the sheet and records a $300 claim on Jim's hotel credit.
 
 ### A compare side opens that credit
 
@@ -84,7 +84,7 @@ Tapping Kathy's side closes the compare and opens the credit sheet for Kathy's h
 
 ### Preview nudge shows the stand-in when nothing is scheduled
 
-With reminders off, "Preview nudge" shows "$1,658.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
+With reminders off, "Preview nudge" shows "$1,898.90 on the line — one week left" and its body, and the preview is gone seven seconds later.
 
 ### Preview nudge shows the next scheduled reminder
 
@@ -98,7 +98,7 @@ The fixture carries the header counts, the four totals, every filter's rows as d
 
 ### The header carries the counts and the four totals
 
-"All credits" is headed by "12 open · 2 locked · 48 missed", and the Claimable, Locked, Captured and Missed tiles show the fixture's totals.
+"All credits" is headed by "14 open · 2 locked · 48 missed", and the Claimable, Locked, Captured and Missed tiles show the fixture's totals.
 
 ### Each filter shows the PWA's rows
 
@@ -141,6 +141,10 @@ The fixture carries the fee and captured totals and each active card's figures, 
 ### Each card carries the PWA's figures, verdict and tags
 
 "Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage and days to renewal, the verdict headline and body, every tag and the edit button, and the catalogue button follows.
+
+### A business card carries a Business mark
+
+With Jim's card made `business`, his card shows a "Business" tag and Kathy's shows none.
 
 ### The verdict is the PWA's, case by case
 
@@ -200,17 +204,21 @@ The label reads "Whose card is it? *", the hint is drawn under the control, and 
 
 ### A template becomes a card with its credits
 
-The catalogue shows the Platinum with its annual value; picking it shows "Card details" and the required note; a holder and a date then "Add this card" adds the card and leaves the screen.
+The catalogue shows the Platinum with its annual value; picking it shows "Card details", the required note, and the label "American Express Platinum (1)"; a date then "Add this card" adds the card.
 
-The card carries that holder, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
+The label is proposed because the sample household already holds two Platinums.
 
-### An empty holder is named and focused on submit
+The card carries that label, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
 
-Clearing the holder shows nothing; Save shows "Enter whose card this is.", adds nothing and puts focus in the holder field; typing a name clears the error and Save adds the card.
+### A label another card shows is named and focused on submit
+
+Typing "American Express Platinum" shows nothing; Save shows the "already called" sentence, adds nothing and focuses the label field.
+
+A fresh label then clears the error and Save adds the card.
 
 ### Typing shows no error before blur
 
-Clearing the holder shows no error until the anniversary field is tapped.
+Typing a taken label shows no error until the anniversary field is tapped.
 
 ### A bad date shows the domain's sentence
 
@@ -218,11 +226,11 @@ Clearing the holder shows no error until the anniversary field is tapped.
 
 ### Back with a draft asks first
 
-System back on an untouched form returns to the catalogue; with a holder typed it asks "Discard this card?", "Keep editing" stays, and "Discard" leaves to Cards.
+System back on an untouched form returns to the catalogue; with a label typed it asks "Discard this card?", "Keep editing" stays, and "Discard" leaves to Cards.
 
 ### Short fields pair from expanded
 
-At 402 the anniversary sits under the holder; at 1280 they share a top edge side by side and the Save button spans the row.
+At 402 the anniversary sits under the label; at 1280 they share a top edge side by side and the Save button spans the row.
 
 ### The form at 200% clips nothing
 
@@ -230,7 +238,93 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 ### The blank template asks for issuer and card
 
-"Set one up by hand" then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them and the holder adds a card with no benefits and says "Card added. Add its credits next."
+The top "Add card" button then Save shows "Enter who issues the card." and "Enter the name of the card."; filling them adds a personal card with no benefits and says "Card added. Add its credits next."
+
+### Manual entry sits at the top, labelled by width
+
+On first render the top button is on screen without scrolling and at least 48dp tall. It reads "Add card" at 402 wide and "Add card manually" at 1280.
+
+### The end of the list offers manual entry
+
+The list ends with "Don't see your card?" and a 48dp "Enter it manually" button, and "Set one up by hand" is gone. The button opens the Issuer and Card fields, and saving adds a card with no credits.
+
+### The catalogue is ordered by annual value
+
+The first template tile is the first template from `sortByValue`, which is worth at least as much a year as any other template.
+
+### The catalogue at 200% clips nothing
+
+At a 2.0 text scale at 402 wide, the catalogue raises no layout exception. Every text ends inside the width, down to the end-of-list button.
+
+### A business template lands as a business card
+
+Picking the Business Platinum and saving with a date adds a card whose kind is `business`, copied from the template.
+
+## Catalogue filter
+
+`catalog_filter_test.dart` opens the app at `/cards/new`, 1280 wide unless a case says otherwise, and drives the side panel and, at 402, the compact sheet ([[mobile-architecture#Forms and the Field pattern#Add a card#Catalogue filter]]).
+
+### Checking an issuer narrows the list and adds a chip
+
+The header starts at "16 of 16 cards". Checking Chase leaves 4 tiles, shows "4 of 16 cards" and adds a "Chase" chip. The chip's "Remove Chase filter" button restores all 16.
+
+### Business narrows to business cards in the panel and the sheet
+
+At 1280, checking Business in the panel adds a "Business" chip and leaves only the Business Platinum. At 402, checking it in the sheet shows "Show 1", which closes onto the same chip and tile.
+
+### Facets combine and counts follow the other facets
+
+With Chase checked, the fee bands count 2, 1, 0 and 1 for Under $100, $100–$399, $400–$599 and $600+. Checking $600+ as well leaves only the Sapphire Reserve, with a "$600+" chip.
+
+### Search narrows per keystroke and Clear all resets everything
+
+Typing "u", "ub", "ube" and "uber" shows each prefix's `filterTemplates` count. "Clear all" then empties the facets, both search fields and the chips, and hides itself.
+
+### The merchant group shows six and searches its own options
+
+Six merchant options show until "Show all" lists every one, and "Show fewer" returns to six. Typing "a" in the merchant sub-search lists every merchant containing it, hides the toggle and leaves the card count at 16.
+
+### No match shows the empty state with manual entry
+
+Searching "zzzz" leaves no tiles and shows "No cards match. Try removing a filter, or add your card manually.". Its button opens the blank form with Issuer and Card.
+
+### The result count is a live region
+
+The "N of 16 cards" text's semantics node carries the live-region flag, so a screen reader announces each change.
+
+### The panel at 200% clips nothing
+
+At 720 wide with a 2.0 text scale, and American Express and Adobe checked, no layout exception is raised and every text ends inside the width.
+
+### A selected merchant tags the benefits it matched
+
+No tile has a tag until Uber is checked. Then the Platinum shows "Uber Cash (monthly)" with an icon and "$15/mo", and "Uber Cash (December bonus)" with "$20/yr".
+
+Every listed tile's tags equal its `matchedBenefits`, and the Platinum's semantics label contains "Matches Uber Cash (monthly)".
+
+### The search tags only the benefits it matched
+
+Searching "resy" tags each listed tile with exactly its `matchedBenefits`, and every tag names a Resy credit.
+
+### The Filters badge counts selections, not search text
+
+At 402 wide there is no panel, and the Filters button shows no badge. Checking $600+ and Visa in the sheet and typing search text gives a badge of "2".
+
+### Show N reports the live count and closes the sheet
+
+The sheet opens on "Show 16". Checking Chase turns it into "Show 4", and tapping it closes the sheet onto the Chase chip, "4 of 16 cards" and focus on the Filters button.
+
+### The scrim and system back close the sheet and keep the selection
+
+A scrim tap closes the sheet with Chase still chosen. Reopening, checking Citi and pressing system back closes only the sheet, leaving both chips on the catalogue.
+
+### Growing past compact swaps the sheet for the panel
+
+With the sheet open and Chase checked, widening to 1280 closes the sheet, removes the Filters button and shows the panel with Chase checked. Narrowing back keeps the chip and the count.
+
+### The sheet keeps 48dp targets and clips nothing at 200%
+
+At a 2.0 text scale the Filters button, "Show N" and every facet option are at least 48dp tall, the sheet raises no exception, and its text ends inside 402.
 
 ## Editors
 
@@ -238,13 +332,19 @@ At a 2.0 text scale the form raises no layout exception and every text ends insi
 
 ### The card editor writes valid values and shows errors for the rest
 
-The editor is titled by the card with "12 credits"; a typed holder reaches the store at once; an invalid fee or date shows its sentence after blur and is not written.
+The editor is titled by the card with "12 credits"; a typed label reaches the store at once; an invalid fee or date shows its sentence after blur and is not written, and so does a label another card already shows.
+
+The sample's two Platinums are labelled with the names the PWA shows for them, "American Express Platinum — Jim" and "— Kathy", here and in the Cards, Credits, Value and routing suites, so the PWA's fixtures still apply.
 
 "abc" as the fee leaves the fee alone and shows "Enter the amount as a number, like 695."; "695" writes $695 and clears it; "2026-02-30" shows the date sentence.
 
 ### Mute, archive and network are on the card editor
 
 The "Silence every credit" switch mutes the card, choosing Visa writes the network, and "Archive this card" archives it.
+
+### The card kind is a choice on the card editor
+
+Jim's card starts personal; tapping the "Business" chip writes `CardKind.business` and "Personal" writes it back.
 
 ### The credit list opens each editor and adds a credit
 
@@ -474,7 +574,7 @@ After `load` the store reports its cards, the first use-soon credit, the claimab
 
 ### A template becomes a card with its credits
 
-`addCardFromTemplate` on an empty household adds one card with the template's issuer and product, the given holder, nickname and anniversary, and one benefit per template credit; one notification.
+`addCardFromTemplate` on an empty household adds one card with the template's issuer and product, the given label and anniversary, and one benefit per template credit; one notification.
 
 Both card timestamps are the clock's instant, and each benefit has a distinct id and the new card's id.
 
@@ -484,11 +584,11 @@ The blank template with `issuer` and `product` overrides yields a card named by 
 
 ### Card patches stamp updatedAt
 
-`updateCard` applies the `copyWith` patch (nickname, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
+`updateCard` applies the `copyWith` patch (label, last four), keeps `createdAt` and stamps `updatedAt` with the clock; one notification.
 
-### Mute and archive are card patches
+### Mute is the member's and archive is a card patch
 
-`toggleCardMute` flips `muted` each call and `archiveCard` sets `archived`, after which `hasCards` is false; three calls, three notifications.
+`toggleCardMute` adds then removes the card in the saved `MemberPreferences` and leaves the household's JSON as it was; `archiveCard` sets `archived`, after which `hasCards` is false; three notifications.
 
 ### Deleting a card cascades
 
@@ -500,7 +600,11 @@ With two cards, three benefits and three claims, `deleteCard` leaves the other c
 
 ### Benefit patches stamp updatedAt
 
-`updateBenefit` applies a name and value patch and stamps `updatedAt`; `toggleBenefitMute` flips `muted`; two notifications.
+`updateBenefit` applies a name and value patch and stamps `updatedAt`; one notification.
+
+### Muting a credit leaves the household alone
+
+`toggleBenefitMute` saves the credit's id in the member's preferences, leaves the household's JSON unchanged, marks the instance muted, and notifies once.
 
 ### Enrolment is confirmed and revoked
 
@@ -528,7 +632,7 @@ On a $25 credit with $10 claimed, `claim` without an amount records $15 with the
 
 ### Settings patches keep the rest
 
-`updateSettings` changes the holder filter and theme and keeps the horizon; `updateNotificationSettings` turns reminders on at a new time, keeps the floor, and leaves the holder filter as set.
+`updateSettings` changes the horizon and theme; `updatePreferences` turns reminders on at a new time, keeps the floor, saves the preferences apart from the snapshot, and leaves the horizon as set.
 
 ### A write before load wins
 
@@ -723,6 +827,136 @@ At 1280 with the sample household, the bar's centre is the content column's cent
 ### The snackbar sits above the bar on a phone
 
 At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centred on the phone column.
+
+## Sign-in
+
+`sign_in_test.dart` launches the app with a `Session` over a fake `AuthService` and a `MemoryIntroStore`, and follows the router's redirect ([[mobile-architecture#Sign-in]]).
+
+### First launch shows the slideshow
+
+Signed out with the intro unseen, the app opens on `WelcomeScreen`; Skip goes to `SignInScreen` and sets `introSeen`.
+
+### Finishing the slideshow leads to sign-in
+
+Next through the slides to "Get started" goes to sign-in and sets `introSeen`.
+
+### A returning signed-out launch goes to sign-in
+
+With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow, and Skip returns to sign-in.
+
+### A signed-in launch opens Today
+
+Signed in, the app opens on Today with no sign-in screen.
+
+### Signing in opens Today
+
+"Continue with Google" and "Continue with Apple" each call their provider once on the auth and land on Today.
+
+### Signing out returns to sign-in
+
+"Sign out" in Settings calls the auth once and returns to sign-in, not the slideshow.
+
+### A failed sign-in says so
+
+With `UnconfiguredAuth`, "Continue with Google" stays on sign-in and shows that sign-in is not set up.
+
+### Staging Firebase options are built in
+
+`firebase_config_test.dart` checks that an iOS and an Android build with no `--dart-define`s get staging's Firebase app id, API key, project and bundle id, and that macOS gets none.
+
+## Api store
+
+`api_store_test.dart` drives the store in its service-tier mode over a fake api that dedupes claims by idempotency key as the real one does, with an in-memory cache and outbox ([[mobile-architecture#The store#The service tier]]).
+
+### Offline, the app starts from the cache
+
+With the api unreachable, `load` shows the cached household and reports offline; once it is back, `refresh` shows the server's and writes it to the cache.
+
+### An offline claim is pending, kept and sent once
+
+A claim logged offline shows at once and is pending, and a new store over the same cache and outbox still shows it pending. Three concurrent flushes once the api is back post it once, empty the outbox and swap in the server's claim.
+
+The same key queued and flushed again after it was stored leaves one claim on the server.
+
+### Offline edits are refused with a message
+
+Renaming a card offline returns false, sets `offlineMessage`, changes nothing locally or on the server, and makes `canEdit` false; online the same rename lands. In the app, typing into the card editor offline shows the message in the snackbar.
+
+### A cache of another version is discarded
+
+A cache written with the previous `householdCacheVersion` is cleared on load, leaving no household, while the queued claim stays in the outbox and is posted when the api is back.
+
+### A reader sees no claim or edit controls
+
+For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
+
+## System and user cards
+
+`system_cards_test.dart` drives Cards, the editors and the conversion over the fake api with a Gold from the catalogue, a claim on its Uber Cash, and a Freedom of the household's own ([[mobile-architecture#System and user cards]]).
+
+### Cards groups system and user cards
+
+Cards names "Kept up to date" with the Gold under it and "Maintained by you" with the Freedom under it.
+
+### A system card's terms are read-only
+
+The Gold's editor has a read-only fee, no "Add" and an editable label; "Change the terms" opens the conversion screen, which says it will no longer update automatically and keeps its claims, and nothing has been converted yet.
+
+### Conversion keeps the claims
+
+"Make it mine" converts the Gold once, opens its editor with an editable fee, and leaves the captured total and the claim as they were; back on Cards the Gold is under "Maintained by you".
+
+### A second card of a product is numbered
+
+Adding a Gold from the api's catalogue to a household holding one proposes "American Express Gold (1)"; the catalogue comes from the api with `blank` last.
+
+## Household sharing
+
+`household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `shareText` captured ([[mobile-architecture#Household sharing]]).
+
+### An owner shares an invite
+
+The owner sees themselves as Owner; "Invite someone", "Can edit" and "Create and share" make one edit invite, share a text with its link and code, and show the code.
+
+### Only an owner invites and removes
+
+An editor sees the members but no invite button and no remove button.
+
+### A code joins the household
+
+"Have an invite code?" with a lower-case code opens the join screen for it in capitals; "Join this household" accepts it, lands on Today with "You joined the household." and the invite's role.
+
+### A link opens the join screen
+
+Opening `/invite/ZZZZ2222` shows the join screen for that code.
+
+### A signed-out link joins after sign-in
+
+Signed out, the link shows sign-in; signing in lands on the join screen for the code.
+
+### Used, expired and unknown codes say so
+
+An expired, a used and an unknown code each stay on the join screen with their own sentence.
+
+### Leaving cards behind asks first
+
+When the current household holds cards the join asks "Leave your cards behind?", and "Leave and join" repeats it with `confirmLeave` and lands on Today.
+
+### An owner removes a member
+
+The owner's remove button for a member, confirmed, removes them from the api and the list.
+
+## Api config
+
+`api_config_test.dart` covers the build-time define ([[mobile-architecture#Api config]]). Each case skips itself in the run it does not apply to, so the verify gate and `make check` run the file a second time with the define.
+
+### The define sets the api base URL
+
+Run with `--dart-define=API_BASE_URL=https://example.test`, `ApiConfig.baseUrl` is `https://example.test`.
+
+### Without the define the app talks to staging
+
+Run without it, `ApiConfig.baseUrl` is `ApiConfig.stagingUrl`.
 
 ## End to end
 

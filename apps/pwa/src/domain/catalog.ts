@@ -3,6 +3,7 @@ import type {
   Benefit,
   BenefitCategory,
   Cadence,
+  CardKind,
   CardNetwork,
   CycleAnchor,
   IsoDate,
@@ -44,6 +45,8 @@ export interface CardTemplate {
   issuer: string
   product: string
   network: CardNetwork
+  /** Copied onto the card the template creates. */
+  kind: CardKind
   annualFeeCents: number
   benefits: BenefitTemplate[]
 }
@@ -54,6 +57,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Business Platinum',
     network: 'amex',
+    kind: 'business',
     annualFeeCents: 89500,
     benefits: [
       {
@@ -102,6 +106,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'annual',
         anchor: 'calendar',
         enrollmentRequired: true,
+        spendThresholdCents: 500000,
         redemptionSteps: [
           'Enroll in the Dell benefit',
           'Spend $5,000+ on U.S. purchases directly with Dell in the calendar year',
@@ -219,8 +224,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: ['Pay the Global Entry or TSA PreCheck application fee with the card'],
         notes:
@@ -236,6 +242,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         valueCents: 120000,
         cadence: 'annual',
         anchor: 'calendar',
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend $250,000 on eligible purchases in a calendar year',
           'In the following calendar year, book flights on AmexTravel.com with the card',
@@ -253,6 +260,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         valueCents: 240000,
         cadence: 'annual',
         anchor: 'calendar',
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend $250,000 on eligible purchases in a calendar year',
           'Use American Express One AP in the following calendar year; monthly fees are credited',
@@ -267,6 +275,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Delta SkyMiles Reserve',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 65000,
     benefits: [
       {
@@ -331,8 +340,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck (official enrollment provider) fee with the card',
@@ -348,6 +358,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Gold',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 32500,
     benefits: [
       {
@@ -423,6 +434,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Hilton Honors Aspire',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 55000,
     benefits: [
       {
@@ -477,6 +489,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Hilton Honors Surpass',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 15000,
     benefits: [
       {
@@ -504,6 +517,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Marriott Bonvoy Brilliant',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 65000,
     benefits: [
       {
@@ -532,8 +546,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Brilliant card',
@@ -549,6 +564,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'American Express',
     product: 'Platinum',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 89500,
     benefits: [
       {
@@ -749,8 +765,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Platinum Card',
@@ -765,6 +782,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Bank of America',
     product: 'Premium Rewards Elite',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 55000,
     benefits: [
       {
@@ -808,8 +826,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
@@ -824,6 +843,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Capital One',
     product: 'Venture X',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 39500,
     benefits: [
       {
@@ -853,8 +873,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Venture X card.',
@@ -869,6 +890,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'IHG One Rewards Premier',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 9900,
     benefits: [
       {
@@ -900,6 +922,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'annual',
         anchor: 'calendar',
         enrollmentRequired: false,
+        spendThresholdCents: 2000000,
         redemptionSteps: [
           'Spend at least $20,000 on purchases in a calendar year.',
           'The $100 statement credit and 10,000 bonus points post automatically.',
@@ -914,8 +937,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the application fee with the IHG Premier card.',
@@ -930,6 +954,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'Sapphire Preferred',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 9500,
     benefits: [
       {
@@ -977,8 +1002,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck, or NEXUS application fee with the Sapphire Preferred card.',
@@ -993,6 +1019,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'Sapphire Reserve',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 79500,
     benefits: [
       {
@@ -1058,6 +1085,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'semiannual',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate the benefit once on Chase.com or the Chase Mobile app',
           'Buy tickets on StubHub or viagogo with the card',
@@ -1075,6 +1103,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Pay with the card on a qualifying DoorDash restaurant order',
@@ -1094,6 +1123,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Place a qualifying non-restaurant DoorDash order (grocery, retail) with the card',
@@ -1111,6 +1141,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-09-30',
         redemptionSteps: [
           'Add the Sapphire Reserve card as a payment method in the Lyft app',
           'The $10 in-app credit is issued each calendar month and applied to rides',
@@ -1128,6 +1159,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate once at onepeloton.com/digital/promotions/chase',
           'Pay for an eligible Peloton membership with the Sapphire Reserve card',
@@ -1142,8 +1174,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck or NEXUS application fee with the card',
@@ -1158,6 +1191,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Chase',
     product: 'United Quest',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 35000,
     benefits: [
       {
@@ -1271,6 +1305,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           "Register the United Quest card on Instacart's Chase United page and activate the complimentary Instacart+ (3 months, then 50% off renewal).",
           'Keep an active Instacart+ membership and set the card as payment or backup payment.',
@@ -1290,6 +1325,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         cadence: 'monthly',
         anchor: 'calendar',
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Same setup as the $10 credit (registered card, active Instacart+).',
           'The $5 credit applies to the second order each month.',
@@ -1304,8 +1340,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the application fee with the United Quest card.',
@@ -1320,6 +1357,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Citi',
     product: 'AAdvantage Executive',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 69500,
     benefits: [
       {
@@ -1420,8 +1458,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
@@ -1436,6 +1475,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Citi',
     product: 'Strata Elite',
     network: 'mastercard',
+    kind: 'personal',
     annualFeeCents: 59500,
     benefits: [
       {
@@ -1497,8 +1537,9 @@ export const CARD_TEMPLATES: CardTemplate[] = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: 'manual',
+        cadence: 'rolling',
         anchor: 'anniversary',
+        intervalMonths: 48,
         enrollmentRequired: false,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
@@ -1513,6 +1554,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: 'Wells Fargo',
     product: 'Autograph Journey',
     network: 'visa',
+    kind: 'personal',
     annualFeeCents: 9500,
     benefits: [
       {
@@ -1539,6 +1581,7 @@ export const CARD_TEMPLATES: CardTemplate[] = [
     issuer: '',
     product: '',
     network: 'other',
+    kind: 'personal',
     annualFeeCents: 0,
     benefits: [],
   },

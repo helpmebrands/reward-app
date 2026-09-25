@@ -7,7 +7,6 @@ import '../logic/ui_state.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
-import '../widgets/holder_filter.dart';
 import '../widgets/screen_title.dart';
 
 /// The six filters, in the PWA's order.
@@ -36,24 +35,21 @@ enum CreditsGrouping {
 }
 
 /// Closed windows folded in as first-class rows, so "Missed" is itemised per
-/// credit rather than sitting as one number on the Value tab. The household
-/// filter applies to them as it does to the live rows.
+/// credit rather than sitting as one number on the Value tab.
 List<BenefitInstance> missedRows(AppStore store) {
-  final holder = store.data?.settings.holderFilter ?? '';
   return [
     for (final entry in store.missed)
-      if (holder.isEmpty || entry.card.holder == holder)
-        BenefitInstance(
-          benefit: entry.benefit,
-          card: entry.card,
-          cycle: entry.cycle,
-          status: BenefitStatus.missed,
-          claimedCents: entry.benefit.valueCents - entry.missedCents,
-          remainingCents: entry.missedCents,
-          daysRemaining: -1,
-          cycleProgress: 1,
-          muted: entry.benefit.muted || entry.card.muted,
-        ),
+      BenefitInstance(
+        benefit: entry.benefit,
+        card: entry.card,
+        cycle: entry.cycle,
+        status: BenefitStatus.missed,
+        claimedCents: entry.benefit.valueCents - entry.missedCents,
+        remainingCents: entry.missedCents,
+        daysRemaining: -1,
+        cycleProgress: 1,
+        muted: store.preferences.isMuted(entry.benefit),
+      ),
   ];
 }
 
@@ -277,7 +273,6 @@ class _CreditsScreenState extends State<CreditsScreen> {
       children: [
         header,
         const SizedBox(height: Space.s6),
-        HolderFilter(store: store),
         totalsGrid,
         const SizedBox(height: Space.s6),
         controls,
@@ -449,7 +444,7 @@ class _Group extends StatelessWidget {
                 onOpen: onOpen == null
                     ? null
                     : () => onOpen.call(instance.benefit.id),
-                onLogAll: actions == null
+                onLogAll: actions == null || !actions.store.canWrite
                     ? null
                     : () => actions.logAll(instance),
                 onToggleMute: actions == null

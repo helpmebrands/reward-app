@@ -3,30 +3,21 @@ import 'package:domain/domain.dart';
 /// Test fixtures, so each test states only what it is actually about. The
 /// values mirror the PWA's `apps/pwa/tests/factories.ts`.
 
-/// The PWA's default settings: reminders off at 09:00, a $1 floor, a 30-day
-/// use-soon horizon.
+/// The PWA's default settings: a 30-day use-soon horizon. Reminders are a
+/// member's, in [defaultMemberPreferences].
 const Settings defaultSettings = Settings(
-  notifications: NotificationSettings(
-    enabled: false,
-    timeOfDay: '09:00',
-    minValueCents: 100,
-    annualFeeReminder: true,
-    enrollmentReminder: true,
-  ),
   useSoonDays: 30,
   theme: ThemeSetting.system,
-  holderFilter: '',
 );
 
 Card makeCard({
   String id = 'card-1',
   String issuer = 'American Express',
   String product = 'Platinum',
-  String holder = 'Jim',
-  String? nickname,
+  String? label,
+  CardKind kind = CardKind.personal,
   int annualFeeCents = 89500,
   IsoDate anniversaryOn = '2020-03-14',
-  bool muted = false,
   bool archived = false,
   IsoInstant createdAt = '2020-03-14T00:00:00.000Z',
 }) {
@@ -34,12 +25,11 @@ Card makeCard({
     id: id,
     issuer: issuer,
     product: product,
-    holder: holder,
-    nickname: nickname,
+    label: label,
     network: CardNetwork.amex,
+    kind: kind,
     annualFeeCents: annualFeeCents,
     anniversaryOn: anniversaryOn,
-    muted: muted,
     archived: archived,
     createdAt: createdAt,
     updatedAt: '2020-03-14T00:00:00.000Z',
@@ -60,7 +50,6 @@ Benefit makeBenefit(
   int? spendThresholdCents,
   IsoInstant? spendMetAt,
   IsoDate? endsOn,
-  bool muted = false,
   bool lastCallOnly = false,
   bool active = true,
 }) {
@@ -80,7 +69,6 @@ Benefit makeBenefit(
     spendMetAt: spendMetAt,
     endsOn: endsOn,
     redemptionSteps: const [],
-    muted: muted,
     lastCallOnly: lastCallOnly,
     active: active,
     createdAt: '2020-03-14T00:00:00.000Z',

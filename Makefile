@@ -42,8 +42,9 @@ dart: ## Dart analyze and test: the workspace root and packages/domain
 flutter: ## Flutter analyze, test and format check, through apps/mobile/Makefile
 	$(MAKE) -C apps/mobile check
 
-api: ## Api analyze and test; against docker compose when docker is up, otherwise with the integration group skipped
+api: ## Api analyze, spec lint and test; against docker compose when docker is up, otherwise with the integration group skipped
 	cd services/api && $(DART) analyze --fatal-infos
+	npx --yes @redocly/cli@2.53.3 lint services/api/openapi.yaml
 	@if docker info >/dev/null 2>&1; then \
 	  cd services/api && docker compose up -d --wait && DATABASE_URL='$(API_DB)' $(DART) test; \
 	else \

@@ -6,31 +6,32 @@ import 'factories.dart';
 /// 16 Sep 2026, 08:00 local, before the 09:00 reminder time.
 final now = DateTime(2026, 9, 16, 8, 0, 0);
 
-AppData withNotifications(
+/// A household and the member whose reminders are being built.
+typedef Member = ({AppData data, MemberPreferences prefs});
+
+/// [data] seen by a member who has switched reminders on.
+Member withNotifications(
   AppData data, {
   int? minValueCents,
   bool? enrollmentReminder,
-}) {
-  final current = data.settings.notifications;
-  return AppData(
-    version: data.version,
-    cards: data.cards,
-    benefits: data.benefits,
-    claims: data.claims,
-    settings: Settings(
-      notifications: NotificationSettings(
-        enabled: true,
-        timeOfDay: current.timeOfDay,
-        minValueCents: minValueCents ?? current.minValueCents,
-        annualFeeReminder: current.annualFeeReminder,
-        enrollmentReminder: enrollmentReminder ?? current.enrollmentReminder,
-      ),
-      useSoonDays: data.settings.useSoonDays,
-      theme: data.settings.theme,
-      holderFilter: data.settings.holderFilter,
-    ),
-  );
-}
+  Set<String> mutedCardIds = const {},
+  Set<String> mutedBenefitIds = const {},
+}) => (
+  data: data,
+  prefs: defaultMemberPreferences.copyWith(
+    enabled: true,
+    minValueCents: minValueCents,
+    enrollmentReminder: enrollmentReminder,
+    mutedCardIds: mutedCardIds,
+    mutedBenefitIds: mutedBenefitIds,
+  ),
+);
+
+ReminderSchedule schedule(
+  Member member, [
+  DateTime? at,
+  int horizon = horizonDays,
+]) => buildSchedule(member.data, member.prefs, at, horizon);
 
 Reminder stub(String id, int fireAt) => Reminder(
   id: id,
@@ -102,7 +103,10 @@ void main() {
 
   group('buildSchedule', () {
     test('produces nothing while reminders are switched off', () {
-      expect(buildSchedule(makeData(), now).reminders, isEmpty);
+      expect(
+        buildSchedule(makeData(), defaultMemberPreferences, now).reminders,
+        isEmpty,
+      );
     });
 
     test('schedules a rung at the reminder time on the right day', () {
@@ -110,7 +114,7 @@ void main() {
       final data = withNotifications(
         makeData(benefits: [makeBenefit(Cadence.monthly)]),
       );
-      final fired = buildSchedule(
+      final fired = schedule(
         data,
         now,
       ).reminders.map((r) => DateTime.fromMillisecondsSinceEpoch(r.fireAt));
@@ -123,7 +127,7 @@ void main() {
       final data = withNotifications(
         makeData(benefits: [makeBenefit(Cadence.monthly)]),
       );
-      for (final reminder in buildSchedule(data, now).reminders) {
+      for (final reminder in schedule(data, now).reminders) {
         expect(reminder.fireAt, greaterThan(now.millisecondsSinceEpoch));
       }
     });
@@ -154,7 +158,7 @@ void main() {
           ],
         ),
       );
-      final sameDay = buildSchedule(
+      final sameDay = schedule(
         data,
         now,
       ).reminders.where((r) => r.id == '2026-09-23|notice').toList();
@@ -182,12 +186,35 @@ void main() {
           ],
         ),
       );
-      final reminder = buildSchedule(
+      final reminder = schedule(
         data,
         now,
       ).reminders.firstWhere((r) => r.id == '2026-09-23|notice');
       expect(reminder.body, contains('Resy'));
       expect(reminder.title, contains(r'$115'));
+    });
+
+    // @lat: [[tests#Card labels#Notification copy names the card by its display name]]
+    test('names the card by its display name in a single-item group', () {
+      final data = withNotifications(
+        makeData(
+          cards: [makeCard(label: 'Travel card')],
+          benefits: [
+            makeBenefit(
+              Cadence.monthly,
+              name: 'Uber Cash',
+              merchant: 'Uber',
+              valueCents: 1500,
+            ),
+          ],
+        ),
+      );
+      final reminder = schedule(data, now).reminders.first;
+      expect(reminder.items, hasLength(1));
+      expect(
+        reminder.body,
+        'Uber Cash at Uber on Travel card. \$15 untouched.',
+      );
     });
 
     test('leads with the blocker when most of the money is locked', () {
@@ -211,7 +238,7 @@ void main() {
           ],
         ),
       );
-      final reminder = buildSchedule(
+      final reminder = schedule(
         data,
         now,
       ).reminders.firstWhere((r) => r.id == '2026-09-23|notice');
@@ -227,7 +254,7 @@ void main() {
           ),
           enrollmentReminder: false,
         );
-        expect(buildSchedule(data, now).reminders, isEmpty);
+        expect(schedule(data, now).reminders, isEmpty);
       },
     );
 
@@ -235,16 +262,43 @@ void main() {
       'skips a credit the user has muted, and every credit on a muted card',
       () {
         final muted = withNotifications(
-          makeData(benefits: [makeBenefit(Cadence.monthly, muted: true)]),
+          makeData(benefits: [makeBenefit(Cadence.monthly)]),
+          mutedBenefitIds: {'benefit-1'},
         );
-        expect(buildSchedule(muted, now).reminders, isEmpty);
+        expect(schedule(muted, now).reminders, isEmpty);
 
         final mutedCard = withNotifications(
-          makeData(cards: [makeCard(muted: true)]),
+          makeData(benefits: [makeBenefit(Cadence.monthly)]),
+          mutedCardIds: {'card-1'},
         );
-        expect(buildSchedule(mutedCard, now).reminders, isEmpty);
+        expect(schedule(mutedCard, now).reminders, isEmpty);
       },
     );
+
+    // @lat: [[tests#Member preferences#Two members of one household get their own schedules]]
+    test('one household scheduled for two members differs by their mutes', () {
+      final household = makeData(
+        cards: [
+          makeCard(id: 'a'),
+          makeCard(id: 'b', label: 'Second'),
+        ],
+        benefits: [
+          makeBenefit(Cadence.monthly, id: 'x', cardId: 'a', name: 'Uber'),
+          makeBenefit(Cadence.monthly, id: 'y', cardId: 'b', name: 'Resy'),
+        ],
+      );
+      final jim = withNotifications(household);
+      final kathy = withNotifications(household, mutedCardIds: {'a'});
+      final forJim = schedule(jim, now).reminders;
+      final forKathy = schedule(kathy, now).reminders;
+      expect(forJim.expand((r) => r.items).map((i) => i.benefitId).toSet(), {
+        'x',
+        'y',
+      });
+      expect(forKathy.expand((r) => r.items).map((i) => i.benefitId).toSet(), {
+        'y',
+      });
+    });
 
     test('skips a cycle that has already been fully claimed', () {
       final data = withNotifications(
@@ -253,7 +307,7 @@ void main() {
           claims: [makeClaim(amountCents: 2500)],
         ),
       );
-      final september = buildSchedule(data, now).reminders.where(
+      final september = schedule(data, now).reminders.where(
         (r) => DateTime.fromMillisecondsSinceEpoch(r.fireAt).month == 9,
       );
       expect(september, isEmpty);
@@ -266,7 +320,7 @@ void main() {
           claims: [makeClaim(amountCents: 1000)],
         ),
       );
-      final reminder = buildSchedule(
+      final reminder = schedule(
         data,
         now,
       ).reminders.firstWhere((r) => r.id == '2026-09-23|notice');
@@ -281,11 +335,11 @@ void main() {
             benefits: [makeBenefit(Cadence.monthly, endsOn: '2026-09-20')],
           ),
         );
-        final reminders = buildSchedule(data, now).reminders;
+        final reminders = schedule(data, now).reminders;
         expect(reminders.map((r) => r.id), ['2026-09-20|urgent']);
         expect(reminders.first.items.first.endsOn, '2026-09-20');
         expect(
-          buildSchedule(data, DateTime(2026, 9, 21, 8, 0, 0)).reminders,
+          schedule(data, DateTime(2026, 9, 21, 8, 0, 0)).reminders,
           isEmpty,
         );
       },
@@ -300,7 +354,7 @@ void main() {
           ),
           enrollmentReminder: true,
         );
-        expect(buildSchedule(data, now).reminders, isEmpty);
+        expect(schedule(data, now).reminders, isEmpty);
       },
     );
 
@@ -312,7 +366,7 @@ void main() {
             benefits: [makeBenefit(Cadence.rolling, intervalMonths: 48)],
           ),
         );
-        expect(buildSchedule(data, now).reminders, isEmpty);
+        expect(schedule(data, now).reminders, isEmpty);
       },
     );
 
@@ -320,7 +374,7 @@ void main() {
       final data = withNotifications(
         makeData(benefits: [makeBenefit(Cadence.manual)]),
       );
-      expect(buildSchedule(data, now).reminders, isEmpty);
+      expect(schedule(data, now).reminders, isEmpty);
     });
 
     test('respects the minimum-value floor', () {
@@ -328,7 +382,7 @@ void main() {
         makeData(benefits: [makeBenefit(Cadence.monthly, valueCents: 50)]),
         minValueCents: 100,
       );
-      expect(buildSchedule(data, now).reminders, isEmpty);
+      expect(schedule(data, now).reminders, isEmpty);
     });
 
     test(
@@ -340,8 +394,8 @@ void main() {
           makeData(benefits: [makeBenefit(Cadence.quarterly)]),
         );
         final later = DateTime(2026, 9, 16, 10, 0, 0);
-        final first = buildSchedule(data, now).reminders;
-        final second = buildSchedule(data, later).reminders;
+        final first = schedule(data, now).reminders;
+        final second = schedule(data, later).reminders;
 
         expect(first.map((r) => r.id).toSet().length, first.length);
         // Rungs that passed between the two runs drop out; every one still ahead
@@ -365,10 +419,7 @@ void main() {
           ],
         ),
       );
-      final times = buildSchedule(
-        data,
-        now,
-      ).reminders.map((r) => r.fireAt).toList();
+      final times = schedule(data, now).reminders.map((r) => r.fireAt).toList();
       expect(times, [...times]..sort());
     });
   });

@@ -18,10 +18,21 @@ import 'package:reward/widgets/credit_row.dart';
 /// The Credits screen against what the PWA shows for the sample household on
 /// 16 September 2026, dumped by `apps/pwa/scripts/credits-snapshot.ts`.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them, so the PWA's fixtures still apply.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 Map<String, dynamic> expected() =>
     jsonDecode(File('test/fixtures/sample-credits.json').readAsStringSync())
@@ -61,12 +72,16 @@ Future<AppStore> pumpCredits(
   return store;
 }
 
+/// The PWA's fixture names each card's holder, which the app no longer
+/// stores; the sample household's two cards are Jim's and Kathy's.
+const holderOf = {'card-0001': 'Jim', 'card-0002': 'Kathy'};
+
 /// The rows on screen, in order, the way the fixture spells them.
 List<String> rows(WidgetTester tester) => tester
     .widgetList<CreditRow>(find.byType(CreditRow, skipOffstage: false))
     .map((r) {
       final i = r.instance;
-      return '${i.benefit.name} · ${i.card.holder} · ${i.cycle.label}';
+      return '${i.benefit.name} · ${holderOf[i.card.id]} · ${i.cycle.label}';
     })
     .toList();
 

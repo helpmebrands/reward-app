@@ -18,7 +18,7 @@ Dependencies point inward: routes and UI depend on stores, stores on services an
 
 The whole dataset is one IndexedDB record. A household's cards, benefits and claims are measured in kilobytes, so snapshot writes are cheaper than per-entity stores, and the service worker can read the same database without a schema to agree on.
 
-`apps/pwa/src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[apps/pwa/src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import.
+`apps/pwa/src/services/db.ts` names the database (`cardvantage`), store (`state`) and keys: `app-data` for the snapshot, `reminder-schedule` for the worker. `DATA_VERSION` is bumped when a migration is needed; [[apps/pwa/src/services/db.ts#migrate]] brings any older snapshot up to shape by defaulting missing fields, and is also applied on import. Version 2 added `Card.kind`, which a version 1 record gains as `personal`. The Dart port needs no migration step: `cardFromJson` applies the same default.
 
 [[apps/pwa/src/services/db.ts#loadData]] never throws: a corrupt or blocked IndexedDB starts the app empty rather than white-screening, because empty is recoverable and a crash is not.
 

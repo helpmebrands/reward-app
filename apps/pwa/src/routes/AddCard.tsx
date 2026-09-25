@@ -9,6 +9,7 @@ import {
 import { todayIso } from '../domain/dates.ts'
 import { formatMoney } from '../domain/format.ts'
 import { holders } from '../domain/selectors.ts'
+import type { CardKind } from '../domain/types.ts'
 import { anniversaryError, requiredError } from '../domain/validation.ts'
 import { useApp } from '../stores/app.tsx'
 import { Field, focusFirstInvalid } from '../ui/Field.tsx'
@@ -37,6 +38,10 @@ export function AddCard() {
   const [nickname, setNickname] = createSignal('')
   const [issuer, setIssuer] = createSignal('')
   const [product, setProduct] = createSignal('')
+  // The template says whether the product is a business card; the user can
+  // still say otherwise before saving.
+  const [kindDraft, setKindDraft] = createSignal<CardKind | null>(null)
+  const kind = () => kindDraft() ?? picked()?.kind ?? 'personal'
 
   const catalogue = createMemo(() => CARD_TEMPLATES.filter((t) => t.id !== 'blank'))
   const blank = () => CARD_TEMPLATES.find((t) => t.id === 'blank')
@@ -66,6 +71,7 @@ export function AddCard() {
     const card = app.addCardFromTemplate(template, {
       holder: holder().trim(),
       anniversaryOn: anniversary(),
+      kind: kind(),
       ...(nickname().trim() ? { nickname: nickname().trim() } : {}),
       ...(isBlank() ? { issuer: issuer().trim(), product: product().trim() } : {}),
     })
@@ -257,6 +263,28 @@ export function AddCard() {
                   placeholder="The travel one"
                   onInput={(e) => setNickname(e.currentTarget.value)}
                 />
+              </div>
+
+              <div class="field">
+                <span class="field__label">Kind</span>
+                <div class="seg">
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={kind() === 'personal'}
+                    onClick={() => setKindDraft('personal')}
+                  >
+                    Personal
+                  </button>
+                  <button
+                    type="button"
+                    class="seg__opt"
+                    aria-pressed={kind() === 'business'}
+                    onClick={() => setKindDraft('business')}
+                  >
+                    Business
+                  </button>
+                </div>
               </div>
 
               <button type="button" class="btn btn--primary btn--block" onClick={save}>

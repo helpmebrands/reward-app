@@ -6,8 +6,10 @@
 /// the field worth getting right: it is the difference between a credit the
 /// user is failing to spend and one they cannot spend at all.
 ///
-/// The templates are generated from the PWA's `src/domain/catalog.ts` by
-/// `apps/pwa/scripts/emit-catalog.ts`; edit there and regenerate.
+/// The templates were generated from the PWA's `src/domain/catalog.ts` by
+/// `apps/pwa/scripts/emit-catalog.ts`. The PWA is frozen and the templates
+/// now carry stable ids it lacks, so this file is edited by hand; it seeds
+/// version 1 of the service tier's versioned catalogue.
 library;
 
 import 'cycles.dart';
@@ -15,6 +17,7 @@ import 'types.dart';
 
 class BenefitTemplate {
   const BenefitTemplate({
+    required this.id,
     required this.name,
     this.description,
     required this.category,
@@ -31,6 +34,10 @@ class BenefitTemplate {
     this.notes,
   });
 
+  /// Stable across catalogue versions, `<template id>/<slug>`, e.g.
+  /// `amex-platinum/uber-cash`: a linked benefit points here, so its claims
+  /// keep attaching when the terms change.
+  final String id;
   final String name;
   final String? description;
   final BenefitCategory category;
@@ -61,6 +68,7 @@ class CardTemplate {
     required this.issuer,
     required this.product,
     required this.network,
+    required this.kind,
     required this.annualFeeCents,
     required this.benefits,
   });
@@ -69,8 +77,19 @@ class CardTemplate {
   final String issuer;
   final String product;
   final CardNetwork network;
+
+  /// Copied onto the card the template creates.
+  final CardKind kind;
   final int annualFeeCents;
   final List<BenefitTemplate> benefits;
+
+  /// The credit with this stable id, or null when this template has none.
+  BenefitTemplate? credit(String id) {
+    for (final benefit in benefits) {
+      if (benefit.id == id) return benefit;
+    }
+    return null;
+  }
 }
 
 const List<CardTemplate> cardTemplates = [
@@ -79,9 +98,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Business Platinum',
     network: CardNetwork.amex,
+    kind: CardKind.business,
     annualFeeCents: 89500,
     benefits: [
       BenefitTemplate(
+        id: 'amex-business-platinum/hotel-credit-fine-hotels-plus-resorts-the-hotel-collection',
         name: 'Hotel Credit (Fine Hotels + Resorts / The Hotel Collection)',
         description:
             'Up to \$300 back each half-year on prepaid FHR or Hotel Collection bookings via Amex Travel.',
@@ -99,6 +120,7 @@ const List<CardTemplate> cardTemplates = [
             '\$600 a year: \$300 for January–June and \$300 for July–December.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/dell-technologies-credit-base',
         name: 'Dell Technologies Credit (base)',
         description:
             'Up to \$150 per calendar year on U.S. purchases directly with Dell Technologies.',
@@ -117,6 +139,7 @@ const List<CardTemplate> cardTemplates = [
             'Dell credits total up to \$1,150 a year: this \$150, plus \$1,000 more once you spend \$5,000 with Dell in the calendar year.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/dell-technologies-credit-5k-spend-bonus',
         name: 'Dell Technologies Credit (\$5K spend bonus)',
         description:
             'Additional \$1,000 credit after spending \$5,000+ with Dell Technologies in a calendar year.',
@@ -127,6 +150,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        spendThresholdCents: 500000,
         redemptionSteps: [
           'Enroll in the Dell benefit',
           'Spend \$5,000+ on U.S. purchases directly with Dell in the calendar year',
@@ -135,6 +159,7 @@ const List<CardTemplate> cardTemplates = [
             'Only earned after \$5,000 of Dell purchases in the calendar year.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/adobe-credit',
         name: 'Adobe Credit',
         description:
             '\$250 credit per calendar year after \$600+ in U.S. Adobe purchases.',
@@ -151,6 +176,7 @@ const List<CardTemplate> cardTemplates = [
         ],
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/indeed-credit',
         name: 'Indeed Credit',
         description: 'Up to \$90 back each quarter on Indeed purchases.',
         category: BenefitCategory.other,
@@ -167,6 +193,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$360 a year.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/wireless-credit',
         name: 'Wireless Credit',
         description:
             'Up to \$10 back each month on U.S. wireless phone service.',
@@ -183,6 +210,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$120 a year.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/hilton-for-business-credit',
         name: 'Hilton for Business Credit',
         description:
             'Up to \$50 back each quarter on eligible purchases directly with Hilton.',
@@ -200,6 +228,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$200 a year. Needs a Hilton for Business membership.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/chatgpt-business-credit',
         name: 'ChatGPT Business Credit',
         description:
             'Up to \$300 per calendar year on U.S. ChatGPT Business subscription purchases.',
@@ -217,6 +246,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Launched May 12, 2026.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/airline-fee-credit',
         name: 'Airline Fee Credit',
         description:
             'Up to \$200 per calendar year for incidental fees on one selected airline.',
@@ -232,6 +262,7 @@ const List<CardTemplate> cardTemplates = [
         ],
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/clear-plus-credit',
         name: 'CLEAR+ Credit',
         description:
             'Up to \$219 per calendar year for an auto-renewing CLEAR+ membership.',
@@ -247,6 +278,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Taxes and fees are not covered.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Statement credit for Global Entry (\$120) or TSA PreCheck (up to \$85) application fee.',
@@ -254,8 +286,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
         ],
@@ -263,6 +296,7 @@ const List<CardTemplate> cardTemplates = [
             'Global Entry (\$120) every 4 years, or TSA PreCheck (up to \$85) every 4.5 years, counted from your last credit.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/amex-travel-flight-credit-250k-spend-unlock',
         name: 'Amex Travel Flight Credit (\$250K spend unlock)',
         description:
             'Up to \$1,200 in credits for flights booked on AmexTravel.com next calendar year, unlocked by \$250,000 spend this calendar year.',
@@ -272,6 +306,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 120000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend \$250,000 on eligible purchases in a calendar year',
           'In the following calendar year, book flights on AmexTravel.com with the card',
@@ -280,6 +315,7 @@ const List<CardTemplate> cardTemplates = [
             'Only unlocked by \$250,000 of spending in a calendar year. Check your Amex account for any enrollment step.',
       ),
       BenefitTemplate(
+        id: 'amex-business-platinum/american-express-one-ap-credit-250k-spend-unlock',
         name: 'American Express One AP Credit (\$250K spend unlock)',
         description:
             'Up to \$2,400 in credits on One AP monthly fees next calendar year, unlocked by \$250,000 spend this calendar year.',
@@ -289,6 +325,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 240000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 25000000,
         redemptionSteps: [
           'Spend \$250,000 on eligible purchases in a calendar year',
           'Use American Express One AP in the following calendar year; monthly fees are credited',
@@ -303,9 +340,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Delta SkyMiles Reserve',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 65000,
     benefits: [
       BenefitTemplate(
+        id: 'amex-delta-skymiles-reserve/resy-credit',
         name: 'Resy Credit',
         description:
             'Up to \$20 back each month on eligible purchases at U.S. Resy restaurants (up to \$240 per year).',
@@ -324,6 +363,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$240 a year.',
       ),
       BenefitTemplate(
+        id: 'amex-delta-skymiles-reserve/rideshare-credit',
         name: 'Rideshare Credit',
         description:
             'Up to \$10 back each month on U.S. rideshare purchases with select providers (up to \$120 per year).',
@@ -341,6 +381,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Eligible providers include Uber, Lyft, Curb, Revel and Alto.',
       ),
       BenefitTemplate(
+        id: 'amex-delta-skymiles-reserve/delta-stays-credit',
         name: 'Delta Stays Credit',
         description:
             'Up to \$200 back per calendar year on prepaid hotels or vacation rentals booked through Delta Stays.',
@@ -359,6 +400,7 @@ const List<CardTemplate> cardTemplates = [
             'Must be a prepaid booking through Delta Stays; Delta Vacations and direct hotel bookings don\'t count.',
       ),
       BenefitTemplate(
+        id: 'amex-delta-skymiles-reserve/global-entry-tsa-precheck-fee-credit',
         name: 'Global Entry / TSA PreCheck Fee Credit',
         description:
             'Statement credit for the Global Entry (\$120) or TSA PreCheck (up to \$85) application fee.',
@@ -366,8 +408,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck (official enrollment provider) fee with the card',
           'Statement credit posts automatically',
@@ -382,9 +425,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Gold',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 32500,
     benefits: [
       BenefitTemplate(
+        id: 'amex-gold/dining-credit',
         name: 'Dining Credit',
         description:
             'Up to \$10 back each month at Grubhub/Seamless, Buffalo Wild Wings, Five Guys, The Cheesecake Factory and Wonder.',
@@ -402,6 +447,7 @@ const List<CardTemplate> cardTemplates = [
             '\$120 a year. Buffalo Wild Wings and Wonder were added April 30, 2026; Goldbelly and Wine.com dropped out after June 30, 2026.',
       ),
       BenefitTemplate(
+        id: 'amex-gold/uber-cash',
         name: 'Uber Cash',
         description:
             '\$10 in Uber Cash each month for U.S. Uber rides or Uber Eats orders.',
@@ -420,6 +466,7 @@ const List<CardTemplate> cardTemplates = [
             '\$120 a year. The card must be added to your Uber account. Unused Uber Cash does not roll over.',
       ),
       BenefitTemplate(
+        id: 'amex-gold/resy-credit',
         name: 'Resy Credit',
         description: 'Up to \$50 back each half-year at U.S. Resy restaurants.',
         category: BenefitCategory.dining,
@@ -437,6 +484,7 @@ const List<CardTemplate> cardTemplates = [
             '\$100 a year: \$50 for January–June and \$50 for July–December.',
       ),
       BenefitTemplate(
+        id: 'amex-gold/dunkin-credit',
         name: 'Dunkin\' Credit',
         description: 'Up to \$7 back each month at U.S. Dunkin\' locations.',
         category: BenefitCategory.dining,
@@ -459,9 +507,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Hilton Honors Aspire',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 55000,
     benefits: [
       BenefitTemplate(
+        id: 'amex-hilton-honors-aspire/hilton-resort-credit',
         name: 'Hilton Resort Credit',
         description:
             'Up to \$200 back each half-year on eligible purchases directly with participating Hilton Resorts.',
@@ -479,6 +529,7 @@ const List<CardTemplate> cardTemplates = [
             '\$400 a year: \$200 for January–June and \$200 for July–December. Only resorts on Hilton\'s eligible list count, and prepaid non-refundable rates don\'t.',
       ),
       BenefitTemplate(
+        id: 'amex-hilton-honors-aspire/flight-credit',
         name: 'Flight Credit',
         description:
             'Up to \$50 back each quarter on flights booked directly with airlines or via Amex Travel.',
@@ -494,6 +545,7 @@ const List<CardTemplate> cardTemplates = [
             '\$200 a year, on any airline. Quarters run Jan–Mar, Apr–Jun, Jul–Sep and Oct–Dec.',
       ),
       BenefitTemplate(
+        id: 'amex-hilton-honors-aspire/clear-plus-credit',
         name: 'CLEAR+ Credit',
         description:
             'Up to \$219 per calendar year toward a CLEAR+ membership.',
@@ -514,9 +566,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Hilton Honors Surpass',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 15000,
     benefits: [
       BenefitTemplate(
+        id: 'amex-hilton-honors-surpass/hilton-credit',
         name: 'Hilton Credit',
         description:
             'Up to \$50 back each quarter on purchases made directly with a Hilton portfolio property (up to \$200 per year).',
@@ -541,9 +595,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Marriott Bonvoy Brilliant',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 65000,
     benefits: [
       BenefitTemplate(
+        id: 'amex-marriott-bonvoy-brilliant/brilliant-dining-credit',
         name: 'Brilliant Dining Credit',
         description:
             'Up to \$25 back each month on eligible restaurant purchases worldwide (up to \$300 per calendar year).',
@@ -562,6 +618,7 @@ const List<CardTemplate> cardTemplates = [
             '\$300 a year. Unused amounts don\'t carry into the next month. The month is set by when the charge processes, and credits can take a few weeks to post.',
       ),
       BenefitTemplate(
+        id: 'amex-marriott-bonvoy-brilliant/global-entry-tsa-precheck-fee-credit',
         name: 'Global Entry / TSA PreCheck Fee Credit',
         description:
             'Statement credit for the Global Entry (\$120) or TSA PreCheck (up to \$85) application fee.',
@@ -569,8 +626,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Brilliant card',
           'Statement credit posts automatically',
@@ -585,9 +643,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'American Express',
     product: 'Platinum',
     network: CardNetwork.amex,
+    kind: CardKind.personal,
     annualFeeCents: 89500,
     benefits: [
       BenefitTemplate(
+        id: 'amex-platinum/hotel-credit-fine-hotels-plus-resorts-the-hotel-collection',
         name: 'Hotel Credit (Fine Hotels + Resorts / The Hotel Collection)',
         description:
             'Up to \$300 back on prepaid FHR or Hotel Collection bookings via Amex Travel in each half of the year.',
@@ -606,6 +666,7 @@ const List<CardTemplate> cardTemplates = [
             '\$600 a year: \$300 for January–June and \$300 for July–December.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/resy-credit',
         name: 'Resy Credit',
         description:
             'Up to \$100 back each quarter on eligible Resy purchases (U.S. Resy restaurants).',
@@ -623,6 +684,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$400 a year, by calendar quarter.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/digital-entertainment-credit',
         name: 'Digital Entertainment Credit',
         description:
             'Up to \$25 back each month on eligible streaming/news subscriptions.',
@@ -639,6 +701,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$300 a year.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/lululemon-credit',
         name: 'lululemon Credit',
         description:
             'Up to \$75 back each quarter at U.S. lululemon stores and lululemon.com.',
@@ -656,6 +719,7 @@ const List<CardTemplate> cardTemplates = [
         notes: '\$300 a year.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/uber-cash-monthly',
         name: 'Uber Cash (monthly)',
         description:
             '\$15 in Uber Cash each month for U.S. Uber rides or Uber Eats orders.',
@@ -674,6 +738,7 @@ const List<CardTemplate> cardTemplates = [
             '\$200 a year: \$15 each month plus a \$20 bonus in December. The card must be added to your Uber account. Unused Uber Cash does not roll over.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/uber-cash-december-bonus',
         name: 'Uber Cash (December bonus)',
         description: 'Extra \$20 in Uber Cash in December.',
         category: BenefitCategory.rideshare,
@@ -690,6 +755,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Brings December to \$35.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/uber-one-membership-credit',
         name: 'Uber One Membership Credit',
         description:
             'Up to \$120 per calendar year in statement credits for an auto-renewing Uber One membership.',
@@ -707,6 +773,7 @@ const List<CardTemplate> cardTemplates = [
             'Monthly Uber One charges are credited as billed, up to the yearly cap.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/walmart-plus-membership-credit',
         name: 'Walmart+ Membership Credit',
         description: 'Statement credit covering a monthly Walmart+ membership.',
         category: BenefitCategory.shopping,
@@ -723,6 +790,7 @@ const List<CardTemplate> cardTemplates = [
             'Up to \$12.95 a month plus tax. The annual Walmart+ plan doesn\'t qualify.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/airline-fee-credit',
         name: 'Airline Fee Credit',
         description:
             'Up to \$200 per calendar year for incidental fees on one selected airline.',
@@ -739,6 +807,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Airfare itself is not eligible.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/oura-ring-credit',
         name: 'Oura Ring Credit',
         description:
             'Up to \$200 per calendar year on Oura Ring purchases at ouraring.com.',
@@ -756,6 +825,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Applies to ring hardware purchases.',
       ),
       BenefitTemplate(
+        id: 'amex-platinum/equinox-credit',
         name: 'Equinox Credit',
         description:
             'Up to \$300 per calendar year on Equinox club or Equinox+ digital membership.',
@@ -772,6 +842,7 @@ const List<CardTemplate> cardTemplates = [
         ],
       ),
       BenefitTemplate(
+        id: 'amex-platinum/clear-plus-credit',
         name: 'CLEAR+ Credit',
         description:
             'Up to \$219 per calendar year toward a CLEAR+ membership.',
@@ -784,6 +855,7 @@ const List<CardTemplate> cardTemplates = [
         redemptionSteps: ['Sign up for CLEAR+ and pay with the Platinum Card'],
       ),
       BenefitTemplate(
+        id: 'amex-platinum/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Statement credit for Global Entry (\$120) or TSA PreCheck (up to \$85) application fee.',
@@ -791,8 +863,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Platinum Card',
         ],
@@ -806,9 +879,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Bank of America',
     product: 'Premium Rewards Elite',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 55000,
     benefits: [
       BenefitTemplate(
+        id: 'bofa-premium-rewards-elite/airline-incidental-credit',
         name: 'Airline Incidental Credit',
         description:
             'Up to \$300 per calendar year in statement credits for airline incidentals like seat upgrades, bag fees, lounge fees and in-flight services.',
@@ -825,6 +900,7 @@ const List<CardTemplate> cardTemplates = [
             'No need to pick an airline. Airfare itself usually doesn\'t count.',
       ),
       BenefitTemplate(
+        id: 'bofa-premium-rewards-elite/lifestyle-credit',
         name: 'Lifestyle Credit',
         description:
             'Up to \$150 per calendar year in statement credits for streaming, food delivery, fitness subscriptions and rideshare.',
@@ -841,6 +917,7 @@ const List<CardTemplate> cardTemplates = [
             'Eligibility depends on how the merchant is categorized, so some services (Spotify and Instacart, for example) may not trigger it.',
       ),
       BenefitTemplate(
+        id: 'bofa-premium-rewards-elite/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Up to \$120 in statement credits for a Global Entry or TSA PreCheck application fee.',
@@ -848,8 +925,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Statement credit posts automatically',
@@ -863,9 +941,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Capital One',
     product: 'Venture X',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 39500,
     benefits: [
       BenefitTemplate(
+        id: 'capital-one-venture-x/capital-one-travel-credit',
         name: 'Capital One Travel Credit',
         description:
             '\$300 annual credit for bookings made through Capital One Travel, applied at checkout.',
@@ -884,6 +964,7 @@ const List<CardTemplate> cardTemplates = [
             'Applied at checkout rather than as a statement credit. You don\'t earn miles on the part the credit covers, and it\'s restored if you cancel a refundable booking before it expires.',
       ),
       BenefitTemplate(
+        id: 'capital-one-venture-x/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Statement credit up to \$120 for a Global Entry or TSA PreCheck application fee, once every four years.',
@@ -891,8 +972,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the Venture X card.',
           'Statement credit posts automatically.',
@@ -906,9 +988,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'IHG One Rewards Premier',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 9900,
     benefits: [
       BenefitTemplate(
+        id: 'chase-ihg-one-rewards-premier/united-travelbank-cash',
         name: 'United TravelBank Cash',
         description:
             '\$25 in United TravelBank cash twice a year (up to \$50 per calendar year) after registering the card with MileagePlus.',
@@ -928,6 +1012,7 @@ const List<CardTemplate> cardTemplates = [
             'Deposited around January 5 and July 5. Each deposit may expire at the end of its six-month window.',
       ),
       BenefitTemplate(
+        id: 'chase-ihg-one-rewards-premier/20k-spend-statement-credit',
         name: '\$20K Spend Statement Credit',
         description:
             '\$100 statement credit (plus 10,000 bonus points) in each calendar year you spend \$20,000 on the card.',
@@ -936,6 +1021,7 @@ const List<CardTemplate> cardTemplates = [
         valueCents: 10000,
         cadence: Cadence.annual,
         anchor: CycleAnchor.calendar,
+        spendThresholdCents: 2000000,
         redemptionSteps: [
           'Spend at least \$20,000 on purchases in a calendar year.',
           'The \$100 statement credit and 10,000 bonus points post automatically.',
@@ -943,6 +1029,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Only earned after \$20,000 of purchases in a calendar year.',
       ),
       BenefitTemplate(
+        id: 'chase-ihg-one-rewards-premier/global-entry-tsa-precheck-nexus-credit',
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
         description:
             'Statement credit up to \$120 for a Global Entry, TSA PreCheck, or NEXUS application fee once every four years.',
@@ -950,8 +1037,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the application fee with the IHG Premier card.',
           'Statement credit posts automatically (one every four years).',
@@ -965,9 +1053,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'Sapphire Preferred',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 9500,
     benefits: [
       BenefitTemplate(
+        id: 'chase-sapphire-preferred/chase-travel-hotel-credit',
         name: 'Chase Travel Hotel Credit',
         description:
             'Up to \$100 in statement credits each account anniversary year on hotel stays booked through Chase Travel.',
@@ -985,6 +1075,7 @@ const List<CardTemplate> cardTemplates = [
             'Raised from \$50 to \$100 on June 15, 2026. For bookings made from that date, the credit is taken back if you cancel.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-preferred/doordash-non-restaurant-monthly-promo',
         name: 'DoorDash Non-Restaurant Monthly Promo',
         description:
             'Up to \$10 off one non-restaurant DoorDash order (grocery, convenience, retail) each calendar month for cardmembers with the complimentary DashPass.',
@@ -1004,6 +1095,7 @@ const List<CardTemplate> cardTemplates = [
             'A discount in the DoorDash app, not a statement credit. One use a month; unused value doesn\'t roll over. A \$20 minimum order may apply.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-preferred/global-entry-tsa-precheck-nexus-credit',
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
         description:
             'Statement credit up to \$120 for a Global Entry, TSA PreCheck, or NEXUS application fee once every four years.',
@@ -1011,8 +1103,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck, or NEXUS application fee with the Sapphire Preferred card.',
           'Statement credit posts automatically (one credit every four years).',
@@ -1027,9 +1120,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'Sapphire Reserve',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 79500,
     benefits: [
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/annual-travel-credit',
         name: 'Annual Travel Credit',
         description:
             'Up to \$300 in statement credits for travel purchases each account anniversary year.',
@@ -1045,6 +1140,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Covers a broad range of travel and applies automatically.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/the-edit-hotel-credit',
         name: 'The Edit Hotel Credit',
         description:
             'Up to \$250 back on each prepaid The Edit booking via Chase Travel (2-night minimum), up to \$500 per calendar year.',
@@ -1063,6 +1159,7 @@ const List<CardTemplate> cardTemplates = [
             'Since 2026 the two \$250 credits can be used any time in the calendar year (they used to be split by half-year). Each booking is capped at \$250, so the full \$500 takes two separate prepaid bookings.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/dining-credit-sapphire-reserve-exclusive-tables',
         name: 'Dining Credit (Sapphire Reserve Exclusive Tables)',
         description:
             'Up to \$150 back for dining at Sapphire Reserve Exclusive Tables restaurants on OpenTable, January through June.',
@@ -1081,6 +1178,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Unused amount does not carry into the second half.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/stubhub-viagogo-credit',
         name: 'StubHub / viagogo Credit',
         description:
             'Up to \$150 back on StubHub and viagogo purchases, January through June.',
@@ -1091,6 +1189,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.semiannual,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate the benefit once on Chase.com or the Chase Mobile app',
           'Buy tickets on StubHub or viagogo with the card',
@@ -1099,6 +1198,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Benefit available through 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/doordash-restaurant-promo',
         name: 'DoorDash Restaurant Promo',
         description:
             '\$5 off one qualifying DoorDash restaurant order each calendar month.',
@@ -1109,6 +1209,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Pay with the card on a qualifying DoorDash restaurant order',
@@ -1118,6 +1219,7 @@ const List<CardTemplate> cardTemplates = [
             'A discount in the DoorDash app, not a statement credit. Part of a \$25 monthly DoorDash package: this \$5 plus two \$10 non-restaurant promos. Available through 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/doordash-non-restaurant-promos',
         name: 'DoorDash Non-Restaurant Promos',
         description:
             'Two \$10-off discounts each calendar month on non-restaurant (grocery, retail) DoorDash orders.',
@@ -1128,6 +1230,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate complimentary DashPass with the Sapphire Reserve card (by 12/31/2027)',
           'Place a qualifying non-restaurant DoorDash order (grocery, retail) with the card',
@@ -1137,6 +1240,7 @@ const List<CardTemplate> cardTemplates = [
             'Two separate \$10 discounts, each on its own order. Available through 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/lyft-credit',
         name: 'Lyft Credit',
         description: '\$10 Lyft in-app credit each calendar month.',
         category: BenefitCategory.rideshare,
@@ -1146,6 +1250,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-09-30',
         redemptionSteps: [
           'Add the Sapphire Reserve card as a payment method in the Lyft app',
           'The \$10 in-app credit is issued each calendar month and applied to rides',
@@ -1154,6 +1259,7 @@ const List<CardTemplate> cardTemplates = [
             'An in-app Lyft credit, not a statement credit. The card must be added in the Lyft app. Available through 9/30/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/peloton-membership-credit',
         name: 'Peloton Membership Credit',
         description:
             'Up to \$10 in statement credits per month on eligible Peloton memberships.',
@@ -1164,6 +1270,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Activate once at onepeloton.com/digital/promotions/chase',
           'Pay for an eligible Peloton membership with the Sapphire Reserve card',
@@ -1172,6 +1279,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Up to \$120 a year. Available through 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-sapphire-reserve/global-entry-tsa-precheck-nexus-fee-credit',
         name: 'Global Entry / TSA PreCheck / NEXUS Fee Credit',
         description:
             'One statement credit of up to \$120 every four years for the application fee.',
@@ -1179,8 +1287,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry, TSA PreCheck or NEXUS application fee with the card',
           'Statement credit posts automatically',
@@ -1194,9 +1303,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Chase',
     product: 'United Quest',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 35000,
     benefits: [
       BenefitTemplate(
+        id: 'chase-united-quest/united-travelbank-cash',
         name: 'United TravelBank Cash',
         description:
             '\$200 in United TravelBank cash after account opening and on each account anniversary, for United- or United Express-operated flights.',
@@ -1214,6 +1325,7 @@ const List<CardTemplate> cardTemplates = [
             'Deposited as United TravelBank cash, not a statement credit. It may expire 12 months after deposit.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/renowned-hotels-and-resorts-credit',
         name: 'Renowned Hotels and Resorts Credit',
         description:
             'Up to \$150 back each anniversary year on hotel stays prepaid through United\'s Renowned Hotels and Resorts program.',
@@ -1229,6 +1341,7 @@ const List<CardTemplate> cardTemplates = [
         ],
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/jsx-credit',
         name: 'JSX Credit',
         description:
             'Up to \$150 back as a statement credit each anniversary year on flights booked directly with JSX.',
@@ -1244,6 +1357,7 @@ const List<CardTemplate> cardTemplates = [
         ],
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/avis-budget-rental-travelbank-credit',
         name: 'Avis/Budget Rental TravelBank Credit',
         description:
             '\$40 in United TravelBank cash for each of the first two Avis or Budget rentals per anniversary year (up to \$80).',
@@ -1261,6 +1375,7 @@ const List<CardTemplate> cardTemplates = [
             'Paid as two \$40 TravelBank deposits, one per rental, up to \$80 a year. A 2-day minimum rental may apply.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/rideshare-credit-monthly-base',
         name: 'Rideshare Credit (monthly base)',
         description:
             'Up to \$8 back each month on rideshare purchases after annual enrollment.',
@@ -1278,6 +1393,7 @@ const List<CardTemplate> cardTemplates = [
             '\$100 a year: \$8 a month plus \$4 more in December. You must re-enroll each calendar year and credits start the month after, so do it early in January.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/rideshare-credit-december-top-up',
         name: 'Rideshare Credit (December top-up)',
         description:
             'Extra \$4 rideshare credit in December (December cap is \$12 vs. \$8 in other months).',
@@ -1294,6 +1410,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'With the \$8 monthly credit, \$100 a calendar year.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/instacart-10-monthly-credit',
         name: 'Instacart \$10 Monthly Credit',
         description:
             '\$10 Instacart credit on the first order each month for Instacart+ members paying with the card.',
@@ -1304,6 +1421,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Register the United Quest card on Instacart\'s Chase United page and activate the complimentary Instacart+ (3 months, then 50% off renewal).',
           'Keep an active Instacart+ membership and set the card as payment or backup payment.',
@@ -1313,6 +1431,7 @@ const List<CardTemplate> cardTemplates = [
             'Part of \$180 a year in Instacart credits (\$10 + \$5 each month). Needs an active Instacart+ membership. Applied in Instacart, not as a statement credit. Ends 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/instacart-5-monthly-credit',
         name: 'Instacart \$5 Monthly Credit',
         description:
             '\$5 Instacart credit on the second order each month for Instacart+ members paying with the card.',
@@ -1323,6 +1442,7 @@ const List<CardTemplate> cardTemplates = [
         cadence: Cadence.monthly,
         anchor: CycleAnchor.calendar,
         enrollmentRequired: true,
+        endsOn: '2027-12-31',
         redemptionSteps: [
           'Same setup as the \$10 credit (registered card, active Instacart+).',
           'The \$5 credit applies to the second order each month.',
@@ -1330,6 +1450,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Needs an active Instacart+ membership. Ends 12/31/2027.',
       ),
       BenefitTemplate(
+        id: 'chase-united-quest/global-entry-tsa-precheck-nexus-credit',
         name: 'Global Entry / TSA PreCheck / NEXUS Credit',
         description:
             'Statement credit up to \$120 for a Global Entry, TSA PreCheck, or NEXUS application fee once every four years.',
@@ -1337,8 +1458,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the application fee with the United Quest card.',
           'Statement credit posts automatically (one every four years).',
@@ -1352,9 +1474,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Citi',
     product: 'AAdvantage Executive',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 69500,
     benefits: [
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/lyft-credit',
         name: 'Lyft Credit',
         description:
             '\$15 Lyft credit after taking 3 eligible Lyft rides paid with the card in a calendar month (up to \$180/yr).',
@@ -1374,6 +1498,7 @@ const List<CardTemplate> cardTemplates = [
             'Raised from \$10 to \$15 a month on Aug 23, 2026. An in-app Lyft credit, not a statement credit; the card must be added in the Lyft app.',
       ),
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/avis-budget-car-rental-credit',
         name: 'Avis / Budget Car Rental Credit',
         description:
             'Up to \$120 back per calendar year on eligible prepaid Avis or Budget rentals booked directly.',
@@ -1391,6 +1516,7 @@ const List<CardTemplate> cardTemplates = [
             'Pay-later and third-party bookings (including aa.com/cars) don\'t count.',
       ),
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/american-airlines-vacations-credit',
         name: 'American Airlines Vacations Credit',
         description:
             'Up to \$250 back per half-year (\$500/yr) on eligible American Airlines Vacations package purchases.',
@@ -1408,6 +1534,7 @@ const List<CardTemplate> cardTemplates = [
             'New Aug 23, 2026. \$250 for January–June and \$250 for July–December; unused amounts don\'t roll over.',
       ),
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/inflight-admirals-club-credit',
         name: 'Inflight & Admirals Club Credit',
         description:
             'Up to \$100 back per calendar year on American Airlines inflight purchases and eligible Admirals Club purchases.',
@@ -1425,6 +1552,7 @@ const List<CardTemplate> cardTemplates = [
             'New Aug 23, 2026. Replaces the 25% inflight food and drink savings, which existing cardmembers keep through Sep 30, 2026.',
       ),
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/grubhub-credit-existing-cardmembers-only',
         name: 'Grubhub Credit (existing cardmembers only)',
         description:
             'Up to \$10 per monthly billing statement on eligible Grubhub purchases; legacy benefit being phased out.',
@@ -1442,6 +1570,7 @@ const List<CardTemplate> cardTemplates = [
             'Not offered to new cardmembers from Aug 23, 2026; existing cardmembers keep it through Aug 31, 2027. Resets with each monthly statement rather than the calendar month.',
       ),
       BenefitTemplate(
+        id: 'citi-aadvantage-executive/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Up to \$120 statement credit for a Global Entry or TSA PreCheck application fee.',
@@ -1449,8 +1578,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Credit posts within 1-2 billing cycles',
@@ -1464,9 +1594,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Citi',
     product: 'Strata Elite',
     network: CardNetwork.mastercard,
+    kind: CardKind.personal,
     annualFeeCents: 59500,
     benefits: [
       BenefitTemplate(
+        id: 'citi-strata-elite/hotel-benefit',
         name: 'Hotel Benefit',
         description:
             'Up to \$300 off a hotel stay of 2+ nights booked through Citi Travel.',
@@ -1483,6 +1615,7 @@ const List<CardTemplate> cardTemplates = [
         notes: 'Minimum 2-night stay, booked through Citi Travel.',
       ),
       BenefitTemplate(
+        id: 'citi-strata-elite/splurge-credit',
         name: 'Splurge Credit',
         description:
             'Up to \$200 in statement credits at up to 2 selected brands: 1stDibs, American Airlines, Best Buy, Future Personal Training, Live Nation.',
@@ -1501,6 +1634,7 @@ const List<CardTemplate> cardTemplates = [
             'Pick your brands before you buy; you can change them online or by phone. Some American Airlines and Live Nation purchases are excluded.',
       ),
       BenefitTemplate(
+        id: 'citi-strata-elite/blacklane-credit',
         name: 'Blacklane Credit',
         description:
             'Up to \$100 per half-year (\$200/yr) in statement credits for Blacklane chauffeur rides.',
@@ -1518,6 +1652,7 @@ const List<CardTemplate> cardTemplates = [
             '\$100 for January–June and \$100 for July–December. A ride counts toward the half-year in which it\'s completed.',
       ),
       BenefitTemplate(
+        id: 'citi-strata-elite/global-entry-tsa-precheck-credit',
         name: 'Global Entry / TSA PreCheck Credit',
         description:
             'Up to \$120 reimbursement for a Global Entry or TSA PreCheck application fee.',
@@ -1525,8 +1660,9 @@ const List<CardTemplate> cardTemplates = [
         icon: 'identification-card',
         merchant: 'Global Entry / TSA PreCheck',
         valueCents: 12000,
-        cadence: Cadence.manual,
+        cadence: Cadence.rolling,
         anchor: CycleAnchor.anniversary,
+        intervalMonths: 48,
         redemptionSteps: [
           'Pay the Global Entry or TSA PreCheck application fee with the card',
           'Statement credit posts automatically',
@@ -1540,9 +1676,11 @@ const List<CardTemplate> cardTemplates = [
     issuer: 'Wells Fargo',
     product: 'Autograph Journey',
     network: CardNetwork.visa,
+    kind: CardKind.personal,
     annualFeeCents: 9500,
     benefits: [
       BenefitTemplate(
+        id: 'wells-fargo-autograph-journey/annual-airline-credit',
         name: 'Annual Airline Credit',
         description:
             'One-time \$50 statement credit on the first airline purchase of at least \$50 each card year.',
@@ -1565,6 +1703,7 @@ const List<CardTemplate> cardTemplates = [
     issuer: '',
     product: '',
     network: CardNetwork.other,
+    kind: CardKind.personal,
     annualFeeCents: 0,
     benefits: [],
   ),
@@ -1624,7 +1763,6 @@ List<Benefit> benefitsFromTemplate(
           endsOn: entry.endsOn,
           redemptionSteps: entry.redemptionSteps,
           notes: entry.notes,
-          muted: false,
           lastCallOnly: false,
           // A credit the issuer has already retired lands as history.
           active:

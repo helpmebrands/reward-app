@@ -42,9 +42,11 @@ void main() {
           issuer: 'Issuer',
           product: 'Product',
           network: CardNetwork.visa,
+          kind: CardKind.personal,
           annualFeeCents: 0,
           benefits: const [
             BenefitTemplate(
+              id: 't/credit-1',
               name: 'Monthly',
               category: BenefitCategory.other,
               icon: 'x',
@@ -54,6 +56,7 @@ void main() {
               enrollmentRequired: true,
             ),
             BenefitTemplate(
+              id: 't/credit-2',
               name: 'Annual',
               category: BenefitCategory.other,
               icon: 'x',
@@ -68,6 +71,92 @@ void main() {
       },
     );
 
+    // @lat: [[tests#Card catalogue#Business Platinum is priced at its unconditional credits]]
+    test('prices Business Platinum at its unconditional credits only', () {
+      final platinum = findTemplate('amex-business-platinum')!;
+      final gated = platinum.benefits
+          .where((b) => b.spendThresholdCents != null)
+          .map((b) => (b.name, b.spendThresholdCents))
+          .toList();
+      expect(gated, [
+        ('Dell Technologies Credit (\$5K spend bonus)', 500000),
+        ('Amex Travel Flight Credit (\$250K spend unlock)', 25000000),
+        ('American Express One AP Credit (\$250K spend unlock)', 25000000),
+      ]);
+      final unconditional = platinum.benefits
+          .where((b) => b.spendThresholdCents == null)
+          .fold(
+            0,
+            (sum, b) =>
+                sum + annualValueOf(b.valueCents, b.cadence, b.intervalMonths),
+          );
+      expect(templateAnnualValueCents(platinum), unconditional);
+      expect(
+        templateAnnualValueCents(platinum),
+        lessThan(platinum.annualFeeCents * 4),
+      );
+    });
+
+    // @lat: [[tests#Card catalogue#Every Global Entry credit rolls every 48 months]]
+    test('amortises every Global Entry credit to \$30 a year', () {
+      var seen = 0;
+      for (final template in cardTemplates) {
+        for (final benefit in template.benefits) {
+          expect(
+            benefit.cadence,
+            isNot(Cadence.manual),
+            reason: '${template.id}/${benefit.name}',
+          );
+          if (!benefit.name.startsWith('Global Entry')) continue;
+          seen++;
+          expect(
+            benefit.cadence,
+            Cadence.rolling,
+            reason: '${template.id}/${benefit.name}',
+          );
+          expect(benefit.intervalMonths, 48);
+          expect(
+            annualValueOf(
+              benefit.valueCents,
+              benefit.cadence,
+              benefit.intervalMonths,
+            ),
+            3000,
+          );
+        }
+      }
+      expect(seen, greaterThan(0));
+    });
+
+    // @lat: [[tests#Card catalogue#Dated credits carry their end]]
+    test('ends the credits the issuer has dated', () {
+      String? endsOn(String id, String name) =>
+          findTemplate(id)!.benefits.firstWhere((b) => b.name == name).endsOn;
+      const reserve = 'chase-sapphire-reserve';
+      const quest = 'chase-united-quest';
+      expect(endsOn(reserve, 'StubHub / viagogo Credit'), '2027-12-31');
+      expect(endsOn(reserve, 'Peloton Membership Credit'), '2027-12-31');
+      expect(endsOn(reserve, 'DoorDash Restaurant Promo'), '2027-12-31');
+      expect(endsOn(reserve, 'DoorDash Non-Restaurant Promos'), '2027-12-31');
+      expect(endsOn(reserve, 'Lyft Credit'), '2027-09-30');
+      expect(endsOn(quest, 'Instacart \$10 Monthly Credit'), '2027-12-31');
+      expect(endsOn(quest, 'Instacart \$5 Monthly Credit'), '2027-12-31');
+    });
+
+    // @lat: [[tests#Card catalogue#Every template names its kind]]
+    test('marks Business Platinum as business and blank as personal', () {
+      expect(findTemplate('amex-business-platinum')!.kind, CardKind.business);
+      expect(findTemplate('blank')!.kind, CardKind.personal);
+    });
+
+    // @lat: [[tests#Card catalogue#The IHG spend credit is gated]]
+    test('gates the IHG \$20K spend credit', () {
+      final ihg = findTemplate(
+        'chase-ihg-one-rewards-premier',
+      )!.benefits.firstWhere((b) => b.name == '\$20K Spend Statement Credit');
+      expect(ihg.spendThresholdCents, 2000000);
+    });
+
     // @lat: [[tests#Card catalogue#A template amortises a rolling credit]]
     test(
       'prices a rolling credit at its amortised value and copies the interval',
@@ -77,9 +166,11 @@ void main() {
           issuer: 'Issuer',
           product: 'Product',
           network: CardNetwork.visa,
+          kind: CardKind.personal,
           annualFeeCents: 0,
           benefits: [
             BenefitTemplate(
+              id: 't/credit-3',
               name: 'Global Entry',
               category: BenefitCategory.travel,
               icon: 'x',
@@ -89,6 +180,7 @@ void main() {
               intervalMonths: 48,
             ),
             BenefitTemplate(
+              id: 't/credit-4',
               name: 'Open',
               category: BenefitCategory.other,
               icon: 'x',
@@ -117,9 +209,11 @@ void main() {
         issuer: 'Issuer',
         product: 'Product',
         network: CardNetwork.visa,
+        kind: CardKind.personal,
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(
+            id: 't/credit-5',
             name: 'Gated',
             category: BenefitCategory.other,
             icon: 'x',
@@ -129,6 +223,7 @@ void main() {
             spendThresholdCents: 25000000,
           ),
           BenefitTemplate(
+            id: 't/credit-6',
             name: 'Open',
             category: BenefitCategory.other,
             icon: 'x',
@@ -165,7 +260,6 @@ void main() {
       expect(benefits.first.cardId, 'card-9');
       expect(benefits.first.name, template.benefits.first.name);
       expect(benefits.first.active, isTrue);
-      expect(benefits.first.muted, isFalse);
       expect(benefits.first.createdAt, '2026-09-16T00:00:00.000Z');
       final locked = benefits
           .where((b) => b.enrollmentRequired)
@@ -181,9 +275,11 @@ void main() {
         issuer: 'Issuer',
         product: 'Product',
         network: CardNetwork.visa,
+        kind: CardKind.personal,
         annualFeeCents: 0,
         benefits: [
           BenefitTemplate(
+            id: 't/credit-7',
             name: 'Ended',
             category: BenefitCategory.other,
             icon: 'x',
@@ -193,6 +289,7 @@ void main() {
             endsOn: '2026-06-30',
           ),
           BenefitTemplate(
+            id: 't/credit-8',
             name: 'Ending',
             category: BenefitCategory.other,
             icon: 'x',
@@ -202,6 +299,7 @@ void main() {
             endsOn: '2026-12-31',
           ),
           BenefitTemplate(
+            id: 't/credit-9',
             name: 'Open',
             category: BenefitCategory.other,
             icon: 'x',

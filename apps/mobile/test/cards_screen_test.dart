@@ -16,10 +16,21 @@ import 'package:reward/widgets/snackbar_host.dart';
 /// The Cards screen against what the PWA shows for the sample household on
 /// 16 September 2026, dumped by `apps/pwa/scripts/cards-snapshot.ts`.
 
-AppData sampleHousehold() => appDataFromJson(
-  jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
-      as Map<String, dynamic>,
-);
+/// The PWA's sample household, its two Platinums labelled with the names
+/// the PWA shows for them, so the PWA's fixtures still apply.
+AppData sampleHousehold() {
+  final data = appDataFromJson(
+    jsonDecode(File('../pwa/samples/sample-household.json').readAsStringSync())
+        as Map<String, dynamic>,
+  );
+  const labels = {
+    'card-0001': 'American Express Platinum — Jim',
+    'card-0002': 'American Express Platinum — Kathy',
+  };
+  return data.copyWith(
+    cards: [for (final c in data.cards) c.copyWith(label: labels[c.id])],
+  );
+}
 
 Map<String, dynamic> expected() =>
     jsonDecode(File('test/fixtures/sample-cards.json').readAsStringSync())
@@ -155,6 +166,24 @@ void main() {
     expect(find.text('Add a card from the catalogue'), findsOneWidget);
   });
 
+  // @lat: [[mobile-tests#Cards#A business card carries a Business mark]]
+  testWidgets('a business card shows a Business tag and a personal one none', (
+    tester,
+  ) async {
+    final sample = sampleHousehold();
+    await pumpCards(
+      tester,
+      data: sample.copyWith(
+        cards: [
+          for (final c in sample.cards)
+            c.id == 'card-0001' ? c.copyWith(kind: CardKind.business) : c,
+        ],
+      ),
+    );
+    expect(within('card-0001', 'Business'), findsOneWidget);
+    expect(within('card-0002', 'Business'), findsNothing);
+  });
+
   // @lat: [[mobile-tests#Cards#The verdict is the PWA's, case by case]]
   test('cardVerdict words each case as the PWA does', () {
     CardSummary summary({
@@ -212,7 +241,7 @@ void main() {
     await tester.tap(find.text('Mute'));
     await tester.pumpAndSettle();
 
-    expect(p.store.data!.cards.first.muted, isTrue);
+    expect(p.store.isCardMuted(p.store.data!.cards.first.id), isTrue);
     final message = p.ui.snackbar.current!;
     expect(
       message.text,
@@ -224,7 +253,7 @@ void main() {
     );
     message.action!.onAct();
     await tester.pumpAndSettle();
-    expect(p.store.data!.cards.first.muted, isFalse);
+    expect(p.store.isCardMuted(p.store.data!.cards.first.id), isFalse);
 
     await openMenu(tester, 'American Express Platinum — Jim');
     expect(find.text('Mute'), findsOneWidget);
