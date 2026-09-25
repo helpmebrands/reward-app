@@ -531,14 +531,15 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
               maxLines: null,
             ),
             SwitchRow(
-              title: 'Track this credit',
+              title: 'Opted out',
               note:
-                  'Turn off to keep its history without counting it or '
-                  'reminding you.',
-              label: 'Track this credit',
-              value: current.active,
-              onChanged: (next) =>
-                  _patch(current, (b) => b.copyWith(active: next)),
+                  'You won’t use this. It stays off your lists and totals '
+                  'until you reactivate it.',
+              label: 'Opted out',
+              value: current.optedOutAt != null,
+              onChanged: (next) => next
+                  ? store.optOutBenefit(current.id)
+                  : store.reactivateBenefit(current.id),
             ),
             SwitchRow(
               title: 'Last call only',

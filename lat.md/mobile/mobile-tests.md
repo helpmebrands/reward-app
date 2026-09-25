@@ -378,9 +378,9 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 ### Enrolment, tracking and the switches write the benefit
 
-"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Opted out" stamps `optedOutAt` and leaves `active` alone; "Last call only" sets it.
+"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Last call only" sets it.
 
-There is no "Track this credit" switch any more; the "Opted out" switch carries the note "You won’t use this. It stays off your lists and totals until you reactivate it."
+"Opted out" stamps `optedOutAt` and leaves `active` alone. There is no "Track this credit" switch any more; the "Opted out" switch carries the note "You won’t use this. It stays off your lists and totals until you reactivate it."
 
 ### A rolling credit asks for its interval and hides the anchor
 

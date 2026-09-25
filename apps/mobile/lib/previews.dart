@@ -66,6 +66,7 @@ Benefit _benefit(
   String? merchant,
   int? spendThresholdCents,
   IsoDate? endsOn,
+  IsoInstant? optedOutAt,
 }) => Benefit(
   id: id,
   cardId: cardId,
@@ -82,6 +83,7 @@ Benefit _benefit(
   redemptionSteps: const [],
   lastCallOnly: false,
   active: true,
+  optedOutAt: optedOutAt,
   createdAt: '2026-01-01T00:00:00.000Z',
   updatedAt: '2026-01-01T00:00:00.000Z',
 );
@@ -120,6 +122,15 @@ AppData _household() => AppData(
       100000,
       cadence: Cadence.annual,
       spendThresholdCents: 500000,
+    ),
+    // Opted out, so the card editor shows its "Opted out" group.
+    _benefit(
+      'o1',
+      'kathy',
+      'Oura Ring Credit',
+      20000,
+      cadence: Cadence.annual,
+      optedOutAt: '2026-05-01T09:00:00.000Z',
     ),
     _benefit(
       'g1',
@@ -660,6 +671,13 @@ Widget benefitEditorRolling() => _themed(
 @Preview(name: 'Benefit editor, spend threshold', size: Size(402, 1300))
 Widget benefitEditorSpendThreshold() => _themed(
   BenefitEditorScreen(store: _store(), id: 'd1', ui: UiState()),
+  Brightness.dark,
+);
+
+/// A credit the household opted out of: the "Opted out" switch is on.
+@Preview(name: 'Benefit editor, opted out', size: Size(402, 1200))
+Widget benefitEditorOptedOut() => _themed(
+  BenefitEditorScreen(store: _store(), id: 'o1', ui: UiState()),
   Brightness.dark,
 );
 

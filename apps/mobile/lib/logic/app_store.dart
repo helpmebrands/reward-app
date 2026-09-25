@@ -578,6 +578,10 @@ class AppStore extends ChangeNotifier {
         if (after.lastCallOnly != before.lastCallOnly)
           'lastCallOnly': after.lastCallOnly,
         if (after.active != before.active) 'active': after.active,
+        if (after.optedOutAt != before.optedOutAt)
+          'optedOutAt': after.optedOutAt,
+        if (after.trackedFrom != before.trackedFrom)
+          'trackedFrom': after.trackedFrom,
       };
       final terms = _terms(after);
       final termsChanged = '$terms' != '${_terms(before)}';
@@ -614,6 +618,8 @@ class AppStore extends ChangeNotifier {
           'spendMetAt',
           'lastCallOnly',
           'active',
+          'optedOutAt',
+          'trackedFrom',
           'createdAt',
           'updatedAt',
         }.contains(key),
@@ -639,6 +645,18 @@ class AppStore extends ChangeNotifier {
 
   static Set<String> _toggled(Set<String> ids, String id) =>
       ids.contains(id) ? ({...ids}..remove(id)) : {...ids, id};
+
+  /// Takes a credit the household will never use off every list and total
+  /// but its own ([BenefitStatus.optedOut]).
+  Future<bool> optOutBenefit(String id) =>
+      updateBenefit(id, (b) => b.copyWith(optedOutAt: _now));
+
+  /// Tracks an opted-out credit again from today, so the windows that closed
+  /// while it was opted out are never counted as missed.
+  Future<bool> reactivateBenefit(String id) => updateBenefit(
+    id,
+    (b) => b.copyWith(optedOutAt: null, trackedFrom: today),
+  );
 
   /// Records that the user has ticked the issuer's enrolment box.
   Future<bool> confirmEnrollment(String id) =>
