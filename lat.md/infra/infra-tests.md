@@ -182,7 +182,7 @@ Step 3.6 of `08-mobile-setup.md` creates an Apple Push Notifications service key
 
 ### Runbook 08 checks push on a device
 
-Part 4 has a numbered **Push reaches a device.** check: turn on Send me reminders, allow the prompt, and Send a test notification from Settings.
+Part 4 has a numbered **Push reaches a device.** check: turn on Send me reminders, allow the prompt, and Send a test notification from Settings, going to the Home Screen within the "Sending in 5 seconds" wait.
 
 ### Runbook 05 covers push that does not arrive
 

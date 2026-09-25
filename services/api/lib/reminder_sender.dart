@@ -4,6 +4,8 @@
 /// Documented in `lat.md/api/api-architecture.md#Reminder sender`.
 library;
 
+import 'dart:convert';
+
 import 'package:domain/domain.dart';
 import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
@@ -228,6 +230,12 @@ Future<int> sendDueReminders(
   return delivered;
 }
 
+/// The longest wait `POST /v1/me/reminders/test` accepts.
+const maxTestDelaySeconds = 10;
+
+Response _invalid(String field) =>
+    jsonResponse({'error': 'invalid', 'field': field}, status: 400);
+
 /// Adds `GET /v1/me/reminders/summary` and `POST /v1/me/reminders/test`.
 /// Without a [push] sender the test answers 503 `no push`.
 void addReminderRoutes(RouteTable routes, SignedIn signedIn, PushSender? push) {
@@ -248,6 +256,27 @@ void addReminderRoutes(RouteTable routes, SignedIn signedIn, PushSender? push) {
 
   Future<Response> test(Request request, Caller caller, Session db) async {
     if (push == null) return serviceUnavailable('no push');
+    // An optional wait, up to 10 seconds, so the tester can put the app in
+    // the background first: the device shows no banner for a push that
+    // arrives while the app is open. The request stays open meanwhile, so
+    // Cloud Run keeps the CPU (its timeout is 30 s).
+    var delay = 0;
+    final text = await request.readAsString();
+    if (text.trim().isNotEmpty) {
+      final Object? body;
+      try {
+        body = jsonDecode(text);
+      } on FormatException {
+        return _invalid('body');
+      }
+      if (body is! Map<String, dynamic>) return _invalid('body');
+      final value = body['delaySeconds'] ?? 0;
+      if (value is! int || value < 0 || value > maxTestDelaySeconds) {
+        return _invalid('delaySeconds');
+      }
+      delay = value;
+    }
+    await Future<void>.delayed(Duration(seconds: delay));
     final outcome = await sendToMember(
       db,
       push,

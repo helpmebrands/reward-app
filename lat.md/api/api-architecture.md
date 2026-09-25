@@ -156,7 +156,7 @@ A member's zone is their most recently registered device's, UTC before they have
 
 The same job then sends the catalogue's change notices ([[api-architecture#Change notices]]); `sendOnce` is the claim-send-release step both use.
 
-Two signed-in routes serve the app's Settings screen. `GET /v1/me/reminders/summary` is `{count, next}`: how many reminders the caller's schedule holds from now over the horizon, and the next one's instant, title and body, or null. `POST /v1/me/reminders/test` sends a test notification to each of the caller's devices and answers `{sent}`; without an FCM project it is 503 `no push`.
+Two signed-in routes serve the app's Settings screen. `GET /v1/me/reminders/summary` is `{count, next}`: how many reminders the caller's schedule holds from now over the horizon, and the next one's instant, title and body, or null. `POST /v1/me/reminders/test` sends a test notification to each of the caller's devices and answers `{sent}`; without an FCM project it is 503 `no push`. An optional `{"delaySeconds": 0–10}` makes it wait inside the request first, so the tester can background the app and see the banner (anything else is 400 naming `delaySeconds`); the request stays open, so Cloud Run keeps the CPU within its 30-second timeout.
 
 ## Change notices
 
