@@ -19,6 +19,7 @@ import 'screens/not_found_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/value_screen.dart';
+import 'shell/brand_app_bar.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/brand_lockup.dart';
@@ -271,6 +272,24 @@ Widget shellMedium() => RewardApp(store: _store());
 
 @Preview(name: 'Shell, expanded', size: Size(1280, 800))
 Widget shellExpanded() => RewardApp(store: _store());
+
+/// The tab bar alone in the pane it spans: the window at compact, the
+/// window less the rail from medium.
+Widget _barIn(WidthClass widthClass) => MaterialApp(
+  theme: nocturneTheme(Brightness.dark),
+  home: Scaffold(
+    appBar: BrandAppBar(widthClass: widthClass, onSettings: () {}),
+  ),
+);
+
+@Preview(name: 'Brand app bar, compact', size: Size(402, 64))
+Widget brandAppBarCompact() => _barIn(WidthClass.compact);
+
+@Preview(name: 'Brand app bar, medium pane', size: Size(688, 64))
+Widget brandAppBarMedium() => _barIn(WidthClass.medium);
+
+@Preview(name: 'Brand app bar, expanded pane', size: Size(1080, 64))
+Widget brandAppBarExpanded() => _barIn(WidthClass.expanded);
 
 @Preview(name: 'Placeholder screen', size: Size(402, 300))
 Widget stubScreen() => _themed(const StubScreen('Cards'), Brightness.dark);

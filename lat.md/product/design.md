@@ -50,6 +50,8 @@ axe cannot judge text over a gradient or under a large pseudo element, and any g
 
 Four tabs, each answering a different question, plus editors and Settings.
 
+The four tabs share one bar, the brand logo on the left and the Settings gear on the right, so the bar never changes between tabs and Settings is one tap from anywhere ([[mobile-architecture#Brand app bar]]).
+
 - **Today**: one number, a countdown, and the rows behind them. The headline counts only what is claimable; locked credits get their own section ([[domain#Status ladder#Locked is not unclaimed]]). Shows up to three overlaps.
 - **Credits**: the full ledger, including what Today hides. Four totals, and an opted-out figure per year once anything is opted out, never a mixed sum ([[domain#The five totals]]).
 - **Cards**: each card against its fee, with a verdict that leads with an action rather than a score. It refuses to price lounge access or status; putting a number on those would be the one judgement the app should not fake.

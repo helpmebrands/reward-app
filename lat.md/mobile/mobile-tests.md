@@ -509,7 +509,7 @@ Both switches are found by their labels and carry a toggled state; the appearanc
 
 ### Today leads to Settings
 
-The gear labelled "Settings" on Today opens the Settings screen.
+The gear labelled "Settings" in the bar on Today opens the Settings screen.
 
 ## Routing
 
@@ -552,6 +552,35 @@ At 1280 wide the rail is 200 wide and extended, the column is 720 wide and centr
 ### A destination opens its branch
 
 Choosing Cards from the bar, or Value from the rail, shows that branch's placeholder screen and selects its index, so the shell and the router are wired together.
+
+
+## Brand app bar
+
+`brand_app_bar_test.dart` pumps the whole app over the sample household, dated 16 September 2026, and checks the one bar the four tabs share ([[mobile-architecture#Brand app bar]]).
+
+### Every tab has the one bar and its gear
+
+On Today, Credits, Cards and Value there is one `AppBar`, 64 high, holding the `BrandLockup` and one icon button, and exactly one "Settings" button on the screen.
+
+### Today's heading draws the eyebrow
+
+Today's header row is gone: its level-one heading, still labelled "Today", draws "WED 16 SEP · UNCLAIMED, OPEN PERIODS" above the total, and "HelpMe Reward" is no longer drawn as text.
+
+### The gear opens Settings and back returns to the tab
+
+From Credits, Cards and Value the gear opens Settings, and its Back returns to the same tab rather than to Today.
+
+### From medium the bar sits over the column, not the rail
+
+At 768 and 1280 the bar's content box starts and ends with the content column, the bar starts at or past the rail's right edge, and it is 64 high.
+
+### The bar tints once content scrolls under it
+
+On Credits at rest the bar is the page colour; after scrolling the list 300 up it is the theme's surface-container colour, which differs from the page colour.
+
+### On a phone the lockup sits on the 20 margin
+
+At 402 the lockup's left edge is 20 from the window, and the gear's 24 glyph ends 20 from the right edge.
 
 ## Text scaling
 
