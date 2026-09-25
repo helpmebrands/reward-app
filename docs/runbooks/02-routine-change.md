@@ -30,8 +30,7 @@ The api's integration tests need a database and skip themselves without
 the CI job runs as a service container.
 
 CI runs on the pull request: for the npm workspaces a typecheck and the
-tests, including the repository config suites; a container build of the site
-that starts the image and checks `/` and a 404; for the Dart packages analysis and tests, the api's against
+tests, including the repository config suites; for the Dart packages analysis and tests, the api's against
 a Postgres container; for the Flutter app analysis and tests; for `infra/` a
 typecheck and a `pulumi preview` against staging, so the review can read the
 exact infrastructure diff. Merge when it is green and reviewed.
@@ -47,7 +46,7 @@ Watch it:
 $ gh run watch
 ```
 
-About three minutes later the new site revision is live; the api takes a little
+About three minutes later the site's new files are live on Pages; the api takes a little
 longer because its migration job runs first. The run summary carries the
 commit, the image digest, and the URL.
 
@@ -58,7 +57,7 @@ commit, the image digest, and the URL.
 | Pull request → `develop` | Verify (all of it, including `pulumi preview`) | No |
 | Merge → `develop` touching `apps/site`, `infra`, the npm manifests or anything not listed below | Verify, then `cd.yml` | The site |
 | Merge → `develop` touching `services/api`, `packages/domain`, `pubspec.yaml`, `pubspec.lock` or the api workflows | Verify, then `cd-api.yml` | The api |
-| `gh workflow run cd.yml --ref develop` | Verify, then build and deploy | The site |
+| `gh workflow run cd.yml --ref develop` | Verify, then upload to Pages | The site |
 | `gh workflow run cd-api.yml --ref develop` | Verify, then build, migrate and deploy | The api |
 
 A merge that touches both deploys both. `cd.yml` ignores `services/api`,
@@ -119,8 +118,7 @@ The root `Makefile` runs the verify workflow's jobs locally, in CI's order, and 
 | Infra typechecks and previews | `node` for the typechecks | the previews need cloud credentials and stay in CI |
 | Dart analyze and test | `dart` | `fvm dart analyze --fatal-infos`, `fvm dart test` in `packages/domain` |
 | Flutter analyze and test | `flutter` | `make check` in `apps/mobile` |
-| Api analyze, test and container | `api` | `fvm dart test` in `services/api` against `docker compose`, or with the integration group skipped when docker is down |
-| Container builds | `verify-full` only | `docker build` of both Dockerfiles |
+| Api analyze, test and container | `api`; the image in `verify-full` | `fvm dart test` in `services/api` against `docker compose`, or with the integration group skipped when docker is down |
 
 Majors go in their own pull request so a revert is one click. For Dart and Flutter, AGENTS.md rule 9 applies: only
 Flutter Favourite packages may be added without a human's approval, and the
@@ -130,8 +128,7 @@ minimum Flutter version is 3.35.
 
 Remember which side of the build it lands on:
 
-- **The site has none.** It is static files behind nginx; `PORT` is the only
-  variable its container reads.
+- **The site has none.** It is static files on Cloudflare Pages.
 - **The api reads its environment at runtime.** `PORT` comes from Cloud Run
   and `DATABASE_URL` from Secret Manager, both declared on the service in
   `infra/index.ts`. A new variable is an infrastructure change

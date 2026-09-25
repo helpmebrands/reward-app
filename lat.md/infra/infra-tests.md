@@ -422,7 +422,7 @@ The smoke test reads `/health` (never `/healthz`) and posts a device without a t
 
 ### CD revision names carry the run number
 
-`cd.yml` and `cd-api.yml` pass `--revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}`, so a manual dispatch of an already-deployed commit makes a new revision instead of failing `ALREADY_EXISTS`.
+`cd-api.yml` passes `--revision-suffix=sha-${{ github.sha }}-${{ github.run_number }}`, so a manual dispatch of an already-deployed commit makes a new revision instead of failing `ALREADY_EXISTS`.
 
 ### Api image carries the migrator and the migrations
 
@@ -468,7 +468,7 @@ The root `package.json` lists exactly `infra` and `infra-repo` as npm workspaces
 
 ### The site is plain HTML and CSS
 
-`apps/site/public` holds `index.html`, `styles.css`, `404.html` and `_headers`, and `apps/site` has no `package.json`, `Dockerfile` or `deploy/`: Cloudflare Pages serves the files as they are ([[deployment#Container]]).
+`apps/site/public` holds `index.html`, `styles.css`, `404.html` and `_headers`, and `apps/site` has no `package.json`, `Dockerfile` or `deploy/`: Cloudflare Pages serves the files as they are ([[deployment#Site]]).
 
 ### Pages headers carry the security policy
 

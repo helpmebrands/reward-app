@@ -1,7 +1,8 @@
 # 01 — Initial deployment
 
-From an empty Google Cloud project to two live URLs: the site and the api, with
-its database. You do this once per environment. Budget about an hour, most of
+From an empty Google Cloud project to the api's live URL, with its database.
+The static site goes on Cloudflare Pages afterwards, with
+[09](09-cloudflare-pages.md). You do this once per environment. Budget about an hour, most of
 it waiting on API enablement and Cloud SQL.
 
 ## Before you start
@@ -182,11 +183,9 @@ permission error on the very first attempt, wait a minute and run it again —
 API enablement is eventually consistent, and the second run almost always
 succeeds.
 
-**Verify.** Both services exist and serve Google's placeholder page:
+**Verify.** The api service exists and serves Google's placeholder page:
 
 ```sh
-$ curl -sS -o /dev/null -w '%{http_code}\n' "$(pulumi stack output serviceUrl)"
-200
 $ curl -sS -o /dev/null -w '%{http_code}\n' "$(pulumi stack output apiServiceUrl)"
 200
 ```
@@ -208,7 +207,6 @@ read:
 | `GCP_PROJECT_ID` | the project |
 | `GCP_REGION` | the region |
 | `ARTIFACT_REPO` | the image repository id |
-| `CLOUD_RUN_SERVICE` | the site's service name |
 | `WIF_PROVIDER` | the workload identity provider's full name |
 | `DEPLOY_SERVICE_ACCOUNT` | the deployer's email |
 | `API_CLOUD_RUN_SERVICE` | the api service name |
@@ -315,29 +313,24 @@ infrastructure change that is applied from a feature branch on purpose.
 
 ## 7. First real deploys
 
-Each deployable has its own workflow, filtered to the paths that reach its
-image. Trigger both by hand the first time:
+The api's workflow is filtered to the paths that reach its image. Trigger it
+by hand the first time; the site's first deploy is part of
+[09](09-cloudflare-pages.md):
 
 ```sh
-$ gh workflow run cd.yml --ref develop       # the site
-$ gh workflow run cd-api.yml --ref develop   # the api
+$ gh workflow run cd-api.yml --ref develop
 $ gh run watch
 ```
 
-Each re-runs the full verify suite, builds its image, pushes it, points Cloud
-Run at the digest, and smoke-tests the result. The api workflow runs the
-migration job on the new image before the service moves to it, so the first
-run also creates the tables.
+It re-runs the full verify suite, builds the image, pushes it, runs the
+migration job on it, points Cloud Run at the digest, and smoke-tests the
+result, so the first run also creates the tables.
 
 **Verify** — the smoke tests in the workflows already check these, but confirm
 by hand once so you know what good looks like:
 
 ```sh
-$ URL=$(cd infra && pulumi stack output serviceUrl)
 $ API=$(cd infra && pulumi stack output apiServiceUrl)
-
-$ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"          # 200
-$ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/nope"      # 404 — a missing page is not the home page
 
 $ curl -sS "$API/health"                                     # {"status":"ok","version":"…"}
 $ curl -sS -X POST "$API/v1/devices" -H 'content-type: application/json' \
@@ -352,7 +345,6 @@ proves the database path. Do not use `/healthz` for anything
 on Cloud Run; Google's edge answers that exact path itself and the container
 never sees it.
 
-Then open the site URL in a browser: the placeholder page should load.
 
 ## 8. Record what you did
 
@@ -370,15 +362,14 @@ fails with `401` on a GitHub resource, and the fix is a new token pasted into
 
 ## What you have now
 
-- Two Cloud Run services on `run.app` URLs, publicly readable: the site and the api
+- The api on Cloud Run at a `run.app` URL, publicly readable
 - A Cloud SQL PostgreSQL 16 instance the api reaches over the Cloud SQL
   connector, with nightly backups, and a migration job that runs before each
   api deploy
 - The api's connection URL in Secret Manager, readable by exactly one identity
 - Images in Artifact Registry, tagged by commit SHA, pruned after 30 releases
 - Keyless deploys from `develop` only, and keyless previews from pull requests
-- A site runtime identity with no permissions at all, and an api runtime
-  identity with exactly two
+- An api runtime identity with exactly two permissions
 - Stack secrets encrypted with a KMS key, never a passphrase
 - A GitHub environment named after the stack, carrying every variable the
   workflows read, written by the stack rather than copied by hand

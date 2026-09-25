@@ -36,4 +36,4 @@ Every feature of the PWA, from [[design#Screens]], with the Flutter counterpart 
 | Forced colours | **Not applicable**: a browser mode; the platforms' high-contrast settings apply through Material | (none) |
 | Service worker, install prompt, PWA manifest | **Not applicable**: the store app has no worker | (none) |
 
-The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Issue #174 retired `apps/pwa` and kept its web slot for [[deployment#Container|the static site]].
+The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Issue #174 retired `apps/pwa` and kept its web slot for [[deployment#Site|the static site]].

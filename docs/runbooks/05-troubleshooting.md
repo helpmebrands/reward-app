@@ -65,12 +65,12 @@ job lost its secret; a timeout with nothing logged means the socket, see the
 504 entry below. [06 — Database](06-database.md#a-migration-went-wrong) has
 the recovery when a migration applied and was wrong.
 
-## Deploy succeeds, but the site shows Google's placeholder page
+## Deploy succeeds, but the api shows Google's placeholder page
 
 The service is still on the bootstrap image, which means Pulumi created it but
 CD has never run successfully. Check the Actions tab; the deploy step either
-failed or has not run. `gh workflow run cd.yml --ref develop` (or `cd-api.yml`)
-to force one.
+failed or has not run. `gh workflow run cd-api.yml --ref develop` to force
+one.
 
 ## `/healthz` answers 404 with a Google error page
 
@@ -117,7 +117,7 @@ In order of likelihood:
 
 1. **Traffic is still split.** A rollback that was never reconciled:
    ```sh
-   $ gcloud run services describe reward-app --region "$REGION" \
+   $ gcloud run services describe reward-api --region "$REGION" \
        --format='value(status.traffic)'
    ```
 
@@ -127,8 +127,8 @@ In order of likelihood:
 ## The site loads but is unstyled
 
 A Content Security Policy problem. Open the console: `Refused to apply
-stylesheet` means `style-src` in `apps/site/deploy/security-headers.conf` no
-longer allows `'self'`, or the page links a stylesheet from another origin.
+stylesheet` means `style-src` in `apps/site/public/_headers` no longer allows
+`'self'`, or the page links a stylesheet from another origin.
 
 ## `pulumi up` fails with `SERVICE_DISABLED`
 

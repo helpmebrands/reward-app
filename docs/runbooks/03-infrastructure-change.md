@@ -85,15 +85,18 @@ branch stops working, which is occasionally what you want during an incident.
 
 ## Adding a custom domain
 
-Cloud Run will not map a domain you have not proved you own, and that proof is
-a manual step. DNS for `helpmereward.com` lives in Cloudflare; the steps below
-assume that. Staging is `staging.helpmereward.com`; the apex is reserved for
-`prod`.
+The site's domain is a Cloudflare Pages custom domain that Pulumi declares
+with its record; [09](09-cloudflare-pages.md) covers it. This section is the
+api's, `api.<env>.helpmereward.com`, which invite links point at. Cloud Run
+will not map a domain you have not proved you own, and that proof is a
+manual step. DNS for `helpmereward.com` lives in Cloudflare; Porkbun is only
+the registrar.
 
-1. **Make sure Cloudflare is authoritative.** The registrar (Porkbun) must
-   point the domain at the two nameservers Cloudflare assigned to the zone.
-   Until `dig NS helpmereward.com +short` returns `*.ns.cloudflare.com`,
-   records added in Cloudflare do nothing.
+1. **Check that Cloudflare is authoritative:**
+
+   ```sh
+   $ dig NS helpmereward.com +short             # *.ns.cloudflare.com
+   ```
 
 2. **Verify the domain** in [Search Console](https://search.google.com/search-console)
    as a *Domain* property, signed in as the same Google account that runs
@@ -109,51 +112,44 @@ assume that. Staging is `staging.helpmereward.com`; the apex is reserved for
 3. **Configure and apply:**
 
    ```sh
-   $ pulumi config set reward-app:customDomain staging.helpmereward.com
+   $ pulumi config set reward-app:apiCustomDomain api.staging.helpmereward.com
    $ pulumi up
    ```
 
-4. **Add the record in Cloudflare — DNS only.** The mapping tells you what it
-   needs; for a subdomain it is one CNAME:
+4. **Read the record the mapping needs:**
 
    ```sh
-   $ pulumi stack output customDomainStatus
+   $ pulumi stack output apiCustomDomainStatus
    ```
+
+5. **Add the record in Cloudflare, DNS only:**
 
    | Type | Name | Target | Proxy status |
    | --- | --- | --- | --- |
-   | CNAME | `staging` | `ghs.googlehosted.com` | **DNS only** (grey cloud) |
+   | CNAME | `api.staging` | `ghs.googlehosted.com` | **DNS only** (grey cloud) |
 
    The proxy status is the part people get wrong. With the orange cloud on,
    Cloudflare answers the ACME challenge instead of Google, the managed
    certificate never issues, and the mapping sits in a certificate-pending
-   state indefinitely. Turn the proxy on later if you want Cloudflare in front
-   of the site, and only after the certificate exists; then set the zone's
-   SSL/TLS mode to **Full (strict)**, or Cloudflare will connect to Cloud Run
-   over plain HTTP and Google redirects it into a loop.
+   state indefinitely.
 
-5. **Wait.** Google issues a managed certificate once DNS resolves. Fifteen
-   minutes is normal, an hour is not alarming. The domain serves a certificate
-   error until it completes — expected, not a fault.
+6. **Wait.** Google issues a managed certificate once DNS resolves. Fifteen
+   minutes is normal, an hour is not alarming. `CertificateProvisioned` flips
+   to `True` when it is done:
 
    ```sh
-   $ gcloud beta run domain-mappings describe --domain staging.helpmereward.com \
+   $ gcloud beta run domain-mappings describe --domain api.staging.helpmereward.com \
        --region us-central1 --format='value(status.conditions)'
    ```
-
-   `CertificateProvisioned` flips to `True` when it is done.
 
 **Verify:**
 
 ```sh
-$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/          # 200
-$ curl -sS -o /dev/null -w '%{http_code}\n' https://staging.helpmereward.com/nope      # 404
-$ pulumi preview                                                                       # no changes
+$ curl -sS https://api.staging.helpmereward.com/health      # {"status":"ok",…}
+$ pulumi preview                                           # no changes
 ```
 
-Then record the hostname in [README.md](README.md#environments). The api has
-no custom domain; the Flutter app will be given its `run.app` URL, and mapping
-one later is the same procedure with `apiServiceName` in place of the service.
+Then record the hostname in [README.md](README.md#environments).
 
 ## Adding a production environment
 
@@ -186,14 +182,15 @@ the same project, and worth it for anything with real users. Turn on
 point-in-time recovery for the production database before it holds anything
 ([06](06-database.md#backups)).
 
-Then add `main` → production workflows alongside `cd.yml` and `cd-api.yml`,
-pointed at the `prod` stack's outputs, and promote by merging `develop` into
+Then put the site on it with [09](09-cloudflare-pages.md) Part 5: `cd.yml`
+already deploys `main` in the `prod` environment. The api still needs a `main`
+→ `prod` counterpart of `cd-api.yml`. Promote by merging `develop` into
 `main`.
 
 ## Costs
 
-Static files on Cloud Run with `minInstances: 0` and `cpuIdle: true` cost close
-to nothing at low traffic — you pay per request-second, and an idle service
+The api on Cloud Run with `minInstances: 0` and `cpuIdle: true` costs close
+to nothing at low traffic, and the site on Cloudflare Pages is free at this size — you pay per request-second, and an idle service
 bills nothing. The things that actually cost money:
 
 - **Cloud SQL.** The one thing in this stack that bills while idle: a
@@ -201,9 +198,8 @@ bills nothing. The things that actually cost money:
   roughly $10/month, and it is the floor. `dbTier` raises it; the shared-core
   tiers are fine for device registrations and not for much else.
 - `minInstances: 1` keeps an instance warm around the clock. It removes cold
-  starts (roughly a second on first load) for roughly $10/month per service.
-- Artifact Registry storage, bounded here to the 30 most recent images of
-  each service.
+  starts (roughly a second on first load) for roughly $10/month.
+- Artifact Registry storage, bounded here to the 30 most recent api images.
 - Secret Manager and KMS: cents. Egress, which for a ~600 KB precached app is
   negligible.
 

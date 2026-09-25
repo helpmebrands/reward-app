@@ -2,8 +2,9 @@
 
 Read this before you need it. When you need it you will not want to be reading.
 
-For the site a rollback is purely "serve the previous bytes again": it is
-static files and holds no data.
+The site is on Cloudflare Pages and rolls back there, a pointer move to an
+earlier deployment: [09](09-cloudflare-pages.md#rolling-the-site-back). It is
+static files and holds no data. The rest of this runbook is the api.
 
 For the api the same traffic shift works, with one rule underneath it: **the
 schema does not roll back.** Migrations run forward only, so the previous
@@ -14,12 +15,11 @@ may only add. If a migration itself is the problem, see
 
 ## Fastest: shift traffic to the previous revision
 
-Seconds, and no build. Do this first, diagnose afterwards. The same commands
-apply to both services; set `SERVICE` to `reward-app` or `reward-api`.
+Seconds, and no build. Do this first, diagnose afterwards.
 
 ```sh
 $ REGION=us-central1
-$ SERVICE=reward-app          # or reward-api
+$ SERVICE=reward-api
 
 # What is running, and what ran before it
 $ gcloud run revisions list --service "$SERVICE" --region "$REGION" \
@@ -34,8 +34,7 @@ $ gcloud run services update-traffic "$SERVICE" --region "$REGION" \
 
 ```sh
 $ URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')
-$ curl -sS -o /dev/null -w '%{http_code}\n' "$URL/"          # the site
-$ curl -sS "$URL/health"                                      # the api
+$ curl -sS "$URL/health"
 ```
 
 Revisions are named `<service>-sha-<commit>-<run number>`, so the revision
