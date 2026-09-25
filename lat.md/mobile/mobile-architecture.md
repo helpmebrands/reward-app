@@ -56,6 +56,18 @@ Join household and Not found are reached from a link, often before the app is se
 
 Pinned by [[mobile-tests#Landing screens]]; previews of Join and Not found in both themes.
 
+
+## Native brand assets
+
+`apps/mobile/scripts/brand-icons.swift` generates every native brand asset from `assets/logo/helpmereward-icon{,-dark}.png`, by hand rather than with `flutter_launcher_icons` (epic #279). Run it with `swift`; a second run leaves no diff.
+
+It uses CoreGraphics and ImageIO, which ship with Xcode, because `sips` can neither flatten alpha nor separate the glyph from its ground. The source is a rounded square with transparent corners over a diagonal gradient from `#7C2C44` to `#BF6170`, measured from its pixels. Full-bleed icons redraw that gradient underneath, so the corners continue it. The glyph (speech bubble and star) is found by flooding the ground in from the edges over every pixel that is not white.
+
+- **iOS launcher icon**: `AppIcon.appiconset` is Xcode's single-size set, one 1024 icon for the default appearance and one for dark, both flattened so they have no alpha channel; Xcode derives every smaller size.
+- **Android launcher icon**: `mipmap-*dpi/ic_launcher.png` is the rounded icon at 48dp for launchers before API 26. `mipmap-anydpi-v26/ic_launcher.xml` is the adaptive icon: the gradient as `drawable/ic_launcher_background.xml`, the glyph as `ic_launcher_foreground`, and its white silhouette as `ic_launcher_monochrome` for themed icons. The glyph layers are drawn in the middle 72dp of the 108dp canvas, so the glyph sits where it does on the legacy icon.
+
+Pinned by [[infra-tests#Brand icons]].
+
 ## The snapshot store
 
 The whole dataset is one record, as in the PWA: `SnapshotStore` loads and saves one `AppData`, and `SharedPreferencesSnapshotStore` keeps it as a JSON string under the PWA's `app-data` key through the `shared_preferences` package, a Flutter Favorite.
