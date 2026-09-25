@@ -1000,9 +1000,9 @@ With a denial the switch stays off and the snackbar reads "Reminders stay off un
 
 Sign out removes the device from the api before the auth signs out.
 
-### Settings shows the summary and sends a test
+### Settings shows the summary and sends a delayed test
 
-With reminders on, Settings shows "3 reminders scheduled. Next on Oct 31: $10 expires tonight." from the api, and the test button posts once and shows "Test notification sent."
+With reminders on, Settings shows "3 reminders scheduled. Next on Oct 31: $10 expires tonight." from the api. The test button asks for a 5-second delay and shows "Sending in 5 seconds…" while the request is open, then "Test notification sent."
 
 ### A tapped notification opens its screen
 
