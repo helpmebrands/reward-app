@@ -184,7 +184,14 @@ void main() {
     final plain =
         'Credits worth ${formatMoney(before.annualValueCents)} a year';
     expect(within('card-0001', plain), findsOneWidget);
-    expect(find.bySemanticsLabel(plain), findsOneWidget);
+    // Both Platinums are worth the same, so look inside Jim's.
+    expect(
+      find.descendant(
+        of: card('card-0001'),
+        matching: find.bySemanticsLabel(plain),
+      ),
+      findsOneWidget,
+    );
 
     await store.optOutBenefit('ben-0012');
     await tester.pumpAndSettle();
