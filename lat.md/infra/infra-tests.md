@@ -172,6 +172,10 @@ Each signing secret grants `secretmanager.secretAccessor` to the deployer throug
 
 `environmentVariables` carries `PLAY_SERVICE_ACCOUNT` and one `SECRET_<NAME>` per signing secret, so the release workflow hard-codes no identity and no secret id.
 
+### Runbook 08 uploads the APNs key to Firebase
+
+Step 3.6 of `08-mobile-setup.md` creates an Apple Push Notifications service key and uploads it under *APNs Authentication Key* with the team id `LMFUSVPCDH`, without which FCM cannot reach an iPhone ([[mobile-architecture#Push]]).
+
 ### Runbook 08 has the store hand steps
 
 `08-mobile-setup.md` shows `gcloud secrets versions add` for the signing material and the *Users and permissions* link of the Play identity, and no longer proposes GitHub secrets.
