@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/session.dart';
 import 'join_screen.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/brand_logo.dart';
 import '../widgets/screen_title.dart';
 
 /// Sign-in: Google or Apple through Firebase, and nothing else. There is no
@@ -64,8 +65,8 @@ class _SignInScreenState extends State<SignInScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.savings_outlined, size: 48, color: tokens.accent),
-                  const SizedBox(height: Space.s4),
+                  const Center(child: BrandLogo.stacked()),
+                  const SizedBox(height: Space.s6),
                   ScreenTitle(
                     label: 'Sign in',
                     text: 'Sign in to HelpMe Reward',
