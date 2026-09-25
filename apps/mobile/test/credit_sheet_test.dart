@@ -339,6 +339,28 @@ void main() {
       expect(app.store.data!.benefits.first.lastCallOnly, isTrue);
     });
 
+    // @lat: [[mobile-tests#Credit sheet#Opting out from the sheet closes it and leaves Today]]
+    testWidgets('Opt out closes the sheet and takes the row off Today', (
+      tester,
+    ) async {
+      final app = await openResy(tester, phone);
+      expect(find.text('Resy Dining Credit'), findsWidgets);
+
+      final optOut = inSheet('Opt out — I won\'t use this');
+      await tester.ensureVisible(optOut);
+      await tester.pumpAndSettle();
+      await tester.tap(optOut);
+      await tester.pumpAndSettle();
+
+      expect(sheet, findsNothing);
+      expect(app.store.instanceFor('resy'), isNull);
+      expect(
+        app.ui.snackbar.current?.text,
+        'Opted out of Resy Dining Credit. Reactivate it from the card’s setup.',
+      );
+      expect(find.text('Resy Dining Credit'), findsNothing);
+    });
+
     // @lat: [[mobile-tests#Credit sheet#A locked credit unlocks from the sheet]]
     testWidgets('a locked credit shows the note and unlocks', (tester) async {
       final app = await pumpApp(tester, phone);

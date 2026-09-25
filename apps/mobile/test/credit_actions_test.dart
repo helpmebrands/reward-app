@@ -151,6 +151,31 @@ void main() {
     },
   );
 
+  // @lat: [[mobile-tests#Credit actions#Opting out has an Undo that brings the credit back]]
+  test('optOut takes the credit off the list with an Undo', () async {
+    final h = await _Harness().loaded();
+
+    await h.actions.optOut(h.instance('resy'));
+    expect(h.store.instanceFor('resy'), isNull);
+    final message = h.snackbar.current!;
+    expect(
+      message.text,
+      'Opted out of Resy Dining Credit. Reactivate it from the card’s setup.',
+    );
+    expect(message.action!.label, 'Undo');
+    expect(
+      message.action!.semanticsLabel,
+      'Undo opting out of Resy Dining Credit',
+    );
+
+    message.action!.onAct();
+    await Future<void>.delayed(Duration.zero);
+    expect(h.store.instanceFor('resy'), isNotNull);
+    final resy = h.store.data!.benefits.firstWhere((b) => b.id == 'resy');
+    expect(resy.optedOutAt, isNull);
+    expect(resy.trackedFrom, isNull, reason: 'Undo is not a reactivation');
+  });
+
   // @lat: [[mobile-tests#Credit actions#Unlocking has an Undo that revokes]]
   test('confirmEnrollment unlocks with an Undo that revokes', () async {
     final h = await _Harness().loaded();
