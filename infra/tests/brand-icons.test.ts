@@ -99,3 +99,85 @@ describe('Android launcher icon', () => {
     }
   })
 })
+
+/** The Nocturne page colour for [theme], read from the app's tokens so the
+ * native splash cannot drift from the first Flutter frame. */
+function pageColour(theme: 'dark' | 'light'): string {
+  const tokens = readFileSync(join(root, 'apps/mobile/lib/theme/nocturne_tokens.dart'), 'utf8')
+  const block = tokens.split(`static const NocturneTokens ${theme} = NocturneTokens(`)[1]
+  const argb = block.match(/background: Color\(0xFF([0-9A-F]{6})\)/)![1]
+  return `#${argb}`
+}
+
+/** A style item's value, with an `@color/` reference resolved against the
+ * colours of the same night qualifier. */
+function styleItem(values: string, name: string): string | undefined {
+  const xml = readFileSync(join(res, values, 'styles.xml'), 'utf8')
+  const value = xml.match(new RegExp(`<item name="${name}">([^<]+)</item>`))?.[1].trim()
+  const ref = value?.match(/^@color\/(\w+)$/)
+  if (!ref) return value
+  const night = values.includes('night') ? 'values-night' : 'values'
+  const colours = readFileSync(join(res, night, 'colors.xml'), 'utf8')
+  return colours.match(new RegExp(`<color name="${ref[1]}">([^<]+)</color>`))?.[1].trim()
+}
+
+describe('launch screen', () => {
+  const storyboard = () =>
+    readFileSync(join(root, 'apps/mobile/ios/Runner/Base.lproj/LaunchScreen.storyboard'), 'utf8')
+
+  // @lat: [[infra-tests#Brand icons#The iOS launch screen shows the icon on the page colour]]
+  it('draws the icon image set on the page colour for each appearance', () => {
+    const images = [...storyboard().matchAll(/<imageView[^>]* image="(\w+)"/g)].map((m) => m[1])
+    expect(images).toEqual(['LaunchIcon'])
+    const set = join(ios, 'LaunchIcon.imageset')
+    const entries: IconEntry[] = JSON.parse(readFileSync(join(set, 'Contents.json'), 'utf8')).images
+    expect(entries.map((e) => e.scale).sort()).toEqual(['1x', '2x', '3x'])
+    const base = readPng(join(set, entries.find((e) => e.scale === '1x')!.filename!)).width
+    for (const entry of entries) {
+      const png = readPng(join(set, entry.filename!))
+      expect(png.width, entry.filename).toBe(base * Number(entry.scale!.replace('x', '')))
+    }
+    expect(existsSync(join(ios, 'LaunchImage.imageset'))).toBe(false)
+
+    const named = storyboard().match(/<color key="backgroundColor" name="(\w+)"/)?.[1]
+    expect(named).toBe('LaunchBackground')
+    const colours = JSON.parse(
+      readFileSync(join(ios, `${named}.colorset`, 'Contents.json'), 'utf8'),
+    ).colors as { appearances?: { value: string }[]; color: { components: Record<string, string> } }[]
+    const hexOf = (c: (typeof colours)[number]) =>
+      '#' + ['red', 'green', 'blue'].map((k) => c.color.components[k].replace('0x', '')).join('').toUpperCase()
+    expect(hexOf(colours.find((c) => !c.appearances)!)).toBe(pageColour('light'))
+    expect(hexOf(colours.find((c) => c.appearances?.[0].value === 'dark')!)).toBe(pageColour('dark'))
+  })
+
+  // @lat: [[infra-tests#Brand icons#Android 12 splashes set the icon and the page colour]]
+  it('sets the Android 12 splash icon and background in both themes', () => {
+    for (const [values, theme] of [['values-v31', 'light'], ['values-night-v31', 'dark']] as const) {
+      const icon = styleItem(values, 'android:windowSplashScreenAnimatedIcon')
+      expect(icon, values).toMatch(/^@drawable\/\w+$/)
+      const name = icon!.split('/')[1]
+      expect(
+        Object.keys(densities).some((d) => existsSync(join(res, `drawable-${d}`, `${name}.png`))),
+        `${values} ${icon}`,
+      ).toBe(true)
+      expect(styleItem(values, 'android:windowSplashScreenBackground')?.toUpperCase(), values).toBe(
+        pageColour(theme),
+      )
+    }
+  })
+
+  // @lat: [[infra-tests#Brand icons#Older Android draws the icon on the page colour]]
+  it('draws the icon on the page colour before Android 12', () => {
+    for (const drawable of ['drawable', 'drawable-v21']) {
+      const xml = readFileSync(join(res, drawable, 'launch_background.xml'), 'utf8')
+      expect(xml, drawable).toContain('@color/splash_background')
+      expect(xml, drawable).toMatch(/<bitmap[^>]*android:src="@drawable\/splash_icon"/)
+    }
+    for (const [values, theme] of [['values', 'light'], ['values-night', 'dark']] as const) {
+      const colours = readFileSync(join(res, values, 'colors.xml'), 'utf8')
+      expect(colours.match(/<color name="splash_background">([^<]+)<\/color>/)?.[1].toUpperCase()).toBe(
+        pageColour(theme),
+      )
+    }
+  })
+})
