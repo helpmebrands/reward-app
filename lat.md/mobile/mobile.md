@@ -3,11 +3,11 @@
 The Flutter app in `apps/mobile`: the product in [[overview]] rebuilt on [[domain|the shared domain]] for iOS and Android, replacing the frozen [[pwa]] once it reaches parity.
 
 - [[mobile-architecture]] — The UI, logic and data layers, the Nocturne theme and the workspace wiring.
-- [[mobile-tests]] — What the Flutter suites guard: the theme, the store, the Today, Credits, Cards, Value, Add a card, editor, Settings and not-found screens, the routing polish, the Field pattern, the credit sheet, the swipe row and the undo snackbar.
+- [[mobile-tests]] — What the Flutter suites guard: the theme, the store, the Today, Credits, Cards, Value, Add a card, editor, Settings and not-found screens, the routing polish, the Field pattern, the credit sheet, the swipe row, the undo snackbar and push.
 
 ## Parity checklist
 
-Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], with the Flutter counterpart that covers it and the test that pins it; the input to the PWA retirement issue. Two exclusions were decided on epic #148 and carry their follow-on.
+Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], with the Flutter counterpart that covers it and the test that pins it; the input to the PWA retirement issue. One exclusion decided on epic #148 remains, with its follow-on.
 
 | PWA feature | Flutter counterpart | Pinned by |
 | --- | --- | --- |
@@ -31,9 +31,9 @@ Every feature of the frozen PWA, from [[design#Screens]] and [[interaction]], wi
 | Text to 200%, token contrast | ([[mobile-architecture#Accessibility]]) | [[mobile-tests#Text scaling]], [[mobile-tests#Token contrast]] |
 | Titles and focus, the not-found route, the notification message | `ScreenTitle`, `NotFoundScreen`, `handleNotificationTap` ([[mobile-architecture#Navigation#Routes and the shell]]) | [[mobile-tests#Routing]] |
 | Theme: Nocturne in both modes | `nocturneTheme` ([[mobile-architecture#Theme]]) | [[mobile-tests#Theme]] |
-| Reminder delivery: permission, push, periodic sync, the test notification | **Excluded**: the preferences persist and the nudge previews; delivery on the device is issue #175, to be broken down into an epic | (none yet) |
+| Reminder delivery: permission, push, periodic sync, the test notification | `PushController` and `FirebasePushMessaging`; the server sends ([[mobile-architecture#Push]], [[api-architecture#Reminder sender]]), so there is no periodic sync | [[mobile-tests#Push]] |
 | Your data: export and import a backup | **Excluded** on epic #148; returns as a debug feature in issue #176 | (none yet) |
 | Forced colours | **Not applicable**: a browser mode; the platforms' high-contrast settings apply through Material | (none) |
 | Service worker, install prompt, PWA manifest | **Not applicable**: the store app has no worker | (none) |
 
-The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Retiring `apps/pwa` is issue #174, which waits on the two exclusions.
+The flow in [[mobile-tests#End to end]] runs the ticked rows on a simulator in one pass. Retiring `apps/pwa` is issue #174, which waits on the remaining exclusion.

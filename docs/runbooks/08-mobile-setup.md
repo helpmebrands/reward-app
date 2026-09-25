@@ -29,6 +29,7 @@ A staging app installed beside the production one would need a second id
 | Play Console app record | Play Console | Google |
 | Upload keystore (`.jks` and its one password) | `keytool` on your Mac | Secret Manager `reward-app-android-*` |
 | Play signing key fingerprint | Play Console | stack config `androidSha256Fingerprints` |
+| APNs authentication key (`.p8`) | Apple Developer portal | Firebase Cloud Messaging |
 | Google OAuth web client | Google Cloud console | stack config `googleOAuthClientId`, `googleOAuthClientSecret` |
 | `api.<env>` DNS record | Cloudflare | Cloudflare |
 
@@ -128,14 +129,13 @@ and never learns about new ones. That is why this step comes long before
 the profile (1.7).
 
 1. Open the app id from 1.1.
-2. Tick **Push Notifications**. Push delivery is not built yet; turning it
-   on now means the profile will not need re-making when it is.
+2. Tick **Push Notifications**. Reminders arrive through it (3.6).
 3. Tick **Sign in with Apple**. Keep *Enable as a primary App ID*.
 4. Tick **Associated Domains**. Invite links open the app through it.
 5. Click **Save**, and confirm if asked.
 
 These must match the app: `apps/mobile/ios/Runner/Runner.entitlements`
-declares `com.apple.developer.applesignin` and
+declares `aps-environment`, `com.apple.developer.applesignin` and
 `com.apple.developer.associated-domains`. A later change that adds an
 entitlement there is handled by *Later: re-making the iOS profile*.
 
@@ -724,6 +724,35 @@ for another environment can pass them as `--dart-define`s instead. The URL
 scheme goes in `CFBundleURLSchemes` in `apps/mobile/ios/Runner/Info.plist`;
 Google sign-in on iOS returns to the app through it. None of these is a
 secret: they ship in every copy of the app.
+
+### 3.6 The APNs key for push
+
+FCM reaches iPhones through Apple's push service, and Apple only accepts
+it with a key from this team. One key serves development and production
+builds. Android needs nothing here.
+
+1. Open <https://developer.apple.com/account/resources/authkeys/list> and
+   click **+**.
+2. *Key Name*: `HelpMe Reward APNs`. Tick **Apple Push Notifications
+   service (APNs)**. If it asks for an environment, choose **Sandbox &
+   Production**. Click **Continue**, then **Register**.
+3. Write down the **Key ID** (ten characters) from the confirmation page.
+4. Click **Download** and save `AuthKey_<KEYID>.p8` into `~/reward-signing`.
+   **This is the only chance to download it.**
+5. Open the Firebase console for the project
+   (<https://console.firebase.google.com/project/helpme-reward-staging/settings/cloudmessaging>
+   on staging). Under *Apple app configuration*, find the app
+   `com.helpmebrands.reward`.
+6. Under *APNs Authentication Key*, click **Upload**. Choose the `.p8`
+   from step 4, enter the Key ID from step 3 and the Team ID `LMFUSVPCDH`,
+   and click **Upload**.
+7. Delete the local copy: `rm ~/reward-signing/AuthKey_<KEYID>.p8`. Firebase
+   keeps the key; a lost key is revoked and replaced by repeating this
+   step.
+
+The api sends through FCM as its own identity (no key file, see
+`infra/index.ts`), and Cloud Scheduler runs the reminder job every 15
+minutes once `pulumi up` (3.3) has applied the stack.
 
 ## Part 4 — Check everything
 

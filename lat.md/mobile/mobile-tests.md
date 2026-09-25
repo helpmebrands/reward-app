@@ -971,3 +971,51 @@ Booting the app with an empty snapshot store on a device reaches the Today scree
 One pass from an empty store through adding a card, logging, undoing, swiping and reading every screen, on a real simulator or emulator.
 
 The steps: add the Platinum from the catalogue for Kathy and land on its editor; see its Walmart+ Membership Credit, a monthly credit with no enrolment, on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $12.95 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.
+
+## Push
+
+`push_test.dart` drives `PushController` and the app over fakes of FCM and the api; `push_config_test.dart` reads the native files ([[mobile-architecture#Push]]).
+
+### A granted permission registers the device
+
+`enable` prompts once and registers the token with the installation id, `ios` and `Europe/London` from the fake.
+
+### A refused permission registers nothing
+
+A denial returns the refusal sentence and the api holds no device.
+
+### A refreshed token registers again
+
+After a refresh the api holds only the new token; `unregister` then leaves it empty.
+
+### Turning reminders on asks once
+
+In Settings the switch prompts once, turns reminders on and registers; switching off turns them off and removes the device.
+
+### A refusal is reported in the snackbar
+
+With a denial the switch stays off and the snackbar reads "Reminders stay off until notifications are allowed."
+
+### Signing out deletes the registration
+
+Sign out removes the device from the api before the auth signs out.
+
+### Settings shows the summary and sends a test
+
+With reminders on, Settings shows "3 reminders scheduled. Next on Oct 31: $10 expires tonight." from the api, and the test button posts once and shows "Test notification sent."
+
+### A tapped notification opens its screen
+
+A tap whose data names `/cards/card-1` opens the card editor, from the background and when the tap launched the app.
+
+### A notice in the foreground shows in the snackbar
+
+A push that arrives while the app is open shows its title in the snackbar.
+
+### iOS declares push
+
+`Runner.entitlements` has `aps-environment` and `Info.plist` lists `remote-notification` under `UIBackgroundModes`.
+
+### Both platforms answer the zone channel
+
+`AppDelegate.swift` and `MainActivity.kt` both name the `com.helpmebrands.reward/timezone` channel and its `current` method.

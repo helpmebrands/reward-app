@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../data/household_api.dart';
 import '../data/share.dart';
 import '../logic/app_store.dart';
+import '../logic/push.dart';
 import '../logic/session.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
@@ -18,15 +19,26 @@ import 'join_screen.dart';
 /// Settings: reminder preferences, the ladder table and the theme.
 ///
 /// The reminder preferences are persisted here and drive the nudge preview;
-/// delivery on the device, with its permission, is a later epic. The theme
+/// with [push], turning reminders on asks for notification permission and
+/// registers the device, and the server's summary and a test button show
+/// beneath the switch. The theme
 /// choice writes `Settings.theme`, which `RewardApp` reads from the store
 /// into the app's theme mode, so an override takes effect at once. One
 /// column at every width, because the ladder table needs it.
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.store, this.ui, this.session});
+  const SettingsScreen({
+    super.key,
+    required this.store,
+    this.ui,
+    this.session,
+    this.push,
+  });
 
   final AppStore store;
   final UiState? ui;
+
+  /// Push on this device; without it the switch only saves the preference.
+  final PushController? push;
 
   /// Who is signed in, for the account section and sign-out.
   final Session? session;
@@ -91,6 +103,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
   AppStore get store => widget.store;
   MemberPreferences get _notifications => store.preferences;
 
+  /// With push, on asks permission and registers first, and a refusal
+  /// leaves reminders off with the reason in the snackbar; off saves, then
+  /// removes the registration.
+  Future<void> _setReminders(bool next) async {
+    final push = widget.push;
+    if (push == null) {
+      await store.updatePreferences((n) => n.copyWith(enabled: next));
+      return;
+    }
+    if (!next) {
+      await store.updatePreferences((n) => n.copyWith(enabled: false));
+      await push.unregister();
+      return;
+    }
+    final refusal = await push.enable();
+    if (refusal != null) {
+      widget.ui?.snackbar.show(refusal);
+      return;
+    }
+    await store.updatePreferences((n) => n.copyWith(enabled: true));
+    await push.refreshSummary();
+  }
+
+  /// "3 reminders scheduled. Next on Oct 31: $10 expires tonight."
+  String _summaryText(ReminderSummary? summary) {
+    if (summary == null) return 'Reminders come from the server.';
+    if (summary.count == 0) return 'Nothing scheduled yet.';
+    final count =
+        '${summary.count} reminder${summary.count == 1 ? '' : 's'} scheduled.';
+    final next = summary.next;
+    if (next == null) return count;
+    final local = next.fireAt.toLocal();
+    final day = formatIsoDate(
+      DateParts(year: local.year, month: local.month, day: local.day),
+    );
+    return '$count Next on ${formatDate(day, store.today)}: ${next.title}.';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -99,6 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _minValue.text = (current.minValueCents / 100).toString();
     _time.addListener(_changed);
     _minValue.addListener(_changed);
+    if (current.enabled) widget.push?.refreshSummary();
   }
 
   @override
@@ -200,8 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'not twelve.',
           label: 'Send me reminders',
           value: n.enabled,
-          onChanged: (next) =>
-              store.updatePreferences((n) => n.copyWith(enabled: next)),
+          onChanged: _setReminders,
         ),
         if (n.enabled) ...[
           const SizedBox(height: Space.s4),
@@ -242,6 +292,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: control.decoration,
             ),
           ),
+          const SizedBox(height: Space.s4),
+          if (widget.push case final push?) ...[
+            ListenableBuilder(
+              listenable: push,
+              builder: (context, _) => Text(
+                _summaryText(push.summary),
+                key: const Key('reminder-summary'),
+                style: note,
+              ),
+            ),
+            const SizedBox(height: Space.s3),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: OutlinedButton.icon(
+                key: const Key('send-test'),
+                icon: const Icon(Icons.notifications_active_outlined),
+                label: const Text('Send a test notification'),
+                onPressed: () async {
+                  final message = await push.sendTest();
+                  widget.ui?.snackbar.show(message);
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: Space.s4),
           SwitchRow(
             title: 'Nudge me about locked credits',
@@ -339,7 +413,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             alignment: AlignmentDirectional.centerStart,
             child: OutlinedButton(
               key: const Key('sign-out'),
-              onPressed: session.auth.signOut,
+              // Unregister while the ID token still works.
+              onPressed: () async {
+                await widget.push?.unregister();
+                await session.auth.signOut();
+              },
               child: const Text('Sign out'),
             ),
           ),

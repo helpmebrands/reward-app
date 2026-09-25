@@ -10,9 +10,11 @@ import 'data/claim_outbox.dart';
 import 'data/firebase_auth_service.dart';
 import 'data/household_api.dart';
 import 'data/household_cache.dart';
+import 'data/push_messaging.dart';
 import 'data/snapshot_store.dart';
 import 'firebase_options.dart';
 import 'logic/app_store.dart';
+import 'logic/push.dart';
 import 'logic/session.dart';
 import 'logic/ui_state.dart';
 import 'shell/app_scope.dart';
@@ -39,24 +41,46 @@ Future<void> main() async {
   // With Firebase the household lives in the service tier; without it (a
   // local run on a platform with no Firebase app) the snapshot stays on
   // the device, as before sign-in existed.
-  final store = options == null
+  final api = options == null
+      ? null
+      : ApiClient(baseUrl: ApiConfig.baseUrl, token: auth.idToken);
+  final store = api == null
       ? AppStore(store: const SharedPreferencesSnapshotStore())
       : AppStore(
           store: const SharedPreferencesSnapshotStore(),
-          api: ApiClient(baseUrl: ApiConfig.baseUrl, token: auth.idToken),
+          api: api,
           cache: const SharedPreferencesHouseholdCache(),
           outbox: const SharedPreferencesClaimOutbox(),
         );
-  store.load();
+  // Push needs Firebase too; the server sends, the device registers.
+  final push = api == null
+      ? null
+      : (PushController(
+          messaging: FirebasePushMessaging(),
+          api: api,
+          installationId: sharedPreferencesInstallationId,
+        )..start());
+  // With reminders on, each launch and sign-in registers again, so the api
+  // has this installation's current token and zone.
+  Future<void> registerIfOn() async {
+    if (push == null || !session.signedIn || !store.preferences.enabled) {
+      return;
+    }
+    await push.register().catchError((Object _) {});
+  }
+
+  store.load().then((_) => registerIfOn()).ignore();
   // Signing in fetches the household; signing out forgets it, so the next
   // person on this device never sees it or sends its queued claims.
   var signedIn = session.signedIn;
   session.addListener(() {
     if (session.signedIn == signedIn) return;
     signedIn = session.signedIn;
-    signedIn ? store.refresh().ignore() : store.forget().ignore();
+    signedIn
+        ? store.refresh().then((_) => registerIfOn()).ignore()
+        : store.forget().ignore();
   });
-  runApp(RewardApp(store: store, session: session));
+  runApp(RewardApp(store: store, session: session, push: push));
 }
 
 /// The app: Material on Nocturne's tokens, following the system theme, the
@@ -68,10 +92,15 @@ class RewardApp extends StatefulWidget {
     required this.store,
     this.ui,
     this.session,
+    this.push,
     this.initialLocation = Paths.today,
   });
 
   final AppStore store;
+
+  /// Push on this device: taps open their screen, and a push in the
+  /// foreground shows in the snackbar. Null without Firebase.
+  final PushController? push;
 
   /// Sign-in and the welcome slideshow; without one there is no redirect,
   /// which is how tests reach the screens behind sign-in directly.
@@ -92,17 +121,29 @@ class _RewardAppState extends State<RewardApp> {
     widget.store,
     initialLocation: widget.initialLocation,
     session: widget.session,
+    push: widget.push,
   );
   late final UiState _ui = widget.ui ?? UiState();
   String? _location;
   AppLifecycleListener? _lifecycle;
   Timer? _retry;
+  final _pushes = <StreamSubscription<Object?>>[];
 
   @override
   void initState() {
     super.initState();
     _router.routerDelegate.addListener(_onNavigation);
     widget.store.addListener(_onStore);
+    if (widget.push?.messaging case final messaging?) {
+      messaging.initialTap().then((data) {
+        if (data != null && mounted) handleNotificationTap(_router, data);
+      }).ignore();
+      _pushes
+        ..add(
+          messaging.taps.listen((data) => handleNotificationTap(_router, data)),
+        )
+        ..add(messaging.foreground.listen((n) => _ui.snackbar.show(n.title)));
+    }
     if (widget.store.remote) {
       // Back from the background: fetch and send anything queued.
       _lifecycle = AppLifecycleListener(
@@ -154,6 +195,9 @@ class _RewardAppState extends State<RewardApp> {
 
   @override
   void dispose() {
+    for (final s in _pushes) {
+      s.cancel();
+    }
     _retry?.cancel();
     _lifecycle?.dispose();
     widget.store.removeListener(_onStore);
