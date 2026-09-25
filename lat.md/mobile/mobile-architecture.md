@@ -112,7 +112,7 @@ Notifiers reach widgets by constructor until the tree is deep enough to hurt, th
 
 Decided in issue #136: routing is `go_router`, published by flutter.dev, with the four destinations in a `StatefulShellRoute.indexedStack` and every screen addressable by path as in the PWA. No other routing package and no raw Navigator 2.0.
 
-The Flutter team's architecture guidance recommends `go_router`, and the package README declares it feature-complete: bug fixes and stability, no new features planned. For code an agent writes that is an asset, not a risk. Version 18 requires Flutter 3.44, the pinned toolchain. Screens are addressable because a tapped reminder must open the screen it names, as the PWA's shell does on the worker's `navigate` message ([[architecture#The shell and routing]]).
+The Flutter team's architecture guidance recommends `go_router`, and the package README declares it feature-complete: bug fixes and stability, no new features planned. For code an agent writes that is an asset, not a risk. Version 18 requires Flutter 3.44; the pinned toolchain is 3.47. Screens are addressable because a tapped reminder must open the screen it names, as the PWA's shell does on the worker's `navigate` message ([[architecture#The shell and routing]]).
 
 ### Routes and the shell
 
@@ -131,7 +131,7 @@ The route table mirrors the PWA's nine routes, with the four tabs as branches of
 
 ### Transitions and back
 
-Page transitions stay at the framework defaults, which on the pinned Flutter (3.44) means predictive back on Android with `FadeForwardsPageTransitionsBuilder` for a plain push, and the Cupertino slide on iOS.
+Page transitions stay at the framework defaults, which on the pinned Flutter (3.47) means predictive back on Android with `FadeForwardsPageTransitionsBuilder` for a plain push, and the Cupertino slide on iOS.
 
 - **No `pageTransitionsTheme` in the theme**: pinning a builder opts out of predictive back. The first-party `animations` package is not added until [[design#Screens]] asks for a motion pattern the defaults lack; none does today.
 - **The manifest enables predictive back**: `android:enableOnBackInvokedCallback="true"` on the `<application>` element, without which the gesture does not animate.
