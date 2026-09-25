@@ -183,6 +183,12 @@ export function Cards() {
                   <span class="tag">
                     {summary.instances.length} credit{summary.instances.length === 1 ? '' : 's'}
                   </span>
+                  <Show when={summary.card.kind === 'business'}>
+                    <span class="tag">
+                      <Ph name="briefcase" size={11} />
+                      Business
+                    </span>
+                  </Show>
                 </div>
 
                 <A class="btn btn--block cardstat__edit" href={`/cards/${summary.card.id}`}>

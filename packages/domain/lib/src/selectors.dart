@@ -27,20 +27,50 @@ int claimedIn(ClaimIndex claims, String benefitId, String cycleKey) {
   return claims[_keyOf(benefitId, cycleKey)] ?? 0;
 }
 
-/// True when a credit cannot be spent until the user ticks an enrolment box.
-bool isLocked(Benefit benefit) {
-  return benefit.enrollmentRequired && benefit.enrolledAt == null;
+/// Why a credit cannot be spent yet. Enrolment outranks spend.
+enum LockReason { enrollment, spend }
+
+/// What stands between the user and the credit, or null when nothing does:
+/// an unticked enrolment box, or a spend threshold not yet met this year.
+LockReason? lockReason(Benefit benefit, Card card, IsoDate on) {
+  if (benefit.enrollmentRequired && benefit.enrolledAt == null) {
+    return LockReason.enrollment;
+  }
+  if (benefit.spendThresholdCents != null &&
+      !_spendMetThisYear(benefit, card, on)) {
+    return LockReason.spend;
+  }
+  return null;
+}
+
+/// True when a credit cannot be spent until a box is ticked or a spend
+/// reached.
+bool isLocked(Benefit benefit, Card card, IsoDate on) {
+  return lockReason(benefit, card, on) != null;
+}
+
+/// Whether the spend was met in the credit's current year: the calendar year
+/// for a calendar-anchored credit, the cardmember year for an anniversary one.
+bool _spendMetThisYear(Benefit benefit, Card card, IsoDate on) {
+  final metAt = benefit.spendMetAt;
+  if (metAt == null) return false;
+  final year = cycleFor(benefit.copyWith(cadence: Cadence.annual), card, on);
+  return year != null && isWithin(metAt.substring(0, 10), year.start, year.end);
 }
 
 BenefitStatus _statusFor(
   Benefit benefit,
   int claimedCents,
   int daysRemaining,
+  bool locked,
   int useSoonHorizon,
 ) {
   if (claimedCents >= benefit.valueCents) return BenefitStatus.captured;
   if (benefit.cadence == Cadence.manual) return BenefitStatus.manual;
-  if (isLocked(benefit)) return BenefitStatus.locked;
+  if (locked) return BenefitStatus.locked;
+  // A rolling window has no deadline the user can miss: it is open until
+  // claimed, then closed until the interval runs out.
+  if (benefit.cadence == Cadence.rolling) return BenefitStatus.available;
   if (daysRemaining < 0) return BenefitStatus.missed;
   return daysRemaining <= useSoonHorizon
       ? BenefitStatus.useSoon
@@ -59,6 +89,7 @@ BenefitInstance resolveInstance(
   ClaimIndex claims,
   IsoDate on, {
   int useSoonHorizon = useSoonDays,
+  MemberPreferences? prefs,
 }) {
   final claimedCents = claimedIn(claims, benefit.id, cycle.key);
   final daysRemaining = daysRemainingIn(cycle, on);
@@ -69,10 +100,16 @@ BenefitInstance resolveInstance(
     cycle: cycle,
     claimedCents: claimedCents,
     remainingCents: remaining > 0 ? remaining : 0,
-    status: _statusFor(benefit, claimedCents, daysRemaining, useSoonHorizon),
+    status: _statusFor(
+      benefit,
+      claimedCents,
+      daysRemaining,
+      isLocked(benefit, card, on),
+      useSoonHorizon,
+    ),
     daysRemaining: daysRemaining,
     cycleProgress: cycleProgress(cycle, on),
-    muted: benefit.muted || card.muted,
+    muted: prefs?.isMuted(benefit) ?? false,
   );
 }
 
@@ -93,18 +130,25 @@ List<T> _stableSorted<T>(Iterable<T> items, int Function(T a, T b) compare) {
 }
 
 /// Every active benefit resolved against its current cycle, ordered by what
-/// the user is closest to losing.
-List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
+/// the user is closest to losing. [prefs] are the reading member's, which
+/// decide [BenefitInstance.muted]; without them nothing is muted.
+List<BenefitInstance> currentInstances(
+  AppData data, [
+  IsoDate? on,
+  MemberPreferences? prefs,
+]) {
   final day = on ?? todayIso();
   final claims = indexClaims(data.claims);
   final cardsById = {for (final card in data.cards) card.id: card};
   final instances = <BenefitInstance>[];
 
   for (final benefit in data.benefits) {
-    if (!benefit.active) continue;
+    if (!benefit.active || hasEnded(benefit, day)) continue;
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
-    final cycle = cycleFor(benefit, card, day) ?? _untrackedCycle(day);
+    final cycle =
+        cycleFor(benefit, card, day, claims: data.claims) ??
+        _untrackedCycle(day);
     instances.add(
       resolveInstance(
         benefit,
@@ -113,6 +157,7 @@ List<BenefitInstance> currentInstances(AppData data, [IsoDate? on]) {
         claims,
         day,
         useSoonHorizon: data.settings.useSoonDays,
+        prefs: prefs,
       ),
     );
   }
@@ -275,7 +320,7 @@ List<OverlapGroup> findOverlaps(List<BenefitInstance> instances) {
         label: first.benefit.name,
         instances: _stableSorted(
           group,
-          (a, b) => a.card.holder.compareTo(b.card.holder),
+          (a, b) => cardLabel(a.card).compareTo(cardLabel(b.card)),
         ),
         remainingCents: sumRemaining(group),
         sameProduct:
@@ -322,7 +367,12 @@ List<MissedCycle> missedCycles(
   // Only count windows that opened after the card was added: the app cannot
   // know whether a credit was used before it started tracking.
   for (final benefit in data.benefits) {
-    if (!benefit.active || benefit.cadence == Cadence.manual) continue;
+    // Manual credits have no window to miss; rolling ones close only by claim.
+    if (!benefit.active ||
+        benefit.cadence == Cadence.manual ||
+        benefit.cadence == Cadence.rolling) {
+      continue;
+    }
     final card = cardsById[benefit.cardId];
     if (card == null || card.archived) continue;
     final trackedFrom = card.createdAt.substring(0, 10);
@@ -524,7 +574,15 @@ CardSummary summarizeCard(
   return CardSummary(
     card: card,
     instances: mine,
-    annualValueCents: benefits.fold(0, (sum, b) => sum + annualValueCents(b)),
+    // A spend-gated credit is not the card's to give until the spend is met.
+    annualValueCents: benefits.fold(
+      0,
+      (sum, b) =>
+          sum +
+          (lockReason(b, card, day) == LockReason.spend
+              ? 0
+              : annualValueCents(b)),
+    ),
     capturedCents: capturedCents,
     claimableCents: sumRemaining(mine.where(isClaimable)),
     lockedCents: sumRemaining(
@@ -554,7 +612,6 @@ Benefit _cardYearBenefit(Card card) {
     anchor: CycleAnchor.anniversary,
     enrollmentRequired: false,
     redemptionSteps: const [],
-    muted: false,
     lastCallOnly: false,
     active: true,
     createdAt: card.createdAt,
@@ -592,29 +649,35 @@ int daysUntilRenewal(Card card, [IsoDate? on]) {
   return cycle != null ? daysBetween(day, cycle.end) + 1 : 0;
 }
 
-/// Distinct household members, in the order their cards were added.
-List<String> holders(AppData data) {
-  final seen = <String>[];
-  for (final card in data.cards) {
-    if (!card.archived &&
-        card.holder.isNotEmpty &&
-        !seen.contains(card.holder)) {
-      seen.add(card.holder);
-    }
-  }
-  return seen;
+/// A card's display name: its label, or its product name when it has none.
+/// Unique within the household ([labelError]).
+String cardLabel(Card card) {
+  final label = card.label?.trim();
+  if (label != null && label.isNotEmpty) return label;
+  return productName(card.issuer, card.product);
 }
 
-String cardLabel(Card card) {
-  final nickname = card.nickname;
-  if (nickname != null && nickname.isNotEmpty) return nickname;
-  final joined = [
-    card.issuer,
-    card.product,
-  ].where((s) => s.isNotEmpty).join(' ').trim();
-  final product = joined.isEmpty ? 'Card' : joined;
-  return card.holder.isNotEmpty ? '$product — ${card.holder}' : product;
+/// `issuer product`, the name a card has before anyone labels it.
+String productName(String issuer, String product) {
+  final joined = [issuer, product].where((s) => s.isNotEmpty).join(' ').trim();
+  return joined.isEmpty ? 'Card' : joined;
 }
+
+/// The label to propose for a new card of this product: null while its
+/// product name is free, otherwise the first free `<product> (n)` from 1.
+/// The proposal is stored as the card's label, so deleting a card later
+/// renames nothing.
+String? defaultLabel(List<Card> cards, String issuer, String product) {
+  final taken = {for (final card in cards) _nameKey(cardLabel(card))};
+  final name = productName(issuer, product);
+  if (!taken.contains(_nameKey(name))) return null;
+  for (var n = 1; ; n++) {
+    final candidate = '$name ($n)';
+    if (!taken.contains(_nameKey(candidate))) return candidate;
+  }
+}
+
+String _nameKey(String name) => name.trim().toLowerCase();
 
 String categoryLabel(BenefitCategory category) => switch (category) {
   BenefitCategory.travel => 'Travel',

@@ -1,5 +1,6 @@
 import { createMemo, For, Show } from 'solid-js'
 import { cadenceLabel } from '../domain/cycles.ts'
+import { addDays } from '../domain/dates.ts'
 import {
   formatDate,
   formatDaysRemaining,
@@ -7,7 +8,7 @@ import {
   parseMoneyToCents,
 } from '../domain/format.ts'
 import { currentRung, ladderFor } from '../domain/ladder.ts'
-import { cardLabel, statusLabel } from '../domain/selectors.ts'
+import { cardLabel, lockReason, statusLabel } from '../domain/selectors.ts'
 import type { BenefitInstance, Claim } from '../domain/types.ts'
 import { useApp } from '../stores/app.tsx'
 import { Ph } from './Ph.tsx'
@@ -37,6 +38,36 @@ export function CreditSheet(props: CreditSheetProps) {
   const instance = () => props.instance
   const benefit = () => instance()?.benefit
   const status = () => instance()?.status
+  const reason = () => {
+    const current = instance()
+    return current ? lockReason(current.benefit, current.card, app.today()) : null
+  }
+
+  /** The deadline line under the meter, by what kind of window this is. */
+  function deadlineText(current: BenefitInstance): string {
+    const { cadence } = current.benefit
+    if (cadence === 'manual') return 'Tracked by hand — no deadline'
+    if (cadence === 'rolling') {
+      return current.status === 'captured'
+        ? `Eligible again ${formatDate(addDays(current.cycle.end, 1))}`
+        : 'Eligible now — the clock restarts when you claim it'
+    }
+    if (current.daysRemaining < 0) return `Expired ${formatDate(current.cycle.end)}`
+    return `${formatDaysRemaining(current.daysRemaining)} — closes ${formatDate(current.cycle.end)}`
+  }
+
+  /** What stands in the way of a locked credit, in the user's terms. */
+  function lockedNote(current: BenefitInstance): string {
+    if (reason() === 'spend') {
+      return `Unlocks after ${formatMoney(current.benefit.spendThresholdCents ?? 0)} spend this year.`
+    }
+    return (
+      current.benefit.enrollmentNote ??
+      `Not enrolled. ${formatMoney(
+        current.benefit.valueCents,
+      )} is unreachable until you tick the box on the issuer's benefits page.`
+    )
+  }
 
   /**
    * Quick amounts: a quarter, a half, and a round figure, all capped at what is
@@ -130,10 +161,18 @@ export function CreditSheet(props: CreditSheetProps) {
                 <h2 class="sheet-head__title">{current().benefit.name}</h2>
                 <p class="muted" style={{ 'font-size': 'var(--type-note)' }}>
                   {cadenceLabel(current().benefit.cadence)} &middot; {current().cycle.label}
-                  <Show when={current().benefit.cadence !== 'manual'}>
+                  <Show
+                    when={
+                      current().benefit.cadence !== 'manual' &&
+                      current().benefit.cadence !== 'rolling'
+                    }
+                  >
                     {' '}
                     &middot; {formatDate(current().cycle.start)} &ndash;{' '}
                     {formatDate(current().cycle.end)}
+                  </Show>
+                  <Show when={current().benefit.endsOn}>
+                    {(endsOn) => <> &middot; ends {formatDate(endsOn())}</>}
                   </Show>
                 </p>
               </div>
@@ -175,16 +214,7 @@ export function CreditSheet(props: CreditSheetProps) {
               <div class="row" style={{ gap: 'var(--space-2)' }}>
                 <Ph name="clock-countdown" size={13} color="var(--color-accent-300)" />
                 <span style={{ 'font-size': 'var(--type-note)', color: 'var(--color-accent-300)' }}>
-                  <Show
-                    when={current().benefit.cadence !== 'manual'}
-                    fallback="Tracked by hand — no deadline"
-                  >
-                    {current().daysRemaining < 0
-                      ? `Expired ${formatDate(current().cycle.end)}`
-                      : `${formatDaysRemaining(current().daysRemaining)} — closes ${formatDate(
-                          current().cycle.end,
-                        )}`}
-                  </Show>
+                  {deadlineText(current())}
                 </span>
               </div>
             </section>
@@ -193,40 +223,56 @@ export function CreditSheet(props: CreditSheetProps) {
               <section class="sheet-locked">
                 <div class="row" style={{ 'align-items': 'flex-start', gap: 'var(--space-3)' }}>
                   <Ph name="lock-simple" size={15} color="var(--tone-locked-fg)" />
-                  <p class="sheet-locked__note">
-                    {current().benefit.enrollmentNote ??
-                      `Not enrolled. ${formatMoney(
-                        current().benefit.valueCents,
-                      )} is unreachable until you tick the box on the issuer's benefits page.`}
-                  </p>
+                  <p class="sheet-locked__note">{lockedNote(current())}</p>
                 </div>
                 <div class="stack stack--tight" style={{ 'margin-top': 'var(--space-4)' }}>
-                  <Show when={current().benefit.enrollmentUrl}>
-                    {(url) => (
-                      <a
-                        class="btn btn--primary btn--block"
-                        href={url()}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                      >
-                        <Ph name="arrow-square-out" size={14} />
-                        Open the benefits page
-                      </a>
-                    )}
-                  </Show>
-                  <button
-                    type="button"
-                    class="btn btn--block"
-                    onClick={() => {
-                      app.confirmEnrollment(current().benefit.id)
-                      snackbar.show(`${current().benefit.name} unlocked.`, {
-                        label: 'Undo',
-                        onAct: () => app.revokeEnrollment(current().benefit.id),
-                      })
-                    }}
+                  <Show
+                    when={reason() === 'spend'}
+                    fallback={
+                      <>
+                        <Show when={current().benefit.enrollmentUrl}>
+                          {(url) => (
+                            <a
+                              class="btn btn--primary btn--block"
+                              href={url()}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                            >
+                              <Ph name="arrow-square-out" size={14} />
+                              Open the benefits page
+                            </a>
+                          )}
+                        </Show>
+                        <button
+                          type="button"
+                          class="btn btn--block"
+                          onClick={() => {
+                            app.confirmEnrollment(current().benefit.id)
+                            snackbar.show(`${current().benefit.name} unlocked.`, {
+                              label: 'Undo',
+                              onAct: () => app.revokeEnrollment(current().benefit.id),
+                            })
+                          }}
+                        >
+                          I&rsquo;ve enrolled &mdash; unlock this credit
+                        </button>
+                      </>
+                    }
                   >
-                    I&rsquo;ve enrolled &mdash; unlock this credit
-                  </button>
+                    <button
+                      type="button"
+                      class="btn btn--block"
+                      onClick={() => {
+                        app.confirmSpend(current().benefit.id)
+                        snackbar.show(`${current().benefit.name} unlocked.`, {
+                          label: 'Undo',
+                          onAct: () => app.revokeSpend(current().benefit.id),
+                        })
+                      }}
+                    >
+                      I&rsquo;ve reached it &mdash; unlock
+                    </button>
+                  </Show>
                 </div>
               </section>
             </Show>

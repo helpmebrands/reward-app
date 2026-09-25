@@ -7,10 +7,34 @@
 library;
 
 import 'dates.dart';
+import 'selectors.dart';
+import 'types.dart';
 
 /// A text field that must not be blank. [message] says what to enter.
 String? requiredError(String value, String message) {
   return value.trim().isNotEmpty ? null : message;
+}
+
+/// A card's label, checked against every other card in the household: the
+/// display name it gives ([cardLabel]) must not be another card's. [cardId]
+/// is the card being edited, left out for a new one. Case and surrounding
+/// space do not make two names different.
+String? labelError(
+  String label, {
+  required List<Card> cards,
+  required String issuer,
+  required String product,
+  String? cardId,
+}) {
+  final trimmed = label.trim();
+  final name = trimmed.isNotEmpty ? trimmed : productName(issuer, product);
+  final key = name.toLowerCase();
+  final clash = cards.any(
+    (card) => card.id != cardId && cardLabel(card).trim().toLowerCase() == key,
+  );
+  return clash
+      ? 'Another card is already called $name. Enter a different label.'
+      : null;
 }
 
 /// An amount of money that may be zero, such as an annual fee.
@@ -31,19 +55,41 @@ final RegExp _isoDate = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
 
 /// The cardmember year start, as a calendar date.
 String? anniversaryError(String value) {
+  return _isCalendarDate(value)
+      ? null
+      : 'Enter the date the cardmember year starts.';
+}
+
+final RegExp _wholeNumber = RegExp(r'^\d+$');
+
+/// Months between claims: a whole number for a rolling credit, nothing
+/// otherwise.
+String? intervalMonthsError(Cadence cadence, String raw) {
+  if (cadence != Cadence.rolling) return null;
+  final trimmed = raw.trim();
+  return _wholeNumber.hasMatch(trimmed) && int.parse(trimmed) > 0
+      ? null
+      : 'Enter how many months between claims.';
+}
+
+/// The last day a credit can be used, if it has one, as a calendar date.
+String? endsOnError(String value) {
+  if (value.trim().isEmpty) return null;
+  return _isCalendarDate(value)
+      ? null
+      : 'Enter the last day it can be used as a date, or leave it blank.';
+}
+
+bool _isCalendarDate(String value) {
   final match = _isoDate.firstMatch(value);
-  if (match != null) {
-    final year = int.parse(match[1]!);
-    final month = int.parse(match[2]!);
-    final day = int.parse(match[3]!);
-    if (month >= 1 &&
-        month <= 12 &&
-        day >= 1 &&
-        day <= daysInMonth(year, month)) {
-      return null;
-    }
-  }
-  return 'Enter the date the cardmember year starts.';
+  if (match == null) return false;
+  final year = int.parse(match[1]!);
+  final month = int.parse(match[2]!);
+  final day = int.parse(match[3]!);
+  return month >= 1 &&
+      month <= 12 &&
+      day >= 1 &&
+      day <= daysInMonth(year, month);
 }
 
 /// An enrolment page, if given, must be somewhere a browser can open.

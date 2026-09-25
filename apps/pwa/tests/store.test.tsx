@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { render } from '@solidjs/testing-library'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { CARD_TEMPLATES, findTemplate } from '../src/domain/catalog.ts'
@@ -119,6 +121,32 @@ describe('claiming', () => {
   })
 })
 
+describe('card kind', () => {
+  it('copies the kind from the template, and blank is personal', () => {
+    const store = mountStore()
+    const business = findTemplate('amex-business-platinum')
+    const blank = findTemplate('blank')
+    if (!business || !blank) throw new Error('missing template')
+    const first = store.addCardFromTemplate(business, {
+      holder: 'Jim',
+      anniversaryOn: '2021-03-14',
+    })
+    const second = store.addCardFromTemplate(blank, {
+      holder: 'Kathy',
+      anniversaryOn: '2021-03-14',
+    })
+    expect(first.kind).toBe('business')
+    expect(second.kind).toBe('personal')
+
+    store.updateCard(second.id, { kind: 'business' })
+    expect(store.data.cards.find((c) => c.id === second.id)?.kind).toBe('business')
+    expect(JSON.parse(store.exportJson()).cards.map((c: { kind: string }) => c.kind)).toEqual([
+      'business',
+      'business',
+    ])
+  })
+})
+
 describe('enrolment', () => {
   it('unlocks a credit and can be taken back', () => {
     const store = mountStore()
@@ -133,6 +161,37 @@ describe('enrolment', () => {
 
     store.revokeEnrollment(locked.benefit.id)
     expect(store.instances().find((i) => i.benefit.id === locked.benefit.id)?.status).toBe('locked')
+  })
+})
+
+describe('spend threshold', () => {
+  it('locks a gated credit until the spend is confirmed, and can take it back', () => {
+    const store = mountStore()
+    const card = addPlatinum(store, 'Jim')
+    const benefit = store.addBenefit({
+      cardId: card.id,
+      name: 'Dell Bonus',
+      category: 'shopping',
+      valueCents: 100_000,
+      cadence: 'annual',
+      anchor: 'calendar',
+      enrollmentRequired: false,
+      spendThresholdCents: 500_000,
+      redemptionSteps: [],
+      muted: false,
+      lastCallOnly: false,
+      active: true,
+    })
+    const statusOf = () => store.instances().find((i) => i.benefit.id === benefit.id)?.status
+    expect(statusOf()).toBe('locked')
+
+    store.confirmSpend(benefit.id)
+    expect(statusOf()).not.toBe('locked')
+    expect(store.data.benefits.find((b) => b.id === benefit.id)?.spendMetAt).toBeDefined()
+
+    store.revokeSpend(benefit.id)
+    expect(statusOf()).toBe('locked')
+    expect(store.data.benefits.find((b) => b.id === benefit.id)?.spendMetAt).toBeUndefined()
   })
 })
 
@@ -212,6 +271,19 @@ describe('the catalogue', () => {
       for (const benefit of template.benefits) {
         expect(benefit.icon, `${template.id}/${benefit.name}`).toBeTruthy()
         expect(benefit.valueCents, `${template.id}/${benefit.name}`).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  // @lat: [[tests#Card catalogue#Every template icon is a Phosphor glyph]]
+  it('names only icons the bundled Phosphor stylesheet draws', () => {
+    const css = readFileSync(
+      createRequire(import.meta.url).resolve('@phosphor-icons/web/regular'),
+      'utf8',
+    )
+    for (const template of CARD_TEMPLATES) {
+      for (const benefit of template.benefits) {
+        expect(css, `${template.id}/${benefit.name}`).toContain(`.ph-${benefit.icon}:before`)
       }
     }
   })

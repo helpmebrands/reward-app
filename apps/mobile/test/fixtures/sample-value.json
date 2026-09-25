@@ -1,0 +1,91 @@
+{
+  "on": "2026-09-16",
+  "monthsBack": 9,
+  "capturedTotalCents": 145000,
+  "missedTotalCents": 167220,
+  "peakCents": 70090,
+  "months": [
+    {
+      "label": "Jan",
+      "capturedCents": 45300,
+      "missedCents": 9090
+    },
+    {
+      "label": "Feb",
+      "capturedCents": 21500,
+      "missedCents": 9090
+    },
+    {
+      "label": "Mar",
+      "capturedCents": 13500,
+      "missedCents": 44090
+    },
+    {
+      "label": "Apr",
+      "capturedCents": 5500,
+      "missedCents": 9090
+    },
+    {
+      "label": "May",
+      "capturedCents": 31500,
+      "missedCents": 9090
+    },
+    {
+      "label": "Jun",
+      "capturedCents": 1500,
+      "missedCents": 70090
+    },
+    {
+      "label": "Jul",
+      "capturedCents": 3000,
+      "missedCents": 7590
+    },
+    {
+      "label": "Aug",
+      "capturedCents": 19000,
+      "missedCents": 9090
+    },
+    {
+      "label": "Sep",
+      "capturedCents": 4200,
+      "missedCents": 0
+    }
+  ],
+  "ranked": [
+    {
+      "label": "American Express Platinum — Kathy",
+      "percent": 3
+    },
+    {
+      "label": "American Express Platinum — Jim",
+      "percent": 66
+    }
+  ],
+  "leaks": [
+    {
+      "label": "Hotel Credit (FHR / THC)",
+      "when": "H1 2026",
+      "missedCents": 30000
+    },
+    {
+      "label": "Digital Entertainment Credit × 8",
+      "when": "Jan 2026 – Aug 2026",
+      "missedCents": 20000
+    },
+    {
+      "label": "Digital Entertainment Credit × 8",
+      "when": "Jan 2026 – Aug 2026",
+      "missedCents": 20000
+    },
+    {
+      "label": "Resy Dining Credit × 2",
+      "when": "Q1 2026 – Q2 2026",
+      "missedCents": 20000
+    },
+    {
+      "label": "Resy Dining Credit × 2",
+      "when": "Q1 2026 – Q2 2026",
+      "missedCents": 16000
+    }
+  ]
+}

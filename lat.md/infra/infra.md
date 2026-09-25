@@ -16,7 +16,8 @@ The operating procedures live outside this graph, in `docs/runbooks/`, because t
 - `04-rollback.md` — traffic shifts for either service and why the schema never rolls back with them.
 - `05-troubleshooting.md` — including the reserved `/healthz` path, the gen1 socket stall, secret bindings and preview permissions.
 - `06-database.md` — migrations by job, backups, restore, the proxy, all rehearsed on staging on 2026-09-18 ([[infra-tests#Infrastructure config#Runbooks 06 and 07 exist with their rehearsed commands]]).
-- `07-mobile-release.md` — versioning, signing and the test tracks for the Flutter app, and the honest list of what is not set up.
+- `07-mobile-release.md` — versioning, local builds and the tag-driven release to the test tracks; setup is left to 08 ([[infra-tests#Infrastructure config#Runbook 07 leaves setup to runbook 08]]).
+- `08-mobile-setup.md` — the one-time mobile setup in the order it must be done: the Apple app id with every capability before its one profile, the signing material in Secret Manager, the Play record, the sign-in credentials as stack config, the invite-link domain, the `appleSignInConfig` PATCH the Pulumi provider cannot express, then re-making the profile and renewing the certificate ([[infra-tests#Infrastructure config#Runbook 08 is the one mobile setup flow]]).
 
 ## Local verify
 

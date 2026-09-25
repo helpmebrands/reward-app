@@ -35,6 +35,9 @@ const LADDERS: Record<Cadence, LadderRung[]> = {
     { daysBefore: 30, label: 'Urgent', tone: 'urgent' },
     { daysBefore: 7, label: 'Final week', tone: 'urgent' },
   ],
+  // A rolling credit has no deadline until the user claims it, so it gets one
+  // rung and is never scheduled.
+  rolling: [{ daysBefore: 0, label: 'Restarts when claimed', tone: 'permissive' }],
   // Untracked credits get one rung and it is the user's own review, not a
   // deadline the app invented.
   manual: [{ daysBefore: 0, label: 'Tracked manually', tone: 'permissive' }],

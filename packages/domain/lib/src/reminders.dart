@@ -18,7 +18,6 @@ class ReminderItem {
     required this.cycleKey,
     required this.benefitName,
     required this.cardName,
-    required this.holder,
     this.merchant,
     required this.remainingCents,
     required this.endsOn,
@@ -29,7 +28,6 @@ class ReminderItem {
   final IsoDate cycleKey;
   final String benefitName;
   final String cardName;
-  final String holder;
   final String? merchant;
   final int remainingCents;
   final IsoDate endsOn;
@@ -102,13 +100,17 @@ List<T> _stableSorted<T>(Iterable<T> items, int Function(T a, T b) compare) {
 /// in the same week, and a dozen separate notifications is how an app gets
 /// muted. The copy then leads with the single biggest loss, one decision per
 /// notification.
+///
+/// The schedule is one member's: [prefs] carry their reminder settings and
+/// mutes, so two members of one household get their own schedules.
 ReminderSchedule buildSchedule(
-  AppData data, [
+  AppData data,
+  MemberPreferences prefs, [
   DateTime? now,
   int horizon = horizonDays,
 ]) {
   final at = now ?? DateTime.now();
-  final settings = data.settings.notifications;
+  final settings = prefs;
   final reminders = <Reminder>[];
   if (!settings.enabled) {
     return ReminderSchedule(
@@ -124,13 +126,23 @@ ReminderSchedule buildSchedule(
   final groups = <String, _Group>{};
 
   for (final benefit in data.benefits) {
-    if (!benefit.active || benefit.cadence == Cadence.manual) continue;
-    if (benefit.muted) continue;
+    // A rolling credit has no deadline to warn about until the user claims
+    // it, and then nothing to do until the interval runs out.
+    if (!benefit.active ||
+        benefit.cadence == Cadence.manual ||
+        benefit.cadence == Cadence.rolling ||
+        hasEnded(benefit, from)) {
+      continue;
+    }
+    if (prefs.isMuted(benefit)) continue;
     final card = cardsById[benefit.cardId];
-    if (card == null || card.archived || card.muted) continue;
+    if (card == null || card.archived) continue;
     if (benefit.valueCents < settings.minValueCents) continue;
 
-    final locked = isLocked(benefit);
+    final reason = lockReason(benefit, card, from);
+    // No reminder can unlock a spend threshold, so a gated credit gets none.
+    if (reason == LockReason.spend) continue;
+    final locked = reason != null;
     // A locked credit cannot be spent, so it is only worth a nudge if the user
     // asked to be told about enrolment; otherwise it is an impossible chore.
     if (locked && !settings.enrollmentReminder) continue;
@@ -161,7 +173,6 @@ ReminderSchedule buildSchedule(
             cycleKey: cycle.key,
             benefitName: benefit.name,
             cardName: cardLabel(card),
-            holder: card.holder,
             merchant: benefit.merchant,
             remainingCents: remainingCents,
             endsOn: cycle.end,
@@ -230,13 +241,13 @@ String _bodyFor(List<ReminderItem> items, LadderRung rung) {
 
   final merchant = first.merchant;
   final where = merchant != null && merchant.isNotEmpty ? ' at $merchant' : '';
-  final whose = first.holder.isNotEmpty ? '${first.holder}’s' : 'your';
+  final card = first.cardName;
 
   if (items.length == 1) {
     if (first.locked) {
-      return '$whose ${first.benefitName} needs enrolment before you can spend a cent of it.';
+      return '${first.benefitName} on $card needs enrolment before you can spend a cent of it.';
     }
-    return '${first.benefitName}$where on $whose card. '
+    return '${first.benefitName}$where on $card. '
         '${formatMoney(first.remainingCents)} untouched.';
   }
 
@@ -245,7 +256,7 @@ String _bodyFor(List<ReminderItem> items, LadderRung rung) {
   if (rung.tone == Tone.permissive) {
     return '${first.benefitName} $tail reset overnight. Nothing is urgent yet.';
   }
-  return '$whose ${first.benefitName} is the largest untouched at '
+  return '${first.benefitName} on $card is the largest untouched at '
       '${formatMoney(first.remainingCents)}, $tail.';
 }
 

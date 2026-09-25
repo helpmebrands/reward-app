@@ -22,10 +22,10 @@ Map<String, dynamic> expectedToday() =>
     jsonDecode(File('test/fixtures/sample-today.json').readAsStringSync())
         as Map<String, dynamic>;
 
-Future<AppStore> pumpToday(WidgetTester tester) async {
+Future<AppStore> pumpToday(WidgetTester tester, {AppData? data}) async {
   final store = AppStore(
-    store: MemorySnapshotStore(sampleHousehold()),
-    clock: () => '2026-09-16',
+    store: MemorySnapshotStore(data ?? sampleHousehold()),
+    clock: () => DateTime(2026, 9, 16),
   );
   await store.load();
   // A tall viewport so every section is laid out and every row is found.
@@ -42,12 +42,16 @@ Future<AppStore> pumpToday(WidgetTester tester) async {
   return store;
 }
 
+/// The PWA's fixture names each card's holder, which the app no longer
+/// stores; the sample household's two cards are Jim's and Kathy's.
+const holderOf = {'card-0001': 'Jim', 'card-0002': 'Kathy'};
+
 List<Map<String, Object?>> renderedRows(WidgetTester tester) =>
     tester.widgetList<CreditRow>(find.byType(CreditRow)).map((row) {
       final i = row.instance;
       return {
         'name': i.benefit.name,
-        'holder': i.card.holder,
+        'holder': holderOf[i.card.id],
         'tone': row.tone.name,
         'cents': i.status == BenefitStatus.captured
             ? i.claimedCents
@@ -97,6 +101,36 @@ void main() {
     );
   });
 
+  // @lat: [[mobile-tests#Today#The locked section says why]]
+  testWidgets('the locked section names a spend threshold when one applies', (
+    tester,
+  ) async {
+    final sample = sampleHousehold();
+    final gated = Benefit(
+      id: 'gated',
+      cardId: sample.cards.first.id,
+      name: 'Dell Bonus',
+      category: BenefitCategory.shopping,
+      valueCents: 100000,
+      cadence: Cadence.annual,
+      anchor: CycleAnchor.calendar,
+      enrollmentRequired: false,
+      spendThresholdCents: 500000,
+      redemptionSteps: const [],
+      lastCallOnly: false,
+      active: true,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    );
+    await pumpToday(
+      tester,
+      data: sample.copyWith(benefits: [...sample.benefits, gated]),
+    );
+    expect(find.text('Locked behind enrolment and spend'), findsOneWidget);
+    expect(find.textContaining('some a spend threshold'), findsOneWidget);
+    expect(find.text('Dell Bonus'), findsOneWidget);
+  });
+
   // @lat: [[mobile-tests#Today#Overlaps show the three largest]]
   testWidgets('shows the three largest overlaps with their combined value', (
     tester,
@@ -125,7 +159,7 @@ void main() {
   ) async {
     final store = AppStore(
       store: MemorySnapshotStore(),
-      clock: () => '2026-09-16',
+      clock: () => DateTime(2026, 9, 16),
     );
     await store.load();
     await tester.pumpWidget(

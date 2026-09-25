@@ -22,3 +22,4 @@ playwright-report
 .pi
 .idea/
 /secrets.md
+/build/

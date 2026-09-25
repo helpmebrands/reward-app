@@ -34,7 +34,7 @@ void main() {
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
     final store = AppStore(
       store: MemorySnapshotStore(),
-      clock: () => '2026-09-16',
+      clock: () => DateTime(2026, 9, 16),
     );
     await store.load();
     await tester.pumpWidget(RewardApp(store: store));

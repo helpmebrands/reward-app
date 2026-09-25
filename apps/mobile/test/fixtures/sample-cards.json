@@ -1,0 +1,46 @@
+{
+  "on": "2026-09-16",
+  "feeTotalCents": 179000,
+  "capturedTotalCents": 62200,
+  "cards": [
+    {
+      "id": "card-0001",
+      "issuer": "American Express",
+      "label": "American Express Platinum — Jim",
+      "fee": "$895",
+      "captured": "$592",
+      "net": "−$303",
+      "percent": 66,
+      "daysUntilRenewal": 179,
+      "verdict": {
+        "headline": "Catch up",
+        "body": "$945.95 is still claimable — more than the $303 you are short. 179 days to the renewal."
+      },
+      "tags": [
+        "$945.95 claimable",
+        "$653.60 missed",
+        "12 credits"
+      ]
+    },
+    {
+      "id": "card-0002",
+      "issuer": "American Express",
+      "label": "American Express Platinum — Kathy",
+      "fee": "$895",
+      "captured": "$30",
+      "net": "−$865",
+      "percent": 3,
+      "daysUntilRenewal": 289,
+      "verdict": {
+        "headline": "Unlock first",
+        "body": "$500 is sitting behind an enrolment box. With it, there is enough left this year to clear the $865 shortfall — so unlock it before you weigh a downgrade."
+      },
+      "tags": [
+        "$952.95 claimable",
+        "$500 locked",
+        "$1,018.60 missed",
+        "12 credits"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1866 @@
+openapi: 3.1.0
+info:
+  title: HelpMe Reward api
+  version: 0.1.0
+  summary: The service tier behind the HelpMe Reward app.
+  description: |
+    Hand-written and spec-first: every route, parameter and body is
+    documented here before it is served, and `test/contract_test.dart`
+    holds the router and every response to this file. Nothing is generated
+    from it. Bodies are JSON in the domain's snapshot spelling
+    (`packages/domain/lib/src/json.dart`).
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: https://reward-api-bduraqeztq-uc.a.run.app
+    description: staging
+tags:
+  - name: health
+    description: Liveness.
+  - name: devices
+    description: Push-device registration.
+  - name: invite links
+    description: What lets an invite link open the app, and the page it shows without it.
+  - name: me
+    description: The signed-in caller.
+  - name: household
+    description: The caller's household, its members and invites.
+  - name: catalog
+    description: The versioned card catalogue.
+  - name: catalog admin
+    description: Drafting and publishing catalogue versions. Admins only.
+  - name: household data
+    description: The household's cards, credits and claims. Readers may read; editors and owners may write.
+security:
+  - firebase: []
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      security: []
+      summary: Liveness
+      description: |
+        200 while the process serves, with the version so a deploy can be
+        told apart from the last one. Not `/healthz`, which Google's
+        frontend answers itself on `run.app` hosts.
+      responses:
+        '200':
+          description: The process is serving.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /.well-known/apple-app-site-association:
+    get:
+      tags: [invite links]
+      operationId: getAppleAppSiteAssociation
+      security: []
+      summary: iOS universal links for /invite/*
+      description: Fetched by iOS from the api's own domain; names the app that opens invite links.
+      responses:
+        '200':
+          description: The association file.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [applinks]
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /.well-known/assetlinks.json:
+    get:
+      tags: [invite links]
+      operationId: getAssetLinks
+      security: []
+      summary: Android App Links for the api's domain
+      description: Fetched by Android; names the package and its signing certificates.
+      responses:
+        '200':
+          description: The statement list.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [relation, target]
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /invite/{code}:
+    get:
+      tags: [invite links]
+      operationId: getInvitePage
+      security: []
+      summary: An invite link without the app
+      description: |
+        With the app installed the operating system opens the link in the
+        app; otherwise this page shows the code and both stores.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The page.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+
+  /v1/me:
+    get:
+      tags: [me]
+      operationId: getMe
+      summary: The signed-in caller
+      description: |
+        The caller's user, created on their first authenticated call to any
+        route and reused after.
+      responses:
+        '200':
+          description: The caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/catalog:
+    get:
+      tags: [catalog]
+      operationId: getCatalog
+      summary: Every template as it stands today
+      description: |
+        Each template's latest published version whose `effectiveFrom` has
+        passed, by the database's date. Drafts never appear.
+      responses:
+        '200':
+          description: The catalogue.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TemplateVersion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/catalog/{templateId}:
+    get:
+      tags: [catalog]
+      operationId: getTemplateVersions
+      summary: Every published version of one template
+      parameters:
+        - name: templateId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The template's published versions, oldest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplateHistory'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog:
+    post:
+      tags: [catalog admin]
+      operationId: createTemplate
+      summary: Create a template as a draft version 1
+      description: |
+        Admin only. The template is invisible to the catalogue until its
+        draft is published.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewTemplate'
+      responses:
+        '201':
+          description: The new draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: A template with that id exists (`template exists`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [template exists]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts:
+    post:
+      tags: [catalog admin]
+      operationId: createDraft
+      summary: Start a draft from the latest version
+      description: |
+        Admin only. Copies the latest published version into version n + 1
+        as a draft. One draft at a time per template.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '201':
+          description: The draft.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The template already has an open draft (`draft exists`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [draft exists]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts/{version}:
+    put:
+      tags: [catalog admin]
+      operationId: editDraft
+      summary: Replace a draft's terms
+      description: |
+        Admin only. The whole template as it should read: its fields and
+        every credit. Checked by the domain's rules; `effectiveFrom` may be
+        left out to keep the draft's.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/Version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftTerms'
+      responses:
+        '200':
+          description: The draft as stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: That version is published and cannot change (`published`); start a new draft.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [published]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/admin/catalog/{templateId}/drafts/{version}/publish:
+    post:
+      tags: [catalog admin]
+      operationId: publishDraft
+      summary: Publish a draft
+      description: |
+        Admin only. Records who published it, when, and from what source,
+        and writes a `version published` event. The version never changes
+        again.
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+        - $ref: '#/components/parameters/Version'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRequest'
+      responses:
+        '200':
+          description: The published version.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminVersion'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: That version is published already (`published`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [published]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+
+  /v1/me/preferences:
+    get:
+      tags: [me]
+      operationId: getPreferences
+      summary: The caller's notification preferences and mutes
+      description: |
+        The member's own, not the household's: the defaults until they
+        change them, and the mutes that name their current household's
+        cards and credits.
+      responses:
+        '200':
+          description: The preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    put:
+      tags: [me]
+      operationId: putPreferences
+      summary: Replace the caller's notification settings
+      description: Readers may set their own; mutes have their own routes and are left as they are.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationSettings'
+      responses:
+        '200':
+          description: The preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPreferences'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/me/mutes/cards/{cardId}:
+    put:
+      tags: [me]
+      operationId: muteCard
+      summary: Silence a card for the caller only
+      description: Idempotent. Readers may mute; nothing shared changes.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [me]
+      operationId: unmuteCard
+      summary: Hear about a card again
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unmuted, or it was not muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/me/mutes/benefits/{benefitId}:
+    put:
+      tags: [me]
+      operationId: muteBenefit
+      summary: Silence a benefit for the caller only
+      description: Idempotent. Readers may mute; nothing shared changes.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [me]
+      operationId: unmuteBenefit
+      summary: Hear about a benefit again
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Unmuted, or it was not muted.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household:
+    get:
+      tags: [household]
+      operationId: getHousehold
+      summary: The caller's household
+      description: |
+        Every person is in exactly one household. A new user owns a new,
+        empty one, made on their first authenticated call.
+      responses:
+        '200':
+          description: The household and its members.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household/invites:
+    post:
+      tags: [household]
+      operationId: createInvite
+      summary: Invite someone to the household
+      description: |
+        Owner only. The code is single-use and expires after seven days; the
+        link carries the same code.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+      responses:
+        '201':
+          description: The invite.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/invites/{code}/accept:
+    post:
+      tags: [household]
+      operationId: acceptInvite
+      summary: Join a household with an invite
+      description: |
+        Moves the caller into the invite's household with its role, leaving
+        their current one. The last member out takes that household, and
+        its data, with them. An owner cannot leave while other members
+        remain. When the current household holds cards, `confirmLeave: true`
+        is required.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptRequest'
+      responses:
+        '200':
+          description: The household joined.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Household'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: |
+            `household holds cards` without `confirmLeave`, `owner has
+            members`, or `already a member`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [household holds cards, owner has members, already a member]
+        '410':
+          description: The invite was used already (`invite used`) or has expired (`invite expired`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [invite used, invite expired]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household/members/{userId}:
+    delete:
+      tags: [household]
+      operationId: removeMember
+      summary: Remove a member
+      description: |
+        Owner only. The member loses access at once; on their next call they
+        start again in a new, empty household. They take nothing with them.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The owner cannot remove themselves (`owner cannot leave`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: owner cannot leave
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/household/data:
+    get:
+      tags: [household data]
+      operationId: getHouseholdData
+      summary: The household's cards, credits and claims
+      description: |
+        The domain's `AppData` snapshot. A linked card takes its issuer,
+        product, network and fee from its template's version in force; each
+        linked credit is resolved against the version in force when its
+        current cycle began. Readers may read.
+      responses:
+        '200':
+          description: The household as a snapshot.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppData'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/cards:
+    post:
+      tags: [household data]
+      operationId: addCard
+      summary: Add a card from a template, or one the household maintains
+      description: |
+        With `templateId` the card follows that template; without, the body
+        carries the card's own terms. A card without a label that would
+        repeat another card's display name is given the first free
+        "<product> (n)"; a label another card already shows is 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCard'
+      responses:
+        '201':
+          description: The card and its credits.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardWithBenefits'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: The label is another card's display name (`label taken`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/cards/{cardId}:
+    patch:
+      tags: [household data]
+      operationId: editCard
+      summary: Change a card's household fields
+      description: |
+        Label, kind, last four, anniversary and archived on any card; issuer,
+        product, network and fee only on a card the household maintains,
+        and 409 `system maintained` on a linked one.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardPatch'
+      responses:
+        '200':
+          description: The card.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: A term field on a linked card (`system maintained`) or a label another card shows (`label taken`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    enum: [system maintained, label taken]
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [household data]
+      operationId: deleteCard
+      summary: Delete a card with its credits and claims
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/cards/{cardId}/convert:
+    post:
+      tags: [household data]
+      operationId: convertCard
+      summary: Convert a linked card into one the household maintains
+      description: |
+        One transaction: a new card and credits copying the terms resolved
+        today and every piece of household state; the claims and every
+        member's mutes move to the new ids; the linked card is deleted.
+        The new card no longer follows the catalogue. The answer names the
+        card it replaces and maps each old credit id to its new one.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The new card and its credits.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConvertedCard'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The card is the household's own already (`user maintained`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: user maintained
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/cards/{cardId}/benefits:
+    post:
+      tags: [household data]
+      operationId: addBenefit
+      summary: Add a credit to a card the household maintains
+      description: A linked card's credits come from its template; adding one is 409 `system maintained`.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditTerms'
+      responses:
+        '201':
+          description: The credit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Benefit'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SystemMaintained'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/benefits/{benefitId}:
+    put:
+      tags: [household data]
+      operationId: editBenefit
+      summary: Replace a household credit's terms
+      description: Only on a credit the household maintains; a linked credit is 409 `system maintained`.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreditTerms'
+      responses:
+        '200':
+          description: The credit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Benefit'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SystemMaintained'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [household data]
+      operationId: deleteBenefit
+      summary: Delete a household credit and its claims
+      description: A linked credit is 409 `system maintained`; set `active` false in its state instead.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/SystemMaintained'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/benefits/{benefitId}/state:
+    put:
+      tags: [household data]
+      operationId: putBenefitState
+      summary: Change a credit's household state
+      description: |
+        Enrolment, spend met, last call only and active, on any credit,
+        linked or not. Absent keys stay as they are; null clears.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BenefitState'
+      responses:
+        '200':
+          description: The credit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Benefit'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/claims:
+    post:
+      tags: [household data]
+      operationId: addClaim
+      summary: Log a claim, once
+      description: |
+        Needs an `Idempotency-Key`. The same key with the same body answers
+        the stored claim again; with a different body it is 409.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Generated by the client once per claim and sent with every retry.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewClaim'
+      responses:
+        '201':
+          description: The claim.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Claim'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The key was used for a different claim (`idempotency key reused`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/claims/{claimId}:
+    delete:
+      tags: [household data]
+      operationId: deleteClaim
+      summary: Remove a claim
+      parameters:
+        - name: claimId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+
+  /v1/devices:
+    post:
+      tags: [devices]
+      operationId: registerDevice
+      security: []
+      summary: Register a device for push
+      description: |
+        Upserts by token: a repeat registration replaces the installation,
+        platform and zone. The zone must be known to Postgres's
+        `pg_timezone_names`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Device'
+      responses:
+        '200':
+          description: Registered; the stored fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/devices/{token}:
+    delete:
+      tags: [devices]
+      operationId: unregisterDevice
+      security: []
+      summary: Unregister a device
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: The FCM token the device registered under.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Removed.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+components:
+  parameters:
+    TemplateId:
+      name: templateId
+      in: path
+      required: true
+      schema:
+        type: string
+    Version:
+      name: version
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  securitySchemes:
+    firebase:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        A Firebase ID token from Identity Platform (Google or Apple sign-in)
+        for this environment's project, verified against Google's published
+        keys: RS256, issuer `https://securetoken.google.com/<project>`,
+        audience the project, unexpired.
+
+  schemas:
+    User:
+      type: object
+      required: [id, email]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The user's id in this service.
+        email:
+          type: [string, 'null']
+          description: The email on the sign-in account, when it shares one.
+
+    Health:
+      type: object
+      required: [status, version]
+      additionalProperties: false
+      properties:
+        status:
+          const: ok
+        version:
+          type: string
+          description: The api's package version.
+
+    Device:
+      type: object
+      required: [token, installationId, platform, timezone]
+      additionalProperties: false
+      properties:
+        token:
+          type: string
+          minLength: 1
+          description: The FCM registration token.
+        installationId:
+          type: string
+          minLength: 1
+          description: An id the app generated for its own installation.
+        platform:
+          type: string
+          enum: [ios, android]
+        timezone:
+          type: string
+          minLength: 1
+          description: An IANA zone name, such as `Europe/London`.
+
+    TemplateCredit:
+      type: object
+      description: One credit of a template version, in the domain's spelling (`BenefitTemplate`).
+      required: [id, name, category, icon, valueCents, cadence, anchor, enrollmentRequired, redemptionSteps]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9-]+/[a-z0-9-]+$'
+          description: Stable across versions, `<template id>/<slug>`.
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [travel, dining, shopping, entertainment, rideshare, wellness, lodging, airline, streaming, fee_credit, other]
+        icon:
+          type: string
+        merchant:
+          type: string
+        valueCents:
+          type: integer
+          minimum: 1
+        cadence:
+          type: string
+          enum: [monthly, quarterly, semiannual, annual, rolling, manual]
+        anchor:
+          type: string
+          enum: [calendar, anniversary]
+        intervalMonths:
+          type: integer
+        enrollmentRequired:
+          type: boolean
+        spendThresholdCents:
+          type: integer
+        endsOn:
+          type: string
+          format: date
+        redemptionSteps:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    TemplateVersion:
+      type: object
+      description: A whole card template as of one version.
+      required: [id, version, effectiveFrom, issuer, product, network, kind, annualFeeCents, credits]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        kind:
+          type: string
+          enum: [personal, business]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+
+    DraftTerms:
+      type: object
+      description: A template version's terms as an admin writes them.
+      required: [issuer, product, network, kind, annualFeeCents, credits]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        kind:
+          type: string
+          enum: [personal, business]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+
+    NewTemplate:
+      allOf:
+        - $ref: '#/components/schemas/DraftTerms'
+      required: [id]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z0-9]+(-[a-z0-9]+)*$'
+
+    PublishRequest:
+      type: object
+      required: [effectiveFrom, sourceUrl]
+      properties:
+        effectiveFrom:
+          type: string
+          format: date
+        sourceUrl:
+          type: string
+          format: uri
+          description: Where the terms were read, an http or https address.
+        notes:
+          type: string
+
+    AdminVersion:
+      description: A version with its status and, once published, its provenance.
+      type: object
+      required: [id, version, effectiveFrom, issuer, product, network, kind, annualFeeCents, credits, status]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        effectiveFrom:
+          type: string
+          format: date
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+        kind:
+          type: string
+        annualFeeCents:
+          type: integer
+        credits:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateCredit'
+        status:
+          type: string
+          enum: [draft, published]
+        publishedBy:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        sourceUrl:
+          type: string
+        notes:
+          type: string
+
+    TemplateHistory:
+      type: object
+      required: [id, versions]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateVersion'
+
+    Card:
+      type: object
+      description: A card in the domain's snapshot spelling.
+      required: [id, issuer, product, network, kind, annualFeeCents, anniversaryOn, archived, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        templateId:
+          type: string
+          description: The catalogue template it follows; absent on a card the household maintains.
+        label:
+          type: string
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        kind:
+          type: string
+          enum: [personal, business]
+        last4:
+          type: string
+        annualFeeCents:
+          type: integer
+        anniversaryOn:
+          type: string
+          format: date
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    Benefit:
+      type: object
+      description: A credit in the domain's snapshot spelling.
+      required: [id, cardId, name, category, valueCents, cadence, anchor, enrollmentRequired, redemptionSteps, lastCallOnly, active, createdAt, updatedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        cardId:
+          type: string
+        templateBenefitId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        icon:
+          type: string
+        merchant:
+          type: string
+        valueCents:
+          type: integer
+        cadence:
+          type: string
+        anchor:
+          type: string
+        intervalMonths:
+          type: integer
+        enrollmentRequired:
+          type: boolean
+        enrolledAt:
+          type: string
+        enrollmentNote:
+          type: string
+        enrollmentUrl:
+          type: string
+        spendThresholdCents:
+          type: integer
+        spendMetAt:
+          type: string
+        endsOn:
+          type: string
+          format: date
+        redemptionSteps:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+        lastCallOnly:
+          type: boolean
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    Claim:
+      type: object
+      required: [id, benefitId, cycleKey, amountCents, claimedAt]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        benefitId:
+          type: string
+        cycleKey:
+          type: string
+          format: date
+        amountCents:
+          type: integer
+        claimedAt:
+          type: string
+        note:
+          type: string
+
+    AppData:
+      type: object
+      description: The domain's snapshot, as the app stores it.
+      required: [version, cards, benefits, claims, settings]
+      additionalProperties: false
+      properties:
+        version:
+          type: integer
+        cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/Card'
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Benefit'
+        claims:
+          type: array
+          items:
+            $ref: '#/components/schemas/Claim'
+        settings:
+          type: object
+          required: [useSoonDays, theme]
+          properties:
+            useSoonDays:
+              type: integer
+            theme:
+              type: string
+
+    CardWithBenefits:
+      type: object
+      required: [card, benefits]
+      additionalProperties: false
+      properties:
+        card:
+          $ref: '#/components/schemas/Card'
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Benefit'
+
+    ConvertedCard:
+      type: object
+      required: [card, benefits, replaces, benefitIds]
+      additionalProperties: false
+      properties:
+        card:
+          $ref: '#/components/schemas/Card'
+        benefits:
+          type: array
+          items:
+            $ref: '#/components/schemas/Benefit'
+        replaces:
+          type: string
+          description: The linked card's id, now deleted.
+        benefitIds:
+          type: object
+          description: Each old credit id mapped to its new one.
+          additionalProperties:
+            type: string
+
+    NewCard:
+      type: object
+      required: [anniversaryOn]
+      description: With `templateId`, a linked card; without, `issuer`, `product`, `network` and `annualFeeCents` are required.
+      properties:
+        templateId:
+          type: string
+        label:
+          type: string
+        anniversaryOn:
+          type: string
+          format: date
+        kind:
+          type: string
+          enum: [personal, business]
+        last4:
+          type: string
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+
+    CardPatch:
+      type: object
+      properties:
+        label:
+          type: [string, 'null']
+        kind:
+          type: string
+          enum: [personal, business]
+        last4:
+          type: [string, 'null']
+        anniversaryOn:
+          type: string
+          format: date
+        archived:
+          type: boolean
+        issuer:
+          type: string
+        product:
+          type: string
+        network:
+          type: string
+          enum: [amex, visa, mastercard, discover, other]
+        annualFeeCents:
+          type: integer
+          minimum: 0
+
+    CreditTerms:
+      type: object
+      description: A household credit's terms, checked by the domain's rules.
+      required: [name, category, valueCents, cadence, anchor]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        icon:
+          type: string
+        merchant:
+          type: string
+        valueCents:
+          type: integer
+          minimum: 1
+        cadence:
+          type: string
+        anchor:
+          type: string
+        intervalMonths:
+          type: integer
+        enrollmentRequired:
+          type: boolean
+        spendThresholdCents:
+          type: integer
+        endsOn:
+          type: string
+          format: date
+        redemptionSteps:
+          type: array
+          items:
+            type: string
+        notes:
+          type: string
+
+    BenefitState:
+      type: object
+      properties:
+        enrolledAt:
+          type: [string, 'null']
+        enrollmentNote:
+          type: [string, 'null']
+        enrollmentUrl:
+          type: [string, 'null']
+        spendMetAt:
+          type: [string, 'null']
+        lastCallOnly:
+          type: boolean
+        active:
+          type: boolean
+
+    NewClaim:
+      type: object
+      required: [benefitId, cycleKey, amountCents]
+      properties:
+        benefitId:
+          type: string
+        cycleKey:
+          type: string
+          format: date
+        amountCents:
+          type: integer
+          minimum: 1
+        claimedAt:
+          type: string
+          description: When it was spent; now when absent.
+        note:
+          type: string
+
+    NotificationSettings:
+      type: object
+      required: [enabled, timeOfDay, minValueCents, annualFeeReminder, enrollmentReminder]
+      properties:
+        enabled:
+          type: boolean
+        timeOfDay:
+          type: string
+          pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Local time, 24-hour HH:MM.
+        minValueCents:
+          type: integer
+          minimum: 0
+        annualFeeReminder:
+          type: boolean
+        enrollmentReminder:
+          type: boolean
+
+    MemberPreferences:
+      allOf:
+        - $ref: '#/components/schemas/NotificationSettings'
+      type: object
+      required: [mutedCardIds, mutedBenefitIds]
+      properties:
+        mutedCardIds:
+          type: array
+          items:
+            type: string
+        mutedBenefitIds:
+          type: array
+          items:
+            type: string
+
+    Role:
+      type: string
+      enum: [owner, editor, reader]
+      description: Owners manage members; editors change the data; readers only read it.
+
+    Member:
+      type: object
+      required: [userId, email, role, joinedAt]
+      additionalProperties: false
+      properties:
+        userId:
+          type: string
+        email:
+          type: [string, 'null']
+        role:
+          $ref: '#/components/schemas/Role'
+        joinedAt:
+          type: string
+          format: date-time
+
+    Household:
+      type: object
+      required: [id, role, members]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+        role:
+          $ref: '#/components/schemas/Role'
+          description: The caller's own role.
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/Member'
+
+    InviteRequest:
+      type: object
+      required: [role]
+      properties:
+        role:
+          type: string
+          enum: [read, edit]
+
+    Invite:
+      type: object
+      required: [code, link, role, expiresAt]
+      additionalProperties: false
+      properties:
+        code:
+          type: string
+          pattern: '^[A-Z2-9]{8}$'
+          description: Eight characters with no 0, O, 1, I, L or U.
+        link:
+          type: string
+          description: A web address ending in `/invite/<code>`.
+        role:
+          type: string
+          enum: [read, edit]
+        expiresAt:
+          type: string
+          format: date-time
+
+    AcceptRequest:
+      type: object
+      properties:
+        confirmLeave:
+          type: boolean
+          description: Required as true when the caller's current household holds cards.
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+          description: A short machine-readable reason.
+
+    InvalidField:
+      type: object
+      required: [error, field]
+      additionalProperties: false
+      properties:
+        error:
+          const: invalid
+        field:
+          type: string
+          description: The first field that is missing, blank or malformed; `body` when the body is not a JSON object.
+
+  responses:
+    SystemMaintained:
+      description: The terms of a card or credit linked to the catalogue belong to the catalogue (`system maintained`); convert the card to change them.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: system maintained
+    Forbidden:
+      description: The caller's role does not allow this.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: forbidden
+    Invalid:
+      description: A field is missing, blank or malformed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InvalidField'
+    NotFound:
+      description: Nothing is stored under that id.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: not found
+    Unauthenticated:
+      description: No bearer token, or one that does not verify.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: unauthenticated
+    Unavailable:
+      description: |
+        The process was started without what the route needs: a database
+        (`no database`) or, for a signed-in route, a Firebase project to
+        verify tokens against (`no auth`).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                enum: [no database, no auth]
+    Internal:
+      description: Anything uncaught; the detail goes to the log, never to the client.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                const: internal

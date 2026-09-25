@@ -45,7 +45,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3

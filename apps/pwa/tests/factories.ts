@@ -10,6 +10,7 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     product: 'Platinum',
     holder: 'Jim',
     network: 'amex',
+    kind: 'personal',
     annualFeeCents: 89_500,
     anniversaryOn: '2020-03-14',
     muted: false,

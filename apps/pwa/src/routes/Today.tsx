@@ -5,6 +5,7 @@ import {
   cardLabel,
   findOverlaps,
   isClaimable,
+  lockReason,
   nextReset,
   sumClaimed,
   sumRemaining,
@@ -49,6 +50,27 @@ export function Today() {
   const instances = () => app.visibleInstances()
   const soon = () => byStatus(instances(), 'use_soon')
   const locked = () => byStatus(instances(), 'locked')
+  // The section says what stands in the way: a box to tick, a spend to reach,
+  // or both.
+  const lockReasons = () => new Set(locked().map((i) => lockReason(i.benefit, i.card, app.today())))
+  const lockedTitle = () => {
+    const reasons = lockReasons()
+    if (reasons.has('spend') && reasons.has('enrollment')) {
+      return 'Locked behind enrolment and spend'
+    }
+    return reasons.has('spend') ? 'Locked behind a spend threshold' : 'Locked behind enrolment'
+  }
+  const lockedNote = () => {
+    const reasons = lockReasons()
+    const money = formatMoney(totals().lockedCents)
+    if (reasons.has('spend') && reasons.has('enrollment')) {
+      return `${money} you cannot touch yet: some needs a box ticked on the issuer’s benefits page, some a spend threshold.`
+    }
+    if (reasons.has('spend')) {
+      return `${money} you cannot touch until you reach the spend the issuer asks for.`
+    }
+    return `${money} you cannot touch until you tick a box on the issuer’s benefits page.`
+  }
   const captured = () => instances().filter((i) => i.claimedCents > 0)
   const allOverlaps = createMemo(() => findOverlaps(instances()))
   const overlaps = () => allOverlaps().slice(0, 3)
@@ -293,10 +315,9 @@ export function Today() {
 
           <Show when={locked().length > 0}>
             <section class="section today__locked">
-              <h2 class="section-title">Locked behind enrolment</h2>
+              <h2 class="section-title">{lockedTitle()}</h2>
               <p class="section-note" style={{ margin: 'var(--space-2) 0 var(--space-4)' }}>
-                {formatMoney(totals().lockedCents)} you cannot touch until you tick a box on the
-                issuer&rsquo;s benefits page.
+                {lockedNote()}
               </p>
               <div class="list">
                 <Index each={locked()}>

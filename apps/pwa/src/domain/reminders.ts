@@ -1,8 +1,8 @@
-import { cyclesBetween } from './cycles.ts'
+import { cyclesBetween, hasEnded } from './cycles.ts'
 import { addDays, atLocalTime, compareIsoDate, todayIso } from './dates.ts'
 import { formatMoney } from './format.ts'
 import { ladderFor } from './ladder.ts'
-import { cardLabel, claimedIn, indexClaims, isLocked } from './selectors.ts'
+import { cardLabel, claimedIn, indexClaims, lockReason } from './selectors.ts'
 import type { AppData, IsoDate, LadderRung } from './types.ts'
 
 /**
@@ -80,13 +80,25 @@ export function buildSchedule(
   const groups = new Map<string, Group>()
 
   for (const benefit of data.benefits) {
-    if (!benefit.active || benefit.cadence === 'manual') continue
+    // A rolling credit has no deadline to warn about until the user claims
+    // it, and then nothing to do until the interval runs out.
+    if (
+      !benefit.active ||
+      benefit.cadence === 'manual' ||
+      benefit.cadence === 'rolling' ||
+      hasEnded(benefit, from)
+    ) {
+      continue
+    }
     if (benefit.muted) continue
     const card = cardsById.get(benefit.cardId)
     if (!card || card.archived || card.muted) continue
     if (benefit.valueCents < settings.minValueCents) continue
 
-    const locked = isLocked(benefit)
+    const reason = lockReason(benefit, card, from)
+    // No reminder can unlock a spend threshold, so a gated credit gets none.
+    if (reason === 'spend') continue
+    const locked = reason !== null
     // A locked credit cannot be spent, so it is only worth a nudge if the user
     // asked to be told about enrolment — otherwise it is an impossible chore.
     if (locked && !settings.enrollmentReminder) continue

@@ -44,7 +44,7 @@ void main() {
     () async {
       final store = AppStore(
         store: MemorySnapshotStore(sampleHousehold()),
-        clock: () => '2026-09-16',
+        clock: () => DateTime(2026, 9, 16),
       );
       expect(store.loading, isTrue);
       await store.load();
@@ -52,7 +52,7 @@ void main() {
       expect(store.hasCards, isTrue);
       expect(store.cardCount, 2);
       expect(store.soon.first.benefit.name, 'Resy Dining Credit');
-      expect(store.totals.claimableCents, 165890);
+      expect(store.totals.claimableCents, 189890);
       expect(store.nextResetOn, '2026-09-30');
     },
   );
