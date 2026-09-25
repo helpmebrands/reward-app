@@ -355,7 +355,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
       final label = _optionalText(body, 'label');
       final last4 = _optionalText(body, 'last4');
 
-      return inTransaction(db, (tx) async {
+      return await inTransaction(db, (tx) async {
         final today = await databaseToday(tx);
         final household = await loadHousehold(tx, caller.householdId, today);
         final String issuer;
@@ -599,7 +599,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
                   },
                 )).single[0]!
                 as String;
-        return benefitView(tx, caller, id, status: 201);
+        return await benefitView(tx, caller, id, status: 201);
       } on InvalidField catch (e) {
         return _invalid(e.field);
       }
@@ -628,7 +628,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
           ),
           parameters: {...columns, 'id': id},
         );
-        return benefitView(tx, caller, id);
+        return await benefitView(tx, caller, id);
       } on InvalidField catch (e) {
         return _invalid(e.field);
       }
