@@ -210,6 +210,26 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     final text = Theme.of(context).textTheme;
     final widthClass = WidthClass.of(context);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
+    // Credits the household will never use sit in their own group, where
+    // they are reactivated.
+    final optedOut = [
+      for (final benefit in benefits)
+        if (benefit.optedOutAt != null) benefit,
+    ];
+    Widget link(Benefit benefit, {Widget? trailing}) => Padding(
+      padding: const EdgeInsets.only(bottom: Space.s2),
+      child: _BenefitLink(
+        key: ValueKey('benefit-link-${benefit.id}'),
+        benefit: benefit,
+        lock: switch (lockReason(benefit, current, store.today)) {
+          LockReason.enrollment => 'needs enrolment',
+          LockReason.spend => 'needs spend',
+          null => null,
+        },
+        trailing: trailing,
+        onTap: () => context.go(benefitPath(benefit.id)),
+      ),
+    );
     // A card the catalogue keeps up to date: its terms are the catalogue's,
     // its household fields the household's.
     final system = maintainedBy(current) == MaintainedBy.system;
@@ -375,19 +395,30 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         ),
         const SizedBox(height: Space.s3),
         for (final benefit in benefits)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Space.s2),
-            child: _BenefitLink(
-              key: ValueKey('benefit-link-${benefit.id}'),
-              benefit: benefit,
-              lock: switch (lockReason(benefit, current, store.today)) {
-                LockReason.enrollment => 'needs enrolment',
-                LockReason.spend => 'needs spend',
-                null => null,
-              },
-              onTap: () => context.go(benefitPath(benefit.id)),
-            ),
+          if (benefit.optedOutAt == null) link(benefit),
+        if (optedOut.isNotEmpty) ...[
+          const SizedBox(height: Space.s4),
+          Semantics(
+            header: true,
+            child: Text('Opted out', style: text.titleSmall),
           ),
+          const SizedBox(height: Space.s3),
+          for (final benefit in optedOut)
+            link(
+              benefit,
+              trailing: TextButton(
+                onPressed: () => store.reactivateBenefit(benefit.id),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(48, 48),
+                  visualDensity: VisualDensity.standard,
+                ),
+                child: Text(
+                  'Reactivate',
+                  semanticsLabel: 'Reactivate ${benefit.name}',
+                ),
+              ),
+            ),
+        ],
       ],
     );
   }
@@ -449,10 +480,14 @@ class _BenefitLink extends StatelessWidget {
     super.key,
     required this.benefit,
     required this.lock,
+    this.trailing,
     required this.onTap,
   });
 
   final Benefit benefit;
+
+  /// An action beside the chevron, such as Reactivate.
+  final Widget? trailing;
 
   /// What keeps the credit locked, for the meta line, or null when nothing.
   final String? lock;
@@ -466,7 +501,6 @@ class _BenefitLink extends StatelessWidget {
       cadenceLabel(benefit.cadence),
       formatMoney(benefit.valueCents),
       ?lock,
-      if (!benefit.active || benefit.optedOutAt != null) 'paused',
     ].join(' · ');
     return Material(
       color: tokens.surfaceRaised,
@@ -500,6 +534,7 @@ class _BenefitLink extends StatelessWidget {
                   ],
                 ),
               ),
+              ?trailing,
               Icon(Icons.chevron_right, size: 16, color: tokens.textSecondary),
             ],
           ),

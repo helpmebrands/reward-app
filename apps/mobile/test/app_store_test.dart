@@ -282,6 +282,28 @@ void main() {
       expect(h.notifications, 1);
     });
 
+    // @lat: [[mobile-tests#Store#Opting out stamps the credit and reactivating resumes it today]]
+    test(
+      'optOutBenefit stamps optedOutAt; reactivate sets trackedFrom',
+      () async {
+        final h = await _load();
+
+        await h.store.optOutBenefit('benefit-1');
+        expect(
+          h.saved.benefits.single.optedOutAt,
+          _now.toUtc().toIso8601String(),
+        );
+        expect(h.store.instances, isEmpty);
+        expect(h.notifications, 1);
+
+        await h.store.reactivateBenefit('benefit-1');
+        expect(h.saved.benefits.single.optedOutAt, isNull);
+        expect(h.saved.benefits.single.trackedFrom, '2026-09-16');
+        expect(h.store.instances.single.benefit.id, 'benefit-1');
+        expect(h.notifications, 2);
+      },
+    );
+
     // @lat: [[mobile-tests#Store#Enrolment is confirmed and revoked]]
     test(
       'confirmEnrollment stamps enrolledAt and revokeEnrollment clears it',

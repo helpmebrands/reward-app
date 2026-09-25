@@ -234,6 +234,51 @@ void main() {
       expect(find.byType(BenefitEditorScreen), findsOneWidget);
     });
 
+    // @lat: [[mobile-tests#Editors#Opted-out credits are grouped on the card editor and reactivate there]]
+    testWidgets('lists opted-out credits apart, each with Reactivate', (
+      tester,
+    ) async {
+      final app = await pumpAt(
+        tester,
+        cardPath(jim),
+        size: const Size(402, 3000),
+      );
+      await app.store.optOutBenefit(uber);
+      await tester.pumpAndSettle();
+
+      expect(find.text('paused'), findsNothing);
+      final heading = find.text('Opted out');
+      expect(heading, findsOneWidget);
+      final uberLink = find.byKey(const ValueKey('benefit-link-$uber'));
+      // The group sits below every tracked credit.
+      final links = find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey<String> &&
+            (w.key as ValueKey<String>).value.startsWith('benefit-link-'),
+      );
+      for (final link in links.evaluate()) {
+        final key = (link.widget.key! as ValueKey<String>).value;
+        if (key == 'benefit-link-$uber') continue;
+        expect(
+          tester.getTopLeft(find.byKey(ValueKey(key))).dy,
+          lessThan(tester.getTopLeft(heading).dy),
+        );
+      }
+      expect(
+        tester.getTopLeft(uberLink).dy,
+        greaterThan(tester.getTopLeft(heading).dy),
+      );
+
+      final reactivate = find.bySemanticsLabel('Reactivate Uber Cash');
+      expect(reactivate, findsOneWidget);
+      expect(tester.getSize(reactivate).height, greaterThanOrEqualTo(48));
+      await tester.tap(reactivate);
+      await tester.pumpAndSettle();
+      expect(benefitOf(app, uber).optedOutAt, isNull);
+      expect(benefitOf(app, uber).trackedFrom, '2026-09-16');
+      expect(find.text('Opted out'), findsNothing);
+    });
+
     // @lat: [[mobile-tests#Editors#Deleting a card from its editor confirms, cascades and returns]]
     testWidgets('delete confirms, cascades and returns to Cards', (
       tester,
@@ -386,10 +431,19 @@ void main() {
       await type(tester, 'field-url', 'https://amex.example/enrol');
       expect(benefitOf(app, uber).enrollmentUrl, 'https://amex.example/enrol');
 
-      await show(tester, find.bySemanticsLabel('Track this credit'));
-      await tester.tap(find.bySemanticsLabel('Track this credit'));
+      expect(find.text('Track this credit'), findsNothing);
+      await show(tester, find.bySemanticsLabel('Opted out'));
+      expect(
+        find.text(
+          'You won’t use this. It stays off your lists and totals until you '
+          'reactivate it.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.bySemanticsLabel('Opted out'));
       await tester.pumpAndSettle();
-      expect(benefitOf(app, uber).active, isFalse);
+      expect(benefitOf(app, uber).optedOutAt, now.toUtc().toIso8601String());
+      expect(benefitOf(app, uber).active, isTrue);
 
       await show(tester, find.bySemanticsLabel('Last call only'));
       await tester.tap(find.bySemanticsLabel('Last call only'));
