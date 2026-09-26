@@ -8,6 +8,7 @@ import '../widgets/brand_lockup.dart';
 import '../widgets/screen_title.dart';
 import 'welcome_hero.dart';
 import 'welcome_heroes.dart';
+import 'welcome_premium_mocks.dart';
 
 /// One slide of the welcome slideshow.
 class WelcomeSlide {
@@ -42,7 +43,7 @@ const welcomeSlides = [
         'credits used as you spend. AI insights show where another card would '
         'earn more points, where a card could be used better, and what you '
         'missed.',
-    _placeholderHero,
+    _premiumFeatures,
   ),
 ];
 
@@ -50,24 +51,7 @@ Widget _upcomingRewards(BuildContext context) => const UpcomingRewardsHero();
 
 Widget _timelyReminders(BuildContext context) => const TimelyRemindersHero();
 
-/// Plain rows standing in for a slide's picture until its hero exists.
-Widget _placeholderHero(BuildContext context) {
-  final tokens = Theme.of(context).extension<NocturneTokens>()!;
-  return Column(
-    children: [
-      for (var i = 0; i < 6; i++)
-        Container(
-          height: 56,
-          margin: const EdgeInsets.only(bottom: Space.s4),
-          decoration: BoxDecoration(
-            color: tokens.surfaceRaised,
-            borderRadius: BorderRadius.circular(Radii.md),
-            border: Border.all(color: tokens.surfaceLine),
-          ),
-        ),
-    ],
-  );
-}
+Widget _premiumFeatures(BuildContext context) => const PremiumFeaturesHero();
 
 /// The welcome slideshow. Skip, or Get started on the last slide, calls
 /// [onDone]; the router then goes to sign-in.
