@@ -655,11 +655,11 @@ In both themes nothing between `WelcomeHero` and its child paints a background (
 
 ### The hero ignores the text scale
 
-Under a 2.0 system text scale the hero's child is laid out exactly 360 wide and sees a text scale of 1.0, with no overflow in a narrower panel.
+Under a 2.0 system text scale the hero's child is laid out exactly 360 wide and sees a text scale of 1.0, with no overflow in a narrower hero.
 
 ### Text sits below the hero on a phone
 
-At 402 x 874 the panel is over 40% of the window, the headline's top is at or below the panel's bottom, the body ends below the top third, and panel, headline and body share a left edge.
+At 402 x 874 the hero is over 40% of the window, the headline's top is at or below the hero's bottom, the body ends below the top third, and hero, headline and body share a left edge.
 
 ### A small phone at 2.0 drops the hero
 
