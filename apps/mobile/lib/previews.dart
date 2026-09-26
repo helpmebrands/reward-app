@@ -35,6 +35,7 @@ import 'logic/session.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/welcome_hero.dart';
 import 'screens/welcome_heroes.dart';
+import 'screens/welcome_premium_mocks.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/join_screen.dart';
 import 'screens/convert_screen.dart';
@@ -106,6 +107,14 @@ Widget timelyRemindersHeroDark() =>
 @Preview(name: 'Welcome hero, timely reminders, light', size: Size(402, 460))
 Widget timelyRemindersHeroLight() =>
     _heroIn(const TimelyRemindersHero(), Brightness.light);
+
+@Preview(name: 'Welcome hero, premium features, dark', size: Size(402, 460))
+Widget premiumFeaturesHeroDark() =>
+    _heroIn(const PremiumFeaturesHero(), Brightness.dark);
+
+@Preview(name: 'Welcome hero, premium features, light', size: Size(402, 460))
+Widget premiumFeaturesHeroLight() =>
+    _heroIn(const PremiumFeaturesHero(), Brightness.light);
 
 @Preview(name: 'Sign-in, dark', size: Size(402, 874))
 Widget signInDark() => _themed(
