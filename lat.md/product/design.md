@@ -11,8 +11,8 @@ Where the two disagree on looks, Nocturne wins; where they disagree on touch beh
 Nocturne's rules, followed by every component:
 
 - A near-neutral blue-grey ground, Inter at medium weight, 8px radii, and a compact 0.7× density using the `--space-*` steps.
-- A single blurple accent used as a line and a glow, never a flood. Primary actions are an accent *outline*, never a fill.
-- Contrast comes from tonal ramps, not saturation. There is no alarm red: urgency is a saturated indigo ground and a filled glyph. The one sanctioned saturated ground is `--color-section`, used for the overlap cards.
+- A single accent, the logo's maroon, used as a line and a glow, never a flood. Primary actions are an accent *outline*, never a fill.
+- Contrast comes from tonal ramps, not saturation. There is no alarm red: urgency is the maroon accent's ground and a filled glyph. The one sanctioned saturated ground is `--color-section`, used for the overlap cards.
 
 Material supplies: 48px minimum touch targets, swipe actions, bottom-sheet behaviour, state layers and motion curves.
 
@@ -21,6 +21,14 @@ Material supplies: 48px minimum touch targets, swipe actions, bottom-sheet behav
 `apps/mobile/lib/theme/nocturne_tokens.dart` carries Nocturne's ramps verbatim, as the PWA's `tokens.css` recorded them, plus this app's `--tone-*` and layout additions expressed in Nocturne's vocabulary. Nothing hard-codes a hex.
 
 Theme is a setting (`system`, `light`, `dark`); the app applies it as `MaterialApp.themeMode` ([[mobile-architecture#Theme]]).
+
+### The accent is the logo's maroon
+
+Decided on #291 and done in #317: the accent family takes the hue of the logo's "reward" maroon `#933F53`, and the missed tone takes the violet the accent left, so "use soon" and "missed" stay apart.
+
+Nocturne shipped a violet accent while the logo is maroon, so the two sat side by side in the app bar. Moving the accent onto the logo's hue alone would have put "use soon" (drawn in the accent) on the same hue as the rose "missed" tone. The swap trades them instead.
+
+Each moved colour keeps its OKLCH lightness and changes only its hue, so every contrast ratio stays within a few hundredths of Nocturne's. The moved tokens are `accent`, `accent2`, the accent ramp, `section`, `sectionGlow`, `bloom`, the soon tone and the available line; the missed tone moves to the old accent hue. The light accent is `#8D4253` and the dark `#D16F84`. The web page's `--accent` follows. Pinned by [[mobile-tests#Theme#The accent takes the logo's maroon]] and [[mobile-tests#Theme#Use soon and missed are different colours]].
 
 ### Semantic aliases
 

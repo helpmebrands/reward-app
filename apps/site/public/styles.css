@@ -6,7 +6,7 @@
   --background: #161826;
   --text: #e9e9ed;
   --text-secondary: #9397ab;
-  --accent: #9184d9;
+  --accent: #d16f84;
 }
 
 @media (prefers-color-scheme: light) {
@@ -14,7 +14,7 @@
     --background: #f3f5fe;
     --text: #232532;
     --text-secondary: #636571;
-    --accent: #5d5294;
+    --accent: #8d4253;
   }
 }
 
