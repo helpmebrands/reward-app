@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -264,5 +264,61 @@ describe('website brand', () => {
         }
       }
     }
+  })
+})
+
+describe('the dark logos', () => {
+  // @lat: [[infra-tests#Brand icons#The dark logos keep reward at 3:1 on the dark page]]
+  it('draw "reward" at 3:1 or better on the dark page colour', () => {
+    const page = pageColour('dark')
+    const files = [
+      ...readdirSync(join(root, 'assets/logo')).map((f) => join(root, 'assets/logo', f)),
+      ...readdirSync(join(root, 'apps/mobile/assets/logo')).map((f) => join(root, 'apps/mobile/assets/logo', f)),
+    ].filter((f) => f.endsWith('-dark.png') && !f.includes('icon') && !f.includes('tagline'))
+    expect(files.length).toBeGreaterThan(10)
+    const low = files
+      .map((f) => ({ f, ratio: contrast(maroonOf(f), page) }))
+      .filter(({ ratio }) => ratio < 3)
+      .map(({ f, ratio }) => `${f.replace(root + '/', '')}: ${ratio.toFixed(2)}:1`)
+    expect(low).toEqual([])
+  })
+})
+
+/** The most common fully opaque reddish colour in a logo: the "reward" ink. */
+function maroonOf(path: string): string {
+  const png = readPng(path)
+  const px = png.pixels()
+  const counts = new Map<string, number>()
+  for (let i = 0; i < px.length; i += 4) {
+    const [r, g, b, a] = px.subarray(i, i + 4)
+    if (a !== 255 || r <= g + 30) continue
+    const hex = '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase()
+    counts.set(hex, (counts.get(hex) ?? 0) + 1)
+  }
+  return [...counts].sort((x, y) => y[1] - x[1])[0][0]
+}
+
+/** WCAG 2 contrast ratio between two `#RRGGBB` colours. */
+function contrast(a: string, b: string): number {
+  const lum = (hex: string) => {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+      const c = parseInt(hex.slice(i, i + 2), 16) / 255
+      return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+    })
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+  }
+  const [lo, hi] = [lum(a), lum(b)].sort((x, y) => x - y)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+describe('the site favicon', () => {
+  // @lat: [[infra-tests#Brand icons#The SVG favicon is the source icon]]
+  it('is the source icon SVG with an accessible name', () => {
+    const source = readFileSync(join(root, 'assets/logo/helpmereward-icon.svg'), 'utf8')
+    const favicon = readFileSync(join(root, 'apps/site/public/favicon.svg'), 'utf8')
+    const drawing = (svg: string) => svg.slice(svg.indexOf('<defs>'))
+    expect(drawing(favicon)).toBe(drawing(source))
+    expect(favicon).toContain('<svg role="img" aria-label="HelpMe Reward" viewBox="0 0 80 80"')
+    expect(favicon).toContain('<title>HelpMe Reward</title>')
   })
 })

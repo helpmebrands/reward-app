@@ -560,6 +560,12 @@ Every file listed in `AppIcon.appiconset/Contents.json` exists and is as many pi
 
 At least one entry carries the dark luminosity appearance, and every 1024 icon without an appearance has no alpha channel, as App Store Connect requires.
 
+### The dark logos keep reward at 3:1 on the dark page
+
+Every `-dark` logo in `assets/logo/` and its copy in `apps/mobile/assets/logo/` draws "reward" at 3:1 or better on the dark Nocturne page colour (#290).
+
+The icon and tagline are left out: the icon's maroon is its own ground, and the tagline has no "reward".
+
 ### The launcher icons are the brand's maroon
 
 The iOS 1024 icon and Android's xxxhdpi legacy icon are maroon at the middle of their left edge, not the Flutter template's blue.
@@ -601,4 +607,8 @@ Both `launch_background.xml` files draw `@color/splash_background` with the `spl
 ### Both site pages link a favicon and a touch icon
 
 Each page links an `icon` and an `apple-touch-icon` that exist, and every PNG among them is the size its `sizes` attribute declares.
+
+### The SVG favicon is the source icon
+
+`favicon.svg` draws exactly what the designer's `assets/logo/helpmereward-icon.svg` draws, with `role="img"`, an aria-label and a title of "HelpMe Reward", so the site's icon cannot drift from the logo (#290).
 

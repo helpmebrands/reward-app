@@ -30,8 +30,8 @@ let site = root.appendingPathComponent("apps/site/public")
 
 /// The icon's own ground: the gradient runs from the top-left corner to the
 /// bottom-right, measured from the source's pixels.
-let groundStart = (r: 124, g: 44, b: 68)
-let groundEnd = (r: 191, g: 97, b: 112)
+let groundStart = (r: 141, g: 66, b: 83)
+let groundEnd = (r: 197, g: 120, b: 137)
 
 /// The Nocturne page colours (`background` in nocturne_tokens.dart), so the
 /// splash is the colour of the first Flutter frame.
@@ -39,7 +39,7 @@ let pageLight = (r: 0xF3, g: 0xF5, b: 0xFE)
 let pageDark = (r: 0x16, g: 0x18, b: 0x26)
 
 /// The maroon of "reward" in the wordmark, for the notification's accent.
-let brandMaroon = (r: 0x93, g: 0x3F, b: 0x53)
+let brandMaroon = (r: 0x8D, g: 0x42, b: 0x53)
 
 let densities: [(name: String, scale: Double)] = [
   ("mdpi", 1), ("hdpi", 1.5), ("xhdpi", 2), ("xxhdpi", 3), ("xxxhdpi", 4),
@@ -458,13 +458,22 @@ for (density, scale) in densities {
 }
 
 // The website: the one-line logo with its tagline at twice the 329 x 60 it
-// is drawn at (the source's shape to within a pixel), a PNG favicon beside
-// the SVG one for browsers without SVG icons, and the touch icon, flattened
-// because iOS rounds it itself.
+// is drawn at (the source's shape to within a pixel), the SVG favicon from
+// the designer's icon SVG with an accessible name in place of its fixed size,
+// a PNG favicon beside it for browsers without SVG icons, and the touch icon,
+// flattened because iOS rounds it itself.
 for suffix in ["", "-dark"] {
   let horizontal = trimmed(load(logo.appendingPathComponent("helpmereward-logo-horz\(suffix).png")))
   save(stretched(horizontal, 658, 120), site.appendingPathComponent("logo\(suffix).png"))
 }
+let iconSvg = try! String(
+  contentsOf: logo.appendingPathComponent("helpmereward-icon.svg"), encoding: .utf8)
+let favicon = iconSvg
+  .replacingOccurrences(
+    of: #"<svg width="80px" height="80px" "#, with: #"<svg role="img" aria-label="HelpMe Reward" "#)
+  .replacingOccurrences(of: "<title>helpmereward-icon</title>", with: "<title>HelpMe Reward</title>")
+precondition(favicon.contains("aria-label") && favicon.contains("<title>HelpMe Reward"))
+write(favicon, site.appendingPathComponent("favicon.svg"))
 save(scaled(icon, 32), site.appendingPathComponent("favicon-32.png"))
 save(flattened(icon, 180), site.appendingPathComponent("apple-touch-icon.png"))
 
