@@ -83,7 +83,7 @@ Widget welcomeDark() => _themed(WelcomeScreen(onDone: () {}), Brightness.dark);
 Widget welcomeLight() =>
     _themed(WelcomeScreen(onDone: () {}), Brightness.light);
 
-/// A slide's picture in its panel at a phone's width.
+/// A slide's picture in its hero at a phone's width.
 Widget _heroIn(Widget hero, Brightness brightness) => _themed(
   Padding(
     padding: const EdgeInsets.all(16.8),
