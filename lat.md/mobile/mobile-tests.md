@@ -679,7 +679,9 @@ On `WelcomeScreen` the first slide's `WelcomeHero` holds the `UpcomingRewardsHer
 
 ### Slide two is a real reminder
 
-`TimelyRemindersHero` draws a notification lookalike, "HelpMe Reward" above the `title` and `body` of the first `notice` reminder `buildSchedule` makes for the sample household on `sampleClock` with the default preferences and reminders on, over the `CreditRow` of that reminder's biggest credit, in both themes.
+`TimelyRemindersHero` draws a notification lookalike with "HelpMe Reward" and the first `notice` reminder's title and body, over the `CreditRow` of its biggest credit, in both themes.
+
+The reminder is the one `buildSchedule` makes for the sample household on `sampleClock`, with the default preferences and reminders on.
 
 ### The second slide carries it
 
