@@ -30,8 +30,8 @@ let site = root.appendingPathComponent("apps/site/public")
 
 /// The icon's own ground: the gradient runs from the top-left corner to the
 /// bottom-right, measured from the source's pixels.
-let groundStart = (r: 124, g: 44, b: 68)
-let groundEnd = (r: 191, g: 97, b: 112)
+let groundStart = (r: 141, g: 66, b: 83)
+let groundEnd = (r: 197, g: 120, b: 137)
 
 /// The Nocturne page colours (`background` in nocturne_tokens.dart), so the
 /// splash is the colour of the first Flutter frame.
@@ -39,7 +39,7 @@ let pageLight = (r: 0xF3, g: 0xF5, b: 0xFE)
 let pageDark = (r: 0x16, g: 0x18, b: 0x26)
 
 /// The maroon of "reward" in the wordmark, for the notification's accent.
-let brandMaroon = (r: 0x93, g: 0x3F, b: 0x53)
+let brandMaroon = (r: 0x8D, g: 0x42, b: 0x53)
 
 let densities: [(name: String, scale: Double)] = [
   ("mdpi", 1), ("hdpi", 1.5), ("xhdpi", 2), ("xxhdpi", 3), ("xxxhdpi", 4),

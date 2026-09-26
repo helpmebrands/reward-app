@@ -560,6 +560,12 @@ Every file listed in `AppIcon.appiconset/Contents.json` exists and is as many pi
 
 At least one entry carries the dark luminosity appearance, and every 1024 icon without an appearance has no alpha channel, as App Store Connect requires.
 
+### The dark logos keep reward at 3:1 on the dark page
+
+Every `-dark` logo in `assets/logo/` and its copy in `apps/mobile/assets/logo/` draws "reward" at 3:1 or better on the dark Nocturne page colour (#290).
+
+The icon and tagline are left out: the icon's maroon is its own ground, and the tagline has no "reward".
+
 ### The launcher icons are the brand's maroon
 
 The iOS 1024 icon and Android's xxxhdpi legacy icon are maroon at the middle of their left edge, not the Flutter template's blue.

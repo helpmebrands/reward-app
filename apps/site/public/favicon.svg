@@ -3,8 +3,8 @@
     <title>HelpMe Reward</title>
     <defs>
         <linearGradient x1="0%" y1="0%" x2="100%" y2="100%" id="linearGradient-1">
-            <stop stop-color="#7C2C44" offset="0%"></stop>
-            <stop stop-color="#BF6270" offset="100%"></stop>
+            <stop stop-color="#8D4253" offset="0%"></stop>
+            <stop stop-color="#C57889" offset="100%"></stop>
         </linearGradient>
         <linearGradient x1="1.90950333e-13%" y1="50%" x2="100%" y2="50%" id="linearGradient-2">
             <stop stop-color="#8B384E" offset="0%"></stop>
