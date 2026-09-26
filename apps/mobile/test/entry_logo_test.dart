@@ -6,8 +6,8 @@ import 'package:reward/screens/sign_in_screen.dart';
 import 'package:reward/screens/welcome_screen.dart';
 import 'package:reward/theme/theme.dart';
 
-/// Welcome and Sign in carry the stacked brand logo, centred, in place of
-/// the generic piggy bank.
+/// Sign in carries the stacked brand logo, centred, in place of the generic
+/// piggy bank; Welcome carries the lockup in its header instead.
 
 const stacked = 'assets/logo/helpmereward-logo-vertical.png';
 const stackedDark = 'assets/logo/helpmereward-logo-vertical-dark.png';
@@ -71,10 +71,10 @@ const screens = ['welcome', 'sign in'];
 
 void main() {
   // @lat: [[mobile-tests#Entry logo#The stacked logo replaces the piggy bank]]
-  testWidgets('both draw the stacked logo, centred, and no piggy bank', (
+  testWidgets('sign in draws the stacked logo, centred, and no piggy bank', (
     tester,
   ) async {
-    for (final name in screens) {
+    for (final name in ['sign in']) {
       for (final b in Brightness.values) {
         await pumpScreen(tester, name, brightness: b);
         expect(find.byIcon(Icons.savings_outlined), findsNothing);

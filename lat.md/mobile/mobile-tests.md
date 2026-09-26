@@ -623,7 +623,7 @@ Each has exactly one level-one heading, and the two "HelpMe reward" nodes, the b
 
 ### The stacked logo replaces the piggy bank
 
-Neither draws `Icons.savings_outlined`; each draws `helpmereward-logo-vertical.png`, the `-dark` file in the dark theme, centred on the 402 window.
+Sign in does not draw `Icons.savings_outlined`; it draws `helpmereward-logo-vertical.png`, the `-dark` file in the dark theme, centred on the 402 window. Welcome has the lockup in its header instead ([[mobile-tests#Welcome layout]]).
 
 ### The buttons stay reachable on a small phone at 2.0
 
@@ -632,6 +632,38 @@ At 320 x 568 with text scale 2.0 nothing overflows, and Welcome's Next and Sign 
 ### One heading, the logo is an image
 
 Each has exactly one level-one heading, and the "HelpMe reward" node is an image, not a header.
+
+## Welcome layout
+
+`welcome_layout_test.dart` pumps `WelcomeScreen` on its own and pins the slideshow's layout ([[mobile-architecture#Sign-in#The welcome slideshow]]).
+
+### Three slides in the new order
+
+The slides read "Upcoming rewards at a glance", "Timely reminders" and "Premium features" with the epic's bodies, and only the last button reads "Get started".
+
+### The lockup heads the slideshow
+
+The header draws `BrandLockup` left of Skip on the same line, no "HelpMe Reward" text, and Skip still calls `onDone`.
+
+### The hero is decoration
+
+Every slide has one `WelcomeHero`, and a child inside it is neither tappable nor present in the semantics tree.
+
+### The hero ignores the text scale
+
+Under a 2.0 system text scale the hero's child is laid out exactly 360 wide and sees a text scale of 1.0, with no overflow in a narrower panel.
+
+### Text sits below the hero on a phone
+
+At 402 x 874 the panel is over 40% of the window, the headline's top is at or below the panel's bottom, the body ends below the top third, and panel, headline and body share a left edge.
+
+### A small phone at 2.0 drops the hero
+
+At 320 x 568 with text scale 2.0 no slide has a hero or an overflow, the headline and body scroll into view, and the button stays on screen.
+
+### The headline is the one heading
+
+Each slide's headline is the screen's only level-one heading; the lockup is an image.
 
 ## Text scaling
 
