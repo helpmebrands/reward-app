@@ -148,6 +148,9 @@ GoRouter appRouter(
       GoRoute(
         path: Paths.welcome,
         builder: (context, state) => WelcomeScreen(
+          // The first launch plays the logo's hand-off from the splash; a
+          // replay from "Learn more" comes after the intro is seen.
+          introLogo: !session.introSeen,
           onDone: () async {
             await session.finishIntro();
             if (context.mounted) context.go(_keepFrom(Paths.signIn, state));
