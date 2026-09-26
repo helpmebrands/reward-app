@@ -4,7 +4,7 @@ import 'brand_lockup.dart';
 
 /// The brand logo with its tagline, drawn in the page rather than in a bar:
 /// the icon and two-line wordmark above the message on the screens reached
-/// from a link, and the stacked version centred on Welcome and Sign in.
+/// from a link, and the stacked version centred on Sign in.
 ///
 /// Like [BrandLockup], a labelled image and never a heading, the `-dark`
 /// file in the dark theme, scaled down rather than cut off when narrow.
