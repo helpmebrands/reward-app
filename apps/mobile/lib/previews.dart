@@ -6,6 +6,7 @@ import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
 import 'logic/catalog_filter_controller.dart';
 import 'logic/credit_actions.dart';
+import 'logic/sample_household.dart';
 import 'logic/snackbar_state.dart';
 import 'logic/ui_state.dart';
 import 'main.dart';
@@ -32,6 +33,8 @@ import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
 import 'screens/sign_in_screen.dart';
+import 'screens/welcome_hero.dart';
+import 'screens/welcome_heroes.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/join_screen.dart';
 import 'screens/convert_screen.dart';
@@ -39,139 +42,9 @@ import 'screens/convert_screen.dart';
 /// Widget previews for every UI component, on a small household so the
 /// screens render populated rather than empty.
 
-const _today = '2026-09-16';
-
-Card _card(String id, String label, {CardKind kind = CardKind.personal}) =>
-    Card(
-      id: id,
-      issuer: 'American Express',
-      product: 'Platinum',
-      label: label,
-      network: CardNetwork.amex,
-      kind: kind,
-      annualFeeCents: 89500,
-      anniversaryOn: '2021-03-14',
-      archived: false,
-      createdAt: '2026-01-01T00:00:00.000Z',
-      updatedAt: '2026-01-01T00:00:00.000Z',
-    );
-
-Benefit _benefit(
-  String id,
-  String cardId,
-  String name,
-  int valueCents, {
-  Cadence cadence = Cadence.monthly,
-  int? intervalMonths,
-  bool enrollmentRequired = false,
-  String? merchant,
-  int? spendThresholdCents,
-  IsoDate? endsOn,
-  IsoInstant? optedOutAt,
-}) => Benefit(
-  id: id,
-  cardId: cardId,
-  name: name,
-  category: BenefitCategory.other,
-  merchant: merchant,
-  valueCents: valueCents,
-  cadence: cadence,
-  anchor: CycleAnchor.calendar,
-  intervalMonths: intervalMonths,
-  enrollmentRequired: enrollmentRequired,
-  spendThresholdCents: spendThresholdCents,
-  endsOn: endsOn,
-  redemptionSteps: const [],
-  lastCallOnly: false,
-  active: true,
-  optedOutAt: optedOutAt,
-  createdAt: '2026-01-01T00:00:00.000Z',
-  updatedAt: '2026-01-01T00:00:00.000Z',
-);
-
-AppData _household() => AppData(
-  version: 1,
-  // Kathy's is a business card, so the Cards screen and the card editor
-  // previews show the kind.
-  cards: [
-    _card('jim', 'Jim’s Platinum'),
-    _card('kathy', 'Kathy’s Platinum', kind: CardKind.business),
-  ],
-  benefits: [
-    _benefit('u1', 'jim', 'Uber Cash', 1500, merchant: 'Uber'),
-    _benefit('u2', 'kathy', 'Uber Cash', 1500, merchant: 'Uber'),
-    _benefit(
-      'r1',
-      'kathy',
-      'Resy Dining Credit',
-      10000,
-      cadence: Cadence.quarterly,
-      endsOn: '2026-12-31',
-    ),
-    _benefit(
-      'e1',
-      'kathy',
-      'Equinox Credit',
-      30000,
-      cadence: Cadence.annual,
-      enrollmentRequired: true,
-    ),
-    _benefit(
-      'd1',
-      'kathy',
-      'Dell Bonus',
-      100000,
-      cadence: Cadence.annual,
-      spendThresholdCents: 500000,
-    ),
-    // Opted out, so the card editor shows its "Opted out" group.
-    _benefit(
-      'o1',
-      'kathy',
-      'Oura Ring Credit',
-      20000,
-      cadence: Cadence.annual,
-      optedOutAt: '2026-05-01T09:00:00.000Z',
-    ),
-    _benefit(
-      'g1',
-      'jim',
-      'Global Entry',
-      12000,
-      cadence: Cadence.rolling,
-      intervalMonths: 48,
-    ),
-  ],
-  claims: const [
-    Claim(
-      id: 'c1',
-      benefitId: 'u1',
-      cycleKey: '2026-09-01',
-      amountCents: 1500,
-      claimedAt: '2026-09-10T12:00:00.000Z',
-    ),
-    Claim(
-      id: 'c2',
-      benefitId: 'r1',
-      cycleKey: '2026-07-01',
-      amountCents: 1000,
-      claimedAt: '2026-09-02T12:00:00.000Z',
-      note: 'Lunch',
-    ),
-    Claim(
-      id: 'c3',
-      benefitId: 'r1',
-      cycleKey: '2026-07-01',
-      amountCents: 2000,
-      claimedAt: '2026-09-10T12:00:00.000Z',
-    ),
-  ],
-  settings: const Settings(useSoonDays: 30, theme: ThemeSetting.system),
-);
-
 AppStore _store() {
   final store = AppStore(
-    store: MemorySnapshotStore(_household()),
+    store: MemorySnapshotStore(sampleHousehold()),
     clock: () => DateTime(2026, 9, 16),
   );
   store.load();
@@ -209,6 +82,23 @@ Widget welcomeDark() => _themed(WelcomeScreen(onDone: () {}), Brightness.dark);
 Widget welcomeLight() =>
     _themed(WelcomeScreen(onDone: () {}), Brightness.light);
 
+/// A slide's picture in its panel at a phone's width.
+Widget _heroIn(Widget hero, Brightness brightness) => _themed(
+  Padding(
+    padding: const EdgeInsets.all(16.8),
+    child: SizedBox(height: 420, child: WelcomeHero(child: hero)),
+  ),
+  brightness,
+);
+
+@Preview(name: 'Welcome hero, upcoming rewards, dark', size: Size(402, 460))
+Widget upcomingRewardsHeroDark() =>
+    _heroIn(const UpcomingRewardsHero(), Brightness.dark);
+
+@Preview(name: 'Welcome hero, upcoming rewards, light', size: Size(402, 460))
+Widget upcomingRewardsHeroLight() =>
+    _heroIn(const UpcomingRewardsHero(), Brightness.light);
+
 @Preview(name: 'Sign-in, dark', size: Size(402, 874))
 Widget signInDark() => _themed(
   SignInScreen(auth: UnconfiguredAuth(), onLearnMore: () {}),
@@ -232,7 +122,7 @@ Widget joinLight() =>
 /// The preview household with its first card linked to the Platinum
 /// template, so Cards shows both groups.
 AppStore _linkedStore() {
-  final household = _household();
+  final household = sampleHousehold();
   final store = AppStore(
     store: MemorySnapshotStore(
       household.copyWith(
@@ -296,7 +186,7 @@ Widget stubScreen() => _themed(const StubScreen('Cards'), Brightness.dark);
 
 @Preview(name: 'Credit rows, every tone', size: Size(402, 400))
 Widget creditRows() {
-  final instances = currentInstances(_household(), _today);
+  final instances = currentInstances(sampleHousehold(), sampleToday);
   return _themed(
     ListView(
       padding: const EdgeInsets.all(16),

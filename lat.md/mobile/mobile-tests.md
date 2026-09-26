@@ -665,6 +665,18 @@ At 320 x 568 with text scale 2.0 no slide has a hero or an overflow, the headlin
 
 Each slide's headline is the screen's only level-one heading; the lockup is an image.
 
+## Welcome heroes
+
+`welcome_heroes_test.dart` pumps each slide's picture in a `WelcomeHero` over the sample household, in both themes ([[mobile-architecture#Sign-in#The welcome slideshow]]).
+
+### Slide one is Today's headline and rows
+
+`UpcomingRewardsHero` draws `TodayHeadline` with the sample household's claimable digits and at least three `CreditRow`s for its credits, covering the soon, available and locked tones, with no overflow.
+
+### The first slide carries it
+
+On `WelcomeScreen` the first slide's `WelcomeHero` holds the `UpcomingRewardsHero`.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.

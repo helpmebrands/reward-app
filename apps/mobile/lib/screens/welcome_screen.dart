@@ -7,6 +7,7 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/brand_lockup.dart';
 import '../widgets/screen_title.dart';
 import 'welcome_hero.dart';
+import 'welcome_heroes.dart';
 
 /// One slide of the welcome slideshow.
 class WelcomeSlide {
@@ -26,7 +27,7 @@ const welcomeSlides = [
     'Upcoming rewards at a glance',
     'Every credit on every card in your household, in one list. The soonest '
         'to expire comes first, with the total you can still use at the top.',
-    _placeholderHero,
+    _upcomingRewards,
   ),
   WelcomeSlide(
     'Timely reminders',
@@ -44,6 +45,8 @@ const welcomeSlides = [
     _placeholderHero,
   ),
 ];
+
+Widget _upcomingRewards(BuildContext context) => const UpcomingRewardsHero();
 
 /// Plain rows standing in for a slide's picture until its hero exists.
 Widget _placeholderHero(BuildContext context) {

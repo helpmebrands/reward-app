@@ -9,6 +9,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/credit_row.dart';
 import '../widgets/screen_title.dart';
+import '../widgets/today_headline.dart';
 
 /// Today: one number, a countdown, and the rows behind them.
 ///
@@ -68,20 +69,6 @@ class _TodayBody extends StatelessWidget {
     );
   }
 
-  String headlineSub() {
-    final open = store.instances.where(isClaimable).length;
-    if (open == 0) {
-      return 'Nothing is waiting on you. Every open credit is used.';
-    }
-    final resetOn = store.nextResetOn;
-    final soonest = resetOn != null
-        ? ' The nearest window shuts ${formatResetDate(resetOn)}.'
-        : '';
-    final cards = store.cardCount;
-    return '$open open credit${open == 1 ? '' : 's'} across '
-        '$cards card${cards == 1 ? '' : 's'}.$soonest';
-  }
-
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
@@ -98,49 +85,17 @@ class _TodayBody extends StatelessWidget {
     final compare = ui?.openOverlap;
     final resetOn = store.nextResetOn;
     final daysToReset = soon.isEmpty ? null : soon.first.daysRemaining;
-    final parts = moneyParts(totals.claimableCents);
 
     final headline = _Section(
       order: 1,
-      child: Column(
-        key: const Key('today-headline'),
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // The heading reads "Today"; the date and the eyebrow are what
-          // is drawn, since the brand now sits in the bar above.
-          ScreenTitle(
-            label: 'Today',
-            text:
-                '${formatHeaderDate(store.today).replaceAll(',', '').toUpperCase()}'
-                ' · UNCLAIMED, OPEN PERIODS',
-            style: text.labelSmall?.copyWith(color: tokens.textSecondary),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(parts.symbol, style: text.headlineSmall),
-              // The number shrinks with the column rather than forcing a
-              // sideways scroll, as the PWA's clamp() does.
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    parts.digits,
-                    key: const Key('today-amount'),
-                    style: text.displayMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          Text(
-            headlineSub(),
-            style: text.bodyMedium?.copyWith(color: tokens.textSecondary),
-          ),
-        ],
+      child: TodayHeadline(
+        eyebrow: todayEyebrow(store.today),
+        claimableCents: totals.claimableCents,
+        sub: todayHeadlineSub(
+          open: store.instances.where(isClaimable).length,
+          cards: store.cardCount,
+          resetOn: resetOn,
+        ),
       ),
     );
 
