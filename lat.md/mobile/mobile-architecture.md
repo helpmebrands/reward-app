@@ -236,6 +236,15 @@ Three slides introduce the product with a picture of it: "Upcoming rewards at a 
 - **Premium placeholder**: slide three, `PremiumFeaturesHero`, lives on its own in `lib/screens/welcome_premium_mocks.dart` because the features it shows do not exist yet: a real `CreditRow` for the sample's captured credit marked "Tracked from your bank", and an insight card with one earn-more, one use-better and one missed example, all in theme tokens. The premium epic replaces this file with its real bank-tracking and insight widgets.
 - **One heading**: the current slide's headline is the screen's `ScreenTitle` (window title "Welcome"); the lockup is an image.
 
+### The logo hand-off
+
+On the first launch into Welcome the logo carries on from the native splash: the icon where the splash left it, the stacked logo, then the lockup in the header, in 900 ms (epic #301). Pinned by [[mobile-tests#Welcome logo]].
+
+- **Layers** in `apps/mobile/assets/logo/`, cropped once from the repo's `assets/logo/` sources: `helpmereward-icon.png` (the splash icon at 384 px, one file for both themes), `helpmereward-wordmark{,-dark}.png` (the one-line wordmark cut from `logo-horz-sanstag`) and `helpmereward-tagline{,-dark}.png` (the tagline row of `logo-vertical`). `LogoLayers` in `lib/screens/welcome_logo.dart` holds where icon and wordmark sit inside the 224 x 32 lockup, so the two together cover it exactly.
+- **Sequence** (`WelcomeLogoLayers`, one controller): the first frame is the icon alone, centred in the window at `splashIconExtent` (120 on iOS; 128 on Android, whose pre-12 splash draws 120, so there it grows by 8); the wordmark and tagline fade in below it; icon and wordmark move onto the header `BrandLockup`'s rect, measured after the first layout, while the tagline fades out; Skip, the slides and the controls fade in last.
+- **When**: the router passes `introLogo: !session.introSeen`, so a "Learn more" replay opens on the lockup. With `disableAnimations`, or a header too narrow for the icon beside the wordmark, the lockup is placed with no motion.
+- **Semantics**: the header lockup stays in the tree throughout (`Opacity` with `alwaysIncludeSemantics`) and the layers are excluded, so there is one "HelpMe reward" node.
+
 ## System and user cards
 
 A card added from the catalogue is linked to its template and kept up to date by it; a card added blank, or converted, is the household's own ([[domain#Catalogue versions]], [[api-architecture#Conversion]]). Pinned by [[mobile-tests#System and user cards]].

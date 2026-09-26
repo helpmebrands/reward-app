@@ -126,7 +126,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 999));
     expect(layer('icon'), findsNothing);
-    expect(tester.binding.hasScheduledFrame, isFalse);
+    expect(tester.binding.transientCallbackCount, 0);
     expect(lockupOpacity(tester), 1);
     expect(contentOpacity(tester), 1);
   });
@@ -139,7 +139,7 @@ void main() {
     expect(layer('icon'), findsNothing);
     expect(lockupOpacity(tester), 1);
     expect(contentOpacity(tester), 1);
-    expect(tester.binding.hasScheduledFrame, isFalse);
+    expect(tester.binding.transientCallbackCount, 0);
   });
 
   // @lat: [[mobile-tests#Welcome logo#Reduced motion skips the sequence]]
@@ -150,7 +150,7 @@ void main() {
     expect(layer('icon'), findsNothing);
     expect(lockupOpacity(tester), 1);
     expect(contentOpacity(tester), 1);
-    expect(tester.binding.hasScheduledFrame, isFalse);
+    expect(tester.binding.transientCallbackCount, 0);
   });
 
   // @lat: [[mobile-tests#Welcome logo#One logo node throughout]]

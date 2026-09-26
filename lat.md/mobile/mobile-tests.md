@@ -709,15 +709,15 @@ On the first frame of a first launch the icon layer is the only one drawn, centr
 
 ### The layers land on the lockup
 
-Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the header `BrandLockup`'s rect with no tagline, and once settled the layers are gone and the lockup and slides are opaque.
+Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the header `BrandLockup`'s rect with no tagline, then the layers go and the lockup and slides are opaque.
 
 ### It settles within a second
 
-`welcomeLogoDuration` is under a second, and 999 ms after the first frame nothing is scheduled and the screen is finished.
+`welcomeLogoDuration` is under a second, and 999 ms after the first frame no ticker is running and the screen is finished.
 
 ### Learn more opens on the lockup
 
-Without `introLogo`, as a replay from "Learn more" builds it, the first frame has no layers, an opaque lockup and slides, and no frame scheduled.
+Without `introLogo`, as a replay from "Learn more" builds it, the first frame has no layers, an opaque lockup and slides, and no ticker running.
 
 ### Reduced motion skips the sequence
 

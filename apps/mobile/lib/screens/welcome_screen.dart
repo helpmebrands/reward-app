@@ -8,6 +8,7 @@ import '../widgets/brand_lockup.dart';
 import '../widgets/screen_title.dart';
 import 'welcome_hero.dart';
 import 'welcome_heroes.dart';
+import 'welcome_logo.dart';
 import 'welcome_premium_mocks.dart';
 
 /// One slide of the welcome slideshow.
@@ -56,22 +57,73 @@ Widget _premiumFeatures(BuildContext context) => const PremiumFeaturesHero();
 /// The welcome slideshow. Skip, or Get started on the last slide, calls
 /// [onDone]; the router then goes to sign-in.
 class WelcomeScreen extends StatefulWidget {
-  const WelcomeScreen({super.key, required this.onDone});
+  const WelcomeScreen({
+    super.key,
+    required this.onDone,
+    this.introLogo = false,
+  });
 
   final VoidCallback onDone;
+
+  /// Opens with the logo's hand-off from the native splash to the header
+  /// ([WelcomeLogoLayers]), as the first launch does; a replay from "Learn
+  /// more" opens on the lockup in place. Reduced motion skips it.
+  final bool introLogo;
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
-class _WelcomeScreenState extends State<WelcomeScreen> {
+class _WelcomeScreenState extends State<WelcomeScreen>
+    with SingleTickerProviderStateMixin {
   final _pages = PageController();
   int _page = 0;
 
+  final _stackKey = GlobalKey();
+  final _lockupKey = GlobalKey();
+  bool _logoChecked = false;
+  AnimationController? _logo;
+  Animation<double> _content = kAlwaysCompleteAnimation;
+  Rect? _lockupRect;
+
   bool get _last => _page == welcomeSlides.length - 1;
+
+  bool get _playing => _logo?.isCompleted == false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_logoChecked) return;
+    _logoChecked = true;
+    if (!widget.introLogo || MediaQuery.disableAnimationsOf(context)) return;
+    final logo = _logo =
+        AnimationController(vsync: this, duration: welcomeLogoDuration)
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) setState(() {});
+          });
+    _content = CurvedAnimation(parent: logo, curve: const Interval(0.8, 1));
+    // The move needs the header lockup's rect, known after the first layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final stack = _stackKey.currentContext!.findRenderObject()! as RenderBox;
+      final lockup =
+          _lockupKey.currentContext!.findRenderObject()! as RenderBox;
+      // Too narrow for the icon beside the wordmark: place it with no move.
+      if (lockup.size.width < BrandLockup.lockupSize.width) {
+        logo.value = 1;
+        return;
+      }
+      setState(() {
+        _lockupRect =
+            lockup.localToGlobal(Offset.zero, ancestor: stack) & lockup.size;
+      });
+      logo.forward();
+    });
+  }
 
   @override
   void dispose() {
+    _logo?.dispose();
     _pages.dispose();
     super.dispose();
   }
@@ -91,106 +143,152 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
+    final logo = _logo;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: Padding(
-              padding: const EdgeInsets.all(Space.s6),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: BrandLockup(),
-                        ),
-                      ),
-                      TextButton(
-                        key: const Key('welcome-skip'),
-                        onPressed: widget.onDone,
-                        child: const Text('Skip'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Space.s4),
-                  Expanded(
-                    child: PageView(
-                      controller: _pages,
-                      onPageChanged: (page) => setState(() => _page = page),
+      body: Stack(
+        key: _stackKey,
+        children: [
+          IgnorePointer(
+            ignoring: _playing,
+            child: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Padding(
+                    padding: const EdgeInsets.all(Space.s6),
+                    child: Column(
                       children: [
-                        for (final slide in welcomeSlides)
-                          LayoutBuilder(
-                            builder: (context, constraints) =>
-                                SingleChildScrollView(
-                                  child: _HeroAboveText(
-                                    height: constraints.maxHeight,
-                                    hero: WelcomeHero(
-                                      child: Builder(builder: slide.hero),
-                                    ),
-                                    text: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        ScreenTitle(
-                                          label: slide.title,
-                                          windowTitle: 'Welcome',
-                                          style: text.headlineSmall,
-                                        ),
-                                        const SizedBox(height: Space.s3),
-                                        Text(
-                                          slide.body,
-                                          style: text.bodyMedium?.copyWith(
-                                            color: tokens.textSecondary,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                // Hidden while the layers stand in for it, but
+                                // still the one "HelpMe reward" node.
+                                child: Opacity(
+                                  opacity: _playing ? 0 : 1,
+                                  alwaysIncludeSemantics: true,
+                                  child: BrandLockup(key: _lockupKey),
+                                ),
+                              ),
+                            ),
+                            FadeTransition(
+                              opacity: _content,
+                              child: TextButton(
+                                key: const Key('welcome-skip'),
+                                onPressed: widget.onDone,
+                                child: const Text('Skip'),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: Space.s4),
+                        Expanded(
+                          child: FadeTransition(
+                            opacity: _content,
+                            child: PageView(
+                              controller: _pages,
+                              onPageChanged: (page) =>
+                                  setState(() => _page = page),
+                              children: [
+                                for (final slide in welcomeSlides)
+                                  LayoutBuilder(
+                                    builder: (context, constraints) =>
+                                        SingleChildScrollView(
+                                          child: _HeroAboveText(
+                                            height: constraints.maxHeight,
+                                            hero: WelcomeHero(
+                                              child: Builder(
+                                                builder: slide.hero,
+                                              ),
+                                            ),
+                                            text: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                ScreenTitle(
+                                                  label: slide.title,
+                                                  windowTitle: 'Welcome',
+                                                  style: text.headlineSmall,
+                                                ),
+                                                const SizedBox(
+                                                  height: Space.s3,
+                                                ),
+                                                Text(
+                                                  slide.body,
+                                                  style: text.bodyMedium
+                                                      ?.copyWith(
+                                                        color: tokens
+                                                            .textSecondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                      ],
-                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: Space.s6),
+                        FadeTransition(
+                          opacity: _content,
+                          child: Column(
+                            children: [
+                              Semantics(
+                                label:
+                                    'Slide ${_page + 1} of ${welcomeSlides.length}',
+                                child: ExcludeSemantics(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      for (
+                                        var i = 0;
+                                        i < welcomeSlides.length;
+                                        i++
+                                      )
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          margin: const EdgeInsets.all(
+                                            Space.s1,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: i == _page
+                                                ? tokens.accent
+                                                : tokens.surfaceLine,
+                                          ),
+                                        ),
+                                    ],
                                   ),
                                 ),
+                              ),
+                              const SizedBox(height: Space.s6),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  key: const Key('welcome-next'),
+                                  onPressed: _next,
+                                  child: Text(_last ? 'Get started' : 'Next'),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: Space.s6),
-                  Semantics(
-                    label: 'Slide ${_page + 1} of ${welcomeSlides.length}',
-                    child: ExcludeSemantics(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          for (var i = 0; i < welcomeSlides.length; i++)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              margin: const EdgeInsets.all(Space.s1),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: i == _page
-                                    ? tokens.accent
-                                    : tokens.surfaceLine,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: Space.s6),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      key: const Key('welcome-next'),
-                      onPressed: _next,
-                      child: Text(_last ? 'Get started' : 'Next'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+          if (logo != null && _playing)
+            Positioned.fill(
+              child: WelcomeLogoLayers(progress: logo, lockup: _lockupRect),
+            ),
+        ],
       ),
     );
   }
