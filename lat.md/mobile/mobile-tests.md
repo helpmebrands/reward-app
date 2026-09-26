@@ -10,11 +10,19 @@ What the Flutter widget suites in `apps/mobile/test/` guard, run by the `flutter
 
 Each theme's primary, surface, on-surface and scaffold colours are the `tokens.css` values for its mode, and each carries its token set as the extension.
 
-Dark: `#9184d9`, `#232532`, `#e9e9ed`, `#161826`. Light: `#5d5294`, `#ffffff`, `#232532`, `#f3f5fe`.
+Dark: `#d16f84`, `#232532`, `#e9e9ed`, `#161826`. Light: `#8d4253`, `#ffffff`, `#232532`, `#f3f5fe`.
 
 ### The app follows the platform brightness
 
 With the platform reporting dark, the running app resolves the dark accent as primary and the dark "use soon" ground from the extension, so the system setting is what picks the theme.
+
+### The accent takes the logo's maroon
+
+In both themes the accent's OKLCH hue is within 10° of the logo's "reward" maroon `#933F53`, so the app's colour and the logo are one brand (#291).
+
+### Use soon and missed are different colours
+
+In both themes the "use soon" and "missed" tone lines are at least 70° apart in OKLCH hue, wider than the 60° they had before #291, so an urgent row never reads as a lost one.
 
 
 ## Brand lockup
