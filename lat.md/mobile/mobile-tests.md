@@ -687,6 +687,18 @@ The reminder is the one `buildSchedule` makes for the sample household on `sampl
 
 After Next, the second slide's `WelcomeHero` holds the `TimelyRemindersHero`.
 
+### Slide three mocks the premium features
+
+`PremiumFeaturesHero` draws a `CreditRow` marked "Tracked from your bank" and an insight card with one earn-more, one use-better and one missed insight, in both themes.
+
+### The premium mocks use only tokens
+
+`lib/screens/welcome_premium_mocks.dart` names no `Color(` or `Colors.` and says it is a placeholder.
+
+### The third slide carries it
+
+After Next twice, the third slide's `WelcomeHero` holds the `PremiumFeaturesHero`.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.

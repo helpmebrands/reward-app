@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/logic/sample_household.dart';
 import 'package:reward/screens/welcome_hero.dart';
 import 'package:reward/screens/welcome_heroes.dart';
+import 'package:reward/screens/welcome_premium_mocks.dart';
 import 'package:reward/screens/welcome_screen.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
@@ -158,6 +161,76 @@ void main() {
       find.descendant(
         of: find.byType(WelcomeHero),
         matching: find.byType(TimelyRemindersHero),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  // @lat: [[mobile-tests#Welcome heroes#Slide three mocks the premium features]]
+  testWidgets('slide three draws a bank-tracked row and three insights', (
+    tester,
+  ) async {
+    for (final b in Brightness.values) {
+      await pumpHero(tester, const PremiumFeaturesHero(), brightness: b);
+      expect(tester.takeException(), isNull, reason: '$b');
+
+      final tracked = find.byKey(const Key('premium-tracked-row'));
+      expect(
+        find.descendant(of: tracked, matching: find.byType(CreditRow)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: tracked,
+          matching: find.textContaining('Tracked from your bank'),
+        ),
+        findsOneWidget,
+      );
+      for (final kind in ['earn', 'use', 'missed']) {
+        expect(
+          find.descendant(
+            of: find.byKey(const Key('premium-insights')),
+            matching: find.byKey(Key('premium-insight-$kind')),
+          ),
+          findsOneWidget,
+          reason: kind,
+        );
+      }
+    }
+  });
+
+  // @lat: [[mobile-tests#Welcome heroes#The premium mocks use only tokens]]
+  test('the premium mocks name no literal colour', () {
+    final source = File(
+      'lib/screens/welcome_premium_mocks.dart',
+    ).readAsStringSync();
+    expect(source, isNot(contains('Color(')));
+    expect(source, isNot(contains('Colors.')));
+    expect(source, contains('placeholder'));
+  });
+
+  // @lat: [[mobile-tests#Welcome heroes#The third slide carries it]]
+  testWidgets('the third slide shows the premium hero in its panel', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(402, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nocturneTheme(Brightness.dark),
+        home: WelcomeScreen(onDone: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.byKey(const Key('welcome-next')));
+      await tester.pumpAndSettle();
+    }
+    expect(
+      find.descendant(
+        of: find.byType(WelcomeHero),
+        matching: find.byType(PremiumFeaturesHero),
       ),
       findsOneWidget,
     );
