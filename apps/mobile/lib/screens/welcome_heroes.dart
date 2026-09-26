@@ -2,7 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 
 import '../logic/sample_household.dart';
-import '../theme/nocturne_tokens.dart';
+import '../theme/nocturne_tokens.dart' hide Tone;
 import '../widgets/credit_row.dart';
 import '../widgets/today_headline.dart';
 
@@ -45,6 +45,73 @@ class UpcomingRewardsHero extends StatelessWidget {
             const SizedBox(height: Space.s2),
             CreditRow(instance: instance, showCard: true),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Slide two's picture: a notification lookalike carrying the first
+/// one-week reminder the sample household gets, its title and body from
+/// `buildSchedule` (default preferences, reminders on) so the slide follows
+/// the real copy, above the row of the credit it leads with.
+class TimelyRemindersHero extends StatelessWidget {
+  const TimelyRemindersHero({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
+    final text = Theme.of(context).textTheme;
+    final reminder = buildSchedule(
+      sampleHousehold(),
+      defaultMemberPreferences.copyWith(enabled: true),
+      sampleClock,
+    ).reminders.firstWhere((r) => r.tone == Tone.notice);
+    final biggest = _sampleInstances().firstWhere(
+      (i) => i.benefit.id == reminder.items.first.benefitId,
+    );
+    final secondary = text.labelSmall?.copyWith(color: tokens.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Space.s6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            key: const Key('welcome-notification'),
+            padding: const EdgeInsets.all(Space.s4),
+            decoration: BoxDecoration(
+              color: tokens.surfaceRaised,
+              borderRadius: BorderRadius.circular(Radii.lg),
+              border: Border.all(color: tokens.surfaceLine),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // The app icon's place in a system notification.
+                    Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: tokens.accent,
+                        borderRadius: BorderRadius.circular(Radii.sm),
+                      ),
+                    ),
+                    const SizedBox(width: Space.s3),
+                    Expanded(child: Text('HelpMe Reward', style: secondary)),
+                    Text('now', style: secondary),
+                  ],
+                ),
+                const SizedBox(height: Space.s3),
+                Text(reminder.title, style: text.titleSmall),
+                const SizedBox(height: Space.s1),
+                Text(reminder.body, style: text.bodySmall),
+              ],
+            ),
+          ),
+          const SizedBox(height: Space.s8),
+          CreditRow(instance: biggest, showCard: true),
         ],
       ),
     );

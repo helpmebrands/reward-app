@@ -104,7 +104,7 @@ void main() {
       'biggest credit', (tester) async {
     final reminder = buildSchedule(
       sampleHousehold(),
-      defaultMemberPreferences,
+      defaultMemberPreferences.copyWith(enabled: true),
       sampleClock,
     ).reminders.firstWhere((r) => r.tone.name == 'notice');
     for (final b in Brightness.values) {

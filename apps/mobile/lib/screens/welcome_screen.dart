@@ -34,7 +34,7 @@ const welcomeSlides = [
     'Each reminder is timed to its credit, from months ahead for a yearly '
         'credit to the last day for a monthly one. Alerts due on the same day '
         'arrive as one notification, led by the most money at risk.',
-    _placeholderHero,
+    _timelyReminders,
   ),
   WelcomeSlide(
     'Premium features',
@@ -47,6 +47,8 @@ const welcomeSlides = [
 ];
 
 Widget _upcomingRewards(BuildContext context) => const UpcomingRewardsHero();
+
+Widget _timelyReminders(BuildContext context) => const TimelyRemindersHero();
 
 /// Plain rows standing in for a slide's picture until its hero exists.
 Widget _placeholderHero(BuildContext context) {

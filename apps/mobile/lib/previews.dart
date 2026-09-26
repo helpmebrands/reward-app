@@ -99,6 +99,14 @@ Widget upcomingRewardsHeroDark() =>
 Widget upcomingRewardsHeroLight() =>
     _heroIn(const UpcomingRewardsHero(), Brightness.light);
 
+@Preview(name: 'Welcome hero, timely reminders, dark', size: Size(402, 460))
+Widget timelyRemindersHeroDark() =>
+    _heroIn(const TimelyRemindersHero(), Brightness.dark);
+
+@Preview(name: 'Welcome hero, timely reminders, light', size: Size(402, 460))
+Widget timelyRemindersHeroLight() =>
+    _heroIn(const TimelyRemindersHero(), Brightness.light);
+
 @Preview(name: 'Sign-in, dark', size: Size(402, 874))
 Widget signInDark() => _themed(
   SignInScreen(auth: UnconfiguredAuth(), onLearnMore: () {}),
