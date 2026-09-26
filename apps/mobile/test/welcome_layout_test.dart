@@ -200,7 +200,12 @@ void main() {
     await pumpWelcome(tester, size: const Size(320, 568), textScale: 2.0);
     for (var i = 0; i < titles.length; i++) {
       expect(tester.takeException(), isNull, reason: titles[i]);
-      expect(find.byType(WelcomeHero), findsNothing, reason: titles[i]);
+      // Left out: laid out at no height, so nothing of it is drawn.
+      expect(
+        tester.getSize(find.byType(WelcomeHero)).height,
+        0,
+        reason: titles[i],
+      );
       for (final target in [
         find.text(titles[i]),
         find.text(welcomeSlides[i].body),

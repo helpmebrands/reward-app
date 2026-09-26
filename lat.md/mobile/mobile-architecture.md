@@ -208,7 +208,7 @@ The app sits behind sign-in with Google or Apple through Firebase Authentication
 
 The slideshow stays open while signed out, which is how "Learn more" on the sign-in screen replays it. A signed-out deep link carries `?from=`, so an invite link opened before signing in (#221) still lands where it pointed. Without a session, as in the screen tests, there is no redirect.
 
-- **`WelcomeScreen`**: three slides in a `PageView`, Skip at the top, dots, and Next that becomes "Get started"; both finish the intro and go to sign-in.
+- **`WelcomeScreen`**: three slides in a `PageView`, the lockup and Skip at the top, dots, and Next that becomes "Get started"; both finish the intro and go to sign-in ([[mobile-architecture#Sign-in#The welcome slideshow]]).
 - **`SignInScreen`**: "Continue with Google", "Continue with Apple" and "Learn more"; a failed sign-in shows its sentence in a live region and stays.
 - **Settings** gains an *Account* section with the email and "Sign out", after which the redirect returns to sign-in, never the slideshow.
 - **`FirebaseAuthService`** (`lib/data/firebase_auth_service.dart`) signs in with `signInWithProvider` for both providers, so no provider SDK is added: `google_sign_in` would need approval under rule 9. A cancelled sheet is not an error.
@@ -220,9 +220,18 @@ Every screen has a Widget Preview: the slideshow in both themes and sign-in at c
 
 ### The stacked logo
 
-Welcome and Sign in show the brand as `BrandLogo.stacked`, the icon above the wordmark and tagline (`helpmereward-logo-vertical{,-dark}.png`), centred at 160 x 170 with no app bar, in place of the piggy bank they had.
+Sign in shows the brand as `BrandLogo.stacked`, the icon above the wordmark and tagline (`helpmereward-logo-vertical{,-dark}.png`), centred at 160 x 170 with no app bar, above the heading, in place of the piggy bank it had.
 
-On Welcome it is the first slide's picture (a `WelcomeSlide` with no icon); on Sign in it sits above the heading. Like every logo it is a labelled image, not a heading. Both pages scroll, so at 320 x 568 and text scale 2.0 the buttons can still be reached; Welcome's name beside Skip wraps rather than overflowing. Pinned by [[mobile-tests#Entry logo]].
+Like every logo it is a labelled image, not a heading. The page scrolls, so at 320 x 568 and text scale 2.0 the buttons can still be reached. Pinned by [[mobile-tests#Entry logo]].
+
+### The welcome slideshow
+
+Three slides introduce the product with a picture of it: "Upcoming rewards at a glance", "Timely reminders" and "Premium features" (epic #301). Pinned by [[mobile-tests#Welcome layout]].
+
+- **Header**: `BrandLockup` on the left, Skip on the right, no app bar.
+- **`WelcomeSlide`** carries a title, a body and a `WidgetBuilder` for its picture, drawn in a `WelcomeHero` (`lib/screens/welcome_hero.dart`): a rounded panel on the surface colour that lays the picture out at 360 wide and text scale 1.0 (`MediaQuery.withNoTextScaling`), tilts it with a slight perspective, and clips it at the panel edge. The picture is wrapped in `IgnorePointer` and `ExcludeSemantics`, since the headline and body carry the message.
+- **Layout**: a private render object puts the hero above the left-aligned headline and body. The text takes its natural height first; the hero gets what is left, up to 55% of the slide, and is left out (laid out at no height, not painted, not in the semantics tree) when that is under 160. The slide scrolls only when the text alone is taller than it, so at 320 x 568 and text scale 2.0 the text and button fit with no hero.
+- **One heading**: the current slide's headline is the screen's `ScreenTitle` (window title "Welcome"); the lockup is an image.
 
 ## System and user cards
 
