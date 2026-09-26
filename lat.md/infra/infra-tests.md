@@ -608,3 +608,7 @@ Both `launch_background.xml` files draw `@color/splash_background` with the `spl
 
 Each page links an `icon` and an `apple-touch-icon` that exist, and every PNG among them is the size its `sizes` attribute declares.
 
+### The SVG favicon is the source icon
+
+`favicon.svg` draws exactly what the designer's `assets/logo/helpmereward-icon.svg` draws, with `role="img"`, an aria-label and a title of "HelpMe Reward", so the site's icon cannot drift from the logo (#290).
+

@@ -458,13 +458,22 @@ for (density, scale) in densities {
 }
 
 // The website: the one-line logo with its tagline at twice the 329 x 60 it
-// is drawn at (the source's shape to within a pixel), a PNG favicon beside
-// the SVG one for browsers without SVG icons, and the touch icon, flattened
-// because iOS rounds it itself.
+// is drawn at (the source's shape to within a pixel), the SVG favicon from
+// the designer's icon SVG with an accessible name in place of its fixed size,
+// a PNG favicon beside it for browsers without SVG icons, and the touch icon,
+// flattened because iOS rounds it itself.
 for suffix in ["", "-dark"] {
   let horizontal = trimmed(load(logo.appendingPathComponent("helpmereward-logo-horz\(suffix).png")))
   save(stretched(horizontal, 658, 120), site.appendingPathComponent("logo\(suffix).png"))
 }
+let iconSvg = try! String(
+  contentsOf: logo.appendingPathComponent("helpmereward-icon.svg"), encoding: .utf8)
+let favicon = iconSvg
+  .replacingOccurrences(
+    of: #"<svg width="80px" height="80px" "#, with: #"<svg role="img" aria-label="HelpMe Reward" "#)
+  .replacingOccurrences(of: "<title>helpmereward-icon</title>", with: "<title>HelpMe Reward</title>")
+precondition(favicon.contains("aria-label") && favicon.contains("<title>HelpMe Reward"))
+write(favicon, site.appendingPathComponent("favicon.svg"))
 save(scaled(icon, 32), site.appendingPathComponent("favicon-32.png"))
 save(flattened(icon, 180), site.appendingPathComponent("apple-touch-icon.png"))
 

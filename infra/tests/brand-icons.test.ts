@@ -310,3 +310,15 @@ function contrast(a: string, b: string): number {
   const [lo, hi] = [lum(a), lum(b)].sort((x, y) => x - y)
   return (hi + 0.05) / (lo + 0.05)
 }
+
+describe('the site favicon', () => {
+  // @lat: [[infra-tests#Brand icons#The SVG favicon is the source icon]]
+  it('is the source icon SVG with an accessible name', () => {
+    const source = readFileSync(join(root, 'assets/logo/helpmereward-icon.svg'), 'utf8')
+    const favicon = readFileSync(join(root, 'apps/site/public/favicon.svg'), 'utf8')
+    const drawing = (svg: string) => svg.slice(svg.indexOf('<defs>'))
+    expect(drawing(favicon)).toBe(drawing(source))
+    expect(favicon).toContain('<svg role="img" aria-label="HelpMe Reward" viewBox="0 0 80 80"')
+    expect(favicon).toContain('<title>HelpMe Reward</title>')
+  })
+})
