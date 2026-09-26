@@ -1,7 +1,7 @@
 #!/usr/bin/env swift
-// Generates the native brand icons and splash screens from the sources in
-// the repo's assets/logo, so no icon or splash package is needed (epic
-// #279). Run from anywhere:
+// Generates the native brand icons and splash screens, and the website's
+// logo and icons, from the sources in the repo's assets/logo, so no icon or
+// splash package is needed (epic #279). Run from anywhere:
 //
 //   swift apps/mobile/scripts/brand-icons.swift
 //
@@ -26,6 +26,7 @@ let root = mobile.deletingLastPathComponent().deletingLastPathComponent()
 let logo = root.appendingPathComponent("assets/logo")
 let ios = mobile.appendingPathComponent("ios/Runner/Assets.xcassets")
 let res = mobile.appendingPathComponent("android/app/src/main/res")
+let site = root.appendingPathComponent("apps/site/public")
 
 /// The icon's own ground: the gradient runs from the top-left corner to the
 /// bottom-right, measured from the source's pixels.
@@ -193,6 +194,13 @@ func fitted(_ image: CGImage, _ size: Int, box: Double) -> CGImage {
     in: CGRect(
       x: (Double(size) - width) / 2, y: (Double(size) - height) / 2,
       width: width, height: height))
+  return context.makeImage()!
+}
+
+/// [image] drawn to fill [width] by [height].
+func stretched(_ image: CGImage, _ width: Int, _ height: Int) -> CGImage {
+  let context = canvas(width, height)
+  context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
   return context.makeImage()!
 }
 
@@ -448,5 +456,16 @@ for (density, scale) in densities {
     fitted(silhouette, Int(24 * scale), box: 20 * scale),
     res.appendingPathComponent("drawable-\(density)/ic_notification.png"))
 }
+
+// The website: the one-line logo with its tagline at twice the 329 x 60 it
+// is drawn at (the source's shape to within a pixel), a PNG favicon beside
+// the SVG one for browsers without SVG icons, and the touch icon, flattened
+// because iOS rounds it itself.
+for suffix in ["", "-dark"] {
+  let horizontal = trimmed(load(logo.appendingPathComponent("helpmereward-logo-horz\(suffix).png")))
+  save(stretched(horizontal, 658, 120), site.appendingPathComponent("logo\(suffix).png"))
+}
+save(scaled(icon, 32), site.appendingPathComponent("favicon-32.png"))
+save(flattened(icon, 180), site.appendingPathComponent("apple-touch-icon.png"))
 
 print("brand icons written under \(mobile.path)")

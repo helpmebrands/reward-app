@@ -1,11 +1,21 @@
-/* Nocturne's dark tokens, as apps/mobile/lib/theme/nocturne_tokens.dart
-   records them. */
+/* Nocturne's tokens, as apps/mobile/lib/theme/nocturne_tokens.dart records
+   them: dark by default, light when the system asks, so the logo's dark and
+   light files each sit on the ground they were drawn for. */
 :root {
-  color-scheme: dark;
+  color-scheme: dark light;
   --background: #161826;
   --text: #e9e9ed;
   --text-secondary: #9397ab;
   --accent: #9184d9;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #f3f5fe;
+    --text: #232532;
+    --text-secondary: #636571;
+    --accent: #5d5294;
+  }
 }
 
 body {
@@ -23,6 +33,13 @@ main {
   max-width: 36rem;
   padding: 2rem 1.5rem;
   text-align: center;
+}
+
+.logo {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto 2rem;
 }
 
 h1 {

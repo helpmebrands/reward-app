@@ -218,3 +218,51 @@ describe('Android notification icon', () => {
     }
   })
 })
+
+describe('website brand', () => {
+  const site = join(root, 'apps/site/public')
+  const pages = ['index.html', '404.html']
+
+  // @lat: [[infra-tests#Brand icons#Both site pages open on the logo]]
+  it('puts the logo picture with a dark source at the top of both pages', () => {
+    for (const page of pages) {
+      const html = readFileSync(join(site, page), 'utf8')
+      const picture = html.match(/<picture>([\s\S]*?)<\/picture>/)?.[1]
+      expect(picture, page).toBeDefined()
+      const source = picture!.match(/<source\s+media="\(prefers-color-scheme: dark\)"\s+srcset="\/([\w.-]+)"/)
+      expect(source, page).not.toBeNull()
+      const img = picture!.match(/<img\s[^>]*>/)![0]
+      expect(img, page).toContain('alt="HelpMe reward"')
+      const src = img.match(/src="\/([\w.-]+)"/)![1]
+      const width = Number(img.match(/width="(\d+)"/)![1])
+      const height = Number(img.match(/height="(\d+)"/)![1])
+      for (const file of [src, source![1]]) {
+        const png = readPng(join(site, file))
+        // Drawn at the declared size, stored at twice it for sharp screens.
+        expect([png.width, png.height], `${page} ${file}`).toEqual([width * 2, height * 2])
+      }
+      expect(html.indexOf('<picture>'), page).toBeLessThan(html.indexOf('<h1>'))
+    }
+  })
+
+  // @lat: [[infra-tests#Brand icons#Both site pages link a favicon and a touch icon]]
+  it('links a favicon and an apple-touch-icon that exist at their sizes', () => {
+    for (const page of pages) {
+      const html = readFileSync(join(site, page), 'utf8')
+      const links = [...html.matchAll(/<link\s+rel="(icon|apple-touch-icon)"[^>]*>/g)]
+      for (const rel of ['icon', 'apple-touch-icon']) {
+        expect(links.some((l) => l[1] === rel), `${page} ${rel}`).toBe(true)
+      }
+      for (const [link] of links) {
+        const href = link.match(/href="\/([\w.-]+)"/)![1]
+        expect(existsSync(join(site, href)), `${page} ${href}`).toBe(true)
+        const sizes = link.match(/sizes="(\d+)x(\d+)"/)
+        if (href.endsWith('.png')) {
+          expect(sizes, `${page} ${href} declares its size`).not.toBeNull()
+          const png = readPng(join(site, href))
+          expect([png.width, png.height], href).toEqual([Number(sizes![1]), Number(sizes![2])])
+        }
+      }
+    }
+  })
+})

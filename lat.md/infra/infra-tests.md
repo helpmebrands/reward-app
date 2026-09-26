@@ -594,3 +594,11 @@ Both `launch_background.xml` files draw `@color/splash_background` with the `spl
 
 `drawable-*dpi/ic_notification.png` is 24dp square at each density, every drawn pixel is pure white, and at least a fifth of the square is drawn, so the glyph is not lost.
 
+### Both site pages open on the logo
+
+`index.html` and `404.html` each open with a `<picture>`, before the heading, whose `<source>` for `prefers-color-scheme: dark` and fallback `<img>` alt "HelpMe reward" name PNGs that exist at twice the image's declared width and height.
+
+### Both site pages link a favicon and a touch icon
+
+Each page links an `icon` and an `apple-touch-icon` that exist, and every PNG among them is the size its `sizes` attribute declares.
+
