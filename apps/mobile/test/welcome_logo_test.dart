@@ -16,13 +16,14 @@ Future<void> pumpWelcome(
   WidgetTester tester, {
   required bool introLogo,
   bool disableAnimations = false,
+  Brightness brightness = Brightness.light,
 }) async {
   tester.view.physicalSize = window;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     MaterialApp(
-      theme: nocturneTheme(Brightness.light),
+      theme: nocturneTheme(brightness),
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(
           context,
@@ -87,6 +88,28 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     }
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  // @lat: [[mobile-tests#Welcome logo#The icon follows the theme like the splash]]
+  testWidgets('the icon layer draws the dark icon in the dark theme', (
+    tester,
+  ) async {
+    for (final (brightness, file) in [
+      (Brightness.light, 'assets/logo/helpmereward-icon.png'),
+      (Brightness.dark, 'assets/logo/helpmereward-icon-dark.png'),
+    ]) {
+      await pumpWelcome(tester, introLogo: true, brightness: brightness);
+      final image = tester.widget<Image>(
+        find.descendant(of: layer('icon'), matching: find.byType(Image)),
+      );
+      expect(
+        (image.image as AssetImage).assetName,
+        file,
+        reason: '$brightness',
+      );
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(const SizedBox());
+    }
   });
 
   // @lat: [[mobile-tests#Welcome logo#The layers land on the lockup]]

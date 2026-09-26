@@ -719,6 +719,10 @@ After Next twice, the third slide's `WelcomeHero` holds the `PremiumFeaturesHero
 
 On the first frame of a first launch the icon layer is the only one drawn, centred in the window at the splash's size (120 on iOS, 128 on Android), and the header lockup is not painted.
 
+### The icon follows the theme like the splash
+
+The icon layer draws `helpmereward-icon-dark.png` in the dark theme and `helpmereward-icon.png` in light, the same icon the native splash drew in that theme (#320).
+
 ### The layers land on the lockup
 
 Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the header `BrandLockup`'s rect with no tagline, then the layers go and the lockup and slides are opaque.
