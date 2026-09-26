@@ -59,9 +59,9 @@ int levelOneHeadings(WidgetTester tester) {
 }
 
 const titles = [
-  'Upcoming rewards at a glance',
-  'Timely reminders',
-  'Premium features',
+  'All your rewards in one place',
+  'Never miss another deadline',
+  'Get more from every card',
 ];
 
 void main() {
@@ -71,8 +71,8 @@ void main() {
   ) async {
     expect(welcomeSlides.map((s) => s.title), titles);
     expect(welcomeSlides[0].body, contains('household'));
-    expect(welcomeSlides[1].body, contains('one notification'));
-    expect(welcomeSlides[2].body, contains('bank linking'));
+    expect(welcomeSlides[1].body, contains('left on the table'));
+    expect(welcomeSlides[2].body, contains('Premium'));
     await pumpWelcome(tester);
     for (var i = 0; i < titles.length; i++) {
       expect(find.text(titles[i]), findsOneWidget);
