@@ -649,6 +649,10 @@ The header draws `BrandLockup` left of Skip on the same line, no "HelpMe Reward"
 
 Every slide has one `WelcomeHero`, and a child inside it is neither tappable nor present in the semantics tree.
 
+### The hero has no panel
+
+In both themes nothing between `WelcomeHero` and its child paints a background (no `ColoredBox` or `DecoratedBox`), and a `ClipRect` still clips the child at the hero's bounds.
+
 ### The hero ignores the text scale
 
 Under a 2.0 system text scale the hero's child is laid out exactly 360 wide and sees a text scale of 1.0, with no overflow in a narrower panel.
