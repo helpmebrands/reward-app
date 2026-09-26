@@ -677,6 +677,14 @@ Each slide's headline is the screen's only level-one heading; the lockup is an i
 
 On `WelcomeScreen` the first slide's `WelcomeHero` holds the `UpcomingRewardsHero`.
 
+### Slide two is a real reminder
+
+`TimelyRemindersHero` draws a notification lookalike, "HelpMe Reward" above the `title` and `body` of the first `notice` reminder `buildSchedule` makes for the sample household on `sampleClock`, over the `CreditRow` of that reminder's biggest credit, in both themes.
+
+### The second slide carries it
+
+After Next, the second slide's `WelcomeHero` holds the `TimelyRemindersHero`.
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.
