@@ -3,6 +3,9 @@ import 'package:domain/domain.dart';
 /// The day the sample household is seen on.
 const sampleToday = '2026-09-16';
 
+/// [sampleToday] as the clock reads it, at midnight local time.
+final sampleClock = DateTime(2026, 9, 16);
+
 Card _card(String id, String label, {CardKind kind = CardKind.personal}) =>
     Card(
       id: id,

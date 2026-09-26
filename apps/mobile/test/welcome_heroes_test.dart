@@ -98,4 +98,68 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  // @lat: [[mobile-tests#Welcome heroes#Slide two is a real reminder]]
+  testWidgets('slide two draws the first notice reminder over the row of its '
+      'biggest credit', (tester) async {
+    final reminder = buildSchedule(
+      sampleHousehold(),
+      defaultMemberPreferences.copyWith(enabled: true),
+      sampleClock,
+    ).reminders.firstWhere((r) => r.tone.name == 'notice');
+    for (final b in Brightness.values) {
+      await pumpHero(tester, const TimelyRemindersHero(), brightness: b);
+      expect(tester.takeException(), isNull, reason: '$b');
+
+      final notification = find.byKey(const Key('welcome-notification'));
+      expect(
+        find.descendant(of: notification, matching: find.text(reminder.title)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: notification, matching: find.text(reminder.body)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: notification, matching: find.text('HelpMe Reward')),
+        findsOneWidget,
+      );
+
+      final row = find.byType(CreditRow);
+      expect(row, findsOneWidget);
+      expect(
+        tester.widget<CreditRow>(row).instance.benefit.id,
+        reminder.items.first.benefitId,
+      );
+      expect(
+        tester.getRect(notification).bottom,
+        lessThanOrEqualTo(tester.getRect(row).top),
+      );
+    }
+  });
+
+  // @lat: [[mobile-tests#Welcome heroes#The second slide carries it]]
+  testWidgets('the second slide shows the reminder hero in its panel', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(402, 874);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: nocturneTheme(Brightness.light),
+        home: WelcomeScreen(onDone: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('welcome-next')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byType(WelcomeHero),
+        matching: find.byType(TimelyRemindersHero),
+      ),
+      findsOneWidget,
+    );
+  });
 }
