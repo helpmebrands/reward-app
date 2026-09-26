@@ -135,6 +135,38 @@ void main() {
     handle.dispose();
   });
 
+  // @lat: [[mobile-tests#Welcome layout#The hero has no panel]]
+  testWidgets('the hero paints no panel behind its child but still clips it', (
+    tester,
+  ) async {
+    for (final b in Brightness.values) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: nocturneTheme(b),
+          home: const Center(
+            child: SizedBox(
+              width: 300,
+              height: 200,
+              child: WelcomeHero(
+                child: SizedBox(key: Key('probe'), height: 400),
+              ),
+            ),
+          ),
+        ),
+      );
+      Finder between(Type type) => find.descendant(
+        of: find.byType(WelcomeHero),
+        matching: find.ancestor(
+          of: find.byKey(const Key('probe')),
+          matching: find.byType(type),
+        ),
+      );
+      expect(between(ColoredBox), findsNothing, reason: '$b');
+      expect(between(DecoratedBox), findsNothing, reason: '$b');
+      expect(between(ClipRect), findsOneWidget, reason: '$b');
+    }
+  });
+
   // @lat: [[mobile-tests#Welcome layout#The hero ignores the text scale]]
   testWidgets('the hero lays its child out 360 wide at text scale 1.0', (
     tester,

@@ -294,7 +294,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 }
 
-/// The share of the slide's height the hero panel takes when the text
+/// The share of the slide's height the hero takes when the text
 /// leaves room for it.
 const _heroShare = 0.55;
 
