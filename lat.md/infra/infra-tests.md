@@ -588,6 +588,10 @@ Its background is the named colour `LaunchBackground`, the Nocturne light page c
 
 `values-v31/styles.xml` and `values-night-v31/styles.xml` set `windowSplashScreenAnimatedIcon` to a drawable that exists and `windowSplashScreenBackground` to the light and dark Nocturne page colours.
 
+### The dark splash draws the dark icon
+
+The iOS launch icon set has a dark-appearance image at 1x, 2x and 3x, and each Android density has night `splash_icon` and `splash_icon_v31` files, each the size of its light counterpart and not the same pixels (#320).
+
 ### Older Android draws the icon on the page colour
 
 Both `launch_background.xml` files draw `@color/splash_background` with the `splash_icon` bitmap over it, and that colour is the light page colour in `values` and the dark one in `values-night`.

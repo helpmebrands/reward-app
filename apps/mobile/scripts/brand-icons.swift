@@ -307,31 +307,28 @@ write(
 // The splash: the rounded icon centred on the page colour, 120pt on the iOS
 // launch screen and 120dp in the pre-12 Android launch background. Android
 // 12 masks its splash icon to a 192dp circle on a 288dp canvas, so the icon
-// is drawn at 128dp there, its corners inside the circle.
+// is drawn at 128dp there, its corners inside the circle. The dark
+// appearance and the night resources draw the dark icon (#320).
 let launchIcon = ios.appendingPathComponent("LaunchIcon.imageset")
-for scale in 1...3 {
-  let suffix = scale == 1 ? "" : "@\(scale)x"
-  save(scaled(icon, 120 * scale), launchIcon.appendingPathComponent("LaunchIcon\(suffix).png"))
+var launchEntries: [String] = []
+for (image, dark) in [(icon, false), (iconDark, true)] {
+  for scale in 1...3 {
+    let name = "LaunchIcon\(dark ? "-Dark" : "")\(scale == 1 ? "" : "@\(scale)x").png"
+    save(scaled(image, 120 * scale), launchIcon.appendingPathComponent(name))
+    let appearance = dark
+      ? "      \"appearances\" : [\n        {\n          \"appearance\" : \"luminosity\",\n"
+        + "          \"value\" : \"dark\"\n        }\n      ],\n"
+      : ""
+    launchEntries.append(
+      "    {\n" + appearance + "      \"filename\" : \"\(name)\",\n"
+        + "      \"idiom\" : \"universal\",\n      \"scale\" : \"\(scale)x\"\n    }")
+  }
 }
 write(
   """
   {
     "images" : [
-      {
-        "filename" : "LaunchIcon.png",
-        "idiom" : "universal",
-        "scale" : "1x"
-      },
-      {
-        "filename" : "LaunchIcon@2x.png",
-        "idiom" : "universal",
-        "scale" : "2x"
-      },
-      {
-        "filename" : "LaunchIcon@3x.png",
-        "idiom" : "universal",
-        "scale" : "3x"
-      }
+  \(launchEntries.joined(separator: ",\n"))
     ],
     "info" : {
       "author" : "xcode",
@@ -388,11 +385,13 @@ write(
   """, ios.appendingPathComponent("LaunchBackground.colorset/Contents.json"))
 
 for (density, scale) in densities {
-  let drawable = res.appendingPathComponent("drawable-\(density)")
-  save(scaled(icon, Int(120 * scale)), drawable.appendingPathComponent("splash_icon.png"))
-  save(
-    centred(icon, Int(288 * scale), fraction: 128.0 / 288),
-    drawable.appendingPathComponent("splash_icon_v31.png"))
+  for (image, folder) in [(icon, "drawable"), (iconDark, "drawable-night")] {
+    let drawable = res.appendingPathComponent("\(folder)-\(density)")
+    save(scaled(image, Int(120 * scale)), drawable.appendingPathComponent("splash_icon.png"))
+    save(
+      centred(image, Int(288 * scale), fraction: 128.0 / 288),
+      drawable.appendingPathComponent("splash_icon_v31.png"))
+  }
 }
 
 for (values, page) in [("values", pageLight), ("values-night", pageDark)] {

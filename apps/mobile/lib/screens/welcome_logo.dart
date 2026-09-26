@@ -132,7 +132,7 @@ class WelcomeLogoLayers extends StatelessWidget {
                       wordmark,
                       fadeIn,
                     ),
-                  layer('icon', 'helpmereward-icon.png', icon, 1),
+                  layer('icon', 'helpmereward-icon$suffix.png', icon, 1),
                 ],
               );
             },

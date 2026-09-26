@@ -131,7 +131,7 @@ describe('launch screen', () => {
     expect(images).toEqual(['LaunchIcon'])
     const set = join(ios, 'LaunchIcon.imageset')
     const entries: IconEntry[] = JSON.parse(readFileSync(join(set, 'Contents.json'), 'utf8')).images
-    expect(entries.map((e) => e.scale).sort()).toEqual(['1x', '2x', '3x'])
+    expect(entries.filter((e) => !e.appearances).map((e) => e.scale).sort()).toEqual(['1x', '2x', '3x'])
     const base = readPng(join(set, entries.find((e) => e.scale === '1x')!.filename!)).width
     for (const entry of entries) {
       const png = readPng(join(set, entry.filename!))
@@ -163,6 +163,31 @@ describe('launch screen', () => {
       expect(styleItem(values, 'android:windowSplashScreenBackground')?.toUpperCase(), values).toBe(
         pageColour(theme),
       )
+    }
+  })
+
+  // @lat: [[infra-tests#Brand icons#The dark splash draws the dark icon]]
+  it('draws the dark icon on the dark splash on iOS and Android', () => {
+    const differs = (light: string, dark: string) => {
+      const [a, b] = [readPng(light), readPng(dark)]
+      expect([b.width, b.height], dark).toEqual([a.width, a.height])
+      expect(Buffer.compare(Buffer.from(a.pixels()), Buffer.from(b.pixels())), dark).not.toBe(0)
+    }
+    const set = join(ios, 'LaunchIcon.imageset')
+    const entries: IconEntry[] = JSON.parse(readFileSync(join(set, 'Contents.json'), 'utf8')).images
+    const dark = entries.filter((e) => e.appearances?.some((a) => a.value === 'dark'))
+    expect(dark.map((e) => e.scale).sort()).toEqual(['1x', '2x', '3x'])
+    for (const entry of dark) {
+      const light = entries.find((e) => !e.appearances && e.scale === entry.scale)!
+      differs(join(set, light.filename!), join(set, entry.filename!))
+    }
+    for (const density of Object.keys(densities)) {
+      for (const name of ['splash_icon', 'splash_icon_v31']) {
+        differs(
+          join(res, `drawable-${density}`, `${name}.png`),
+          join(res, `drawable-night-${density}`, `${name}.png`),
+        )
+      }
     }
   })
 
