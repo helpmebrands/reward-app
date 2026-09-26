@@ -26,24 +26,21 @@ class WelcomeSlide {
 /// again from "Learn more" on the sign-in screen.
 const welcomeSlides = [
   WelcomeSlide(
-    'Upcoming rewards at a glance',
-    'Every credit on every card in your household, in one list. The soonest '
-        'to expire comes first, with the total you can still use at the top.',
+    'All your rewards in one place',
+    "See what's left on every card in your household and what to use first, "
+        'so nothing slips by.',
     _upcomingRewards,
   ),
   WelcomeSlide(
-    'Timely reminders',
-    'Each reminder is timed to its credit, from months ahead for a yearly '
-        'credit to the last day for a monthly one. Alerts due on the same day '
-        'arrive as one notification, led by the most money at risk.',
+    'Never miss another deadline',
+    'Get a nudge before every credit expires, so no reward is left on the '
+        "table. We'll remind you in time to use it, not after it's gone.",
     _timelyReminders,
   ),
   WelcomeSlide(
-    'Premium features',
-    'Premium follows your card transactions through bank linking and marks '
-        'credits used as you spend. AI insights show where another card would '
-        'earn more points, where a card could be used better, and what you '
-        'missed.',
+    'Get more from every card',
+    'Premium marks credits used as you spend and points you to the card that '
+        'earns the most, so you get more back with less effort.',
     _premiumFeatures,
   ),
 ];

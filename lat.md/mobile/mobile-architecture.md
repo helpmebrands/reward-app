@@ -227,7 +227,7 @@ Like every logo it is a labelled image, not a heading. The page scrolls, so at 3
 
 ### The welcome slideshow
 
-Three slides introduce the product with a picture of it: "Upcoming rewards at a glance", "Timely reminders" and "Premium features" (epic #301). Pinned by [[mobile-tests#Welcome layout]].
+Three slides introduce the product with a picture of it: "All your rewards in one place", "Never miss another deadline" and "Get more from every card" (epic #301, copy from #315). Pinned by [[mobile-tests#Welcome layout]].
 
 - **Header**: `BrandLockup` on the left, Skip on the right, no app bar.
 - **`WelcomeSlide`** carries a title, a body and a `WidgetBuilder` for its picture, drawn in a `WelcomeHero` (`lib/screens/welcome_hero.dart`), which lays the picture out at 360 wide and text scale 1.0 (`MediaQuery.withNoTextScaling`), tilts it with a slight perspective, and clips it at its bounds. There is no panel behind it (#313): the widgets sit straight on the page colour. The picture is wrapped in `IgnorePointer` and `ExcludeSemantics`, since the headline and body carry the message.

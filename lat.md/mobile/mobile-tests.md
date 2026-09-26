@@ -639,7 +639,7 @@ Each has exactly one level-one heading, and the "HelpMe reward" node is an image
 
 ### Three slides in the new order
 
-The slides read "Upcoming rewards at a glance", "Timely reminders" and "Premium features" with the epic's bodies, and only the last button reads "Get started".
+The slides read "All your rewards in one place", "Never miss another deadline" and "Get more from every card" with the benefit-first bodies from #315, and only the last button reads "Get started".
 
 ### The lockup heads the slideshow
 
