@@ -699,6 +699,34 @@ After Next, the second slide's `WelcomeHero` holds the `TimelyRemindersHero`.
 
 After Next twice, the third slide's `WelcomeHero` holds the `PremiumFeaturesHero`.
 
+## Welcome logo
+
+`welcome_logo_test.dart` steps the first-launch logo sequence on `WelcomeScreen` in fake time ([[mobile-architecture#Sign-in#The logo hand-off]]).
+
+### The first frame is the splash icon
+
+On the first frame of a first launch the icon layer is the only one drawn, centred in the window at the splash's size (120 on iOS, 128 on Android), and the header lockup is not painted.
+
+### The layers land on the lockup
+
+Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the header `BrandLockup`'s rect with no tagline, and once settled the layers are gone and the lockup and slides are opaque.
+
+### It settles within a second
+
+`welcomeLogoDuration` is under a second, and 999 ms after the first frame nothing is scheduled and the screen is finished.
+
+### Learn more opens on the lockup
+
+Without `introLogo`, as a replay from "Learn more" builds it, the first frame has no layers, an opaque lockup and slides, and no frame scheduled.
+
+### Reduced motion skips the sequence
+
+With `disableAnimations` on, a first launch's first frame is already the finished screen with nothing animating.
+
+### One logo node throughout
+
+At the first frame, midway and after settling, the semantics tree has exactly one node labelled "HelpMe reward".
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.
@@ -1047,7 +1075,7 @@ At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centre
 
 ### First launch shows the slideshow
 
-Signed out with the intro unseen, the app opens on `WelcomeScreen`; Skip goes to `SignInScreen` and sets `introSeen`.
+Signed out with the intro unseen, the app opens on `WelcomeScreen` with `introLogo` on; Skip goes to `SignInScreen` and sets `introSeen`.
 
 ### Finishing the slideshow leads to sign-in
 
@@ -1055,7 +1083,7 @@ Next through the slides to "Get started" goes to sign-in and sets `introSeen`.
 
 ### A returning signed-out launch goes to sign-in
 
-With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow, and Skip returns to sign-in.
+With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow without `introLogo`, and Skip returns to sign-in.
 
 ### A signed-in launch opens Today
 

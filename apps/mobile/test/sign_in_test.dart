@@ -81,6 +81,11 @@ void main() {
     final app = await launch(tester);
     expect(find.byType(WelcomeScreen), findsOneWidget);
     expect(app.intro.seen, isFalse);
+    // The first launch plays the logo's hand-off from the splash.
+    expect(
+      tester.widget<WelcomeScreen>(find.byType(WelcomeScreen)).introLogo,
+      isTrue,
+    );
 
     await tester.tap(key('welcome-skip'));
     await tester.pumpAndSettle();
@@ -113,6 +118,10 @@ void main() {
     await tester.tap(key('sign-in-learn-more'));
     await tester.pumpAndSettle();
     expect(find.byType(WelcomeScreen), findsOneWidget);
+    expect(
+      tester.widget<WelcomeScreen>(find.byType(WelcomeScreen)).introLogo,
+      isFalse,
+    );
     await tester.tap(key('welcome-skip'));
     await tester.pumpAndSettle();
     expect(find.byType(SignInScreen), findsOneWidget);
