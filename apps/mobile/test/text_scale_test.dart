@@ -11,6 +11,9 @@ import 'package:reward/screens/today_screen.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
 
+import 'editors_test.dart' as editors;
+import 'segmented_choices_test.dart' as choices;
+
 /// WCAG 1.4.4 in Flutter terms: text follows the platform size to 200%
 /// without clipping or overlap (`mobile-architecture#Accessibility`).
 
@@ -130,5 +133,37 @@ void main() {
     final natural = tester.getSize(amount);
     expect(painted.width, lessThan(natural.width));
     expect(painted.right, lessThanOrEqualTo(viewport.width - 20));
+  });
+
+  // @lat: [[mobile-tests#Text scaling#Segmented choices wrap inside the viewport at 200%]]
+  testWidgets('each single-choice group fits 402 x 874 at 2.0', (tester) async {
+    for (final (name, location, options) in choices.groups) {
+      await editors.pumpAt(
+        tester,
+        location,
+        size: const Size(402, 874),
+        textScale: 2,
+      );
+      final control = choices.segmentedHolding(options.first);
+      await tester.ensureVisible(control);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: name);
+      for (final option in options) {
+        final label = find.descendant(of: control, matching: find.text(option));
+        final rect = tester.getRect(label);
+        expect(rect.left, greaterThanOrEqualTo(0), reason: '$name: $option');
+        expect(rect.right, lessThanOrEqualTo(402), reason: '$name: $option');
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.descendant(of: label, matching: find.byType(RichText)),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse, reason: option);
+        final box = tester.getRect(control);
+        expect(
+          box.contains(rect.topLeft) && box.contains(rect.bottomRight),
+          isTrue,
+          reason: '$name: $option ends outside its segment',
+        );
+      }
+    }
   });
 }
