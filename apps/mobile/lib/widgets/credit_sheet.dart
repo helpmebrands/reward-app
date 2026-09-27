@@ -555,7 +555,9 @@ class _SheetBodyState extends State<_SheetBody> {
                 '${statusLabel(status).toLowerCase()}.',
             label: 'Silence reminders for ${benefit.name}',
             value: store.isBenefitMuted(benefit.id),
-            onChanged: (_) => actions.toggleMute(instance),
+            onChanged: store.isMutePending(benefit.id)
+                ? null
+                : (_) => actions.toggleMute(instance),
           ),
           const SizedBox(height: Space.s6),
           if (store.canWrite)

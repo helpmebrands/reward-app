@@ -1411,6 +1411,42 @@ A cache written with the previous `householdCacheVersion` is cleared on load, le
 
 For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
 
+## Member mutes
+
+`member_mutes_test.dart` drives mutes in the service-tier mode over a fake api that stores them and can hold or refuse `setMute`, pinning [[mobile-architecture#The store#Member mutes in flight]].
+
+### Toggling twice mutes then unmutes
+
+One `toggleBenefitMute` leaves the credit muted on the device and the server, and a second unmutes it on both; `toggleCardMute` does the same for a card. Before #352 the refresh and a local toggle cancelled out.
+
+### In flight shows the requested state
+
+While `setMute` is held, `isBenefitMuted` (and the instance's `muted`) or `isCardMuted` reports the requested state and `isMutePending` is true; once it completes, `isMutePending` is false.
+
+### A refused or offline mute keeps the old state
+
+When `setMute` throws `ApiError` or the api is offline, the credit or card ends unmuted, `isMutePending` is false and `problem` is set (`offlineMessage` when offline).
+
+### An accepted mute survives a failed refresh
+
+When the mute lands but the api drops before the follow-up refresh, the device still shows the requested state.
+
+### Local mode flips at once
+
+Without an api, `toggleBenefitMute` mutes before its future completes and `isMutePending` is never true.
+
+### The sheet's switch is disabled in flight
+
+On the credit sheet, tapping "Silence this credit" with `setMute` held shows the switch on with a null `onChanged`; after the server answers it is on and enabled, and the snackbar's Undo turns it off on the server too.
+
+### A refused switch returns to off
+
+When `setMute` refuses, the sheet's "Silence this credit" switch ends off and enabled.
+
+### Card editor and row bell are disabled in flight
+
+"Silence every credit" on the card editor and the bell on a Today row sit at the requested state with no callback while `setMute` is held, and are enabled again once it completes.
+
 ## System and user cards
 
 `system_cards_test.dart` drives Cards, the editors and the conversion over the fake api with a Gold from the catalogue, a claim on its Uber Cash, and a Freedom of the household's own ([[mobile-architecture#System and user cards]]).

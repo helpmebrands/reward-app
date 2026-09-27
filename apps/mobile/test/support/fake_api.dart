@@ -120,10 +120,23 @@ class FakeApi implements HouseholdApi {
     members.removeWhere((m) => m.userId == userId);
   }
 
+  /// The member's mutes as the server holds them.
+  final mutedCardIds = <String>{};
+  final mutedBenefitIds = <String>{};
+
+  /// Holds the next `setMute` open until completed.
+  Completer<void>? holdMute;
+
+  /// Thrown by `setMute` (after any hold) instead of recording the mute.
+  Object? muteAnswer;
+
   @override
   Future<MemberPreferences> preferences() async {
     _check();
-    return defaultMemberPreferences;
+    return defaultMemberPreferences.copyWith(
+      mutedCardIds: {...mutedCardIds},
+      mutedBenefitIds: {...mutedBenefitIds},
+    );
   }
 
   @override
@@ -134,7 +147,19 @@ class FakeApi implements HouseholdApi {
     String? cardId,
     String? benefitId,
     required bool muted,
-  }) async => _check();
+  }) async {
+    _check();
+    final hold = holdMute;
+    if (hold != null) {
+      holdMute = null;
+      await hold.future;
+    }
+    final answer = muteAnswer;
+    if (answer != null) throw answer;
+    final ids = cardId != null ? mutedCardIds : mutedBenefitIds;
+    final id = cardId ?? benefitId!;
+    muted ? ids.add(id) : ids.remove(id);
+  }
 
   @override
   Future<Claim> postClaim(String key, Map<String, Object?> body) async {
