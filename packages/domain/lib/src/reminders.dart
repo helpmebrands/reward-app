@@ -153,7 +153,7 @@ ReminderSchedule buildSchedule(
           benefit.valueCents - claimedIn(claims, benefit.id, cycle.key);
       if (remainingCents <= 0) continue;
 
-      for (final rung in ladderFor(benefit)) {
+      for (final rung in ladderFor(benefit, prefs)) {
         final fireOn = addDays(cycle.end, -rung.daysBefore);
         if (compareIsoDate(fireOn, from) < 0) continue;
 

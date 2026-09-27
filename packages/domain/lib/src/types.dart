@@ -92,6 +92,10 @@ const int useSoonDays = 30;
 /// no urgency; [urgent] is the last call.
 enum Tone { permissive, notice, urgent }
 
+/// How much one member hears about one credit: every rung of its ladder,
+/// only the last, or nothing. Stored as two flags in [MemberPreferences].
+enum NotificationLevel { periodically, lastChance, silenced }
+
 enum ThemeSetting { system, light, dark }
 
 class Card {
@@ -485,6 +489,7 @@ class MemberPreferences {
     required this.enrollmentReminder,
     this.mutedCardIds = const {},
     this.mutedBenefitIds = const {},
+    this.lastCallBenefitIds = const {},
   });
 
   final bool enabled;
@@ -507,6 +512,10 @@ class MemberPreferences {
   /// Credits this member has silenced; the bell on every row toggles one.
   final Set<Uuid> mutedBenefitIds;
 
+  /// Credits this member hears about only on the last rung of the ladder
+  /// ([NotificationLevel.lastChance]). A mute outranks it.
+  final Set<Uuid> lastCallBenefitIds;
+
   /// Whether this member hears nothing about [benefit], by its own mute or
   /// its card's.
   bool isMuted(Benefit benefit) =>
@@ -521,6 +530,7 @@ class MemberPreferences {
     bool? enrollmentReminder,
     Set<Uuid>? mutedCardIds,
     Set<Uuid>? mutedBenefitIds,
+    Set<Uuid>? lastCallBenefitIds,
   }) => MemberPreferences(
     enabled: enabled ?? this.enabled,
     timeOfDay: timeOfDay ?? this.timeOfDay,
@@ -529,6 +539,7 @@ class MemberPreferences {
     enrollmentReminder: enrollmentReminder ?? this.enrollmentReminder,
     mutedCardIds: mutedCardIds ?? this.mutedCardIds,
     mutedBenefitIds: mutedBenefitIds ?? this.mutedBenefitIds,
+    lastCallBenefitIds: lastCallBenefitIds ?? this.lastCallBenefitIds,
   );
 }
 

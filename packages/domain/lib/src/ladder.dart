@@ -7,8 +7,8 @@
 /// them: the first rung is a permissive "you can use me", the last is a last
 /// call.
 ///
-/// These are the presets from the design. A user can opt one credit out with
-/// [Benefit.lastCallOnly].
+/// These are the presets from the design. A member can cut one credit to its
+/// last rung with [NotificationLevel.lastChance].
 library;
 
 import 'types.dart';
@@ -56,10 +56,14 @@ const Map<Cadence, List<LadderRung>> _ladders = {
   ],
 };
 
-/// The rungs that apply to one credit.
-List<LadderRung> ladderFor(Benefit benefit) {
+/// The rungs that apply to one credit, for the member whose [prefs] are
+/// given: only the last one when they chose Last chance for it.
+List<LadderRung> ladderFor(Benefit benefit, [MemberPreferences? prefs]) {
   final rungs = _ladders[benefit.cadence]!;
-  if (benefit.lastCallOnly) return rungs.isEmpty ? const [] : [rungs.last];
+  final lastCall =
+      benefit.lastCallOnly ||
+      (prefs?.lastCallBenefitIds.contains(benefit.id) ?? false);
+  if (lastCall) return rungs.isEmpty ? const [] : [rungs.last];
   return rungs;
 }
 
@@ -75,9 +79,13 @@ String ladderSummary(Cadence cadence) {
 
 /// Which rung a credit is currently standing on, or null before the first one
 /// has been reached. Drives the tone of the row and of the notification copy.
-LadderRung? currentRung(Benefit benefit, int daysRemaining) {
+LadderRung? currentRung(
+  Benefit benefit,
+  int daysRemaining, [
+  MemberPreferences? prefs,
+]) {
   LadderRung? reached;
-  for (final rung in ladderFor(benefit)) {
+  for (final rung in ladderFor(benefit, prefs)) {
     if (daysRemaining <= rung.daysBefore) reached = rung;
   }
   return reached;

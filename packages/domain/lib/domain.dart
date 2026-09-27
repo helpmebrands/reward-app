@@ -12,6 +12,7 @@ export 'src/dates.dart';
 export 'src/format.dart';
 export 'src/json.dart';
 export 'src/ladder.dart';
+export 'src/levels.dart';
 export 'src/reminders.dart';
 export 'src/selectors.dart';
 export 'src/types.dart';
