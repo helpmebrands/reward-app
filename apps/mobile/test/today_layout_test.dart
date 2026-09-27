@@ -11,6 +11,7 @@ import 'package:reward/screens/today_screen.dart';
 import 'package:reward/shell/width_class.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_row.dart';
+import 'package:reward/widgets/value_bar.dart';
 
 /// Today's re-flow at the wider width classes of `design#Responsive layout`:
 /// the overlap cards pair from medium, the body splits in two from expanded,
@@ -74,6 +75,42 @@ List<String> spokenOrder(WidgetTester tester) {
 }
 
 void main() {
+  // @lat: [[mobile-tests#Today#The household value bar sits under the headline]]
+  testWidgets(
+    'the household value bar sits under the headline at every width',
+    (tester) async {
+      final data = sampleHousehold();
+      final cards = data.cards.where((c) => !c.archived);
+      final sum = cards.fold(
+        ValueBreakdown.zero,
+        (total, c) => total + cardYearToDateBreakdown(c, data, '2026-09-16'),
+      );
+      expect(sum.totalCents, greaterThan(0));
+      for (final width in WidthClass.values) {
+        final handle = tester.ensureSemantics();
+        await pumpToday(tester, width);
+        final bar = find.byType(ValueBar);
+        expect(bar, findsOneWidget, reason: '$width');
+        expect(tester.widget<ValueBar>(bar).breakdown, sum);
+        final headline = tester.getRect(
+          find.byKey(const Key('today-headline')),
+        );
+        final firstRow = tester.getRect(find.byType(CreditRow).first);
+        expect(tester.getRect(bar).top, greaterThanOrEqualTo(headline.bottom));
+        expect(tester.getRect(bar).bottom, lessThanOrEqualTo(firstRow.top));
+        // Read after the headline and before the first section.
+        final spoken = spokenOrder(tester);
+        final sentence = spoken.indexOf(valueBarSentence(sum));
+        expect(sentence, greaterThan(spoken.indexOf('Today')));
+        expect(
+          sentence,
+          lessThan(spoken.indexWhere((l) => l.startsWith('Use soon'))),
+        );
+        handle.dispose();
+      }
+    },
+  );
+
   // @lat: [[mobile-tests#Today#Medium pairs the overlap cards]]
   testWidgets('medium: the overlap cards sit two across', (tester) async {
     await pumpToday(tester, WidthClass.medium);
