@@ -21,6 +21,7 @@ import 'screens/settings_screen.dart';
 import 'screens/today_screen.dart';
 import 'screens/value_screen.dart';
 import 'shell/brand_app_bar.dart';
+import 'shell/logo_hand_off.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/brand_lockup.dart';
@@ -208,6 +209,15 @@ Widget brandAppBarMedium() => _barIn(WidthClass.medium);
 
 @Preview(name: 'Brand app bar, expanded pane', size: Size(1080, 64))
 Widget brandAppBarExpanded() => _barIn(WidthClass.expanded);
+
+/// The cold start's logo hand-off, played once as the preview loads, onto
+/// the lockup in a compact bar.
+@Preview(name: 'Logo hand-off onto the app bar', size: Size(402, 874))
+Widget logoHandOff() => MaterialApp(
+  theme: nocturneTheme(Brightness.light),
+  builder: (context, child) => LogoHandOff(play: true, child: child!),
+  home: const Scaffold(appBar: BrandAppBar(widthClass: WidthClass.compact)),
+);
 
 @Preview(name: 'Placeholder screen', size: Size(402, 300))
 Widget stubScreen() => _themed(const StubScreen('Cards'), Brightness.dark);

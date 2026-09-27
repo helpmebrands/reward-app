@@ -1,46 +1,78 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reward/screens/welcome_logo.dart';
+import 'package:go_router/go_router.dart';
+import 'package:reward/data/snapshot_store.dart';
+import 'package:reward/logic/app_store.dart';
+import 'package:reward/logic/session.dart';
+import 'package:reward/logic/ui_state.dart';
+import 'package:reward/main.dart';
+import 'package:reward/screens/settings_screen.dart';
+import 'package:reward/screens/today_screen.dart';
 import 'package:reward/screens/welcome_screen.dart';
-import 'package:reward/theme/theme.dart';
+import 'package:reward/shell/logo_hand_off.dart';
 import 'package:reward/widgets/brand_lockup.dart';
 
-/// The logo's hand-off from the native splash to the Welcome header on the
-/// first launch: icon alone where the splash drew it, the stacked logo, then
-/// the lockup in the header.
+import 'sign_in_test.dart' show FakeAuth;
+
+/// The logo's hand-off from the native splash on every cold start: icon
+/// alone where the splash drew it, the stacked logo, then the lockup of
+/// whichever screen the app opened on, under a page-colour cover.
 
 const window = Size(402, 874);
 
-Future<void> pumpWelcome(
+/// A cold start of the whole app at [location]. With [session] the router
+/// redirects as on a device; without one it opens [location] directly.
+Future<void> coldStart(
   WidgetTester tester, {
-  required bool introLogo,
+  String location = '/',
+  Session? session,
   bool disableAnimations = false,
   Brightness brightness = Brightness.light,
+  Size size = window,
 }) async {
-  tester.view.physicalSize = window;
+  final store = AppStore(
+    store: MemorySnapshotStore(emptyAppData()),
+    clock: () => DateTime(2026, 9, 16, 8),
+  );
+  await store.load();
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
+  tester.platformDispatcher.platformBrightnessTestValue = brightness;
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      FakeAccessibilityFeatures(disableAnimations: disableAnimations);
   addTearDown(tester.view.reset);
+  addTearDown(tester.platformDispatcher.clearAllTestValues);
+  await tester.pumpWidget(const SizedBox());
   await tester.pumpWidget(
-    MaterialApp(
-      theme: nocturneTheme(brightness),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(
-          context,
-        ).copyWith(disableAnimations: disableAnimations),
-        child: child!,
-      ),
-      home: WelcomeScreen(introLogo: introLogo, onDone: () {}),
+    RewardApp(
+      store: store,
+      ui: UiState(),
+      session: session,
+      initialLocation: location,
+      coldStart: true,
     ),
   );
 }
 
+/// A signed-out session, before or after the slideshow was seen.
+Future<Session> signedOut({required bool introSeen}) async {
+  final session = Session(
+    auth: FakeAuth(),
+    intro: MemoryIntroStore(seen: introSeen),
+  );
+  await session.load();
+  return session;
+}
+
 Finder layer(String name) => find.byKey(Key('logo-layer-$name'));
+
+final cover = find.byKey(const Key('logo-cover'));
 
 double lockupOpacity(WidgetTester tester) => tester
     .widget<Opacity>(
       find
-          .ancestor(
+          .descendant(
             of: find.byType(BrandLockup),
             matching: find.byType(Opacity),
           )
@@ -48,17 +80,47 @@ double lockupOpacity(WidgetTester tester) => tester
     )
     .opacity;
 
-double contentOpacity(WidgetTester tester) => tester
-    .widget<FadeTransition>(
-      find
-          .ancestor(
-            of: find.byKey(const Key('welcome-next')),
-            matching: find.byType(FadeTransition),
-          )
-          .first,
+double coverOpacity(WidgetTester tester) => tester
+    .widget<Opacity>(
+      find.descendant(of: cover, matching: find.byType(Opacity)).first,
     )
-    .opacity
-    .value;
+    .opacity;
+
+/// The screen is finished: no layers, no cover, the lockup opaque and
+/// nothing animating.
+void expectFinished(WidgetTester tester) {
+  expect(layer('icon'), findsNothing);
+  expect(layer('wordmark'), findsNothing);
+  expect(cover, findsNothing);
+  expect(lockupOpacity(tester), 1);
+  expect(tester.binding.transientCallbackCount, 0);
+}
+
+/// Steps to the end of the move, before the cover fades, and checks icon
+/// and wordmark together cover exactly the lockup's rect with no tagline.
+Future<void> expectLandsOnLockup(WidgetTester tester, String reason) async {
+  await tester.pump();
+  // The stacked logo: all three layers.
+  await tester.pump(logoHandOffDuration * 0.3);
+  expect(layer('wordmark'), findsOneWidget, reason: reason);
+  expect(layer('tagline'), findsOneWidget, reason: reason);
+
+  await tester.pump(logoHandOffDuration * 0.5);
+  final lockup = tester.getRect(find.byType(BrandLockup));
+  final union = tester
+      .getRect(layer('icon'))
+      .expandToInclude(tester.getRect(layer('wordmark')));
+  expect(union.left, closeTo(lockup.left, 0.5), reason: reason);
+  expect(union.top, closeTo(lockup.top, 0.5), reason: reason);
+  expect(union.right, closeTo(lockup.right, 0.5), reason: reason);
+  expect(union.bottom, closeTo(lockup.bottom, 0.5), reason: reason);
+  expect(lockup.size.width, BrandLockup.lockupSize.width, reason: reason);
+  expect(layer('tagline'), findsNothing, reason: reason);
+  expect(coverOpacity(tester), 1, reason: reason);
+
+  await tester.pumpAndSettle();
+  expectFinished(tester);
+}
 
 void main() {
   // @lat: [[mobile-tests#Welcome logo#The first frame is the splash icon]]
@@ -71,7 +133,8 @@ void main() {
     ]) {
       debugDefaultTargetPlatformOverride = platform;
       expect(splashIconExtent(platform), extent);
-      await pumpWelcome(tester, introLogo: true);
+      await coldStart(tester);
+      expect(find.byType(TodayScreen), findsOneWidget);
       expect(
         tester.getRect(layer('icon')),
         Rect.fromCenter(
@@ -84,8 +147,8 @@ void main() {
       expect(layer('wordmark'), findsNothing);
       expect(layer('tagline'), findsNothing);
       expect(lockupOpacity(tester), 0);
+      expect(coverOpacity(tester), 1);
       await tester.pumpAndSettle();
-      await tester.pumpWidget(const SizedBox());
     }
     debugDefaultTargetPlatformOverride = null;
   });
@@ -98,7 +161,7 @@ void main() {
       (Brightness.light, 'assets/logo/helpmereward-icon.png'),
       (Brightness.dark, 'assets/logo/helpmereward-icon-dark.png'),
     ]) {
-      await pumpWelcome(tester, introLogo: true, brightness: brightness);
+      await coldStart(tester, brightness: brightness);
       final image = tester.widget<Image>(
         find.descendant(of: layer('icon'), matching: find.byType(Image)),
       );
@@ -108,71 +171,123 @@ void main() {
         reason: '$brightness',
       );
       await tester.pumpAndSettle();
-      await tester.pumpWidget(const SizedBox());
     }
   });
 
   // @lat: [[mobile-tests#Welcome logo#The layers land on the lockup]]
-  testWidgets('the layers end on the header lockup with no tagline', (
+  testWidgets('the layers end on the lockup of whichever screen opened', (
     tester,
   ) async {
-    await pumpWelcome(tester, introLogo: true);
-    await tester.pump();
-    // The stacked logo: all three layers.
-    await tester.pump(welcomeLogoDuration * 0.3);
-    expect(layer('wordmark'), findsOneWidget);
-    expect(layer('tagline'), findsOneWidget);
+    await coldStart(tester);
+    await expectLandsOnLockup(tester, 'Today');
 
-    // The end of the move, before the slides have faded in.
-    await tester.pump(welcomeLogoDuration * 0.55);
-    final lockup = tester.getRect(find.byType(BrandLockup));
-    final union = tester
-        .getRect(layer('icon'))
-        .expandToInclude(tester.getRect(layer('wordmark')));
-    expect(union.left, closeTo(lockup.left, 0.5));
-    expect(union.top, closeTo(lockup.top, 0.5));
-    expect(union.right, closeTo(lockup.right, 0.5));
-    expect(union.bottom, closeTo(lockup.bottom, 0.5));
-    expect(lockup.size.width, BrandLockup.lockupSize.width);
-    expect(layer('tagline'), findsNothing);
+    await coldStart(tester, session: await signedOut(introSeen: false));
+    expect(find.byType(WelcomeScreen), findsOneWidget);
+    await expectLandsOnLockup(tester, 'Welcome');
 
+    await coldStart(tester, location: '/invite/ABC123');
+    await expectLandsOnLockup(tester, 'Join');
+
+    await coldStart(tester, location: '/nope');
+    await expectLandsOnLockup(tester, 'Not found');
+  });
+
+  // @lat: [[mobile-tests#Welcome logo#It plays once per process]]
+  testWidgets('navigating or rebuilding the app does not replay it', (
+    tester,
+  ) async {
+    await coldStart(tester);
     await tester.pumpAndSettle();
+    expectFinished(tester);
+
+    // A theme change rebuilds MaterialApp and the router's child.
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pump();
     expect(layer('icon'), findsNothing);
-    expect(lockupOpacity(tester), 1);
-    expect(contentOpacity(tester), 1);
+    expect(cover, findsNothing);
+
+    GoRouter.of(tester.element(find.byType(TodayScreen))).go('/credits');
+    await tester.pump();
+    expect(layer('icon'), findsNothing);
+    expect(cover, findsNothing);
+    await tester.pumpAndSettle();
+    expectFinished(tester);
   });
 
   // @lat: [[mobile-tests#Welcome logo#It settles within a second]]
-  testWidgets('the sequence settles in under a second', (tester) async {
-    expect(welcomeLogoDuration, lessThan(const Duration(seconds: 1)));
-    await pumpWelcome(tester, introLogo: true);
+  testWidgets('the sequence settles in under a second and then takes taps', (
+    tester,
+  ) async {
+    expect(logoHandOffDuration, lessThan(const Duration(seconds: 1)));
+    await coldStart(tester);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 999));
-    expect(layer('icon'), findsNothing);
-    expect(tester.binding.transientCallbackCount, 0);
-    expect(lockupOpacity(tester), 1);
-    expect(contentOpacity(tester), 1);
+    expectFinished(tester);
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsOneWidget);
+  });
+
+  // @lat: [[mobile-tests#Welcome logo#The cover blocks taps]]
+  testWidgets('while the cover is up a tap does nothing', (tester) async {
+    await coldStart(tester);
+    await tester.pump();
+    await tester.pump(logoHandOffDuration * 0.5);
+    await tester.tap(find.byTooltip('Settings'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsScreen), findsNothing);
   });
 
   // @lat: [[mobile-tests#Welcome logo#Learn more opens on the lockup]]
   testWidgets('a replay from Learn more draws the lockup in place at once', (
     tester,
   ) async {
-    await pumpWelcome(tester, introLogo: false);
+    await coldStart(tester, session: await signedOut(introSeen: true));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sign-in-learn-more')));
+    await tester.pump();
+    expect(find.byType(WelcomeScreen), findsOneWidget);
     expect(layer('icon'), findsNothing);
+    expect(cover, findsNothing);
     expect(lockupOpacity(tester), 1);
-    expect(contentOpacity(tester), 1);
-    expect(tester.binding.transientCallbackCount, 0);
+    await tester.pumpAndSettle();
+    expectFinished(tester);
   });
 
   // @lat: [[mobile-tests#Welcome logo#Reduced motion skips the sequence]]
   testWidgets('with animations off the first frame is the finished screen', (
     tester,
   ) async {
-    await pumpWelcome(tester, introLogo: true, disableAnimations: true);
+    await coldStart(tester, disableAnimations: true);
+    expectFinished(tester);
+  });
+
+  // @lat: [[mobile-tests#Welcome logo#Too narrow for the lockup places it]]
+  testWidgets('a lockup narrower than 224 is placed with no move', (
+    tester,
+  ) async {
+    await coldStart(tester, size: const Size(260, 700));
+    await tester.pump();
+    expect(
+      tester.getSize(find.byType(BrandLockup)).width,
+      lessThan(BrandLockup.lockupSize.width),
+    );
+    expectFinished(tester);
+  });
+
+  // @lat: [[mobile-tests#Welcome logo#With no logo the layers fade in place]]
+  testWidgets('with no lockup on screen the layers fade out where they are', (
+    tester,
+  ) async {
+    await coldStart(tester, location: '/settings');
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    final splash = tester.getRect(layer('icon'));
+    await tester.pump();
+    await tester.pump(logoHandOffDuration * 0.5);
+    expect(tester.getRect(layer('icon')), splash);
+    await tester.pumpAndSettle();
     expect(layer('icon'), findsNothing);
-    expect(lockupOpacity(tester), 1);
-    expect(contentOpacity(tester), 1);
+    expect(cover, findsNothing);
     expect(tester.binding.transientCallbackCount, 0);
   });
 
@@ -181,10 +296,10 @@ void main() {
     tester,
   ) async {
     final handle = tester.ensureSemantics();
-    await pumpWelcome(tester, introLogo: true);
+    await coldStart(tester);
     expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
     await tester.pump();
-    await tester.pump(welcomeLogoDuration * 0.5);
+    await tester.pump(logoHandOffDuration * 0.5);
     expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
