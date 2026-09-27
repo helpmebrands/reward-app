@@ -6,6 +6,7 @@ import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
 import '../shell/router.dart';
 import '../theme/nocturne_tokens.dart' hide Tone;
+import 'switch_row.dart';
 
 /// Quick amounts: a quarter and a half of what is left, rounded to whole
 /// dollars because nobody logs $37.53, each at least a dollar and under the
@@ -536,7 +537,7 @@ class _SheetBodyState extends State<_SheetBody> {
               ),
             ),
           const SizedBox(height: Space.s3),
-          _SwitchRow(
+          SwitchRow(
             title: 'Last call only',
             note: 'Skip the earlier rungs and warn once, at the end.',
             label: 'Last call only for ${benefit.name}',
@@ -547,7 +548,7 @@ class _SheetBodyState extends State<_SheetBody> {
             ),
           ),
           const SizedBox(height: Space.s2),
-          _SwitchRow(
+          SwitchRow(
             title: 'Silence this credit',
             note:
                 'Keeps tracking it, sends nothing. Status stays '
@@ -612,55 +613,6 @@ class _Panel extends StatelessWidget {
         border: Border.all(color: tokens.surfaceLine),
       ),
       child: child,
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.title,
-    required this.note,
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final String note;
-
-  /// What the screen reader hears for the switch itself.
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<NocturneTokens>()!;
-    final text = Theme.of(context).textTheme;
-    return _Panel(
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: text.bodyMedium),
-                Text(
-                  note,
-                  style: text.bodySmall?.copyWith(color: tokens.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: Space.s3),
-          MergeSemantics(
-            child: Semantics(
-              label: label,
-              child: Switch(value: value, onChanged: onChanged),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
