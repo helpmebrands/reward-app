@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../logic/app_store.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/add_card_button.dart';
 import '../widgets/screen_title.dart';
 
 /// Value: what the household actually got, and what leaked away.
@@ -291,7 +292,7 @@ class _ValueScreenState extends State<ValueScreen> {
             ),
         ],
 
-        if (data.cards.isEmpty)
+        if (!store.hasCards)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
             child: Column(
@@ -304,6 +305,8 @@ class _ValueScreenState extends State<ValueScreen> {
                   style: note,
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: Space.s6),
+                AddCardButton(store: store),
               ],
             ),
           ),

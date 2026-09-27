@@ -297,7 +297,25 @@ Every button in the semantics tree has a label or a tooltip, and the menu is fou
 
 ### No cards shows the first-run copy
 
-With no cards the screen says "Start with one card", draws no card and still offers the catalogue.
+With no cards the screen says "Start with one card", draws no card, and offers the catalogue through "Add your first card" alone, without the "Add a card from the catalogue" button.
+
+## Empty tabs
+
+`empty_tabs_test.dart` opens Credits, Cards and Value in the app on a household with no active card, and pins the Add button they share with Today's empty state ([[mobile-architecture#Today screen#Today before any card]]).
+
+### Each tab offers Add your first card
+
+Each tab shows its empty message (Credits "No cards yet, so no credits to track.", Cards "Start with one card", Value its note) and one 48-high "Add your first card".
+
+Credits does not say "Nothing matches that filter." and Cards drops its catalogue button.
+
+### The button opens the catalogue and Back returns to the tab
+
+On each tab the button pushes the catalogue, and Back returns to that tab.
+
+### Archived cards read Add a card and readers get none
+
+With only an archived card the button reads "Add a card" on each tab, and a reader of an empty signed-in household sees no Add button.
 
 ## Field
 
@@ -551,7 +569,7 @@ At a 2.0 text scale on 402 the screen raises no layout exception and every text 
 
 ### No cards shows the empty note
 
-An empty household shows the note about what will appear and neither the ranks nor the leaks.
+An empty household shows the note about what will appear, the Add button, and neither the ranks nor the leaks.
 
 ## Settings
 
