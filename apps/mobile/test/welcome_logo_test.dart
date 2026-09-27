@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,10 +10,12 @@ import 'package:reward/logic/session.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/main.dart';
 import 'package:reward/screens/settings_screen.dart';
+import 'package:reward/screens/sign_in_screen.dart';
 import 'package:reward/screens/today_screen.dart';
 import 'package:reward/screens/welcome_screen.dart';
 import 'package:reward/shell/logo_hand_off.dart';
 import 'package:reward/widgets/brand_lockup.dart';
+import 'package:reward/widgets/brand_logo.dart';
 
 import 'sign_in_test.dart' show FakeAuth;
 
@@ -304,5 +308,169 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
     handle.dispose();
+  });
+
+  group('Sign in', () {
+    /// Where each layer sits in `helpmereward-logo-vertical.png`, 480 x 511,
+    /// measured from its alpha: icon, two-line wordmark, tagline.
+    const artwork = Size(480, 511);
+    const parts = {
+      'icon': Rect.fromLTRB(130, 0, 351, 220),
+      'wordmark': Rect.fromLTRB(74, 235, 405, 444),
+      'tagline': Rect.fromLTRB(0, 490, 480, 511),
+    };
+
+    Future<void> coldStartSignIn(
+      WidgetTester tester, {
+      Brightness brightness = Brightness.light,
+      bool disableAnimations = false,
+    }) async {
+      await coldStart(
+        tester,
+        session: await signedOut(introSeen: true),
+        brightness: brightness,
+        disableAnimations: disableAnimations,
+      );
+      expect(find.byType(SignInScreen), findsOneWidget);
+    }
+
+    double logoOpacity(WidgetTester tester) => tester
+        .widget<Opacity>(
+          find
+              .descendant(
+                of: find.byType(BrandLogo),
+                matching: find.byType(Opacity),
+              )
+              .first,
+        )
+        .opacity;
+
+    String asset(WidgetTester tester, String name) =>
+        (tester
+                    .widget<Image>(
+                      find.descendant(
+                        of: layer(name),
+                        matching: find.byType(Image),
+                      ),
+                    )
+                    .image
+                as AssetImage)
+            .assetName;
+
+    // @lat: [[mobile-tests#Welcome logo#Sign in starts from the splash icon]]
+    testWidgets('a signed-out cold start draws only the icon at first', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      await coldStartSignIn(tester);
+      expect(
+        tester.getRect(layer('icon')),
+        Rect.fromCenter(
+          center: window.center(Offset.zero),
+          width: 120,
+          height: 120,
+        ),
+      );
+      expect(layer('wordmark'), findsNothing);
+      expect(layer('tagline'), findsNothing);
+      expect(logoOpacity(tester), 0);
+      await tester.pumpAndSettle();
+      debugDefaultTargetPlatformOverride = null;
+    });
+
+    // @lat: [[mobile-tests#Welcome logo#Sign in lands on the stacked logo]]
+    testWidgets('the three layers end on their parts of the stacked logo', (
+      tester,
+    ) async {
+      await coldStartSignIn(tester);
+      await tester.pump();
+      await tester.pump(logoHandOffDuration * 0.3);
+      expect(layer('tagline'), findsOneWidget);
+
+      await tester.pump(logoHandOffDuration * 0.5);
+      final logo = tester.getRect(find.byType(BrandLogo));
+      final scale = math.min(
+        logo.width / artwork.width,
+        logo.height / artwork.height,
+      );
+      final origin =
+          logo.center -
+          Offset(artwork.width * scale / 2, artwork.height * scale / 2);
+      for (final MapEntry(key: name, value: part) in parts.entries) {
+        final expected = Rect.fromLTRB(
+          origin.dx + part.left * scale,
+          origin.dy + part.top * scale,
+          origin.dx + part.right * scale,
+          origin.dy + part.bottom * scale,
+        );
+        final actual = tester.getRect(layer(name));
+        expect(actual.left, closeTo(expected.left, 0.5), reason: name);
+        expect(actual.top, closeTo(expected.top, 0.5), reason: name);
+        expect(actual.right, closeTo(expected.right, 0.5), reason: name);
+        expect(actual.bottom, closeTo(expected.bottom, 0.5), reason: name);
+      }
+      expect(asset(tester, 'wordmark'), contains('wordmark-stacked'));
+
+      await tester.pumpAndSettle();
+      expect(layer('icon'), findsNothing);
+      expect(cover, findsNothing);
+      expect(logoOpacity(tester), 1);
+    });
+
+    // @lat: [[mobile-tests#Welcome logo#The stacked layers follow the theme]]
+    testWidgets('the dark theme draws the dark layers', (tester) async {
+      for (final (brightness, suffix) in [
+        (Brightness.light, ''),
+        (Brightness.dark, '-dark'),
+      ]) {
+        await coldStartSignIn(tester, brightness: brightness);
+        await tester.pump();
+        await tester.pump(logoHandOffDuration * 0.5);
+        expect(
+          asset(tester, 'icon'),
+          'assets/logo/helpmereward-icon$suffix.png',
+        );
+        expect(
+          asset(tester, 'wordmark'),
+          'assets/logo/helpmereward-wordmark-stacked$suffix.png',
+        );
+        expect(
+          asset(tester, 'tagline'),
+          'assets/logo/helpmereward-tagline$suffix.png',
+        );
+        await tester.pumpAndSettle();
+      }
+    });
+
+    // @lat: [[mobile-tests#Welcome logo#Sign in settles or skips]]
+    testWidgets('it settles within a second, and reduced motion skips it', (
+      tester,
+    ) async {
+      await coldStartSignIn(tester);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 999));
+      expect(layer('icon'), findsNothing);
+      expect(logoOpacity(tester), 1);
+      expect(tester.binding.transientCallbackCount, 0);
+
+      await coldStartSignIn(tester, disableAnimations: true);
+      expect(layer('icon'), findsNothing);
+      expect(cover, findsNothing);
+      expect(logoOpacity(tester), 1);
+      expect(tester.binding.transientCallbackCount, 0);
+    });
+
+    // @lat: [[mobile-tests#Welcome logo#Sign in keeps one logo node]]
+    testWidgets('one "HelpMe reward" node throughout', (tester) async {
+      final handle = tester.ensureSemantics();
+      await coldStartSignIn(tester);
+      expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
+      await tester.pump();
+      await tester.pump(logoHandOffDuration * 0.5);
+      expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel('HelpMe reward'), findsOneWidget);
+      handle.dispose();
+    });
   });
 }
