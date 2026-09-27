@@ -9,6 +9,7 @@ import '../logic/ui_state.dart';
 import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/add_card_button.dart';
 import '../widgets/screen_title.dart';
 
 /// Which colour a verdict is drawn in.
@@ -232,7 +233,8 @@ class _CardsBody extends StatelessWidget {
         const SizedBox(height: Space.s6),
         ...body,
         if (widthClass == WidthClass.medium) const SizedBox(height: Space.s4),
-        if (store.canWrite) addCard,
+        // Empty, the first-run block carries the one Add button.
+        if (store.canWrite && summaries.isNotEmpty) addCard,
         if (summaries.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
@@ -253,6 +255,8 @@ class _CardsBody extends StatelessWidget {
                   style: note,
                   textAlign: TextAlign.center,
                 ),
+                const SizedBox(height: Space.s6),
+                AddCardButton(store: store),
               ],
             ),
           ),

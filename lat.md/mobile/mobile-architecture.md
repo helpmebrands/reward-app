@@ -284,6 +284,7 @@ With no active card (`!store.hasCards`, archived cards not counted) and loading 
 - **Add your first card**: `AddCardButton`, the only filled button, 48 high and full width on compact. It pushes `/cards/new`, and the catalogue's Back pops to the tab that pushed it (it goes to Cards only when opened by path). It reads "Add a card" when only archived cards remain, and a reader (`!store.canWrite`) gets none.
 - **Invite code**: signed in only (`store.remote`), a 48-high text button "Joining a household? Enter an invite code" asks for the code with `askForInviteCode` and goes to `invitePath`, as Settings does.
 - **Layout**: centred in a column of at most 440 on compact and inside the tab's 560 column on medium; from expanded the illustration sits beside the text so the button stays above the fold. The empty state sits inside the shell, so the bar, the gear and the navigation stay.
+- **The other tabs**: with no active card, Credits says "No cards yet, so no credits to track." in place of the filter's empty message, Cards keeps "Start with one card" and swaps its catalogue button for this one, and Value keeps its note; each adds the same `AddCardButton`, so Back returns to that tab. Pinned by [[mobile-tests#Empty tabs]].
 - **Not empty**: while loading, the progress indicator shows; a household whose credits are all locked has cards, so it shows the normal layout with the locked section.
 
 ### Empty card slot

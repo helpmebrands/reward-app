@@ -6,6 +6,7 @@ import '../logic/credit_actions.dart';
 import '../logic/ui_state.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/add_card_button.dart';
 import '../widgets/credit_row.dart';
 import '../widgets/screen_title.dart';
 
@@ -278,7 +279,24 @@ class _CreditsScreenState extends State<CreditsScreen> {
         const SizedBox(height: Space.s6),
         controls,
         const SizedBox(height: Space.s6),
-        if (groups.isEmpty)
+        if (!store.hasCards)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: Space.s12),
+            child: Column(
+              children: [
+                Icon(Icons.credit_card_outlined, color: tokens.textSecondary),
+                const SizedBox(height: Space.s3),
+                Text(
+                  'No cards yet, so no credits to track.',
+                  style: note,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: Space.s6),
+                AddCardButton(store: store),
+              ],
+            ),
+          )
+        else if (groups.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
             child: Column(

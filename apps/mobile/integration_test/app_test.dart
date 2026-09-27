@@ -68,8 +68,8 @@ void main() {
 
     // Add a card from the catalogue.
     await tab(tester, 'Cards');
-    await show(tester, find.byKey(const Key('add-card')));
-    await tester.tap(find.byKey(const Key('add-card')));
+    await show(tester, find.byKey(const Key('empty-add-card')));
+    await tester.tap(find.byKey(const Key('empty-add-card')));
     await settle(tester);
     final platinum = find.byKey(const Key('template-amex-platinum'));
     await tester.scrollUntilVisible(platinum, 200);

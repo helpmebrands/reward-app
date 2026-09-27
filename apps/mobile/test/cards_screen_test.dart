@@ -523,7 +523,8 @@ void main() {
     );
     expect(find.text('Start with one card'), findsOneWidget);
     expect(find.byWidgetPredicate(_isCard), findsNothing);
-    expect(find.text('Add a card from the catalogue'), findsOneWidget);
+    expect(find.text('Add your first card'), findsOneWidget);
+    expect(find.text('Add a card from the catalogue'), findsNothing);
   });
 }
 
