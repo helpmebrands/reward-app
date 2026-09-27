@@ -81,27 +81,32 @@ void main() {
 
     expect(meta('og:type'), 'website');
     expect(meta('og:site_name'), 'HelpMe Reward');
-    expect(meta('og:title'), 'Help me stop leaving card rewards on the table');
+    expect(meta('og:title'), 'Claim your rewards before they expire');
     expect(
       meta('og:description'),
-      "Join my household on HelpMe Reward and we'll track every credit "
-      'together, so none expire unused.',
+      'Tap to join my household on HelpMe Reward.',
     );
     expect(meta('og:url'), 'https://api.example.test/invite/ABCD2345');
     expect(meta('og:image'), 'https://api.example.test/og/invite.png');
     expect(meta('og:image:width'), '1200');
     expect(meta('og:image:height'), '630');
-    expect(meta('og:image:alt'), isNotEmpty);
+    expect(
+      meta('og:image:alt'),
+      'The HelpMe Reward icon beside &ldquo;Stop leaving card rewards on the '
+      'table&rdquo;',
+    );
+    // The preview's text says something the card's own text does not.
+    for (final text in [meta('og:title'), meta('og:description')]) {
+      expect(text, isNot(contains('leaving card rewards on the table')));
+      expect(text, isNot(contains('track every credit together')));
+    }
     expect(meta('twitter:card'), 'summary_large_image');
     expect(meta('apple-itunes-app'), 'app-id=6814862386');
     expect(
       html,
-      contains('<title>Help me stop leaving card rewards on the table</title>'),
+      contains('<title>Claim your rewards before they expire</title>'),
     );
-    expect(
-      html,
-      contains('<h1>Help me stop leaving card rewards on the table</h1>'),
-    );
+    expect(html, contains('<h1>Claim your rewards before they expire</h1>'));
   });
 
   // @lat: [[api-tests#Invite links#The card image is served without sign-in]]
