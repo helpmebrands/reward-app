@@ -33,6 +33,10 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
     required this.locked,
     required this.captured,
     required this.missed,
+    required this.valueEarned,
+    required this.valueAvailable,
+    required this.valueMissed,
+    required this.valueOptOut,
   });
 
   final Color background;
@@ -70,6 +74,14 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
   final Tone locked;
   final Tone captured;
   final Tone missed;
+
+  /// The value bar's segments (`ValueBar`): earned green, available in the
+  /// accent, missed yellow and opt out grey. The bar's missed is yellow as
+  /// designed; the missed status tone stays violet everywhere else.
+  final Color valueEarned;
+  final Color valueAvailable;
+  final Color valueMissed;
+  final Color valueOptOut;
 
   /// Nocturne, verbatim from the vendored copy, with the accent family moved
   /// to the logo's maroon at the same lightness (#291).
@@ -140,6 +152,10 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
       foreground: Color(0xFFC9C4F3),
       ground: Color(0xFF1E1D27),
     ),
+    valueEarned: Color(0xFF6CC18E),
+    valueAvailable: Color(0xFFD16F84),
+    valueMissed: Color(0xFFE3C25B),
+    valueOptOut: Color(0xFF595D6C),
   );
 
   /// The light theme the PWA derived: a lifted ground, the accent and status
@@ -209,6 +225,10 @@ class NocturneTokens extends ThemeExtension<NocturneTokens> {
       foreground: Color(0xFF4D4084),
       ground: Color(0xFFEDEBFB),
     ),
+    valueEarned: Color(0xFF2E7D4F),
+    valueAvailable: Color(0xFFB7576D),
+    valueMissed: Color(0xFFA87F12),
+    valueOptOut: Color(0xFFB9BBC5),
   );
 
   @override

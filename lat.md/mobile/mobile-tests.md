@@ -129,6 +129,38 @@ The widget is wrapped in `ExcludeSemantics` and the semantics tree under it carr
 
 Reading the palette the widget paints with, the dashed card edge, the plain card edge and the plus badge each reach 3:1 against every colour they are drawn on, in dark and in light.
 
+## Value bar
+
+`value_bar_test.dart` pins the `ValueBar` widget ([[mobile-architecture#Value bar]]).
+
+### The four colours are tokens in both themes
+
+`valueEarned`, `valueAvailable`, `valueMissed` and `valueOptOut` are `#6CC18E`, `#D16F84`, `#E3C25B`, `#595D6C` in dark and `#2E7D4F`, `#B7576D`, `#A87F12`, `#B9BBC5` in light.
+
+### Segments run in order, sized by amount
+
+At 360 wide, $540 · $770 · $180 · $360 draw Earned, Available, Missed and Opt out left to right, each 8 high, 2 apart and as wide as its share of the 354 left after the gaps, in each segment's token colour.
+
+### A zero segment is not drawn
+
+$30 earned and $70 available draw two segments, the first 30% of the width, with "$30 Earned" and "$70 Available" under them and nothing for Missed or Opt out.
+
+### Labels sit centred under their segments
+
+With two equal segments, each amount-and-label block is centred under its own segment, below the bar.
+
+### Narrow neighbours never overlap
+
+At 320 wide and 200% text, a $1,000 earned segment followed by three $5 ones places every label inside the bar's width, none overlapping another, and throws no overflow.
+
+### The bar reads as one sentence
+
+The four-segment bar is one semantics node labelled "$540 earned, $770 available, $180 missed, $360 opt out"; the amounts and labels are not read separately. A zero segment is left out of the sentence.
+
+### An empty breakdown draws only the track
+
+An all-zero breakdown draws the 8-high track, no segments and no text.
+
 ## Today empty state
 
 `today_empty_state_test.dart` boots the app at Today on a household with no active card, locally or through the fake service tier, and pins the empty state ([[mobile-architecture#Today screen#Today before any card]]).

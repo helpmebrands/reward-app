@@ -34,6 +34,7 @@ import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
 import 'widgets/notification_level_control.dart';
 import 'widgets/sheet_host.dart';
+import 'widgets/value_bar.dart';
 import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
 import 'screens/sign_in_screen.dart';
@@ -129,6 +130,56 @@ Widget emptyCardSlotDark() => _slotIn(Brightness.dark);
 
 @Preview(name: 'Empty card slot, light', size: Size(200, 200))
 Widget emptyCardSlotLight() => _slotIn(Brightness.light);
+
+/// The value bar at a phone card's width, in each shape it takes.
+Widget _valueBarIn(ValueBreakdown breakdown, Brightness brightness) => _themed(
+  Padding(
+    padding: const EdgeInsets.all(16),
+    child: ValueBar(breakdown: breakdown),
+  ),
+  brightness,
+);
+
+const _fourSegments = ValueBreakdown(
+  earnedCents: 54000,
+  availableCents: 77000,
+  missedCents: 18000,
+  optOutCents: 36000,
+);
+
+const _narrowMissed = ValueBreakdown(
+  earnedCents: 61000,
+  availableCents: 29000,
+  missedCents: 1500,
+  optOutCents: 20000,
+);
+
+const _singleSegment = ValueBreakdown(availableCents: 30000);
+
+@Preview(name: 'Value bar, four segments, dark', size: Size(402, 120))
+Widget valueBarDark() => _valueBarIn(_fourSegments, Brightness.dark);
+
+@Preview(name: 'Value bar, four segments, light', size: Size(402, 120))
+Widget valueBarLight() => _valueBarIn(_fourSegments, Brightness.light);
+
+@Preview(name: 'Value bar, narrow missed, dark', size: Size(402, 120))
+Widget valueBarNarrowDark() => _valueBarIn(_narrowMissed, Brightness.dark);
+
+@Preview(name: 'Value bar, narrow missed, light', size: Size(402, 120))
+Widget valueBarNarrowLight() => _valueBarIn(_narrowMissed, Brightness.light);
+
+@Preview(name: 'Value bar, single segment, dark', size: Size(402, 120))
+Widget valueBarSingleDark() => _valueBarIn(_singleSegment, Brightness.dark);
+
+@Preview(name: 'Value bar, single segment, light', size: Size(402, 120))
+Widget valueBarSingleLight() => _valueBarIn(_singleSegment, Brightness.light);
+
+@Preview(name: 'Value bar, empty, dark', size: Size(402, 120))
+Widget valueBarEmptyDark() => _valueBarIn(ValueBreakdown.zero, Brightness.dark);
+
+@Preview(name: 'Value bar, empty, light', size: Size(402, 120))
+Widget valueBarEmptyLight() =>
+    _valueBarIn(ValueBreakdown.zero, Brightness.light);
 
 @Preview(name: 'Sign-in, dark', size: Size(402, 874))
 Widget signInDark() => _themed(
