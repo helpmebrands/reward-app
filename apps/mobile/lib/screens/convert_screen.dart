@@ -79,7 +79,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
                     'To change its terms yourself, it will be replaced by a '
                     'card you maintain. That card will no longer update '
                     'automatically. It keeps its claims, its history, its '
-                    'enrolment and everyone’s silences.',
+                    'enrollment and everyone’s silences.',
                     style: text.bodyMedium?.copyWith(
                       color: tokens.textSecondary,
                     ),

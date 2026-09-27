@@ -68,7 +68,7 @@ void main() {
       expect(currentInstances(data, today).first.status, BenefitStatus.locked);
     });
 
-    test('unlocks once enrolment is confirmed', () {
+    test('unlocks once enrollment is confirmed', () {
       final data = makeData(
         benefits: [
           makeBenefit(
@@ -690,7 +690,7 @@ void main() {
       expect(lockReason(benefit, card, today), LockReason.spend);
     });
 
-    test('names enrolment first when both apply', () {
+    test('names enrollment first when both apply', () {
       final benefit = makeBenefit(
         Cadence.annual,
         enrollmentRequired: true,

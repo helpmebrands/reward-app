@@ -222,7 +222,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         key: ValueKey('benefit-link-${benefit.id}'),
         benefit: benefit,
         lock: switch (lockReason(benefit, current, store.today)) {
-          LockReason.enrollment => 'needs enrolment',
+          LockReason.enrollment => 'needs enrollment',
           LockReason.spend => 'needs spend',
           null => null,
         },

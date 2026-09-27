@@ -186,13 +186,13 @@ class _TodayBody extends StatelessWidget {
         lockReason(instance.benefit, instance.card, store.today),
     };
     final bySpend = reasons.contains(LockReason.spend);
-    final byEnrolment = reasons.contains(LockReason.enrollment);
-    final lockedTitle = bySpend && byEnrolment
-        ? 'Locked behind enrolment and spend'
+    final byEnrollment = reasons.contains(LockReason.enrollment);
+    final lockedTitle = bySpend && byEnrollment
+        ? 'Locked behind enrollment and spend'
         : bySpend
         ? 'Locked behind a spend threshold'
-        : 'Locked behind enrolment';
-    final lockedNote = bySpend && byEnrolment
+        : 'Locked behind enrollment';
+    final lockedNote = bySpend && byEnrollment
         ? '${formatMoney(totals.lockedCents)} you cannot touch yet: some needs a box '
               'ticked on the issuer’s benefits page, some a spend threshold.'
         : bySpend

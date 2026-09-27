@@ -346,7 +346,7 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Turns a card the catalogue keeps up to date into one the household
-  /// maintains: claims, history, enrolment and every member's silences go
+  /// maintains: claims, history, enrollment and every member's silences go
   /// with it. The new card's id, or null with [problem] set.
   Future<String?> convertCard(String id) async {
     String? newId;
@@ -659,7 +659,7 @@ class AppStore extends ChangeNotifier {
             : b.copyWith(optedOutAt: null),
       );
 
-  /// Records that the user has ticked the issuer's enrolment box.
+  /// Records that the user has ticked the issuer's enrollment box.
   Future<bool> confirmEnrollment(String id) =>
       updateBenefit(id, (b) => b.copyWith(enrolledAt: _now));
 

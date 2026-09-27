@@ -96,7 +96,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Use soon — resets 30 September'), findsOneWidget);
-    expect(find.text('Locked behind enrolment'), findsOneWidget);
+    expect(find.text('Locked behind enrollment'), findsOneWidget);
     expect(
       find.text(
         'Captured this period — ${formatMoney(totals['capturedCents'] as int)}',
@@ -130,7 +130,7 @@ void main() {
       tester,
       data: sample.copyWith(benefits: [...sample.benefits, gated]),
     );
-    expect(find.text('Locked behind enrolment and spend'), findsOneWidget);
+    expect(find.text('Locked behind enrollment and spend'), findsOneWidget);
     expect(find.textContaining('some a spend threshold'), findsOneWidget);
     expect(find.text('Dell Bonus'), findsOneWidget);
   });

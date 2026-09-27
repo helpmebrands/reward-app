@@ -346,7 +346,7 @@ void main() {
     );
 
     test(
-      'never schedules a spend-locked credit, even with enrolment reminders on',
+      'never schedules a spend-locked credit, even with enrollment reminders on',
       () {
         final data = withNotifications(
           makeData(

@@ -450,7 +450,7 @@ value.
 
 The Play Developer API cannot create an app's first release, and the console
 may insist that the very first bundle arrives through its own upload page,
-which is where Play App Signing enrolment happens. So the first bundle is
+which is where Play App Signing enrollment happens. So the first bundle is
 built and signed on the Mac and uploaded in the browser. Every release after
 it goes through the workflow.
 
