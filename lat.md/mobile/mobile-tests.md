@@ -343,7 +343,7 @@ With only an archived card the button reads "Add a card" on each tab, and a read
 
 ## Switch rows
 
-`switch_row_test.dart` pins Apple's rule that a switch row is one target: the row flips, not only the switch ([[mobile-architecture#The editors]], #330).
+`switch_row_test.dart` pins Apple's rule that a switch row is one target: the row flips, not only the switch ([[mobile-architecture#Forms and the Field pattern#The editors]], #330).
 
 ### Tapping the title toggles on every screen
 
