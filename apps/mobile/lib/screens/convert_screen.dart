@@ -90,7 +90,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
                     onPressed: _busy || card == null ? null : _convert,
                     child: const Text('Make it mine'),
                   ),
-                  const SizedBox(height: Space.s2),
+                  const SizedBox(height: Space.bezel),
                   TextButton(
                     onPressed: () => context.go(cardPath(widget.cardId)),
                     child: const Text('Keep it up to date'),

@@ -88,7 +88,7 @@ class _SignInScreenState extends State<SignInScreen> {
                         : () => _signIn(widget.auth.signInWithGoogle),
                     child: const Text('Continue with Google'),
                   ),
-                  const SizedBox(height: Space.s3),
+                  const SizedBox(height: Space.bezel),
                   OutlinedButton.icon(
                     key: const Key('sign-in-apple'),
                     onPressed: _busy

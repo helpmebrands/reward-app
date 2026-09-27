@@ -418,8 +418,8 @@ class _AddCardScreenState extends State<AddCardScreen> {
         if (chips.isNotEmpty) ...[
           const SizedBox(height: Space.s4),
           Wrap(
-            spacing: Space.s3,
-            runSpacing: Space.s3,
+            spacing: Space.bezel,
+            runSpacing: Space.bezel,
             children: [
               for (final (label, remove) in chips)
                 InputChip(

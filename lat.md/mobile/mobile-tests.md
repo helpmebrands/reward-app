@@ -353,6 +353,26 @@ Settings' Appearance, the benefit editor's Measured from, the card editor's Kind
 
 With the SDK's Roboto loaded so labels measure as on a device, each group's outline is drawn 44 high at 402 wide, its touch area is at least 48, it is as wide as its column allows, and its selected segment shows a check.
 
+## Bezel spacing
+
+`bezel_spacing_test.dart` pins Apple's spacing: about 12 between bezeled controls, measured between their drawn surfaces rather than their tap boxes (#332).
+
+### Credits filter chips sit 12 apart
+
+At a 1.6 text scale the Credits status chips wrap onto more than one row, and adjacent chips are at least 12 apart across and down.
+
+### Sign in's buttons are 44 high, 12 apart and full width
+
+"Continue with Google" and "Continue with Apple" are drawn 44 high with at least 12 between them, and "Have an invite code?" and "Learn more" are drawn 44 high and as wide as the Google button's column.
+
+### Change the terms offers two full-width choices
+
+"Make it mine" and "Keep it up to date" are each drawn 44 high, equally wide, and at least 12 apart.
+
+### The 12 gap is a named token
+
+`Space.bezel` is 12, so screens name the gap rather than repeat a bare literal.
+
 ## Switch rows
 
 `switch_row_test.dart` pins Apple's rule that a switch row is one target: the row flips, not only the switch ([[mobile-architecture#Forms and the Field pattern#The editors]], #330).
