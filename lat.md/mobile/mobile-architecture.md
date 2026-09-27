@@ -119,6 +119,12 @@ With a `HouseholdApi` the store is backed by the service tier instead of the dev
 - **Commands**: `refresh` runs through `Command0` (`lib/logic/command.dart`), the Command pattern from Flutter's architecture guide with no package: it exposes whether it is running and how it last ended, and a second call joins the first.
 - **Signing out** calls `forget`, which drops the household, the cache and the queued claims, so the next person on the device never sees or sends them; signing in refreshes. Theme and horizon stay this device's settings.
 
+### Member mutes in flight
+
+In the service-tier mode a mute switch shows the server's resting state; while `setMute` is in flight it sits at the requested state and is disabled, since a switch cannot show a spinner.
+
+`toggleBenefitMute` and `toggleCardMute` record the requested state per id, notify, and send `setMute(muted: requested)`. While the entry is there `isBenefitMuted` / `isCardMuted` and the instances report it and `isMutePending(id)` is true, so "Silence this credit" on the credit sheet and credit editor, "Silence every credit" on the card editor and the row's bell have no callback. The store never toggles its preferences locally: `_edit`'s refresh brings the server's mutes back, and when the request ends the entry is cleared and the control shows whatever the server holds, the old state with `problem` set if it refused or was offline. If the mute landed but the refresh failed, the requested state is applied so the device matches what the server accepted. A second tap on a pending id is ignored. Without an api the toggle stays synchronous and nothing is ever pending. Decided in #352, after a refresh and a local toggle cancelled out; pinned by [[mobile-tests#Member mutes]].
+
 ## State management
 
 The app manages state with Flutter's own primitives and adds no state management or injection package: `ChangeNotifier` and `ValueNotifier` hold state, the builder widgets subscribe, and `setState` covers what one widget owns.
