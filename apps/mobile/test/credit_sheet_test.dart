@@ -155,6 +155,10 @@ Finder get sheet => find.byKey(const Key('credit-sheet'));
 Finder inSheet(String text) =>
     find.descendant(of: sheet, matching: find.text(text));
 
+/// The balance at the top of the sheet, which the value bar's labels repeat.
+String? balance(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('credit-sheet-balance'))).data;
+
 void main() {
   group('quick amounts', () {
     // @lat: [[mobile-tests#Credit sheet#Quick amounts are a quarter and a half in whole dollars]]
@@ -189,7 +193,7 @@ void main() {
       final app = await openResy(tester, phone);
 
       expect(find.text('Resy Dining Credit'), findsWidgets);
-      expect(inSheet('\$70'), findsOneWidget);
+      expect(balance(tester), '\$70');
       expect(inSheet('left of \$100'), findsOneWidget);
       expect(inSheet('Mark the full \$70 used'), findsOneWidget);
       expect(inSheet('\$18'), findsOneWidget);
@@ -200,7 +204,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(app.ui.openBenefitId, 'resy');
-      expect(inSheet('\$50'), findsOneWidget);
+      expect(balance(tester), '\$50');
       expect(inSheet('Mark the full \$50 used'), findsOneWidget);
       expect(inSheet('\$13'), findsOneWidget);
       expect(inSheet('\$25'), findsOneWidget);
@@ -309,7 +313,7 @@ void main() {
             .map((c) => c.id),
         ['old'],
       );
-      expect(inSheet('\$90'), findsOneWidget);
+      expect(balance(tester), '\$90');
     });
 
     // @lat: [[mobile-tests#Credit sheet#Opting out from the sheet closes it and leaves Today]]
