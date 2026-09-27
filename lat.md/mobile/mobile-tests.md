@@ -367,6 +367,24 @@ Settings' Appearance, the benefit editor's Measured from, the card editor's Kind
 
 With the SDK's Roboto loaded so labels measure as on a device, each group's outline is drawn 44 high at 402 wide, its touch area is at least 48, it is as wide as its column allows, and its selected segment shows a check.
 
+## Route guidelines
+
+`route_guidelines_test.dart` runs Flutter's accessibility guidelines over every route so no later change can quietly shrink a control or fade a label below the HIG floor ([[mobile-architecture#Accessibility]], #334).
+
+### Every route passes the four guidelines on both platforms
+
+On `TargetPlatform.iOS` and `TargetPlatform.android`, in light and dark, at 402 wide, `iOSTapTargetGuideline`, `androidTapTargetGuideline`, `labeledTapTargetGuideline` and `textContrastGuideline` pass on each of these:
+
+- Welcome, Sign in, Today, Today's empty state, Credits, Cards, Value and Settings.
+- The benefit editor, Add card, the card editor, Change the terms, Join household and Not found.
+- The credit sheet, open over Today.
+
+Shrinking the theme's density or fading `textSecondary` turns it red.
+
+### Icon buttons are drawn 44 and respond to 48
+
+The app bar's gear, the editor's back and delete, the credit sheet's close, a row's reminder bell and a card's menu each draw a 44 x 44 surface in a tap box at least 48 x 48.
+
 ## Bezel spacing
 
 `bezel_spacing_test.dart` pins Apple's spacing: about 12 between bezeled controls, measured between their drawn surfaces rather than their tap boxes (#332).
