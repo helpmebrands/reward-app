@@ -89,6 +89,22 @@ The labels of the semantics tree in traversal order at expanded are exactly the 
 
 With no snapshot the screen shows "Start with one card" and no rows.
 
+## Empty card slot
+
+`empty_card_slot_test.dart` pins the empty-state illustration ([[mobile-architecture#Today screen#Empty card slot]]).
+
+### The illustration is a size by size box
+
+`EmptyCardSlot(size: 160)` lays out as a 160 × 160 box.
+
+### The illustration is hidden from the screen reader
+
+The widget is wrapped in `ExcludeSemantics` and the semantics tree under it carries no label.
+
+### Every edge clears 3:1 in both themes
+
+Reading the palette the widget paints with, the dashed card edge, the plain card edge and the plus badge each reach 3:1 against every colour they are drawn on, in dark and in light.
+
 ## Today interactions
 
 `today_interactions_test.dart` pumps the whole app at 402 wide over the sample household, dated 16 September 2026, with the ui state injected, and drives Today the way a user does ([[mobile-architecture#Today screen#Today's interactions]]).
