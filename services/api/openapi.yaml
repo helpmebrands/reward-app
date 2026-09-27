@@ -1601,7 +1601,7 @@ components:
     Benefit:
       type: object
       description: A credit in the domain's snapshot spelling.
-      required: [id, cardId, name, category, valueCents, cadence, anchor, enrollmentRequired, redemptionSteps, lastCallOnly, active, createdAt, updatedAt]
+      required: [id, cardId, name, category, valueCents, cadence, anchor, enrollmentRequired, redemptionSteps, active, createdAt, updatedAt]
       additionalProperties: false
       properties:
         id:
@@ -1649,8 +1649,6 @@ components:
             type: string
         notes:
           type: string
-        lastCallOnly:
-          type: boolean
         active:
           type: boolean
         optedOutAt:
@@ -1872,8 +1870,6 @@ components:
           type: [string, 'null']
         spendMetAt:
           type: [string, 'null']
-        lastCallOnly:
-          type: boolean
         active:
           type: boolean
         optedOutAt:

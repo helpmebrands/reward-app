@@ -10,11 +10,10 @@ library;
 import 'ladder.dart';
 import 'types.dart';
 
-/// The level [prefs] give [benefit]. The household's [Benefit.lastCallOnly]
-/// still reads as Last chance until it is removed (#362).
+/// The level [prefs] give [benefit].
 NotificationLevel levelFor(Benefit benefit, MemberPreferences prefs) {
   if (prefs.isMuted(benefit)) return NotificationLevel.silenced;
-  if (benefit.lastCallOnly || prefs.lastCallBenefitIds.contains(benefit.id)) {
+  if (prefs.lastCallBenefitIds.contains(benefit.id)) {
     return NotificationLevel.lastChance;
   }
   return NotificationLevel.periodically;

@@ -21,7 +21,7 @@ Warn about the monthly one 90 days out and it is noise; warn about the annual on
 
 The tone climbs along the rungs, from `permissive` ("You can use me") through `notice` to `urgent` (last call). Tone drives both the row styling and the notification copy; Nocturne carries urgency as a saturated ground and a filled glyph, never an alarm colour.
 
-- `ladderFor` returns a credit's rungs, collapsing to the final rung alone when the member chose Last chance for it ([[domain#Member preferences#Notification levels]]) or the transitional `lastCallOnly` is set.
+- `ladderFor` returns a credit's rungs, collapsing to the final rung alone when the member chose Last chance for it ([[domain#Member preferences#Notification levels]]).
 - `currentRung` reports which rung a credit is standing on given days remaining, or null before the first.
 - `ladderSummary` renders the table above for Settings.
 

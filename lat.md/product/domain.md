@@ -43,7 +43,7 @@ Each member picks one of three levels per credit: Periodically (every rung), Las
 
 `levelFor` reads Silence when the credit or its card is muted, else Last chance when the id is in `lastCallBenefitIds`, else Periodically. `withLevel` writes it: Periodically clears both flags, Last chance sets last-call and clears the mute, Silence sets the mute and keeps last-call, so unsilencing (the row bell, Undo) returns the credit to its earlier level. `levelNote` says in one line what a level sends, from the cadence's ladder.
 
-Until #362 removes it, the household's `Benefit.lastCallOnly` also reads as Last chance.
+Last call was once the household's (`Benefit.lastCallOnly`); #362 removed it, and the codec ignores the key in older data.
 
 ## Benefit
 
@@ -55,7 +55,7 @@ Fields with behaviour behind them:
 - `enrollmentRequired` with no `enrolledAt` makes the credit `locked` ([[domain#Status ladder#Locked is not unclaimed]]).
 - `spendThresholdCents` is the second kind of lock: spend the issuer asks for in a year before the credit opens (Business Platinum's $250K credits, the Dell bonus). Until `spendMetAt` falls inside the current year the credit is `locked` for spend ([[domain#Status ladder#A spend threshold is the other lock]]).
 - `merchant` (e.g. "Uber", "Resy") is the key for [[domain#Overlaps]] across issuers.
-- `lastCallOnly` collapses its ladder to the final rung for every member ([[reminders#The ladder]]). It is being replaced by the member's own Last chance level; silencing a credit is a member's choice too ([[domain#Member preferences#Notification levels]]).
+- How much a member hears about a credit, every rung, the last or nothing, is that member's notification level, not the credit's ([[domain#Member preferences#Notification levels]]).
 - `optedOutAt` marks a credit the household will never use (an Oura ring, Equinox). It stays on the card but leaves every list and total except its own ([[domain#Status ladder#Opted out is a choice, not a status of the window]]). `trackedFrom` is the day tracking resumed after an opt-out.
 - `active: false` is kept only for a credit that had already ended when it was added or paused. The codec loads a legacy paused credit that had not ended by its `updatedAt` as opted out at that instant.
 - `endsOn` is the last day the credit can be used, for credits the issuer has announced an end to (Grubhub, Instacart). The final window is clamped to it and nothing follows ([[domain#Cycle]]); afterwards the credit is skipped the way an inactive one is, while its final shortfall stays in the [[domain#Missed ledger]]. `annualValueCents` is not prorated for a credit ending mid-year.

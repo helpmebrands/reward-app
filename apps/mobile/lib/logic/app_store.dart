@@ -604,7 +604,6 @@ class AppStore extends ChangeNotifier {
       endsOn: draft.endsOn,
       redemptionSteps: draft.redemptionSteps,
       notes: draft.notes,
-      lastCallOnly: draft.lastCallOnly,
       active: draft.active,
       createdAt: now,
       updatedAt: now,
@@ -631,8 +630,6 @@ class AppStore extends ChangeNotifier {
           'enrollmentUrl': after.enrollmentUrl,
         if (after.spendMetAt != before.spendMetAt)
           'spendMetAt': after.spendMetAt,
-        if (after.lastCallOnly != before.lastCallOnly)
-          'lastCallOnly': after.lastCallOnly,
         if (after.active != before.active) 'active': after.active,
         if (after.optedOutAt != before.optedOutAt)
           'optedOutAt': after.optedOutAt,
@@ -672,7 +669,6 @@ class AppStore extends ChangeNotifier {
           'enrollmentNote',
           'enrollmentUrl',
           'spendMetAt',
-          'lastCallOnly',
           'active',
           'optedOutAt',
           'trackedFrom',

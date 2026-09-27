@@ -113,7 +113,7 @@ Notification settings, mutes and last calls belong to each member, not the house
 
 `PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. `PUT /v1/me/benefits/{benefitId}/level` takes `{"level": "periodically" | "lastChance" | "silenced"}`, applies the domain's `withLevel` to the caller's preferences and writes the credit's mute and last call in one transaction, answering the preferences ([[domain#Member preferences#Notification levels]]); another level is 400 naming `level`, a credit outside the household 404. Readers may do all of it, because nothing shared changes.
 
-Migration `0013` gave every member of a household a last-call row for each credit whose `last_call_only` was set, so no one's reminders changed when last call moved to the member. The column stays until #362.
+Migration `0013` gave every member of a household a last-call row for each credit whose `last_call_only` was set, so no one's reminders changed when last call moved to the member. Migration `0014` then dropped the column (#362).
 
 ## Invite links
 

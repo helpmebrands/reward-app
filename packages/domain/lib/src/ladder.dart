@@ -60,9 +60,7 @@ const Map<Cadence, List<LadderRung>> _ladders = {
 /// given: only the last one when they chose Last chance for it.
 List<LadderRung> ladderFor(Benefit benefit, [MemberPreferences? prefs]) {
   final rungs = _ladders[benefit.cadence]!;
-  final lastCall =
-      benefit.lastCallOnly ||
-      (prefs?.lastCallBenefitIds.contains(benefit.id) ?? false);
+  final lastCall = prefs?.lastCallBenefitIds.contains(benefit.id) ?? false;
   if (lastCall) return rungs.isEmpty ? const [] : [rungs.last];
   return rungs;
 }
