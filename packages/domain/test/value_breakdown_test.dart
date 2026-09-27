@@ -139,11 +139,7 @@ void main() {
       final data = makeData(
         cards: [makeCard(createdAt: '2024-02-01T00:00:00.000Z')],
         benefits: [
-          makeBenefit(
-            Cadence.rolling,
-            valueCents: 12000,
-            intervalMonths: 48,
-          ),
+          makeBenefit(Cadence.rolling, valueCents: 12000, intervalMonths: 48),
         ],
         claims: [
           makeClaim(
@@ -199,11 +195,7 @@ void main() {
           ),
         ],
         claims: [
-          makeClaim(
-            benefitId: 'b2',
-            cycleKey: '2026-01-01',
-            amountCents: 5000,
-          ),
+          makeClaim(benefitId: 'b2', cycleKey: '2026-01-01', amountCents: 5000),
         ],
       );
       final expected =

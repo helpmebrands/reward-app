@@ -200,6 +200,20 @@ A card has two annual values. `potentialValueCents` is every credit the card giv
 
 This is why the Value tab and the Cards tab can disagree: Value covers the last nine calendar months, while each card's figure covers only its own fee period. A credit only pays for the fee it was issued against.
 
+## Value breakdown
+
+The value bar's four segments, in cents: Earned · Available · Missed · Opt out. `ValueBreakdown` in `packages/domain/lib/src/value_breakdown.dart` sums with `+` and totals with `totalCents` (#371).
+
+The rules every bar shares:
+
+- A credit that requires enrollment and is not enrolled counts as Opt out for its current window's full value, as does an opted-out credit. Their closed windows count nowhere.
+- A spend-gated credit whose spend is not met is left out entirely, and so is a manual credit, which has no window.
+- Earned is what was claimed in a counted window; Available is what is left in the window that includes today.
+
+Three scopes build on them. `creditBreakdown` is one credit's current window, so Missed is always 0. `cardYearToDateBreakdown` is a card's calendar year to date: every window that includes today, plus every window that closed since 1 January, whose claims add to Earned and shortfall to Missed. A window that includes today counts whole even if it opened years ago (Global Entry), and closed windows follow the [[domain#Missed ledger]]'s limits: none before the card was added or before tracking resumed. `householdBreakdown` sums every unarchived card.
+
+These are calendar-year figures on purpose. The card's Fee, Captured and Net, the percentage of the fee earned back and the verdict stay on the cardmember year ([[domain#Card value and the cardmember year]]).
+
 ## Form rules
 
 `packages/domain/lib/src/validation.dart` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.

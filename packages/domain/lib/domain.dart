@@ -17,3 +17,4 @@ export 'src/reminders.dart';
 export 'src/selectors.dart';
 export 'src/types.dart';
 export 'src/validation.dart';
+export 'src/value_breakdown.dart';
