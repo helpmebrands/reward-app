@@ -99,6 +99,13 @@ void main() {
           {for (final r in rows) (r[0], r[1])},
           {(ann, lastCall), (bob, lastCall)},
         );
+        // Once every member has it, the household's column is gone (#362).
+        final column = await db.execute(
+          "SELECT 1 FROM information_schema.columns WHERE table_schema = "
+          "'last_call_migration' AND table_name = 'benefits' "
+          "AND column_name = 'last_call_only'",
+        );
+        expect(column, isEmpty);
       },
     );
   }, skip: url == null ? 'DATABASE_URL is not set' : null);

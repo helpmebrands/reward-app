@@ -77,7 +77,11 @@ void main() {
     });
 
     test('reduces to a single last call when the user opts out', () {
-      final rungs = ladderFor(makeBenefit(Cadence.annual, lastCallOnly: true));
+      final annual = makeBenefit(Cadence.annual);
+      final rungs = ladderFor(
+        annual,
+        defaultMemberPreferences.copyWith(lastCallBenefitIds: {annual.id}),
+      );
       expect(rungs, hasLength(1));
       expect(rungs.first.daysBefore, 7);
     });
