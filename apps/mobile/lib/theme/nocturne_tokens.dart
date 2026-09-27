@@ -248,6 +248,10 @@ abstract final class Space {
   static const double s8 = 22.4;
   static const double s10 = 28;
   static const double s12 = 33.6;
+
+  /// Apple's gap between bezeled controls such as chips and buttons, which
+  /// no 0.7x step lands on.
+  static const double bezel = 12;
 }
 
 /// Nocturne's radii.

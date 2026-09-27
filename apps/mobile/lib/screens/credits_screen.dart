@@ -255,8 +255,8 @@ class _CreditsScreenState extends State<CreditsScreen> {
           container: true,
           explicitChildNodes: true,
           child: Wrap(
-            spacing: Space.s2,
-            runSpacing: Space.s2,
+            spacing: Space.bezel,
+            runSpacing: Space.bezel,
             children: [
               for (final filter in CreditsFilter.values)
                 ChoiceChip(
