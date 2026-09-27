@@ -1,6 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/household_api.dart';
 import '../data/share.dart';
@@ -65,11 +67,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final invite = await store.createInvite(role);
     if (invite == null || !mounted) return;
     setState(() => _invite = invite);
-    await shareText(
-      'Join my household on HelpMe Reward: ${invite.link}\n'
-      'Or enter the code ${invite.code} under “Have an invite code?”.',
+    final box = _inviteButton.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    // iOS builds the sheet's header, and the recipient's chat its preview,
+    // from the invite page's OpenGraph card, so the link goes alone. Android's
+    // sheet fetches nothing, so it gets the message and the icon.
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      await share(
+        ShareParams(uri: Uri.parse(invite.link), sharePositionOrigin: origin),
+      );
+      return;
+    }
+    final icon = await rootBundle.load('assets/logo/helpmereward-icon.png');
+    await share(
+      ShareParams(
+        text:
+            'Help me stop leaving card rewards on the table. Join my '
+            "household on HelpMe Reward and we'll track every credit "
+            'together, so none expire unused.\n'
+            'Code: ${invite.code}\n'
+            '${invite.link}',
+        title: _inviteTitle,
+        subject: _inviteTitle,
+        previewThumbnail: XFile.fromData(
+          icon.buffer.asUint8List(icon.offsetInBytes, icon.lengthInBytes),
+          mimeType: 'image/png',
+          name: 'helpmereward-icon.png',
+        ),
+        sharePositionOrigin: origin,
+      ),
     );
   }
+
+  static const _inviteTitle = 'Join my household on HelpMe Reward';
+
+  /// Anchors the share sheet's popover on iPad.
+  final _inviteButton = GlobalKey();
 
   Future<void> _remove(HouseholdMember member) async {
     final who = member.email ?? 'this member';
@@ -464,11 +499,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         runSpacing: Space.s2,
         children: [
           if (owner)
-            FilledButton.icon(
-              key: const Key('invite'),
-              onPressed: _createInvite,
-              icon: const Icon(Icons.person_add_outlined),
-              label: const Text('Invite someone'),
+            KeyedSubtree(
+              key: _inviteButton,
+              child: FilledButton.icon(
+                key: const Key('invite'),
+                onPressed: _createInvite,
+                icon: const Icon(Icons.person_add_outlined),
+                label: const Text('Invite someone'),
+              ),
             ),
           TextButton(
             key: const Key('have-code'),
