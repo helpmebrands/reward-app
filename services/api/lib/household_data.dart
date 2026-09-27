@@ -871,7 +871,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
                 )).single[0]!
                 as String;
         benefitIds[b.id] = newId;
-        for (final table in ['claims', 'member_mutes']) {
+        for (final table in ['claims', 'member_mutes', 'member_last_calls']) {
           await tx.execute(
             Sql.named(
               'UPDATE $table SET benefit_id = @new::uuid '

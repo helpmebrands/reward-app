@@ -1,4 +1,4 @@
-/// Each member's notification preferences and mutes. Documented in
+/// Each member's notification preferences, mutes and last calls. Documented in
 /// `lat.md/api/api-architecture.md#Member preferences`.
 library;
 
@@ -10,6 +10,7 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
 import 'auth.dart';
+import 'src/database.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
@@ -19,8 +20,8 @@ final _uuid = RegExp(
   r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
 );
 
-/// [caller]'s preferences: their row or the defaults, with the mutes that
-/// name cards and credits of their current household.
+/// [caller]'s preferences: their row or the defaults, with the mutes and
+/// last calls that name cards and credits of their current household.
 Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
   final row = await db.execute(
     Sql.named('''
@@ -38,6 +39,15 @@ Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
       LEFT JOIN benefits b ON b.id = m.benefit_id
       WHERE m.user_id = @u::uuid
         AND coalesce(c.household_id, b.household_id) = @h::uuid
+    '''),
+    parameters: {'u': caller.userId, 'h': caller.householdId},
+  );
+  final lastCalls = await db.execute(
+    Sql.named('''
+      SELECT l.benefit_id::text
+      FROM member_last_calls l
+      JOIN benefits b ON b.id = l.benefit_id
+      WHERE l.user_id = @u::uuid AND b.household_id = @h::uuid
     '''),
     parameters: {'u': caller.userId, 'h': caller.householdId},
   );
@@ -59,13 +69,14 @@ Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
       for (final m in mutes)
         if (m[1] != null) m[1]! as String,
     },
+    lastCallBenefitIds: {for (final l in lastCalls) l[0]! as String},
   );
 }
 
 Response _invalid(String field) =>
     jsonResponse({'error': 'invalid', 'field': field}, status: 400);
 
-/// Adds `/v1/me/preferences` and the mute routes. None needs write access:
+/// Adds `/v1/me/preferences`, the mute routes and the level route. None needs write access:
 /// a reader's preferences change nothing shared.
 void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
   Future<Response> get(Request request, Caller caller, Session db) async =>
@@ -146,8 +157,66 @@ void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
     return Response(204);
   };
 
+  /// Sets one credit of the caller's household to a [NotificationLevel] by
+  /// the domain's [withLevel] rule, writing the mute and the last call in
+  /// one transaction. Answers the caller's preferences.
+  Future<Response> level(Request request, Caller caller, Session db) async {
+    final id = request.params['benefitId']!;
+    final Object? body;
+    try {
+      body = jsonDecode(await request.readAsString());
+    } on FormatException {
+      return _invalid('body');
+    }
+    final name = body is Map<String, dynamic> ? body['level'] : null;
+    final level = NotificationLevel.values
+        .where((l) => l.name == name)
+        .firstOrNull;
+    if (level == null) return _invalid('level');
+    if (!_uuid.hasMatch(id)) {
+      return jsonResponse({'error': 'not found'}, status: 404);
+    }
+    return inTransaction(db, (tx) async {
+      final found = await tx.execute(
+        Sql.named(
+          'SELECT 1 FROM benefits WHERE id = @id::uuid AND household_id = @h::uuid',
+        ),
+        parameters: {'id': id, 'h': caller.householdId},
+      );
+      if (found.isEmpty) {
+        return jsonResponse({'error': 'not found'}, status: 404);
+      }
+      final next = withLevel(await preferencesOf(tx, caller), id, level);
+      final p = {'u': caller.userId, 'id': id};
+      await tx.execute(
+        Sql.named(
+          next.mutedBenefitIds.contains(id)
+              ? 'INSERT INTO member_mutes (user_id, benefit_id) '
+                    'VALUES (@u::uuid, @id::uuid) ON CONFLICT DO NOTHING'
+              : 'DELETE FROM member_mutes '
+                    'WHERE user_id = @u::uuid AND benefit_id = @id::uuid',
+        ),
+        parameters: p,
+      );
+      await tx.execute(
+        Sql.named(
+          next.lastCallBenefitIds.contains(id)
+              ? 'INSERT INTO member_last_calls (user_id, benefit_id) '
+                    'VALUES (@u::uuid, @id::uuid) ON CONFLICT DO NOTHING'
+              : 'DELETE FROM member_last_calls '
+                    'WHERE user_id = @u::uuid AND benefit_id = @id::uuid',
+        ),
+        parameters: p,
+      );
+      return jsonResponse(
+        memberPreferencesToJson(await preferencesOf(tx, caller)),
+      );
+    });
+  }
+
   routes
     ..add('GET', '/v1/me/preferences', signedIn(get))
+    ..add('PUT', '/v1/me/benefits/<benefitId>/level', signedIn(level))
     ..add('PUT', '/v1/me/preferences', signedIn(put))
     ..add(
       'PUT',

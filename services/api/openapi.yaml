@@ -530,6 +530,49 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/me/benefits/{benefitId}/level:
+    put:
+      tags: [me]
+      operationId: setNotificationLevel
+      summary: Set a credit's notification level for the caller only
+      description: |
+        Periodically clears the credit's mute and last call, Last chance
+        sets last call and clears the mute, Silence sets the mute and keeps
+        last call. Readers may set their own; nothing shared changes.
+      parameters:
+        - name: benefitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [level]
+              properties:
+                level:
+                  $ref: '#/components/schemas/NotificationLevel'
+      responses:
+        '200':
+          description: The caller's preferences after the change.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberPreferences'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/household:
     get:
       tags: [household]
@@ -1881,7 +1924,7 @@ components:
       allOf:
         - $ref: '#/components/schemas/NotificationSettings'
       type: object
-      required: [mutedCardIds, mutedBenefitIds]
+      required: [mutedCardIds, mutedBenefitIds, lastCallBenefitIds]
       properties:
         mutedCardIds:
           type: array
@@ -1891,6 +1934,19 @@ components:
           type: array
           items:
             type: string
+        lastCallBenefitIds:
+          type: array
+          description: Credits the member hears about only on the last rung (Last chance). A mute outranks it.
+          items:
+            type: string
+
+    NotificationLevel:
+      type: string
+      enum: [periodically, lastChance, silenced]
+      description: |
+        How much the member hears about one credit: every rung, only the
+        last, or nothing. Silence keeps last call, so unsilencing returns to
+        the earlier level.
 
     Role:
       type: string

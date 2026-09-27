@@ -103,15 +103,17 @@ A household that wants to change a linked card's terms, or add a credit to it, c
 
 One transaction, for an editor or owner. A new card copies the linked card's household fields, its creation time and the issuer, product, network and fee in force today. Each credit the snapshot resolves becomes a household credit with today's terms and all its household state, under a new id.
 
-The claims and every member's mutes of the card and its credits move to the new ids, and the linked card is deleted, taking any linked row that never resolved. The answer is the new card and credits, the id it replaces and a map from each old credit id to its new one, so a client can follow along. A card the household already maintains is 409 `user maintained`.
+The claims and every member's mutes and last calls of the card and its credits move to the new ids, and the linked card is deleted, taking any linked row that never resolved. The answer is the new card and credits, the id it replaces and a map from each old credit id to its new one, so a client can follow along. A card the household already maintains is 409 `user maintained`.
 
 ## Member preferences
 
-Notification settings and mutes belong to each member, not the household ([[domain#Member preferences]]), and the server keeps them so it can schedule that member's reminders (`lib/preferences.dart`, `0009_member_preferences.sql`). Pinned by [[api-tests#Member preferences]].
+Notification settings, mutes and last calls belong to each member, not the household ([[domain#Member preferences]]), and the server keeps them so it can schedule that member's reminders (`lib/preferences.dart`, migrations `0009` and `0013`). Pinned by [[api-tests#Member preferences]].
 
-`member_preferences` holds one row per member who has changed anything; without one, `GET /v1/me/preferences` answers `defaultMemberPreferences`. `member_mutes` names a card or a credit, never both, and goes with the row it names. The read returns only mutes on the caller's current household, so a member who moved households does not carry old ids.
+`member_preferences` holds one row per member who has changed anything; without one, `GET /v1/me/preferences` answers `defaultMemberPreferences`. `member_mutes` names a card or a credit, never both, and goes with the row it names. `member_last_calls` names a credit the member hears about only on its last rung. The read returns only mutes and last calls on the caller's current household, so a member who moved households does not carry old ids.
 
-`PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. Readers may do all of it, because nothing shared changes.
+`PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. `PUT /v1/me/benefits/{benefitId}/level` takes `{"level": "periodically" | "lastChance" | "silenced"}`, applies the domain's `withLevel` to the caller's preferences and writes the credit's mute and last call in one transaction, answering the preferences ([[domain#Member preferences#Notification levels]]); another level is 400 naming `level`, a credit outside the household 404. Readers may do all of it, because nothing shared changes.
+
+Migration `0013` gave every member of a household a last-call row for each credit whose `last_call_only` was set, so no one's reminders changed when last call moved to the member. The column stays until #362.
 
 ## Invite links
 
@@ -152,7 +154,7 @@ The server decides and sends reminders, so they arrive even when the app has not
 
 Cloud Scheduler starts the Cloud Run job `reward-api-remind` every 15 minutes ([[deployment#Infrastructure]]). `sendDueReminders` takes every member with reminders on and at least one device, and for each:
 
-1. Builds their schedule with the domain's `buildSchedule` ([[reminders#Schedule construction]]) from their household's data, their preferences and mutes ([[api-architecture#Member preferences]]), starting 36 hours ago.
+1. Builds their schedule with the domain's `buildSchedule` ([[reminders#Schedule construction]]) from their household's data, their preferences, mutes and last calls ([[api-architecture#Member preferences]]), starting 36 hours ago.
 2. Keeps the reminders whose real instant falls in the last 36 hours, the same grace the domain's `dueReminders` gives a device. Anything later is dropped rather than resurfaced.
 3. Claims each in `reminder_sends (user_id, reminder_id)` before sending, so a retried or overlapping run skips it; the id is the schedule's own (`2026-10-31|urgent`), stable across recomputes.
 4. Sends it to every one of the member's devices. If no device took it and none was retired, the claim is dropped so the next run retries.
