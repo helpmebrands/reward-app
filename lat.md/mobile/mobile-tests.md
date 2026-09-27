@@ -1385,9 +1385,13 @@ Adding a Gold from the api's catalogue to a household holding one proposes "Amer
 
 `household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `shareText` captured ([[mobile-architecture#Household sharing]]).
 
-### An owner shares an invite
+### An owner shares an invite on iOS
 
-The owner sees themselves as Owner; "Invite someone", "Can edit" and "Create and share" make one edit invite, share a text with its link and code, and show the code.
+The owner sees themselves as Owner; "Invite someone", "Can edit" and "Create and share" make one edit invite, share only its link as a URI anchored to the button, and show the code.
+
+### An owner shares an invite on Android
+
+The same steps on Android share the reward message with the code and the link on its own last line, the title and subject "Join my household on HelpMe Reward" and the app icon as a PNG thumbnail.
 
 ### Only an owner invites and removes
 
