@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/household_api.dart';
@@ -11,6 +12,7 @@ import 'package:reward/screens/join_screen.dart';
 import 'package:reward/screens/sign_in_screen.dart';
 import 'package:reward/screens/today_screen.dart';
 import 'package:reward/shell/router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'sign_in_test.dart' show FakeAuth;
 import 'support/fake_api.dart';
@@ -58,17 +60,14 @@ Future<void> tapKey(WidgetTester tester, String k) async {
 }
 
 void main() {
-  final shared = <String>[];
+  final shared = <ShareParams>[];
   setUp(() {
     shared.clear();
-    shareText = (text) async => shared.add(text);
+    share = (params) async => shared.add(params);
   });
-  tearDown(() => shareText = shareWithSheet);
+  tearDown(() => share = shareWithSheet);
 
-  // @lat: [[mobile-tests#Household sharing#An owner shares an invite]]
-  testWidgets('an owner creates an edit invite and shares link and code', (
-    tester,
-  ) async {
+  Future<void> createEditInvite(WidgetTester tester) async {
     final app = await pump(tester);
     expect(find.text('ann@example.com'), findsOneWidget);
     expect(find.text('Owner'), findsWidgets);
@@ -80,9 +79,48 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(app.api.invites, ['edit']);
-    expect(shared.single, contains('https://api.test/invite/ABCD2345'));
-    expect(shared.single, contains('ABCD2345'));
     expect(find.text('ABCD2345'), findsOneWidget);
+  }
+
+  // @lat: [[mobile-tests#Household sharing#An owner shares an invite on iOS]]
+  testWidgets('on iOS an owner shares the invite link alone', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await createEditInvite(tester);
+
+    final params = shared.single;
+    expect(params.uri, Uri.parse('https://api.test/invite/ABCD2345'));
+    expect(params.text, isNull);
+    expect(params.previewThumbnail, isNull);
+    expect(params.sharePositionOrigin, isNotNull);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  // @lat: [[mobile-tests#Household sharing#An owner shares an invite on Android]]
+  testWidgets('on Android an owner shares the reward message with the icon', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await createEditInvite(tester);
+
+    final params = shared.single;
+    expect(params.uri, isNull);
+    expect(
+      params.text,
+      'Help me stop leaving card rewards on the table. Join my household on '
+      "HelpMe Reward and we'll track every credit together, so none expire "
+      'unused.\n'
+      'Code: ABCD2345\n'
+      'https://api.test/invite/ABCD2345',
+    );
+    expect(params.title, 'Join my household on HelpMe Reward');
+    expect(params.subject, 'Join my household on HelpMe Reward');
+    final thumbnail = params.previewThumbnail!;
+    expect(thumbnail.mimeType, 'image/png');
+    final bytes = await tester.runAsync(thumbnail.readAsBytes);
+    expect(bytes!.take(4), [0x89, 0x50, 0x4E, 0x47]);
+    debugDefaultTargetPlatformOverride = null;
   });
 
   // @lat: [[mobile-tests#Household sharing#Only an owner invites and removes]]
