@@ -154,7 +154,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
         anchor: CycleAnchor.calendar,
         enrollmentRequired: false,
         redemptionSteps: const [],
-        lastCallOnly: false,
         active: true,
         createdAt: '',
         updatedAt: '',

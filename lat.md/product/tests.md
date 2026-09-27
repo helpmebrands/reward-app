@@ -177,7 +177,7 @@ Every field reads back as written, and the muted ids write as sorted lists so th
 
 ### A credit's level comes from the member's flags
 
-Nothing set is Periodically, last-call is Last chance, a credit or card mute is Silence even with last-call set, and the household's transitional `lastCallOnly` reads as Last chance.
+Nothing set is Periodically, last-call is Last chance, and a credit or card mute is Silence even with last-call set.
 
 ### Choosing a level sets the two flags
 
@@ -190,6 +190,10 @@ A monthly credit in the member's `lastCallBenefitIds` fires only on the last day
 ### Last call round-trips in the preferences
 
 `lastCallBenefitIds` writes as a sorted list and reads back; preferences saved before it existed load it empty.
+
+### A legacy lastCallOnly is ignored
+
+A credit saved with the household's old `lastCallOnly: true` loads without it and writes no such key; it is Periodically with its full ladder until the member's own `lastCallBenefitIds` names it (#362).
 
 ### Each level has a one-line note
 

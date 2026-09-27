@@ -111,7 +111,6 @@ Benefit _benefitFromJson(Map<String, dynamic> json) => Benefit(
   redemptionSteps: ((json['redemptionSteps'] as List?) ?? const [])
       .cast<String>(),
   notes: json['notes'] as String?,
-  lastCallOnly: json['lastCallOnly'] as bool,
   active: json['active'] as bool,
   optedOutAt: json['optedOutAt'] as String?,
   trackedFrom: json['trackedFrom'] as String?,
@@ -141,7 +140,6 @@ Map<String, Object?> benefitToJson(Benefit benefit) => _withoutNulls({
   'endsOn': benefit.endsOn,
   'redemptionSteps': benefit.redemptionSteps,
   'notes': benefit.notes,
-  'lastCallOnly': benefit.lastCallOnly,
   'active': benefit.active,
   'optedOutAt': benefit.optedOutAt,
   'trackedFrom': benefit.trackedFrom,

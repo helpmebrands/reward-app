@@ -38,11 +38,6 @@ void main() {
       levelFor(credit, on.copyWith(mutedCardIds: {credit.cardId})),
       NotificationLevel.silenced,
     );
-    // Transitional: the household's lastCallOnly still reads as Last chance.
-    expect(
-      levelFor(makeBenefit(Cadence.monthly, lastCallOnly: true), on),
-      NotificationLevel.lastChance,
-    );
   });
 
   // @lat: [[tests#Notification levels#Choosing a level sets the two flags]]
@@ -117,6 +112,19 @@ void main() {
 
     final legacy = Map<String, dynamic>.of(json)..remove('lastCallBenefitIds');
     expect(memberPreferencesFromJson(legacy).lastCallBenefitIds, isEmpty);
+  });
+
+  // @lat: [[tests#Notification levels#A legacy lastCallOnly is ignored]]
+  test('a household credit saved with lastCallOnly loads without it', () {
+    final json = benefitToJson(credit)..['lastCallOnly'] = true;
+    final loaded = benefitFromJson(json);
+    expect(benefitToJson(loaded).containsKey('lastCallOnly'), isFalse);
+    expect(levelFor(loaded, on), NotificationLevel.periodically);
+    expect(ladderFor(loaded, on), hasLength(3));
+    expect(
+      levelFor(loaded, on.copyWith(lastCallBenefitIds: {loaded.id})),
+      NotificationLevel.lastChance,
+    );
   });
 
   // @lat: [[tests#Notification levels#Each level has a one-line note]]

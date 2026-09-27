@@ -45,7 +45,6 @@ Benefit _benefit({
   enrolledAt: enrolledAt,
   spendThresholdCents: spendThresholdCents,
   redemptionSteps: const [],
-  lastCallOnly: false,
   active: true,
   optedOutAt: optedOutAt,
   createdAt: _stamp,

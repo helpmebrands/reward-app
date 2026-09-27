@@ -161,7 +161,7 @@ Future<HouseholdData> loadHousehold(
   for (final r in await db.execute(
     Sql.named('''
       SELECT id::text, card_id::text, template_credit_id, enrolled_at,
-             enrollment_note, enrollment_url, spend_met_at, last_call_only,
+             enrollment_note, enrollment_url, spend_met_at,
              active, created_at, updated_at, name, description, category,
              icon, merchant, value_cents, cadence, anchor, interval_months,
              enrollment_required, spend_threshold_cents, ends_on,
@@ -180,12 +180,11 @@ Future<HouseholdData> loadHousehold(
       enrollmentNote: r[4] as String?,
       enrollmentUrl: r[5] as String?,
       spendMetAt: r[6] as String?,
-      lastCallOnly: r[7]! as bool,
-      active: r[8]! as bool,
-      optedOutAt: r[25] as String?,
-      trackedFrom: _date(r[26]),
-      createdAt: _iso(r[9]),
-      updatedAt: _iso(r[10]),
+      active: r[7]! as bool,
+      optedOutAt: r[24] as String?,
+      trackedFrom: _date(r[25]),
+      createdAt: _iso(r[8]),
+      updatedAt: _iso(r[9]),
     );
     if (creditId != null) {
       final resolved = resolveLinkedBenefit(
@@ -205,23 +204,23 @@ Future<HouseholdData> loadHousehold(
       benefitFromCredit(
         benefitTemplateFromJson({
           'id': '',
-          'name': r[11],
-          'description': r[12],
-          'category': r[13],
-          'icon': r[14] ?? '',
-          'merchant': r[15],
-          'valueCents': r[16],
-          'cadence': r[17],
-          'anchor': r[18],
-          'intervalMonths': r[19],
-          'enrollmentRequired': r[20],
-          'spendThresholdCents': r[21],
-          'endsOn': _date(r[22]),
-          'redemptionSteps': r[23],
-          'notes': r[24],
+          'name': r[10],
+          'description': r[11],
+          'category': r[12],
+          'icon': r[13] ?? '',
+          'merchant': r[14],
+          'valueCents': r[15],
+          'cadence': r[16],
+          'anchor': r[17],
+          'intervalMonths': r[18],
+          'enrollmentRequired': r[19],
+          'spendThresholdCents': r[20],
+          'endsOn': _date(r[21]),
+          'redemptionSteps': r[22],
+          'notes': r[23],
         }),
         state,
-      ).copyWith(templateBenefitId: null, icon: r[14]),
+      ).copyWith(templateBenefitId: null, icon: r[13]),
     );
   }
 
@@ -674,13 +673,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
       if (url is String && enrollmentUrlError(url) != null) {
         return _invalid('enrollmentUrl');
       }
-      for (final (key, column) in [
-        ('lastCallOnly', 'last_call_only'),
-        ('active', 'active'),
-      ]) {
-        if (!_has(body, key)) continue;
-        if (body[key] is! bool) return _invalid(key);
-        sets[column] = body[key];
+      if (_has(body, 'active')) {
+        if (body['active'] is! bool) return _invalid('active');
+        sets['active'] = body['active'];
       }
       if (sets.isNotEmpty) {
         await tx.execute(
@@ -851,7 +846,6 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
           'enrollment_note': b.enrollmentNote,
           'enrollment_url': b.enrollmentUrl,
           'spend_met_at': b.spendMetAt,
-          'last_call_only': b.lastCallOnly,
           'active': b.active,
           'opted_out_at': b.optedOutAt,
           'tracked_from': b.trackedFrom,

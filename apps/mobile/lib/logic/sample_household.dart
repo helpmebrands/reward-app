@@ -47,7 +47,6 @@ Benefit _benefit(
   spendThresholdCents: spendThresholdCents,
   endsOn: endsOn,
   redemptionSteps: const [],
-  lastCallOnly: false,
   active: true,
   optedOutAt: optedOutAt,
   createdAt: '2026-01-01T00:00:00.000Z',

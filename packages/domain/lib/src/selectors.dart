@@ -652,7 +652,6 @@ Benefit _cardYearBenefit(Card card) {
     anchor: CycleAnchor.anniversary,
     enrollmentRequired: false,
     redemptionSteps: const [],
-    lastCallOnly: false,
     active: true,
     createdAt: card.createdAt,
     updatedAt: card.updatedAt,

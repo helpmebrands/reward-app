@@ -53,7 +53,6 @@ Benefit _benefit(
   enrollmentRequired: enrollmentRequired,
   spendThresholdCents: spendThresholdCents,
   redemptionSteps: steps,
-  lastCallOnly: false,
   active: true,
   createdAt: _stamp,
   updatedAt: _stamp,

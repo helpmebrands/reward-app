@@ -270,6 +270,8 @@ A level that is not one of the three, null or a number is 400 naming `level`; an
 
 `last_call_migration_integration_test.dart` applies the migrations up to 0012, seeds a `last_call_only` credit in a household of two, and after `0013` finds a last-call row for each of the two members and for no one else.
 
+After the later migrations `benefits.last_call_only` no longer exists.
+
 ### Preferences are validated
 
 A time of `25:00`, a negative floor or a switch that is not a boolean answers 400 naming the field.

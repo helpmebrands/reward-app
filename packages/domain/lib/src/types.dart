@@ -201,7 +201,6 @@ class Benefit {
     this.endsOn,
     required this.redemptionSteps,
     this.notes,
-    required this.lastCallOnly,
     required this.active,
     this.optedOutAt,
     this.trackedFrom,
@@ -263,10 +262,6 @@ class Benefit {
   final List<String> redemptionSteps;
   final String? notes;
 
-  /// Opts this credit out of its cadence's default reminder ladder in favour
-  /// of a single alert on the last day.
-  final bool lastCallOnly;
-
   /// False only for a credit that had ended before it was added or paused;
   /// a credit the household will not use is opted out instead
   /// ([optedOutAt]).
@@ -309,7 +304,6 @@ class Benefit {
     Object? endsOn = _unset,
     List<String>? redemptionSteps,
     Object? notes = _unset,
-    bool? lastCallOnly,
     bool? active,
     Object? optedOutAt = _unset,
     Object? trackedFrom = _unset,
@@ -352,7 +346,6 @@ class Benefit {
     endsOn: identical(endsOn, _unset) ? this.endsOn : endsOn as IsoDate?,
     redemptionSteps: redemptionSteps ?? this.redemptionSteps,
     notes: identical(notes, _unset) ? this.notes : notes as String?,
-    lastCallOnly: lastCallOnly ?? this.lastCallOnly,
     active: active ?? this.active,
     optedOutAt: identical(optedOutAt, _unset)
         ? this.optedOutAt

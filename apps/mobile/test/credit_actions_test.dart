@@ -25,7 +25,6 @@ Benefit _benefit(
   anchor: CycleAnchor.calendar,
   enrollmentRequired: enrollmentRequired,
   redemptionSteps: const [],
-  lastCallOnly: false,
   active: true,
   createdAt: _stamp,
   updatedAt: _stamp,

@@ -14,8 +14,9 @@ void main() {
     expect(data.benefits, hasLength(24));
     expect(data.claims, hasLength(20));
     expect(data.benefits.first.merchant, 'Uber');
-    // The frozen PWA still writes `holder`, `holderFilter`, the mutes and the
-    // notification block; Dart drops them, since reminders are a member's.
+    // The frozen PWA still writes `holder`, `holderFilter`, the mutes, last
+    // call and the notification block; Dart drops them, since reminders are
+    // a member's.
     final expected = jsonDecode(raw) as Map<String, dynamic>;
     for (final card in expected['cards'] as List) {
       (card as Map).remove('holder');
@@ -23,6 +24,7 @@ void main() {
     }
     for (final benefit in expected['benefits'] as List) {
       (benefit as Map).remove('muted');
+      benefit.remove('lastCallOnly');
     }
     final settings = expected['settings'] as Map;
     settings.remove('holderFilter');
@@ -122,7 +124,6 @@ void main() {
       'anchor': 'anniversary',
       'enrollmentRequired': false,
       'muted': false,
-      'lastCallOnly': false,
       'active': true,
       'createdAt': 't',
       'updatedAt': 't',
@@ -148,7 +149,6 @@ void main() {
       'enrollmentRequired': false,
       'endsOn': '2026-12-31',
       'muted': false,
-      'lastCallOnly': false,
       'active': true,
       'createdAt': 't',
       'updatedAt': 't',
@@ -173,7 +173,6 @@ void main() {
       'intervalMonths': 48,
       'enrollmentRequired': false,
       'muted': false,
-      'lastCallOnly': false,
       'active': true,
       'createdAt': 't',
       'updatedAt': 't',
@@ -207,7 +206,6 @@ void main() {
         'spendThresholdCents': 500000,
         'spendMetAt': '2026-03-01T00:00:00.000Z',
         'muted': false,
-        'lastCallOnly': false,
         'active': true,
         'createdAt': 't',
         'updatedAt': 't',
