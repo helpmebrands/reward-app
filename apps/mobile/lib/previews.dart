@@ -32,6 +32,7 @@ import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
+import 'widgets/notification_level_control.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
@@ -285,6 +286,37 @@ Widget creditRowsSwipe() {
     Brightness.dark,
   );
 }
+
+/// The notification levels control on a sample credit, choosable, or with
+/// its card silenced.
+Widget _levels(Brightness brightness, {bool cardMuted = false}) {
+  final benefit = sampleHousehold().benefits.first;
+  var level = NotificationLevel.periodically;
+  return _themed(
+    StatefulBuilder(
+      builder: (context, setState) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: NotificationLevelControl(
+          benefit: benefit,
+          level: level,
+          cardMuted: cardMuted,
+          onChanged: (next) => setState(() => level = next),
+        ),
+      ),
+    ),
+    brightness,
+  );
+}
+
+@Preview(name: 'Notification levels, dark', size: Size(402, 200))
+Widget notificationLevelsDark() => _levels(Brightness.dark);
+
+@Preview(name: 'Notification levels, light', size: Size(402, 200))
+Widget notificationLevelsLight() => _levels(Brightness.light);
+
+@Preview(name: 'Notification levels, card silenced', size: Size(402, 200))
+Widget notificationLevelsCardMuted() =>
+    _levels(Brightness.dark, cardMuted: true);
 
 /// The credit sheet over Today, in the shape the width calls for. The sheet
 /// is opened through the shared ui state, as a screen would open it.

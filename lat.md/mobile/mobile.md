@@ -22,7 +22,7 @@ Every feature of the PWA, from [[design#Screens]], with the Flutter counterpart 
 | Card editor and benefit editor with the live window | `CardEditorScreen`, `BenefitEditorScreen` ([[mobile-architecture#Forms and the Field pattern#The editors]]) | [[mobile-tests#Editors]] |
 | Settings: reminder preferences, the ladder table, appearance | `SettingsScreen` ([[mobile-architecture#Settings screen]]) | [[mobile-tests#Settings]] |
 | New in the app: the welcome slideshow and sign-in with Google or Apple | `WelcomeScreen`, `SignInScreen`, `Session` ([[mobile-architecture#Sign-in]]) | [[mobile-tests#Sign-in]] |
-| The credit sheet: partial logging, logged this period, unlock, ladder, switches | `CreditSheet` ([[mobile-architecture#The credit sheet]]) | [[mobile-tests#Credit sheet]] |
+| The credit sheet: partial logging, logged this period, unlock, notification levels | `CreditSheet` ([[mobile-architecture#The credit sheet]]) | [[mobile-tests#Credit sheet]] |
 | Sheets by width: bottom sheet, dialog, side panel; Escape, back, focus | `SheetHost` ([[mobile-architecture#The credit sheet]]) | [[mobile-tests#Credit sheet#Compact is a bottom sheet with a scrim]] |
 | Swipe rows: direction lock, rubber-band, park open, a route for every gesture | `SwipeRow` and `CreditRow` ([[mobile-architecture#The swipe row]]) | [[mobile-tests#Swipe row]] |
 | Undo over confirmation: the snackbar and the shared actions | `SnackbarState`, `SnackbarHost`, `CreditActions` ([[mobile-architecture#Undo and the snackbar]]) | [[mobile-tests#Snackbar]], [[mobile-tests#Credit actions]] |

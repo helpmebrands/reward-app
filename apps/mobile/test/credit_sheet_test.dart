@@ -312,33 +312,6 @@ void main() {
       expect(inSheet('\$90'), findsOneWidget);
     });
 
-    // @lat: [[mobile-tests#Credit sheet#Silence and last call are switches on the sheet]]
-    testWidgets('the silence and last-call switches write the benefit', (
-      tester,
-    ) async {
-      final app = await openResy(tester, phone);
-
-      final silence = find.descendant(
-        of: sheet,
-        matching: find.bySemanticsLabel(
-          'Silence reminders for Resy Dining Credit',
-        ),
-      );
-      await tester.ensureVisible(silence);
-      await tester.tap(silence);
-      await tester.pumpAndSettle();
-      expect(
-        app.store.isBenefitMuted(app.store.data!.benefits.first.id),
-        isTrue,
-      );
-
-      await tester.tap(
-        find.bySemanticsLabel('Last call only for Resy Dining Credit'),
-      );
-      await tester.pumpAndSettle();
-      expect(app.store.data!.benefits.first.lastCallOnly, isTrue);
-    });
-
     // @lat: [[mobile-tests#Credit sheet#Opting out from the sheet closes it and leaves Today]]
     testWidgets('Opt out closes the sheet and takes the row off Today', (
       tester,
@@ -519,16 +492,19 @@ void main() {
 
       final unlabelled = <String>[];
       void walk(SemanticsNode node) {
-        final flags = node.getSemanticsData().flagsCollection;
+        final data = node.getSemanticsData();
+        final flags = data.flagsCollection;
         final control =
             flags.isButton ||
             flags.isTextField ||
             flags.isToggled != Tristate.none;
-        // A node merged into its parent is read as part of the parent.
+        // A node merged into its parent is read as part of the parent, and
+        // a merge boundary is read with the text merged into it, as a
+        // segment is.
         if (control &&
             !node.isMergedIntoParent &&
-            node.label.isEmpty &&
-            node.tooltip.isEmpty) {
+            data.label.isEmpty &&
+            data.tooltip.isEmpty) {
           unlabelled.add(node.toString());
         }
         node.visitChildren((child) {

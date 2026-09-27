@@ -55,6 +55,30 @@ class CreditActions {
     );
   }
 
+  /// Sets this member's notification level for a credit, with an undo that
+  /// restores the level before.
+  Future<void> setLevel(
+    BenefitInstance instance,
+    NotificationLevel level,
+  ) async {
+    final id = instance.benefit.id;
+    final name = instance.benefit.name;
+    final before = store.notificationLevel(id);
+    await store.setNotificationLevel(id, level);
+    snackbar.show(
+      switch (level) {
+        NotificationLevel.periodically => 'Reminders back on for $name.',
+        NotificationLevel.lastChance => 'Last chance only for $name.',
+        NotificationLevel.silenced => 'Silenced $name. It is still tracked.',
+      },
+      action: SnackbarAction(
+        label: 'Undo',
+        semanticsLabel: 'Undo the notification level for $name',
+        onAct: () => store.setNotificationLevel(id, before),
+      ),
+    );
+  }
+
   /// Opts out of a credit the household will never use, with an undo that
   /// brings it back as it was, without restarting its tracking.
   Future<void> optOut(BenefitInstance instance) async {

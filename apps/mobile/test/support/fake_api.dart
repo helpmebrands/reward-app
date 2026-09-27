@@ -120,10 +120,30 @@ class FakeApi implements HouseholdApi {
     members.removeWhere((m) => m.userId == userId);
   }
 
+  /// The member's mutes as the server holds them.
+  final mutedCardIds = <String>{};
+  final mutedBenefitIds = <String>{};
+
+  /// Credits the member hears about only on the last rung, as the server
+  /// holds them.
+  final lastCallBenefitIds = <String>{};
+
+  /// Holds the next `setMute` or `setNotificationLevel` open until
+  /// completed.
+  Completer<void>? holdMute;
+
+  /// Thrown by `setMute` or `setNotificationLevel` (after any hold) instead
+  /// of recording it.
+  Object? muteAnswer;
+
   @override
   Future<MemberPreferences> preferences() async {
     _check();
-    return defaultMemberPreferences;
+    return defaultMemberPreferences.copyWith(
+      mutedCardIds: {...mutedCardIds},
+      mutedBenefitIds: {...mutedBenefitIds},
+      lastCallBenefitIds: {...lastCallBenefitIds},
+    );
   }
 
   @override
@@ -134,7 +154,41 @@ class FakeApi implements HouseholdApi {
     String? cardId,
     String? benefitId,
     required bool muted,
-  }) async => _check();
+  }) async {
+    _check();
+    final hold = holdMute;
+    if (hold != null) {
+      holdMute = null;
+      await hold.future;
+    }
+    final answer = muteAnswer;
+    if (answer != null) throw answer;
+    final ids = cardId != null ? mutedCardIds : mutedBenefitIds;
+    final id = cardId ?? benefitId!;
+    muted ? ids.add(id) : ids.remove(id);
+  }
+
+  @override
+  Future<void> setNotificationLevel(
+    String benefitId,
+    NotificationLevel level,
+  ) async {
+    _check();
+    final hold = holdMute;
+    if (hold != null) {
+      holdMute = null;
+      await hold.future;
+    }
+    final answer = muteAnswer;
+    if (answer != null) throw answer;
+    final next = withLevel(await preferences(), benefitId, level);
+    mutedBenefitIds
+      ..clear()
+      ..addAll(next.mutedBenefitIds);
+    lastCallBenefitIds
+      ..clear()
+      ..addAll(next.lastCallBenefitIds);
+  }
 
   @override
   Future<Claim> postClaim(String key, Map<String, Object?> body) async {

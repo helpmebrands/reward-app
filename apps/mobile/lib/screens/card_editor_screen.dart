@@ -362,7 +362,9 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               note: 'Keeps tracking them, sends nothing.',
               label: 'Silence every credit',
               value: store.isCardMuted(current.id),
-              onChanged: (_) => store.toggleCardMute(current.id),
+              onChanged: store.isMutePending(current.id)
+                  ? null
+                  : (_) => store.toggleCardMute(current.id),
             ),
             SwitchRow(
               title: 'Archive this card',

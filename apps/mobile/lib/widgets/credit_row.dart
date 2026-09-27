@@ -37,6 +37,7 @@ class CreditRow extends StatelessWidget {
     this.onLogAll,
     this.onToggleMute,
     this.onOptOut,
+    this.mutePending = false,
   });
 
   final BenefitInstance instance;
@@ -56,6 +57,10 @@ class CreditRow extends StatelessWidget {
 
   /// Opts out of the credit, taking it off every list.
   final VoidCallback? onOptOut;
+
+  /// A mute is on its way to the api: the bell shows the requested state
+  /// and is disabled until the answer.
+  final bool mutePending;
 
   RowTone get tone => toneFor(instance.status);
 
@@ -105,7 +110,8 @@ class CreditRow extends StatelessWidget {
     final name = instance.benefit.name;
     final logAll = onLogAll;
     final logAction = claimable ? logAll : null;
-    final toggleMute = onToggleMute;
+    final canMute = onToggleMute != null;
+    final toggleMute = mutePending ? null : onToggleMute;
     final optOut = onOptOut;
 
     final body = Padding(
@@ -172,7 +178,7 @@ class CreditRow extends StatelessWidget {
                       child: body,
                     ),
             ),
-            if (toggleMute != null)
+            if (canMute)
               Padding(
                 padding: const EdgeInsets.only(right: Space.s1),
                 // The row's own title is not enough context in a long list,
