@@ -27,11 +27,11 @@ int claimedIn(ClaimIndex claims, String benefitId, String cycleKey) {
   return claims[_keyOf(benefitId, cycleKey)] ?? 0;
 }
 
-/// Why a credit cannot be spent yet. Enrolment outranks spend.
+/// Why a credit cannot be spent yet. Enrollment outranks spend.
 enum LockReason { enrollment, spend }
 
 /// What stands between the user and the credit, or null when nothing does:
-/// an unticked enrolment box, or a spend threshold not yet met this year.
+/// an unticked enrollment box, or a spend threshold not yet met this year.
 LockReason? lockReason(Benefit benefit, Card card, IsoDate on) {
   if (benefit.enrollmentRequired && benefit.enrolledAt == null) {
     return LockReason.enrollment;
@@ -222,7 +222,7 @@ class Totals {
   /// Open and spendable. Today's headline number.
   final int claimableCents;
 
-  /// Behind an enrolment box; excluded from claimable on purpose.
+  /// Behind an enrollment box; excluded from claimable on purpose.
   final int lockedCents;
 
   /// Already used this cycle.

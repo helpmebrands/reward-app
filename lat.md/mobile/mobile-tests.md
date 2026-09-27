@@ -91,7 +91,7 @@ The headline digits are the claimable total from the fixture, the subtitle names
 
 ### The locked section says why
 
-With a spend-gated Dell bonus added to the sample household, the section is titled "Locked behind enrolment and spend", its note mentions a spend threshold, and the bonus is listed in it.
+With a spend-gated Dell bonus added to the sample household, the section is titled "Locked behind enrollment and spend", its note mentions a spend threshold, and the bonus is listed in it.
 
 ### Overlaps show the three largest
 
@@ -159,7 +159,7 @@ Adding a card from a template while Today is open replaces the empty state with 
 
 ### A household with only locked credits is not empty
 
-A card whose only credit needs enrolment shows the normal layout with its locked section, not the empty state.
+A card whose only credit needs enrollment shows the normal layout with its locked section, not the empty state.
 
 ### A reader sees no Add button
 
@@ -451,7 +451,7 @@ The catalogue shows the Platinum with its annual value; picking it shows "Card d
 
 The label is proposed because the sample household already holds two Platinums.
 
-The card carries that label, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrolment, and the "Added with N credits" snackbar shows.
+The card carries that label, date, issuer and product, its benefits match `benefitsFromTemplate` by name, value and enrollment, and the "Added with N credits" snackbar shows.
 
 ### A label another card shows is named and focused on submit
 
@@ -619,9 +619,9 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 "0" as the value shows "Enter a value above zero." and leaves $15; "45" writes $45 and clears it; a blank name shows its sentence and keeps the name; a merchant is written as typed.
 
-### Enrolment, tracking and the switches write the benefit
+### Enrollment, tracking and the switches write the benefit
 
-"Needs enrolment" requires enrolment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Last call only" sets it.
+"Needs enrollment" requires enrollment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Last call only" sets it.
 
 "Opted out" stamps `optedOutAt` and leaves `active` alone. There is no "Track this credit" switch any more; the "Opted out" switch carries the note "You won’t use this. It stays off your lists and totals until you reactivate it."
 
@@ -1095,9 +1095,9 @@ With two cards, three benefits and three claims, `deleteCard` leaves the other c
 
 `optOutBenefit` stamps `optedOutAt` and the credit leaves `instances`; `reactivateBenefit` clears it, sets `trackedFrom` to today, and the credit returns. Each notifies once.
 
-### Enrolment is confirmed and revoked
+### Enrollment is confirmed and revoked
 
-On a benefit that requires enrolment, `confirmEnrollment` stamps `enrolledAt` and the credit leaves the locked list; `revokeEnrollment` clears it to null and the credit is locked again.
+On a benefit that requires enrollment, `confirmEnrollment` stamps `enrolledAt` and the credit leaves the locked list; `revokeEnrollment` clears it to null and the credit is locked again.
 
 ### A spend threshold is confirmed and revoked
 
@@ -1195,7 +1195,7 @@ Global Entry reads "Eligible now — the clock restarts when you claim it"; mark
 
 ### A spend-gated credit unlocks from the sheet
 
-The $1,000 Dell bonus behind $5,000 of spend shows "Unlocks after $5,000 spend this year." and no enrolment note or logging; "I've reached it — unlock" stamps `spendMetAt`, says "Dell Bonus unlocked." and the full-amount button appears.
+The $1,000 Dell bonus behind $5,000 of spend shows "Unlocks after $5,000 spend this year." and no enrollment note or logging; "I've reached it — unlock" stamps `spendMetAt`, says "Dell Bonus unlocked." and the full-amount button appears.
 
 ### A captured credit can be undone
 
@@ -1495,7 +1495,7 @@ Booting the app with an empty snapshot store on a device reaches the Today scree
 
 One pass from an empty store through adding a card, logging, undoing, swiping and reading every screen, on a real simulator or emulator.
 
-The steps: add the Platinum from the catalogue for Kathy and land on its editor; see its Walmart+ Membership Credit, a monthly credit with no enrolment, on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $12.95 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.
+The steps: add the Platinum from the catalogue for Kathy and land on its editor; see its Walmart+ Membership Credit, a monthly credit with no enrollment, on Today; log it from the sheet and undo it from the snackbar; log it by swipe; find it under Credits > Captured and as $12.95 captured on Value; mute the card from the Cards menu; open the credit's editor from its sheet; and choose Dark in Settings, which darkens the theme.
 
 ## Push
 

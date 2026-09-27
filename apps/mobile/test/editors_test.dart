@@ -405,14 +405,14 @@ void main() {
       expect(benefitOf(app, uber).merchant, 'Lyft');
     });
 
-    // @lat: [[mobile-tests#Editors#Enrolment, tracking and the switches write the benefit]]
-    testWidgets('the switches and the enrolment page write the benefit', (
+    // @lat: [[mobile-tests#Editors#Enrollment, tracking and the switches write the benefit]]
+    testWidgets('the switches and the enrollment page write the benefit', (
       tester,
     ) async {
       final app = await pumpAt(tester, benefitPath(uber));
 
-      await show(tester, find.bySemanticsLabel('Needs enrolment'));
-      await tester.tap(find.bySemanticsLabel('Needs enrolment'));
+      await show(tester, find.bySemanticsLabel('Needs enrollment'));
+      await tester.tap(find.bySemanticsLabel('Needs enrollment'));
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).enrollmentRequired, isTrue);
       expect(find.text('Not yet — the credit is locked.'), findsOneWidget);

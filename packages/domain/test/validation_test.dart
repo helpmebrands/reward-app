@@ -66,9 +66,9 @@ void main() {
       expect(endsOnError('2026-12-31'), isNull);
     });
 
-    // @lat: [[tests#Form rules#An enrolment page must be a web address]]
+    // @lat: [[tests#Form rules#An enrollment page must be a web address]]
     test(
-      'rejects an enrolment page that is not an http(s) URL, and allows none',
+      'rejects an enrollment page that is not an http(s) URL, and allows none',
       () {
         expect(enrollmentUrlError(''), isNull);
         expect(enrollmentUrlError('amex.com/enrol'), contains('https://'));

@@ -433,7 +433,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
         const SizedBox(height: Space.s4),
         Text(
           'Pick a card and its credits arrive pre-filled, including which ones '
-          'need enrolment. Everything stays editable — treat the catalogue as '
+          'need enrollment. Everything stays editable — treat the catalogue as '
           'a starting point, not gospel.',
           style: note,
         ),
@@ -710,7 +710,7 @@ class _TemplateTile extends StatelessWidget {
                     ),
                     Text(
                       '${template.benefits.length} credits'
-                      '${enrol > 0 ? ' · $enrol need enrolment' : ''}',
+                      '${enrol > 0 ? ' · $enrol need enrollment' : ''}',
                       style: note,
                     ),
                   ],

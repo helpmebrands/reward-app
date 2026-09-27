@@ -35,7 +35,7 @@ void main() {
 
     // @lat: [[tests#Card catalogue#A template prices its year and names its locked credits]]
     test(
-      'prices a template over a year and names the credits behind enrolment',
+      'prices a template over a year and names the credits behind enrollment',
       () {
         final template = CardTemplate(
           id: 't',

@@ -182,7 +182,7 @@ The same claim with the same `Idempotency-Key` answers 201 twice with one id and
 
 ### System-maintained terms cannot be edited
 
-On a linked card, editing a credit's value, the card's fee, or adding a credit is 409 `system maintained`, while its enrolment state changes. On a household card, a credit is added and its value edited, and the fee and label change.
+On a linked card, editing a credit's value, the card's fee, or adding a credit is 409 `system maintained`, while its enrollment state changes. On a household card, a credit is added and its value edited, and the fee and label change.
 
 ### Readers cannot write the household's data
 
@@ -210,7 +210,7 @@ A paused credit that had not ended by its `updated_at` is active and opted out a
 
 ## Conversion
 
-`convert_integration_test.dart` converts a Gold with claims, enrolment and two members' mutes against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).
+`convert_integration_test.dart` converts a Gold with claims, enrollment and two members' mutes against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).
 
 ### Conversion keeps totals and history
 

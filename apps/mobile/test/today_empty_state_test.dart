@@ -188,7 +188,7 @@ void main() {
       size: const Size(402, 2000),
     );
     expect(find.text(heading), findsNothing);
-    expect(find.textContaining('Locked behind enrolment'), findsOneWidget);
+    expect(find.textContaining('Locked behind enrollment'), findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Today empty state#A reader sees no Add button]]
