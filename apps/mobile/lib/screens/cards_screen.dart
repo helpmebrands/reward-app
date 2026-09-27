@@ -137,7 +137,7 @@ class _CardsBody extends StatelessWidget {
       key: const Key('add-card'),
       onPressed: () => context.go(Paths.newCard),
       icon: const Icon(Icons.add, size: 16),
-      label: const Text('Add a card from the catalogue'),
+      label: const Text('Add a card from the catalog'),
     );
 
     Widget stat(CardSummary summary) => _CardStat(
@@ -210,7 +210,7 @@ class _CardsBody extends StatelessWidget {
               group(
                 'cards-system',
                 'Kept up to date',
-                'Their credits follow the catalogue as issuers change them.',
+                'Their credits follow the catalog as issuers change them.',
               ),
               grid([for (final s in system) stat(s)]),
             ],
@@ -230,11 +230,13 @@ class _CardsBody extends StatelessWidget {
       padding: EdgeInsets.all(widthClass.padding),
       children: [
         header,
+        // Empty, the first-run block carries the one Add button.
+        if (store.canWrite && summaries.isNotEmpty) ...[
+          const SizedBox(height: Space.s4),
+          addCard,
+        ],
         const SizedBox(height: Space.s6),
         ...body,
-        if (widthClass == WidthClass.medium) const SizedBox(height: Space.s4),
-        // Empty, the first-run block carries the one Add button.
-        if (store.canWrite && summaries.isNotEmpty) addCard,
         if (summaries.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: Space.s12),
@@ -249,7 +251,7 @@ class _CardsBody extends StatelessWidget {
                 ),
                 const SizedBox(height: Space.s2),
                 Text(
-                  'Pick it from the catalogue and its credits come pre-filled, '
+                  'Pick it from the catalog and its credits come pre-filled, '
                   'including which ones are stuck behind an enrolment box. You '
                   'can edit every one of them afterwards.',
                   style: note,

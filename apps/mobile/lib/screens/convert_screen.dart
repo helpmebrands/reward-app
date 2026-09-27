@@ -70,7 +70,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '$name follows the catalogue: when the issuer changes its '
+                    '$name follows the catalog: when the issuer changes its '
                     'credits, the card changes with it.',
                     style: text.bodyMedium,
                   ),

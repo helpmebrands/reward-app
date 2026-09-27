@@ -379,7 +379,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       children: [
         if (linked && card != null) ...[
           Text(
-            'The terms of this credit come from the catalogue and change '
+            'The terms of this credit come from the catalog and change '
             'when the issuer changes them. Enrolment, spend, tracking and '
             'reminders are yours.',
             style: note,

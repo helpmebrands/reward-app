@@ -279,7 +279,7 @@ class AppStore extends ChangeNotifier {
     } on ApiError catch (e) {
       _problem = switch (e.error) {
         'system maintained' =>
-          'This card follows the catalogue. Change the terms to make it '
+          'This card follows the catalog. Change the terms to make it '
               'your own first.',
         'label taken' => 'Another card is already called that.',
         'forbidden' => readOnlyMessage,
