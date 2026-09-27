@@ -27,6 +27,29 @@ Size drawn(WidgetTester tester, Finder control) => tester.getSize(
   find.descendant(of: control, matching: find.byType(Material)).first,
 );
 
+/// The drawn height of the segmented button [control] finds: the segments
+/// fill the touch area, so what is drawn is the outline it paints.
+double segmentedOutlineHeight(WidgetTester tester, Finder control) {
+  final outline = <Rect>[];
+  expect(
+    tester.renderObject(
+      find.descendant(
+        of: control,
+        matching: find.byWidgetPredicate(
+          (w) => '${w.runtimeType}'.startsWith('_SegmentedButtonRender'),
+        ),
+      ),
+    ),
+    paints..something((method, args) {
+      if (method != #drawRRect) return false;
+      outline.add((args.first as RRect).outerRect);
+      return true;
+    }),
+  );
+  // The stroke is 1 wide and centred on the rounded rectangle.
+  return outline.single.height + 1;
+}
+
 void main() {
   // @lat: [[mobile-tests#Control sizes#Buttons are drawn 44 and respond to 48]]
   testWidgets('every kind of button is drawn 44 high and touches 48', (
@@ -107,26 +130,8 @@ void main() {
           onSelectionChanged: (_) {},
         ),
       );
-      // The segments fill the touch area; the outline is what is drawn.
       final control = find.byType(SegmentedButton<int>);
-      final outline = <Rect>[];
-      expect(
-        tester.renderObject(
-          find.descendant(
-            of: control,
-            matching: find.byWidgetPredicate(
-              (w) => '${w.runtimeType}'.startsWith('_SegmentedButtonRender'),
-            ),
-          ),
-        ),
-        paints..something((method, args) {
-          if (method != #drawRRect) return false;
-          outline.add((args.first as RRect).outerRect);
-          return true;
-        }),
-      );
-      // The stroke is 1 wide and centred on the rounded rectangle.
-      expect(outline.single.height + 1, 44);
+      expect(segmentedOutlineHeight(tester, control), 44);
       expect(tester.getSize(control).height, greaterThanOrEqualTo(48));
     }
   });

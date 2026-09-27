@@ -341,6 +341,18 @@ On each tab the button pushes the catalogue, and Back returns to that tab.
 
 With only an archived card the button reads "Add a card" on each tab, and a reader of an empty signed-in household sees no Add button.
 
+## Single choices
+
+`segmented_choices_test.dart` pins Apple's rule that a group offering exactly one choice is a segmented button, over the sample household (#331).
+
+### Each single-choice group is a segmented button
+
+Settings' Appearance, the benefit editor's Measured from, the card editor's Kind and Value's months shown each render as one `SegmentedButton` holding all their options, and no `ChoiceChip` remains on those screens.
+
+### Each is drawn 44 and full width with a check on the selection
+
+With the SDK's Roboto loaded so labels measure as on a device, each group's outline is drawn 44 high at 402 wide, its touch area is at least 48, it is as wide as its column allows, and its selected segment shows a check.
+
 ## Switch rows
 
 `switch_row_test.dart` pins Apple's rule that a switch row is one target: the row flips, not only the switch ([[mobile-architecture#Forms and the Field pattern#The editors]], #330).
@@ -523,7 +535,7 @@ The "Silence every credit" switch mutes the card, choosing Visa writes the netwo
 
 ### The card kind is a choice on the card editor
 
-Jim's card starts personal; tapping the "Business" chip writes `CardKind.business` and "Personal" writes it back.
+Jim's card starts personal; tapping the "Business" segment writes `CardKind.business` and "Personal" writes it back.
 
 ### The credit list opens each editor and adds a credit
 
@@ -563,7 +575,7 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 ### A rolling credit asks for its interval and hides the anchor
 
-Choosing Rolling writes the cadence, removes the anchor chips and shows "Months between claims"; blank shows "Enter how many months between claims." and writes nothing; "48" writes it.
+Choosing Rolling writes the cadence, removes the anchor segments and shows "Months between claims"; blank shows "Enter how many months between claims." and writes nothing; "48" writes it.
 
 Emptying the field again keeps 48 and shows the sentence, so an invalid interval is never saved.
 
@@ -889,6 +901,10 @@ Today over the sample household at a 2.0 platform text scale and 402 wide raises
 
 At the same scale no two credit rows and no two texts overlap, so nothing draws over anything else; a text inside its own row is the one permitted nesting.
 
+### Segmented choices wrap inside the viewport at 200%
+
+At 2.0 on 402 x 874, Appearance, Measured from, Kind and the months shown each report no exception, and every segment label ends inside the viewport and inside its segmented button without exceeding its lines.
+
 ### The headline shrinks to fit at 200%
 
 The headline number's painted width at 2.0 is smaller than its natural width and its right edge stays inside the padded column, so it scales down rather than overflowing.
@@ -924,6 +940,10 @@ The light theme's secondary text does not clear it there, which is why the card'
 ### A selected chip's label holds on its fill
 
 The theme's selected chip fill is a step of the accent ramp, and the label and check mark colour on it clear 4.5:1 in both modes.
+
+### A selected segment's label holds on its fill
+
+The theme's selected segment fill is a step of the accent ramp, and its label colour clears 4.5:1 on it in both modes.
 
 ### An unselected chip's outline reaches 3:1
 

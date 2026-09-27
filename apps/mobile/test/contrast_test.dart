@@ -197,6 +197,26 @@ void main() {
 }
 
 void chipContrast() {
+  // @lat: [[mobile-tests#Token contrast#A selected segment's label holds on its fill]]
+  test("a selected segment's label reaches 4.5:1 on its fill", () {
+    final low = <String>[];
+    for (final MapEntry(key: name, value: tokens) in themes.entries) {
+      final theme = nocturneTheme(
+        tokens == NocturneTokens.dark ? Brightness.dark : Brightness.light,
+      );
+      final style = theme.segmentedButtonTheme.style!;
+      const selected = {WidgetState.selected};
+      final fill = style.backgroundColor?.resolve(selected);
+      final label = style.foregroundColor?.resolve(selected);
+      expect(fill, isNotNull, reason: name);
+      expect(label, isNotNull, reason: name);
+      expect(tokens.accentRamp.values, contains(fill), reason: name);
+      final r = ratio(label!, fill!);
+      if (r < 4.5) low.add('$name: ${r.toStringAsFixed(2)}:1');
+    }
+    expect(low, isEmpty);
+  });
+
   // @lat: [[mobile-tests#Token contrast#A selected chip's label holds on its fill]]
   test("a selected chip's label reaches 4.5:1 on its accent fill", () {
     final low = <String>[];

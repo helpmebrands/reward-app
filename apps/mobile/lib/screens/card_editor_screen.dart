@@ -420,7 +420,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
   }
 }
 
-/// Personal or business, as two choice chips. Classification only: business
+/// Personal or business, as a two-segment button. Classification only: business
 /// cards are marked on the Cards screen and nothing else changes yet.
 class KindChoice extends StatelessWidget {
   const KindChoice({super.key, required this.kind, required this.onChanged});
@@ -443,20 +443,14 @@ class KindChoice extends StatelessWidget {
           label: 'Kind',
           container: true,
           explicitChildNodes: true,
-          child: Wrap(
-            spacing: Space.s2,
-            runSpacing: Space.s2,
-            children: [
-              for (final (value, label) in const [
-                (CardKind.personal, 'Personal'),
-                (CardKind.business, 'Business'),
-              ])
-                ChoiceChip(
-                  label: Text(label),
-                  selected: kind == value,
-                  onSelected: (_) => onChanged(value),
-                ),
+          child: SegmentedButton<CardKind>(
+            expandedInsets: EdgeInsets.zero,
+            segments: const [
+              ButtonSegment(value: CardKind.personal, label: Text('Personal')),
+              ButtonSegment(value: CardKind.business, label: Text('Business')),
             ],
+            selected: {kind},
+            onSelectionChanged: (next) => onChanged(next.single),
           ),
         ),
         Padding(

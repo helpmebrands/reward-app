@@ -379,22 +379,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           label: 'Appearance',
           container: true,
           explicitChildNodes: true,
-          child: Wrap(
-            spacing: Space.s2,
-            runSpacing: Space.s2,
-            children: [
-              for (final (theme, label) in const [
-                (ThemeSetting.system, 'System'),
-                (ThemeSetting.dark, 'Dark'),
-                (ThemeSetting.light, 'Light'),
-              ])
-                ChoiceChip(
-                  label: Text(label),
-                  selected: settings.theme == theme,
-                  onSelected: (_) =>
-                      store.updateSettings((s) => s.copyWith(theme: theme)),
-                ),
+          child: SegmentedButton<ThemeSetting>(
+            expandedInsets: EdgeInsets.zero,
+            segments: const [
+              ButtonSegment(value: ThemeSetting.system, label: Text('System')),
+              ButtonSegment(value: ThemeSetting.dark, label: Text('Dark')),
+              ButtonSegment(value: ThemeSetting.light, label: Text('Light')),
             ],
+            selected: {settings.theme},
+            onSelectionChanged: (next) =>
+                store.updateSettings((s) => s.copyWith(theme: next.single)),
           ),
         ),
         const SizedBox(height: Space.s2),

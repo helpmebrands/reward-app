@@ -143,31 +143,23 @@ class _ValueScreenState extends State<ValueScreen> {
           const SizedBox(height: Space.s8),
         ],
 
-        // The chart.
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: Space.s3,
-          runSpacing: Space.s2,
-          children: [
-            sectionTitle('Captured against missed, by month'),
-            Semantics(
-              label: 'Months shown',
-              container: true,
-              explicitChildNodes: true,
-              child: Wrap(
-                spacing: Space.s2,
-                children: [
-                  for (final count in const [6, 9, 12])
-                    ChoiceChip(
-                      label: Text('${count}m'),
-                      selected: _monthsBack == count,
-                      onSelected: (_) => setState(() => _monthsBack = count),
-                    ),
-                ],
-              ),
-            ),
-          ],
+        // The chart, with its range as a full-width segmented button.
+        sectionTitle('Captured against missed, by month'),
+        const SizedBox(height: Space.s2),
+        Semantics(
+          label: 'Months shown',
+          container: true,
+          explicitChildNodes: true,
+          child: SegmentedButton<int>(
+            expandedInsets: EdgeInsets.zero,
+            segments: [
+              for (final count in const [6, 9, 12])
+                ButtonSegment(value: count, label: Text('${count}m')),
+            ],
+            selected: {_monthsBack},
+            onSelectionChanged: (next) =>
+                setState(() => _monthsBack = next.single),
+          ),
         ),
         const SizedBox(height: Space.s3),
         ExcludeSemantics(
