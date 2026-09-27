@@ -77,6 +77,50 @@ A legacy `active: false` credit that had not ended by its `updatedAt` loads acti
 
 `benefitFromCredit` copies `optedOutAt` and `trackedFrom` from the household's `LinkedBenefitState`.
 
+## Value breakdown
+
+`packages/domain/test/value_breakdown_test.dart` pins the value bar's four segments ([[domain#Value breakdown]]).
+
+### Breakdowns sum segment by segment
+
+`totalCents` is the sum of the four segments, `+` adds two breakdowns segment by segment, and `ValueBreakdown.zero` totals 0.
+
+### A credit splits its window into earned and available
+
+A $100 monthly credit with $30 claimed this month is earned 3000 and available 7000, with nothing missed or opted out.
+
+### Un-enrolled and opted-out credits are opt out
+
+A $50 credit that requires enrollment and is not enrolled is opt out 5000 and nothing else; an opted-out $50 credit is the same.
+
+### A spend-gated credit is left out
+
+A credit whose spend threshold is not met gives an all-zero breakdown, for the credit and for its card.
+
+### A card counts this year's closed windows
+
+On 16 Sep 2026, on a card added in June 2025, an unclaimed $15 monthly credit is missed 12000 (January to August) and available 1500; a $15 claim in March moves 1500 from missed to earned.
+
+### Windows before the card was added are not missed
+
+On a card added on 10 May 2026 the same credit is missed only for June, July and August: May opened before the card was added.
+
+### Last year's windows are not counted
+
+An unclaimed $200 annual credit on a card added in 2024 is available 20000 on 16 Sep 2026; its 2025 window, closed on 31 Dec 2025, adds no missed.
+
+### A multi-year window counts whole
+
+A 48-month rolling credit claimed in full in May 2024 still counts its $120 as earned in 2026, since its window includes today.
+
+### A card's opt out is its current windows
+
+On a card, an opted-out $15 monthly credit and an un-enrolled $50 quarterly one give opt out 6500: one current window each, and their closed windows are neither earned nor missed.
+
+### The household sums its active cards
+
+`householdBreakdown` equals the sum of each unarchived card's `cardYearToDateBreakdown`; an archived card's credits count nowhere.
+
 ## Ladder and schedule
 
 `packages/domain/test/reminders_test.dart` cover when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).
