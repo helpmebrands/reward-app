@@ -84,7 +84,7 @@ void main() {
     expect(meta('og:title'), 'Help me stop leaving card rewards on the table');
     expect(
       meta('og:description'),
-      'Join my household on HelpMe Reward and we&#39;ll track every credit '
+      "Join my household on HelpMe Reward and we'll track every credit "
       'together, so none expire unused.',
     );
     expect(meta('og:url'), 'https://api.example.test/invite/ABCD2345');

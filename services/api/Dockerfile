@@ -31,6 +31,9 @@ FROM scratch AS runtime
 
 COPY --from=build /runtime/ /
 COPY --from=build /app/server /server
+# The invite card `/og/invite.png` serves (`/server` reads
+# `../assets/invite-og.png` beside itself, hence the root).
+COPY --from=build /app/services/api/assets /assets
 # The migrator and its files, run by the Cloud Run job before each deploy
 # (`/migrate` resolves `../migrations/` beside itself, hence the root).
 COPY --from=build /app/migrate /migrate
