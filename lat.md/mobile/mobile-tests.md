@@ -307,7 +307,9 @@ Each card's status group reads the fixture's tags joined by commas.
 
 ### Each card shows its value bar for the year to date
 
-At compact, medium and expanded, every active card of the sample household draws a `ValueBar` whose breakdown is `cardYearToDateBreakdown` for that card on 16 September 2026, read as its sentence, under the Fee / Captured / Net row and above the percentage line. No `LinearProgressIndicator` and no "Share of the annual fee earned back" label remain.
+At compact, medium and expanded, every active card of the sample household draws a `ValueBar` whose breakdown is `cardYearToDateBreakdown` for that card on 16 September 2026, read as its sentence.
+
+The bar sits under the Fee / Captured / Net row and above the percentage line. No `LinearProgressIndicator` and no "Share of the annual fee earned back" label remain.
 
 ### Add a card sits above the first card
 

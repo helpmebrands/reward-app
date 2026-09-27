@@ -590,7 +590,7 @@ class CardSummary {
   /// Captured minus the fee. Negative means the card is not paying for itself.
   final int netCents;
 
-  /// Captured as a share of the fee, 0..1+: the break-even bar.
+  /// Captured as a share of the fee, 0..1+: the "% of the fee earned back".
   final double feeProgress;
   final int daysUntilRenewal;
 }

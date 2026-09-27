@@ -983,6 +983,14 @@ class AppStore extends ChangeNotifier {
     ];
   }
 
+  /// A card's value bar: its calendar year to date, over every credit
+  /// regardless of the household filter ([cardYearToDateBreakdown]).
+  ValueBreakdown cardValue(Card card) {
+    final data = _data;
+    if (data == null) return ValueBreakdown.zero;
+    return cardYearToDateBreakdown(card, data, today);
+  }
+
   /// The overlap group with this label among the visible instances, or null
   /// once a claim or the filter has dissolved it.
   OverlapGroup? overlapFor(String label) {
