@@ -9,6 +9,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/editor_scaffold.dart';
 import '../widgets/field.dart';
+import '../widgets/notification_level_control.dart';
 import '../widgets/switch_row.dart';
 
 /// Editing one credit.
@@ -541,22 +542,13 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                   ? store.optOutBenefit(current.id)
                   : store.reactivateBenefit(current.id),
             ),
-            SwitchRow(
-              title: 'Last call only',
-              note: 'Skip the earlier rungs and warn once, at the end.',
-              label: 'Last call only',
-              value: current.lastCallOnly,
-              onChanged: (next) =>
-                  _patch(current, (b) => b.copyWith(lastCallOnly: next)),
-            ),
-            SwitchRow(
-              title: 'Silence this credit',
-              note: 'Keeps tracking it, sends nothing.',
-              label: 'Silence this credit',
-              value: store.isBenefitMuted(current.id),
+            NotificationLevelControl(
+              benefit: current,
+              level: store.notificationLevel(current.id),
+              cardMuted: store.isCardMuted(current.cardId),
               onChanged: store.isMutePending(current.id)
                   ? null
-                  : (_) => store.toggleBenefitMute(current.id),
+                  : (level) => store.setNotificationLevel(current.id, level),
             ),
             OutlinedButton.icon(
               onPressed: () => context.go(_home(current)),

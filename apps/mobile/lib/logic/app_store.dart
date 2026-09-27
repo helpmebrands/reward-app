@@ -506,16 +506,24 @@ class AppStore extends ChangeNotifier {
   final _cardMutesInFlight = <String, bool>{};
   final _benefitMutesInFlight = <String, bool>{};
 
-  /// A mute for this card or credit is on its way to the api; its control
-  /// shows the requested state and is disabled until the answer.
+  /// Requested notification levels the api has not answered yet, by
+  /// benefit id.
+  final _levelsInFlight = <String, NotificationLevel>{};
+
+  /// A mute or a notification level for this card or credit is on its way
+  /// to the api; its control shows the requested state and is disabled
+  /// until the answer.
   bool isMutePending(String id) =>
       _cardMutesInFlight.containsKey(id) ||
-      _benefitMutesInFlight.containsKey(id);
+      _benefitMutesInFlight.containsKey(id) ||
+      _levelsInFlight.containsKey(id);
 
-  /// The member's preferences with every in-flight mute at its requested
-  /// state.
+  /// The member's preferences with every in-flight mute and level at its
+  /// requested state.
   MemberPreferences get _shownPreferences {
-    if (_cardMutesInFlight.isEmpty && _benefitMutesInFlight.isEmpty) {
+    if (_cardMutesInFlight.isEmpty &&
+        _benefitMutesInFlight.isEmpty &&
+        _levelsInFlight.isEmpty) {
       return _preferences;
     }
     Set<String> overlay(Set<String> ids, Map<String, bool> inFlight) => {
@@ -524,13 +532,17 @@ class AppStore extends ChangeNotifier {
       for (final MapEntry(:key, :value) in inFlight.entries)
         if (value) key,
     };
-    return _preferences.copyWith(
+    var shown = _preferences.copyWith(
       mutedCardIds: overlay(_preferences.mutedCardIds, _cardMutesInFlight),
       mutedBenefitIds: overlay(
         _preferences.mutedBenefitIds,
         _benefitMutesInFlight,
       ),
     );
+    for (final MapEntry(:key, :value) in _levelsInFlight.entries) {
+      shown = withLevel(shown, key, value);
+    }
+    return shown;
   }
 
   Future<bool> archiveCard(String id) =>
@@ -701,6 +713,43 @@ class AppStore extends ChangeNotifier {
 
   bool isBenefitMuted(String id) =>
       _shownPreferences.mutedBenefitIds.contains(id);
+
+  /// This member's notification level for one credit: Silence when it or
+  /// its card is muted, else Last chance or Periodically.
+  NotificationLevel notificationLevel(String id) {
+    final benefit = _data?.benefits.where((b) => b.id == id).firstOrNull;
+    if (benefit == null) return NotificationLevel.periodically;
+    return levelFor(benefit, _shownPreferences);
+  }
+
+  /// Sets one credit's notification level, for this member only. Against
+  /// the api the requested level shows, pending, until it answers.
+  Future<void> setNotificationLevel(String id, NotificationLevel level) async {
+    if (!remote) {
+      await _setPreferences(withLevel(_preferences, id, level));
+      return;
+    }
+    if (isMutePending(id)) return;
+    _levelsInFlight[id] = level;
+    notifyListeners();
+    final done = await _edit(
+      (api) => api.setNotificationLevel(id, level),
+      needsWrite: false,
+    );
+    _levelsInFlight.remove(id);
+    // As for a mute: apply the request only if it landed and the refresh
+    // after it did not bring it.
+    final wanted = withLevel(_preferences, id, level);
+    if (done &&
+        (wanted.mutedBenefitIds.contains(id) !=
+                _preferences.mutedBenefitIds.contains(id) ||
+            wanted.lastCallBenefitIds.contains(id) !=
+                _preferences.lastCallBenefitIds.contains(id))) {
+      await _setPreferences(wanted);
+      return;
+    }
+    notifyListeners();
+  }
 
   static Set<String> _toggled(Set<String> ids, String id) =>
       ids.contains(id) ? ({...ids}..remove(id)) : {...ids, id};

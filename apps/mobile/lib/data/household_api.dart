@@ -146,6 +146,9 @@ abstract interface class HouseholdApi {
     required bool muted,
   });
 
+  /// Sets one credit's notification level for this member only.
+  Future<void> setNotificationLevel(String benefitId, NotificationLevel level);
+
   /// `{card, benefits}` of the card created.
   Future<Card> addCard(Map<String, Object?> body);
   Future<void> patchCard(String id, Map<String, Object?> body);
@@ -332,6 +335,16 @@ class ApiClient implements HouseholdApi {
         ? '/v1/me/mutes/cards/$cardId'
         : '/v1/me/mutes/benefits/$benefitId',
     body: muted ? const <String, Object?>{} : null,
+  );
+
+  @override
+  Future<void> setNotificationLevel(
+    String benefitId,
+    NotificationLevel level,
+  ) => _send(
+    'PUT',
+    '/v1/me/benefits/$benefitId/level',
+    body: {'level': level.name},
   );
 
   @override

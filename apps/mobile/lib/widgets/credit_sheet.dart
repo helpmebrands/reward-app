@@ -6,7 +6,7 @@ import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
 import '../shell/router.dart';
 import '../theme/nocturne_tokens.dart' hide Tone;
-import 'switch_row.dart';
+import 'notification_level_control.dart';
 
 /// Quick amounts: a quarter and a half of what is left, rounded to whole
 /// dollars because nobody logs $37.53, each at least a dollar and under the
@@ -156,8 +156,6 @@ class _SheetBodyState extends State<_SheetBody> {
         ? 'Expired ${formatDate(instance.cycle.end, today)}'
         : '${formatDaysRemaining(instance.daysRemaining)} — closes '
               '${formatDate(instance.cycle.end, today)}';
-    final ladder = ladderFor(benefit);
-    final rung = currentRung(benefit, instance.daysRemaining);
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
 
     return SingleChildScrollView(
@@ -498,66 +496,13 @@ class _SheetBodyState extends State<_SheetBody> {
           ],
 
           const SizedBox(height: Space.s8),
-          const _SectionTitle('Reminder ladder'),
-          Text(
-            benefit.lastCallOnly
-                ? 'One alert only, on the last call.'
-                : '${cadenceLabel(benefit.cadence)} credits get ${ladder.length} '
-                      'nudges, easing from a heads-up to a last call.',
-            style: note,
-          ),
-          const SizedBox(height: Space.s2),
-          for (final step in ladder)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: Space.s1),
-              child: Row(
-                children: [
-                  Icon(
-                    switch (step.tone) {
-                      Tone.urgent => Icons.warning_amber,
-                      Tone.notice => Icons.notifications_outlined,
-                      Tone.permissive => Icons.waving_hand_outlined,
-                    },
-                    size: 13,
-                    color: step == rung ? tokens.accent : tokens.textSecondary,
-                  ),
-                  const SizedBox(width: Space.s3),
-                  Expanded(
-                    child: Text(
-                      step.daysBefore == 0
-                          ? 'On the last day'
-                          : '${step.daysBefore} days out',
-                      style: text.bodySmall?.copyWith(
-                        fontWeight: step == rung ? FontWeight.w600 : null,
-                      ),
-                    ),
-                  ),
-                  Text(step.label, style: note),
-                ],
-              ),
-            ),
-          const SizedBox(height: Space.s3),
-          SwitchRow(
-            title: 'Last call only',
-            note: 'Skip the earlier rungs and warn once, at the end.',
-            label: 'Last call only for ${benefit.name}',
-            value: benefit.lastCallOnly,
-            onChanged: (next) => store.updateBenefit(
-              benefit.id,
-              (b) => b.copyWith(lastCallOnly: next),
-            ),
-          ),
-          const SizedBox(height: Space.s2),
-          SwitchRow(
-            title: 'Silence this credit',
-            note:
-                'Keeps tracking it, sends nothing. Status stays '
-                '${statusLabel(status).toLowerCase()}.',
-            label: 'Silence reminders for ${benefit.name}',
-            value: store.isBenefitMuted(benefit.id),
+          NotificationLevelControl(
+            benefit: benefit,
+            level: store.notificationLevel(benefit.id),
+            cardMuted: store.isCardMuted(benefit.cardId),
             onChanged: store.isMutePending(benefit.id)
                 ? null
-                : (_) => actions.toggleMute(instance),
+                : (level) => actions.setLevel(instance, level),
           ),
           const SizedBox(height: Space.s6),
           if (store.canWrite)

@@ -492,16 +492,19 @@ void main() {
 
       final unlabelled = <String>[];
       void walk(SemanticsNode node) {
-        final flags = node.getSemanticsData().flagsCollection;
+        final data = node.getSemanticsData();
+        final flags = data.flagsCollection;
         final control =
             flags.isButton ||
             flags.isTextField ||
             flags.isToggled != Tristate.none;
-        // A node merged into its parent is read as part of the parent.
+        // A node merged into its parent is read as part of the parent, and
+        // a merge boundary is read with the text merged into it, as a
+        // segment is.
         if (control &&
             !node.isMergedIntoParent &&
-            node.label.isEmpty &&
-            node.tooltip.isEmpty) {
+            data.label.isEmpty &&
+            data.tooltip.isEmpty) {
           unlabelled.add(node.toString());
         }
         node.visitChildren((child) {
