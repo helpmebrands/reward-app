@@ -278,6 +278,8 @@ The apple-app-site-association answers JSON whose one detail names the app id an
 
 The invite page carries `og:title`, `og:description`, `og:url` (the invite's own link), `og:image` on the invite link's origin with its 1200×630 size, `twitter:card` and `apple-itunes-app`, and its title and heading carry the same message.
 
+The title and description repeat neither of the card's own lines, and `og:image:alt` still quotes the card.
+
 ### The card image is served without sign-in
 
 `/og/invite.png` answers the bytes `AppLinks.inviteImage` holds as `image/png` with a long `cache-control`.

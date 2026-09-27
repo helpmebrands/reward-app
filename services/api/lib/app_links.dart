@@ -63,10 +63,10 @@ final _code = RegExp(r'^[A-Z0-9]{4,16}$');
 const _escape = HtmlEscape(HtmlEscapeMode.attribute);
 
 /// The message an invite's preview and page carry.
-const _title = 'Help me stop leaving card rewards on the table';
-const _description =
-    "Join my household on HelpMe Reward and we'll track every credit "
-    'together, so none expire unused.';
+/// The card image already reads "Stop leaving card rewards on the table",
+/// so these say something else.
+const _title = 'Claim your rewards before they expire';
+const _description = 'Tap to join my household on HelpMe Reward.';
 
 /// Adds the two association files, the fallback invite page and the card
 /// image its OpenGraph tags point at. None needs sign-in: the operating
