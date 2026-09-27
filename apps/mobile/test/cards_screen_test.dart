@@ -179,7 +179,23 @@ void main() {
       );
       expect(within(id, 'Edit card and credits'), findsOneWidget);
     }
-    expect(find.text('Add a card from the catalogue'), findsOneWidget);
+    expect(find.text('Add a card from the catalog'), findsOneWidget);
+  });
+
+  // @lat: [[mobile-tests#Cards#Add a card sits above the first card]]
+  testWidgets('the Add button is above the first card', (tester) async {
+    await pumpCards(tester);
+    final add = find.text('Add a card from the catalog');
+    expect(add, findsOneWidget);
+    final firstCard = find.byWidgetPredicate(_isCard).first;
+    expect(
+      tester.getBottomLeft(add).dy,
+      lessThan(tester.getTopLeft(firstCard).dy),
+    );
+    expect(
+      tester.getTopLeft(add).dy,
+      greaterThan(tester.getBottomLeft(find.text('Cards').first).dy),
+    );
   });
 
   // @lat: [[mobile-tests#Cards#A card states its usable value, and its potential once anything is opted out]]
@@ -625,7 +641,7 @@ void main() {
     expect(find.text('Start with one card'), findsOneWidget);
     expect(find.byWidgetPredicate(_isCard), findsNothing);
     expect(find.text('Add your first card'), findsOneWidget);
-    expect(find.text('Add a card from the catalogue'), findsNothing);
+    expect(find.text('Add a card from the catalog'), findsNothing);
   });
 }
 

@@ -369,7 +369,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Card catalogue', style: text.titleMedium),
+                Text('Card catalog', style: text.titleMedium),
                 Semantics(
                   liveRegion: true,
                   child: Text(
@@ -433,7 +433,7 @@ class _AddCardScreenState extends State<AddCardScreen> {
         const SizedBox(height: Space.s4),
         Text(
           'Pick a card and its credits arrive pre-filled, including which ones '
-          'need enrollment. Everything stays editable — treat the catalogue as '
+          'need enrollment. Everything stays editable — treat the catalog as '
           'a starting point, not gospel.',
           style: note,
         ),

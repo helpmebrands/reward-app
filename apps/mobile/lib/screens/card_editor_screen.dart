@@ -277,7 +277,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                 Text('Kept up to date', style: text.titleSmall),
                 const SizedBox(height: Space.s1),
                 Text(
-                  'Its fee and credits follow the catalogue, so a change by '
+                  'Its fee and credits follow the catalog, so a change by '
                   'the issuer reaches it without you. The label, renewal date '
                   'and kind are yours.',
                   style: note,
