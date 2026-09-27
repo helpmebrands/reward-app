@@ -1301,21 +1301,25 @@ At a 2.0 text scale a tap opens the credit and a 60 pixel drag still parks the r
 
 `snackbar_test.dart` pumps `SnackbarHost` bare with the test clock, then the whole app at 1280 and 402 ([[mobile-architecture#Undo and the snackbar]]).
 
-### An undo stays up for twenty seconds
+### An undo stays up for eight seconds
 
-A message with an action is still there at 19 seconds and gone at 21.
+Without assistive technology, a message with an action is still there at 7 seconds and gone at 9.
+
+### Assistive technology keeps an undo for twenty seconds
+
+With `MediaQuery.accessibleNavigation` on, a message with an action is still there at 19 seconds and gone at 21.
 
 ### A plain message leaves sooner
 
-A message without an action shows no Undo, is there at 3 seconds and gone at 4.
+A message without an action shows no Undo, is there at 3 seconds and gone at 4, with or without assistive technology.
 
 ### Focus pauses the timer and leaving restarts it
 
-Focusing the Undo at 5 seconds holds the bar through 30; blurring restarts the full 20, so it is there at 49 and gone at 51.
+Focusing the Undo at 5 seconds holds the bar through 30; blurring restarts the full 8, so it is there at 37 and gone at 39.
 
 ### The pointer pauses the timer too
 
-A mouse over the bar at 5 seconds holds it through 30; moving away restarts the 20 the same way.
+A mouse over the bar at 5 seconds holds it through 30; moving away restarts the 8 the same way.
 
 ### The undo button says what it undoes
 
@@ -1323,7 +1327,15 @@ An action with a semantics label yields a button found by "Undo logging Uber Cas
 
 ### A newer message replaces the older
 
-A second message at 15 seconds replaces the first and is still up 15 seconds later, then gone after its own 20.
+A second message at 6 seconds replaces the first and is still up 6 seconds later, past the first's 8, then gone after its own 8.
+
+### A swipe down dismisses without acting
+
+Dragging the bar down removes it and clears the message, and the action's callback is not called.
+
+### A screen reader can dismiss it too
+
+The bar exposes a semantics dismiss action; performing it removes the bar without calling the action.
 
 ### The snackbar centres on the content column
 

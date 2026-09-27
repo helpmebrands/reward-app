@@ -82,7 +82,7 @@ Logging a credit is the app's main destructive-feeling action and far more commo
 
 There are two ways back, so undo is never a race against a clock (WCAG 2.2.1):
 
-- **The snackbar.** An undo stays up for twenty seconds, not Material's six. The clock stops while the pointer or keyboard focus is on the snackbar and restarts in full when they leave. The Undo button's accessible name says what it undoes ("Undo logging Uber Cash"), since the visible word alone does not.
+- **The snackbar.** An undo stays up for eight seconds, so it does not sit on the bottom of the content, and for twenty under assistive technology (`MediaQuery.accessibleNavigation`), the split Flutter's own `ScaffoldMessenger` makes. The clock stops while the pointer or keyboard focus is on the snackbar and restarts in full when they leave. A swipe down, or a screen reader's dismiss action, closes it early without undoing. The Undo button's accessible name says what it undoes ("Undo logging Uber Cash"), since the visible word alone does not.
 - **The sheet.** The credit sheet lists everything logged this period under "Logged this period", newest first, each with a Remove that deletes that one claim (`AppStore.removeClaim`). This is the path that needs no timer at all.
 
 ## Partial logging
