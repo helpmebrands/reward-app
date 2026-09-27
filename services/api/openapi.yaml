@@ -121,6 +121,26 @@ paths:
         '500':
           $ref: '#/components/responses/Internal'
 
+  /og/invite.png:
+    get:
+      tags: [invite links]
+      operationId: getInviteImage
+      security: []
+      summary: The card an invite link previews as
+      description: |
+        The 1200×630 image the invite page's `og:image` names, for the
+        preview a messenger or the share sheet builds from the link.
+      responses:
+        '200':
+          description: The image.
+          content:
+            image/png:
+              schema:
+                type: string
+                contentEncoding: binary
+        '500':
+          $ref: '#/components/responses/Internal'
+
   /v1/me:
     get:
       tags: [me]

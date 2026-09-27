@@ -122,6 +122,11 @@ iOS and Android only hand a link to an app when the link's domain says so, so th
 - `/.well-known/apple-app-site-association` claims `/invite/*` for `LMFUSVPCDH.com.helpmebrands.reward`.
 - `/.well-known/assetlinks.json` names `com.helpmebrands.reward` and the signing certificates in `ANDROID_SHA256_FINGERPRINTS`, empty until the Play signing key exists (#115).
 - `GET /invite/{code}` is a small HTML page with the code and links to both stores, for a browser without the app; a code outside `[A-Z0-9]{4,16}` is 404.
+- `GET /og/invite.png` is the invite card, served with a day's `cache-control`. It sits outside `/invite/` so it cannot clash with a code or the universal-link claim.
+
+The invite page carries OpenGraph and Twitter tags, so iMessage, WhatsApp, Slack and the iOS share sheet preview the link as the card with the message "Help me stop leaving card rewards on the table" and a line on why to join (#341, [[api-tests#Invite links#An invite link previews as the card]]). `og:url` and `og:image` are made from `INVITE_LINK_BASE`, so the image is on the api's own domain; `apple-itunes-app` offers the App Store banner in Safari.
+
+The card is `services/api/assets/invite-og.png`, 1200×630 and kept under 300 KB because WhatsApp is reported to skip larger previews. The supplied 630 KB original was remapped without dithering onto a 256-colour palette with Pillow (`quantize(colors=256)` for the palette, then `quantize(palette=…, dither=NONE)`, saved with `optimize=True`), which gives 208 KB. The server reads it from `../assets/` beside its binary, so the Dockerfile copies it to `/assets/`, and CI's container smoke test fetches it.
 
 None needs sign-in. `INVITE_LINK_BASE` on the service is `https://<apiCustomDomain>/invite/`, so the links `POST /v1/household/invites` answers point at the same domain.
 
