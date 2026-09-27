@@ -1245,6 +1245,22 @@ Global Entry reads "Eligible now — the clock restarts when you claim it"; mark
 
 The $1,000 Dell bonus behind $5,000 of spend shows "Unlocks after $5,000 spend this year." and no enrollment note or logging; "I've reached it — unlock" stamps `spendMetAt`, says "Dell Bonus unlocked." and the full-amount button appears.
 
+### The value bar splits the current window
+
+Resy's sheet, $30 logged of $100, draws a `ValueBar` of $30 earned and $70 available with no Missed segment, and no "Claimed so far" progress bar; logging $20 with the sheet open moves it to $50 and $50.
+
+### The value bar puts a locked credit in opt out
+
+The un-enrolled $300 Equinox credit's bar is $300 opt out and nothing else. An opted-out credit never opens in the sheet, so its opt out is pinned in [[tests#Value breakdown]].
+
+### The value bar shows a captured credit as earned
+
+The fully used $15 Uber credit's bar is $15 earned and nothing else.
+
+### A spend-gated credit has no value bar
+
+The Dell bonus, gated behind $5,000 of spend, opens its sheet with no `ValueBar`.
+
 ### A captured credit can be undone
 
 A captured credit shows "Fully captured." with Undo, which clears the cycle's claims and brings the logging section back.

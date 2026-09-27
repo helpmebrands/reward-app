@@ -12,6 +12,7 @@ import 'package:reward/main.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/credit_sheet.dart';
 import 'package:reward/widgets/sheet_host.dart';
+import 'package:reward/widgets/value_bar.dart';
 
 /// The credit sheet: opened by benefit id from any tab, in the shape the
 /// width calls for, showing the live balance and every credit action.
@@ -413,6 +414,65 @@ void main() {
         isEmpty,
       );
       expect(inSheet('Mark the full \$15 used'), findsOneWidget);
+    });
+  });
+
+  group('value bar', () {
+    Finder bar() => find.descendant(of: sheet, matching: find.byType(ValueBar));
+    ValueBreakdown barOf(WidgetTester tester) =>
+        tester.widget<ValueBar>(bar()).breakdown;
+
+    // @lat: [[mobile-tests#Credit sheet#The value bar splits the current window]]
+    testWidgets(
+      'Resy shows \$30 earned and \$70 available, and follows a claim',
+      (tester) async {
+        final app = await openResy(tester, phone);
+        expect(
+          barOf(tester),
+          const ValueBreakdown(earnedCents: 3000, availableCents: 7000),
+        );
+        expect(find.byType(LinearProgressIndicator), findsNothing);
+        expect(find.bySemanticsLabel('Claimed so far'), findsNothing);
+        expect(
+          find.descendant(of: sheet, matching: find.text('Missed')),
+          findsNothing,
+        );
+
+        await app.store.claim(
+          app.store.instanceFor('resy')!,
+          amountCents: 2000,
+        );
+        await tester.pumpAndSettle();
+        expect(
+          barOf(tester),
+          const ValueBreakdown(earnedCents: 5000, availableCents: 5000),
+        );
+      },
+    );
+
+    // @lat: [[mobile-tests#Credit sheet#The value bar puts a locked credit in opt out]]
+    testWidgets('a locked credit is all opt out', (tester) async {
+      final app = await pumpApp(tester, phone);
+      app.ui.openCredit('equinox');
+      await tester.pumpAndSettle();
+      expect(barOf(tester), const ValueBreakdown(optOutCents: 30000));
+    });
+
+    // @lat: [[mobile-tests#Credit sheet#The value bar shows a captured credit as earned]]
+    testWidgets('a captured credit is all earned', (tester) async {
+      final app = await pumpApp(tester, phone);
+      app.ui.openCredit('uber');
+      await tester.pumpAndSettle();
+      expect(barOf(tester), const ValueBreakdown(earnedCents: 1500));
+    });
+
+    // @lat: [[mobile-tests#Credit sheet#A spend-gated credit has no value bar]]
+    testWidgets('a spend-gated credit shows no bar', (tester) async {
+      final app = await pumpApp(tester, phone);
+      app.ui.openCredit('dell');
+      await tester.pumpAndSettle();
+      expect(sheet, findsOneWidget);
+      expect(bar(), findsNothing);
     });
   });
 
