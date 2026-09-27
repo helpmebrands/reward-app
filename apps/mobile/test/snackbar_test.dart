@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:domain/domain.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
@@ -13,18 +14,28 @@ import 'package:reward/main.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/snackbar_host.dart';
 
-/// The snackbar: an undo stays up twenty seconds, its clock stops while the
-/// Undo has focus or the pointer, and it centres on the content column.
+/// The snackbar: an undo stays up eight seconds, twenty under assistive
+/// technology, its clock stops while the Undo has focus or the pointer, a
+/// swipe down dismisses it, and it centres on the content column.
 
 Finder get bar => find.byKey(const Key('snackbar'));
 Finder get undo => find.byKey(const Key('snackbar-action'));
 
-Future<SnackbarState> pumpHost(WidgetTester tester) async {
+Future<SnackbarState> pumpHost(
+  WidgetTester tester, {
+  bool accessibleNavigation = false,
+}) async {
   final snackbar = SnackbarState();
   addTearDown(snackbar.dispose);
   await tester.pumpWidget(
     MaterialApp(
       theme: nocturneTheme(Brightness.dark),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(accessibleNavigation: accessibleNavigation),
+        child: child!,
+      ),
       home: Scaffold(
         body: SnackbarHost(
           snackbar: snackbar,
@@ -40,11 +51,26 @@ SnackbarAction noop({String? semanticsLabel}) =>
     SnackbarAction(label: 'Undo', semanticsLabel: semanticsLabel, onAct: () {});
 
 void main() {
-  // @lat: [[mobile-tests#Snackbar#An undo stays up for twenty seconds]]
-  testWidgets('an undo is still there at 19 seconds and gone at 21', (
+  // @lat: [[mobile-tests#Snackbar#An undo stays up for eight seconds]]
+  testWidgets('an undo is still there at 7 seconds and gone at 9', (
     tester,
   ) async {
     final snackbar = await pumpHost(tester);
+    snackbar.show('Logged \$10 on Uber Cash.', action: noop());
+    await tester.pump();
+    expect(bar, findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 7));
+    expect(bar, findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(bar, findsNothing);
+  });
+
+  // @lat: [[mobile-tests#Snackbar#Assistive technology keeps an undo for twenty seconds]]
+  testWidgets('with accessible navigation an undo lasts 20 seconds', (
+    tester,
+  ) async {
+    final snackbar = await pumpHost(tester, accessibleNavigation: true);
     snackbar.show('Logged \$10 on Uber Cash.', action: noop());
     await tester.pump();
     expect(bar, findsOneWidget);
@@ -59,19 +85,24 @@ void main() {
   testWidgets('a message without an action leaves after 3.5 seconds', (
     tester,
   ) async {
-    final snackbar = await pumpHost(tester);
-    snackbar.show('That did not look like an amount.');
-    await tester.pump();
-    expect(undo, findsNothing);
+    for (final accessibleNavigation in [false, true]) {
+      final snackbar = await pumpHost(
+        tester,
+        accessibleNavigation: accessibleNavigation,
+      );
+      snackbar.show('That did not look like an amount.');
+      await tester.pump();
+      expect(undo, findsNothing);
 
-    await tester.pump(const Duration(seconds: 3));
-    expect(bar, findsOneWidget);
-    await tester.pump(const Duration(seconds: 1));
-    expect(bar, findsNothing);
+      await tester.pump(const Duration(seconds: 3));
+      expect(bar, findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(bar, findsNothing);
+    }
   });
 
   // @lat: [[mobile-tests#Snackbar#Focus pauses the timer and leaving restarts it]]
-  testWidgets('focus on Undo holds the snackbar and blur restarts the 20', (
+  testWidgets('focus on Undo holds the snackbar and blur restarts the 8', (
     tester,
   ) async {
     final snackbar = await pumpHost(tester);
@@ -87,9 +118,9 @@ void main() {
 
     node.unfocus();
     await tester.pump();
-    await tester.pump(const Duration(seconds: 19)); // t = 49
+    await tester.pump(const Duration(seconds: 7)); // t = 37
     expect(bar, findsOneWidget);
-    await tester.pump(const Duration(seconds: 2)); // t = 51
+    await tester.pump(const Duration(seconds: 2)); // t = 39
     expect(bar, findsNothing);
   });
 
@@ -112,7 +143,7 @@ void main() {
 
     await mouse.moveTo(const Offset(1, 1));
     await tester.pump();
-    await tester.pump(const Duration(seconds: 19));
+    await tester.pump(const Duration(seconds: 7));
     expect(bar, findsOneWidget);
     await tester.pump(const Duration(seconds: 2));
     expect(bar, findsNothing);
@@ -151,16 +182,57 @@ void main() {
     final snackbar = await pumpHost(tester);
     snackbar.show('First.', action: noop());
     await tester.pump();
-    await tester.pump(const Duration(seconds: 15));
+    await tester.pump(const Duration(seconds: 6));
     snackbar.show('Second.', action: noop());
     await tester.pump();
 
     expect(find.text('First.'), findsNothing);
     expect(find.text('Second.'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 15)); // 30 since the first
+    await tester.pump(const Duration(seconds: 6)); // 12 since the first
     expect(find.text('Second.'), findsOneWidget);
-    await tester.pump(const Duration(seconds: 6));
+    await tester.pump(const Duration(seconds: 3));
     expect(bar, findsNothing);
+  });
+
+  // @lat: [[mobile-tests#Snackbar#A swipe down dismisses without acting]]
+  testWidgets('swiping the snackbar down removes it and does not undo', (
+    tester,
+  ) async {
+    final snackbar = await pumpHost(tester);
+    var acted = 0;
+    snackbar.show(
+      'Logged \$10 on Uber Cash.',
+      action: SnackbarAction(label: 'Undo', onAct: () => acted++),
+    );
+    await tester.pump();
+
+    await tester.drag(bar, const Offset(0, 300));
+    await tester.pumpAndSettle();
+    expect(bar, findsNothing);
+    expect(snackbar.current, isNull);
+    expect(acted, 0);
+  });
+
+  // @lat: [[mobile-tests#Snackbar#A screen reader can dismiss it too]]
+  testWidgets('the semantics dismiss action removes it without undoing', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final snackbar = await pumpHost(tester, accessibleNavigation: true);
+    var acted = 0;
+    snackbar.show(
+      'Logged \$10 on Uber Cash.',
+      action: SnackbarAction(label: 'Undo', onAct: () => acted++),
+    );
+    await tester.pump();
+
+    final dismissible = find.semantics.byAction(SemanticsAction.dismiss);
+    expect(dismissible, findsOne);
+    tester.semantics.performAction(dismissible, SemanticsAction.dismiss);
+    await tester.pumpAndSettle();
+    expect(bar, findsNothing);
+    expect(acted, 0);
+    semantics.dispose();
   });
 
   group('in the shell', () {
