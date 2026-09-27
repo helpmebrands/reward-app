@@ -31,13 +31,21 @@ class SnackbarMessage {
 /// Logging a credit is the app's main destructive-feeling action and far more
 /// common than correcting one, so the flow is optimistic: the claim is written
 /// at once and the snackbar offers to take it back, rather than asking "are
-/// you sure?" every time. An undo stays up for twenty seconds, not Material's
-/// six, because WCAG 2.2.1 wants a time limit the user cannot adjust to be
-/// generous; the clock stops while the pointer or focus is on the snackbar
-/// and restarts in full when they leave.
+/// you sure?" every time. An undo stays up for eight seconds so it does not
+/// sit on the content, but twenty under assistive technology, because WCAG
+/// 2.2.1 wants a time limit the user cannot adjust to be generous; the
+/// credit sheet's "Logged this period" is the way back with no clock at all.
+/// The clock stops while the pointer or focus is on the snackbar and
+/// restarts in full when they leave.
 class SnackbarState extends ChangeNotifier {
-  static const Duration withAction = Duration(seconds: 20);
+  static const Duration withAction = Duration(seconds: 8);
+  static const Duration withActionAssistive = Duration(seconds: 20);
   static const Duration plain = Duration(milliseconds: 3500);
+
+  /// Whether assistive technology is on, which the host sets from
+  /// `MediaQuery.accessibleNavigation`; it keeps an undo for
+  /// [withActionAssistive].
+  bool assistive = false;
 
   SnackbarMessage? _current;
   Timer? _timer;
@@ -71,7 +79,12 @@ class SnackbarState extends ChangeNotifier {
     _timer?.cancel();
     final message = _current;
     if (message == null) return;
-    _timer = Timer(message.action == null ? plain : withAction, dismiss);
+    final duration = message.action == null
+        ? plain
+        : assistive
+        ? withActionAssistive
+        : withAction;
+    _timer = Timer(duration, dismiss);
   }
 
   @override

@@ -18,11 +18,18 @@ class SnackbarHost extends StatefulWidget {
 }
 
 class _SnackbarHostState extends State<SnackbarHost> {
+  bool _mounted = false;
+
   @override
-  void initState() {
-    super.initState();
-    // A message that was waiting for a host gets its clock back.
-    widget.snackbar.resume();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    widget.snackbar.assistive = MediaQuery.accessibleNavigationOf(context);
+    // A message that was waiting for a host gets its clock back, once the
+    // host knows which duration applies.
+    if (!_mounted) {
+      _mounted = true;
+      widget.snackbar.resume();
+    }
   }
 
   @override
@@ -75,62 +82,74 @@ class _Snackbar extends StatelessWidget {
     final action = message.action;
     return Padding(
       padding: const EdgeInsets.fromLTRB(Space.s4, 0, Space.s4, Space.s6),
-      child: MouseRegion(
-        onEnter: (_) => snackbar.pause(),
-        onExit: (_) => snackbar.resume(),
-        child: Focus(
-          // A focus scope around the whole bar, so focus landing on Undo
-          // pauses the clock and leaving it restarts the full duration.
-          skipTraversal: true,
-          canRequestFocus: false,
-          onFocusChange: (focused) =>
-              focused ? snackbar.pause() : snackbar.resume(),
-          child: Material(
-            key: const Key('snackbar'),
-            color: tokens.neutral[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: const BorderRadius.all(Radius.circular(Radii.md)),
-              side: BorderSide(color: tokens.neutral[800]!),
-            ),
-            elevation: 4,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                Space.s6,
-                Space.s3,
-                Space.s3,
-                Space.s3,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        message.text,
-                        style: text.bodyMedium?.copyWith(
-                          color: tokens.neutral[200],
+      // A swipe down dismisses without acting, and a screen reader gets the
+      // same through the dismiss action.
+      child: Dismissible(
+        key: ValueKey(message.id),
+        direction: DismissDirection.down,
+        onDismissed: (_) => snackbar.dismiss(),
+        child: Semantics(
+          onDismiss: snackbar.dismiss,
+          child: MouseRegion(
+            onEnter: (_) => snackbar.pause(),
+            onExit: (_) => snackbar.resume(),
+            child: Focus(
+              // A focus scope around the whole bar, so focus landing on Undo
+              // pauses the clock and leaving it restarts the full duration.
+              skipTraversal: true,
+              canRequestFocus: false,
+              onFocusChange: (focused) =>
+                  focused ? snackbar.pause() : snackbar.resume(),
+              child: Material(
+                key: const Key('snackbar'),
+                color: tokens.neutral[900],
+                shape: RoundedRectangleBorder(
+                  borderRadius: const BorderRadius.all(
+                    Radius.circular(Radii.md),
+                  ),
+                  side: BorderSide(color: tokens.neutral[800]!),
+                ),
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    Space.s6,
+                    Space.s3,
+                    Space.s3,
+                    Space.s3,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          liveRegion: true,
+                          child: Text(
+                            message.text,
+                            style: text.bodyMedium?.copyWith(
+                              color: tokens.neutral[200],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      if (action != null) ...[
+                        const SizedBox(width: Space.s3),
+                        TextButton(
+                          key: const Key('snackbar-action'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: tokens.accentRamp[300],
+                          ),
+                          onPressed: () {
+                            action.onAct();
+                            snackbar.dismiss();
+                          },
+                          child: Text(
+                            action.label,
+                            semanticsLabel: action.semanticsLabel,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (action != null) ...[
-                    const SizedBox(width: Space.s3),
-                    TextButton(
-                      key: const Key('snackbar-action'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: tokens.accentRamp[300],
-                      ),
-                      onPressed: () {
-                        action.onAct();
-                        snackbar.dismiss();
-                      },
-                      child: Text(
-                        action.label,
-                        semanticsLabel: action.semanticsLabel,
-                      ),
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
