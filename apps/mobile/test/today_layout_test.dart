@@ -112,7 +112,7 @@ void main() {
       sectionTitle('Captured this period'),
     );
     final lockedTitle = tester.getTopLeft(
-      sectionTitle('Locked behind enrolment'),
+      sectionTitle('Locked behind enrollment'),
     );
     expect(soonTitle.dx, pad);
     expect(capturedTitle.dx, pad);

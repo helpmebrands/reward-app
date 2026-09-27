@@ -250,7 +250,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     final today = store.today;
     final cycle = card == null ? null : cycleFor(current, card, today);
     // A credit the catalogue keeps up to date: its terms are the
-    // catalogue's; enrolment, spend, tracking and the page are the
+    // catalogue's; enrollment, spend, tracking and the page are the
     // household's.
     final linked = current.templateBenefitId != null;
 
@@ -380,7 +380,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
         if (linked && card != null) ...[
           Text(
             'The terms of this credit come from the catalogue and change '
-            'when the issuer changes them. Enrolment, spend, tracking and '
+            'when the issuer changes them. Enrollment, spend, tracking and '
             'reminders are yours.',
             style: note,
           ),
@@ -460,11 +460,11 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
           ],
           wide: [
             SwitchRow(
-              title: 'Needs enrolment',
+              title: 'Needs enrollment',
               note:
                   'Until it is enrolled the credit is Locked, and never counted '
                   'as money you are failing to spend.',
-              label: 'Needs enrolment',
+              label: 'Needs enrollment',
               value: current.enrollmentRequired,
               onChanged: linked
                   ? null
@@ -488,7 +488,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
               ),
               field(
                 'field-url',
-                'Enrolment page (optional)',
+                'Enrollment page (optional)',
                 error: _urlError,
                 controller: _url,
                 focusNode: _urlFocus,

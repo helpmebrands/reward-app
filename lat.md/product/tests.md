@@ -27,14 +27,14 @@ The suite is `packages/domain/test/`, ported case for case from the retired PWA'
 
 `packages/domain/test/selectors_test.dart` pin the status ladder and the derived views ([[domain#Status ladder]], [[domain#Missed ledger]]).
 
-- Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrolment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
+- Every rung: use soon inside 30 days, available beyond, captured when fully claimed (even while locked), partial claims summed, locked before enrollment and unlocked after, manual never at risk, archived cards and inactive credits skipped.
 - Ordering puts what closes soonest first and locked below open.
 - The totals stay apart. `nextReset` reports the nearest open window.
 - Overlaps: one credit on two cards is flagged with `sameProduct`; different issuers match by merchant; two credits on the same card do not overlap; the group totals what is still unclaimed.
 - The missed ledger counts closed windows with nothing claimed, counts only the shortfall for partial use, never blames windows before tracking began, and ignores manual credits. Leaks group repeats and rank by money lost. Monthly totals bin claims by when logged and misses by when the window shut.
 - `summarizeCard` reports net against the fee; `cardLabel` names the holder and prefers a nickname.
 - A credit with `endsOn` goes Use soon against the clamped end, is absent the day after it ends, and leaves its final shortfall in the missed ledger.
-- A spend-gated credit is locked for `spend` until `spendMetAt` falls in the current year (calendar or cardmember, by anchor), enrolment is named first when both apply, and `summarizeCard` counts nothing for it while gated.
+- A spend-gated credit is locked for `spend` until `spendMetAt` falls in the current year (calendar or cardmember, by anchor), enrollment is named first when both apply, and `summarizeCard` counts nothing for it while gated.
 - A rolling credit is Available until claimed, Captured until its interval ends, Available again under a new key, never Use soon or missed even with a partial claim, and worth its amortised value on the card.
 
 ## Opted-out credits
@@ -83,10 +83,10 @@ A legacy `active: false` credit that had not ended by its `updatedAt` loads acti
 
 - Each cadence's rungs match the table, open permissive and end urgent, and collapse to one last call when opted out. `currentRung` reports the rung a credit stands on.
 - The schedule is empty while reminders are off, fires a rung at the reminder time on the right day, never schedules in the past, and returns reminders in firing order.
-- Same-day credits group into one notification led by the biggest loss; a mostly-locked group leads with the blocker; locked credits are silent when enrolment reminders are off.
+- Same-day credits group into one notification led by the biggest loss; a mostly-locked group leads with the blocker; locked credits are silent when enrollment reminders are off.
 - Muted credits, muted cards, fully claimed cycles, manual credits and sub-floor values are skipped; a partly used credit is reminded about for its balance.
 - A credit that ends on a date is reminded against the clamped end and never after it.
-- A spend-locked credit is never scheduled, even with enrolment reminders on.
+- A spend-locked credit is never scheduled, even with enrollment reminders on.
 - A rolling credit has one unscheduled rung and is never scheduled.
 - Ids are stable and unique across recomputes, so the delivery layer's dedupe holds.
 - `dueReminders` returns only what has come due and not been shown, and drops anything the device slept through for days.
@@ -121,7 +121,7 @@ Blank, zero, a fraction and a word all fail for `rolling`; a whole number passes
 
 Blank and whitespace-only pass, since most credits have no end; an impossible (month 13) or non-ISO date fails; an ISO date passes.
 
-### An enrolment page must be a web address
+### An enrollment page must be a web address
 
 Nothing given passes; a bare domain or an ftp scheme fails; http and https pass.
 
@@ -197,7 +197,7 @@ Resy resolved on 20 October ends on 14 October and has ended; in September it ha
 
 ### A credit added in a version appears from its effectiveFrom
 
-Equinox does not exist on 14 October; on 20 October it is $25 and locked behind enrolment.
+Equinox does not exist on 14 October; on 20 October it is $25 and locked behind enrollment.
 
 ### A template link makes a card system-maintained
 
@@ -257,7 +257,7 @@ Every credit in every template has an icon name and a value above zero, so a tem
 
 ### A template prices its year and names its locked credits
 
-`templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrolment box.
+`templateAnnualValueCents` multiplies each credit by its cadence's cycles per year, counting manual once, and `templateEnrollmentNames` lists the credits behind an enrollment box.
 
 ### Business Platinum is priced at its unconditional credits
 

@@ -51,7 +51,7 @@ CardVerdict cardVerdict(CardSummary summary) {
   if (locked > 0 && claimable + locked >= net.abs()) {
     return CardVerdict(
       'Unlock first',
-      '${formatMoney(locked)} is sitting behind an enrolment box. With it, '
+      '${formatMoney(locked)} is sitting behind an enrollment box. With it, '
           'there is enough left this year to clear the $short shortfall — so '
           'unlock it before you weigh a downgrade.',
       VerdictTone.locked,
@@ -250,7 +250,7 @@ class _CardsBody extends StatelessWidget {
                 const SizedBox(height: Space.s2),
                 Text(
                   'Pick it from the catalogue and its credits come pre-filled, '
-                  'including which ones are stuck behind an enrolment box. You '
+                  'including which ones are stuck behind an enrollment box. You '
                   'can edit every one of them afterwards.',
                   style: note,
                   textAlign: TextAlign.center,

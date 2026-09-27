@@ -356,7 +356,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchRow(
             title: 'Nudge me about locked credits',
             note:
-                'Credits stuck behind an enrolment box. Off means silence '
+                'Credits stuck behind an enrollment box. Off means silence '
                 'about money you cannot yet spend.',
             label: 'Nudge me about locked credits',
             value: n.enrollmentReminder,

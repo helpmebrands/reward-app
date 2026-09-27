@@ -35,7 +35,7 @@ class CompareSheet extends StatelessWidget {
     final ahead = identical(behind, first) ? second : first;
     if (behind.status == BenefitStatus.locked &&
         ahead.status != BenefitStatus.locked) {
-      return 'The ${cardLabel(behind.card)} side is still behind an enrolment '
+      return 'The ${cardLabel(behind.card)} side is still behind an enrollment '
           'box, so only the ${formatMoney(ahead.remainingCents)} on '
           '${cardLabel(ahead.card)} can actually be spent today. Unlock it '
           'first — the money is already on the card.';
