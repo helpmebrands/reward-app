@@ -269,9 +269,13 @@ The fixture carries the fee and captured totals and each active card's figures, 
 
 ### Each card carries the PWA's figures, verdict and tags
 
-"Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage, days to renewal, verdict and edit button, and the catalogue button follows.
+"Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage, days to renewal, verdict and edit button, and "Add a card from the catalog" is on the screen.
 
 Each card's status group reads the fixture's tags joined by commas.
+
+### Add a card sits above the first card
+
+"Add a card from the catalog" is laid out below the "Cards" title and above the first card, so it is reachable without scrolling past every card (#365).
 
 ### A card states its usable value, and its potential once anything is opted out
 
@@ -335,7 +339,7 @@ Every button in the semantics tree has a label or a tooltip, and the menu is fou
 
 ### No cards shows the first-run copy
 
-With no cards the screen says "Start with one card", draws no card, and offers the catalogue through "Add your first card" alone, without the "Add a card from the catalogue" button.
+With no cards the screen says "Start with one card", draws no card, and offers the catalogue through "Add your first card" alone, without the "Add a card from the catalog" button.
 
 ## Empty tabs
 
