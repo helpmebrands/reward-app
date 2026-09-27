@@ -15,6 +15,7 @@ import '../widgets/credit_row.dart';
 import '../widgets/empty_card_slot.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/today_headline.dart';
+import '../widgets/value_bar.dart';
 
 /// Today: one number, a countdown, and the rows behind them.
 ///
@@ -92,16 +93,24 @@ class _TodayBody extends StatelessWidget {
     final resetOn = store.nextResetOn;
     final daysToReset = soon.isEmpty ? null : soon.first.daysRemaining;
 
+    // The headline, then the household's value bar for the year to date.
     final headline = _Section(
       order: 1,
-      child: TodayHeadline(
-        eyebrow: todayEyebrow(store.today),
-        claimableCents: totals.claimableCents,
-        sub: todayHeadlineSub(
-          open: store.instances.where(isClaimable).length,
-          cards: store.cardCount,
-          resetOn: resetOn,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TodayHeadline(
+            eyebrow: todayEyebrow(store.today),
+            claimableCents: totals.claimableCents,
+            sub: todayHeadlineSub(
+              open: store.instances.where(isClaimable).length,
+              cards: store.cardCount,
+              resetOn: resetOn,
+            ),
+          ),
+          const SizedBox(height: Space.s4),
+          ValueBar(breakdown: store.householdValue),
+        ],
       ),
     );
 

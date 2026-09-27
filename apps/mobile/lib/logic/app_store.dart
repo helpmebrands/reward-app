@@ -991,6 +991,14 @@ class AppStore extends ChangeNotifier {
     return cardYearToDateBreakdown(card, data, today);
   }
 
+  /// Today's value bar: every active card's [cardValue] summed
+  /// ([householdBreakdown]).
+  ValueBreakdown get householdValue {
+    final data = _data;
+    if (data == null) return ValueBreakdown.zero;
+    return householdBreakdown(data, today);
+  }
+
   /// The overlap group with this label among the visible instances, or null
   /// once a claim or the filter has dissolved it.
   OverlapGroup? overlapFor(String label) {
