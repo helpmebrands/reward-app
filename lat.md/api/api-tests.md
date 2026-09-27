@@ -274,6 +274,18 @@ The apple-app-site-association answers JSON whose one detail names the app id an
 
 `/invite/ABCD2345` answers an HTML page with the code and both store links, unmangled by escaping; a code with other characters is 404.
 
+### An invite link previews as the card
+
+The invite page carries `og:title`, `og:description`, `og:url` (the invite's own link), `og:image` on the invite link's origin with its 1200×630 size, `twitter:card` and `apple-itunes-app`, and its title and heading carry the same message.
+
+### The card image is served without sign-in
+
+`/og/invite.png` answers the bytes `AppLinks.inviteImage` holds as `image/png` with a long `cache-control`.
+
+### The committed card is a small PNG
+
+`services/api/assets/invite-og.png` is a 1200×630 PNG under 300 KB, the size messengers are reported to accept for a preview.
+
 ## Migrations
 
 `migrate_test.dart` covers the file listing with a temporary directory and no database; `migrate_integration_test.dart` needs `DATABASE_URL` and skips itself otherwise ([[api-architecture#Migrations]]).

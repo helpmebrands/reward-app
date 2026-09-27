@@ -14,7 +14,10 @@ import 'package:shelf/shelf_io.dart' as io;
 /// `FIREBASE_PROJECT_ID` names the project whose ID tokens sign people in;
 /// without it the signed-in routes answer 503, and it is also the project
 /// FCM sends the test notification through. `INVITE_LINK_BASE` is where
-/// invite links point, `https://helpmereward.com/invite/` by default.
+/// invite links point, `https://helpmereward.com/invite/` by default. The
+/// invite card is read from `../assets/invite-og.png` beside the binary,
+/// which is `/assets/` in the image and `services/api/assets/` under
+/// `dart run`.
 Future<void> main() async {
   final port = int.tryParse(Platform.environment['PORT'] ?? '') ?? 8080;
   final url = Platform.environment['DATABASE_URL'];
@@ -33,7 +36,12 @@ Future<void> main() async {
       inviteLinkBase: Uri.tryParse(
         Platform.environment['INVITE_LINK_BASE'] ?? '',
       )?.takeIf((u) => u.hasScheme),
-      appLinks: AppLinks.fromEnvironment(Platform.environment),
+      appLinks: AppLinks.fromEnvironment(
+        Platform.environment,
+        inviteImage: File.fromUri(
+          Platform.script.resolve('../assets/invite-og.png'),
+        ).readAsBytesSync(),
+      ),
       push: firebaseProject.isEmpty ? null : FcmSender(firebaseProject),
     ),
     InternetAddress.anyIPv4,

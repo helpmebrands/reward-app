@@ -51,22 +51,23 @@ Api buildApi({
   PushSender? push,
 }) {
   final signedIn = SignedIn(verifier, db);
+  final linkBase = inviteLinkBase ?? defaultInviteLinkBase;
   final table = RouteTable()
     ..add('GET', '/health', _health)
     ..add('GET', '/v1/me', signedIn(_me));
   addDeviceRoutes(table, signedIn);
-  addAppLinkRoutes(table, appLinks ?? AppLinks.fromEnvironment(const {}));
+  addAppLinkRoutes(
+    table,
+    appLinks ?? AppLinks.fromEnvironment(const {}),
+    inviteLinkBase: linkBase,
+  );
   addCatalogRoutes(table, signedIn);
   addCatalogAdminRoutes(table, signedIn);
   addHouseholdDataRoutes(table, signedIn);
   addChangeNoticeRoutes(table, signedIn);
   addPreferenceRoutes(table, signedIn);
   addReminderRoutes(table, signedIn, push);
-  addHouseholdRoutes(
-    table,
-    signedIn,
-    inviteLinkBase: inviteLinkBase ?? defaultInviteLinkBase,
-  );
+  addHouseholdRoutes(table, signedIn, inviteLinkBase: linkBase);
   return Api(
     const Pipeline().addMiddleware(_jsonErrors()).addHandler(table.router.call),
     List.unmodifiable(table.routes),

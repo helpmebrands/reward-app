@@ -96,6 +96,7 @@ final cases = <Case>[
     url: '/invite/ABCD2345',
     needsDatabase: false,
   ),
+  call('GET', '/og/invite.png', 200, needsDatabase: false),
   call(
     'GET',
     '/invite/{code}',
@@ -841,8 +842,13 @@ Future<List<String>> check(
   }
   final documented = responseFor(spec, c.op, c.status);
   if (documented == null) return ['$label: status not documented'];
-  final text = await response.readAsString();
   final content = documented['content'] as Map<String, dynamic>?;
+  if (content != null && content.containsKey('image/png')) {
+    return response.headers['content-type'] == 'image/png'
+        ? const []
+        : ['$label: not a PNG'];
+  }
+  final text = await response.readAsString();
   if (content == null) {
     return text.isEmpty ? const [] : ['$label: body where none is documented'];
   }

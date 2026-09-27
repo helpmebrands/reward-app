@@ -251,4 +251,9 @@ jobs:
             *'"status":"ok"'*) ;;
             *) echo "unexpected body"; exit 1 ;;
           esac
+          echo "--- invite card"
+          type=$(curl -fsS -o /tmp/invite-og.png -w '%{content_type}' http://localhost:8081/og/invite.png)
+          echo "  $type, $(wc -c < /tmp/invite-og.png) bytes"
+          [ "$type" = "image/png" ] || { echo "unexpected type"; exit 1; }
+          cmp -s /tmp/invite-og.png services/api/assets/invite-og.png || { echo "not the committed card"; exit 1; }
           docker rm -f reward-api-test
