@@ -13,6 +13,7 @@ import 'package:reward/screens/today_screen.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/empty_card_slot.dart';
 import 'package:reward/widgets/today_headline.dart';
+import 'package:reward/widgets/value_bar.dart';
 
 import 'contrast_test.dart' show ratio;
 import 'support/fake_api.dart';
@@ -91,6 +92,13 @@ void main() {
     expect(find.text(heading), findsOneWidget);
     expect(firstHeader(tester), heading);
     handle.dispose();
+  });
+
+  // @lat: [[mobile-tests#Today empty state#No value bar without a card]]
+  testWidgets('with no active card Today draws no value bar', (tester) async {
+    await pumpApp(tester);
+    expect(find.text(heading), findsOneWidget);
+    expect(find.byType(ValueBar), findsNothing);
   });
 
   // @lat: [[mobile-tests#Today empty state#The body clears 4.5:1 in both themes]]

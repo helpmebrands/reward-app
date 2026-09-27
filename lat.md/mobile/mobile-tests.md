@@ -97,6 +97,12 @@ With a spend-gated Dell bonus added to the sample household, the section is titl
 
 The three largest overlaps from the fixture appear as cards with their label, count and combined unclaimed value.
 
+### The household value bar sits under the headline
+
+At compact, medium and expanded, Today draws one `ValueBar` whose breakdown is the sum of every active card's `cardYearToDateBreakdown`, below the headline and above the first row.
+
+Its sentence is read after "Today" and before the "Use soon" section.
+
 ### Medium pairs the overlap cards
 
 `today_layout_test.dart` renders Today bare inside a `WidthClassScope`. At medium the first two overlap cards share a top edge and sit side by side and the third starts a new row under the first; at compact they stack.
@@ -168,6 +174,10 @@ An all-zero breakdown draws the 8-high track, no segments and no text.
 ### The heading is the screen's first header
 
 With no cards, "Add a card to start tracking its credits" is shown and is the first node flagged as a header in traversal order.
+
+### No value bar without a card
+
+With no card, Today shows the empty state and no `ValueBar`.
 
 ### The body clears 4.5:1 in both themes
 
