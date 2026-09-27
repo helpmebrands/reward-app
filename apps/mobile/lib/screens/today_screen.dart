@@ -443,10 +443,6 @@ class _EmptyToday extends StatelessWidget {
           const SizedBox(height: Space.s2),
           TextButton(
             key: const Key('today-invite-code'),
-            style: TextButton.styleFrom(
-              minimumSize: const Size(48, 48),
-              visualDensity: VisualDensity.standard,
-            ),
             onPressed: () => _enterCode(context),
             child: Text(
               'Joining a household? Enter an invite code',

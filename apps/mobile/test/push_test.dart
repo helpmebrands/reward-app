@@ -86,7 +86,12 @@ Future<App> pump(
 Finder key(String k) => find.byKey(Key(k));
 
 Future<void> tapFinder(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
+  // Settings is a lazy list, so a row below the fold may not be built yet.
+  await tester.scrollUntilVisible(
+    finder,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();

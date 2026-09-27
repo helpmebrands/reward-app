@@ -24,6 +24,30 @@ In both themes the accent's OKLCH hue is within 10° of the logo's "reward" maro
 
 In both themes the "use soon" and "missed" tone lines are at least 70° apart in OKLCH hue, wider than the 60° they had before #291, so an urgent row never reads as a lost one.
 
+## Control sizes
+
+`control_sizes_test.dart` pumps each kind of control under both themes and measures its drawn surface apart from its tap padding, so the HIG floor in [[mobile-architecture#Theme]] cannot slip (#335).
+
+### Buttons are drawn 44 and respond to 48
+
+`FilledButton`, `OutlinedButton`, `TextButton` and their `.icon` variants each draw a `Material` exactly 44 high inside a box at least 48 high, in light and dark.
+
+### Icon buttons are drawn 44 square
+
+An `IconButton` draws a 44 x 44 surface around a 24 glyph, and its tap target is at least 48 x 48.
+
+### Segmented buttons are drawn 44
+
+A `SegmentedButton`'s painted outline is 44 high, measured from its paint calls because the segments fill the touch area, and the whole control is at least 48 high.
+
+### Chips are drawn 40 and respond to 48
+
+A selected and an unselected `ChoiceChip` and a selected `FilterChip` each draw 40 high in a box at least 48 high.
+
+### A selected chip shows a check mark
+
+A selected `ChoiceChip` is wider than the same chip unselected because it carries a check mark, and the theme gives the mark a colour.
+
 
 ## Brand lockup
 
@@ -876,6 +900,14 @@ The soon, available, locked, captured and missed foregrounds each clear 4.5:1 on
 Today is rendered in each theme and every `Text` inside an overlap card is read back with its own style colour; each clears 4.5:1 on the section ground.
 
 The light theme's secondary text does not clear it there, which is why the card's body is neutral-300 as in the PWA.
+
+### A selected chip's label holds on its fill
+
+The theme's selected chip fill is a step of the accent ramp, and the label and check mark colour on it clear 4.5:1 in both modes.
+
+### An unselected chip's outline reaches 3:1
+
+An unselected chip's outline clears 3:1 and its label 4.5:1 on each of the five grounds in both modes.
 
 ## Store
 

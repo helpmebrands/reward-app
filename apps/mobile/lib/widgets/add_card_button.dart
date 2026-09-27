@@ -21,10 +21,6 @@ class AddCardButton extends StatelessWidget {
     final first = store.data?.cards.isEmpty ?? true;
     return FilledButton(
       key: const Key('empty-add-card'),
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 48),
-        visualDensity: VisualDensity.standard,
-      ),
       onPressed: () => context.push(Paths.newCard),
       child: Text(first ? 'Add your first card' : 'Add a card'),
     );

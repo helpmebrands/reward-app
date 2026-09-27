@@ -388,9 +388,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
                     key: const Key('filters-button'),
                     focusNode: _filtersFocus,
                     onPressed: _openFilters,
-                    style: OutlinedButton.styleFrom(
-                      visualDensity: VisualDensity.standard,
-                    ),
                     icon: Badge(
                       isLabelVisible: filter.activeCount > 0,
                       label: Text('${filter.activeCount}'),
@@ -402,19 +399,11 @@ class _AddCardScreenState extends State<AddCardScreen> {
                   TextButton(
                     key: const Key('clear-all'),
                     onPressed: _filter.clear,
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 48),
-                      visualDensity: VisualDensity.standard,
-                    ),
                     child: const Text('Clear all'),
                   ),
                 FilledButton.icon(
                   key: const Key('add-manually-top'),
                   onPressed: _pickBlank,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    visualDensity: VisualDensity.standard,
-                  ),
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(
                     widthClass == WidthClass.compact
@@ -485,10 +474,6 @@ class _AddCardScreenState extends State<AddCardScreen> {
             child: TextButton(
               key: const Key('add-manually-end'),
               onPressed: _pickBlank,
-              style: TextButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                visualDensity: VisualDensity.standard,
-              ),
               child: const Text('Enter it manually'),
             ),
           ),

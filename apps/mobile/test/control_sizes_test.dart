@@ -82,10 +82,7 @@ void main() {
         IconButton(onPressed: () {}, icon: const Icon(Icons.settings)),
       );
       final control = find.byType(IconButton);
-      final paint = tester.getSize(
-        find.descendant(of: control, matching: find.byType(InkResponse)).first,
-      );
-      expect(paint, const Size(44, 44));
+      expect(drawn(tester, control), const Size(44, 44));
       final target = tester.getSize(control);
       expect(target.width, greaterThanOrEqualTo(48));
       expect(target.height, greaterThanOrEqualTo(48));
@@ -110,15 +107,27 @@ void main() {
           onSelectionChanged: (_) {},
         ),
       );
-      final segment = find.descendant(
-        of: find.byType(SegmentedButton<int>),
-        matching: find.byType(TextButton),
-      );
-      expect(drawn(tester, segment.first).height, 44);
+      // The segments fill the touch area; the outline is what is drawn.
+      final control = find.byType(SegmentedButton<int>);
+      final outline = <Rect>[];
       expect(
-        tester.getSize(find.byType(SegmentedButton<int>)).height,
-        greaterThanOrEqualTo(48),
+        tester.renderObject(
+          find.descendant(
+            of: control,
+            matching: find.byWidgetPredicate(
+              (w) => '${w.runtimeType}'.startsWith('_SegmentedButtonRender'),
+            ),
+          ),
+        ),
+        paints..something((method, args) {
+          if (method != #drawRRect) return false;
+          outline.add((args.first as RRect).outerRect);
+          return true;
+        }),
       );
+      // The stroke is 1 wide and centred on the rounded rectangle.
+      expect(outline.single.height + 1, 44);
+      expect(tester.getSize(control).height, greaterThanOrEqualTo(48));
     }
   });
 
