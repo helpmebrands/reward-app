@@ -411,7 +411,7 @@ At a 1.6 text scale the Credits status chips wrap onto more than one row, and ad
 
 ### Tapping the title toggles on every screen
 
-Tapping the title text flips Settings' "Send me reminders", the credit sheet's "Last call only" and "Silence this credit", and the card editor's "Silence every credit" and "Archive this card", each read back from the store.
+Tapping the title text flips Settings' "Send me reminders" and the card editor's "Silence every credit" and "Archive this card", each read back from the store.
 
 ### A disabled row ignores taps
 
@@ -621,7 +621,7 @@ Uber Cash shows "This period runs Sep 1 – Sep 30 (Sep 2026)." and its ladder; 
 
 ### Enrollment, tracking and the switches write the benefit
 
-"Needs enrollment" requires enrollment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written; "Last call only" sets it.
+"Needs enrollment" requires enrollment and shows "Not yet — the credit is locked."; "Enrolled" stamps it; "not a url" shows the address sentence and a real address is written.
 
 "Opted out" stamps `optedOutAt` and leaves `active` alone. There is no "Track this credit" switch any more; the "Opted out" switch carries the note "You won’t use this. It stays off your lists and totals until you reactivate it."
 
@@ -1177,10 +1177,6 @@ Tapping $35 records a $35 claim.
 
 The two claims appear newest first, $20 above $10; "Remove the $20 logged on Sep 10" leaves only the $10 claim and the balance reads $90.
 
-### Silence and last call are switches on the sheet
-
-The switch labelled "Silence reminders for …" mutes the benefit and "Last call only for …" sets `lastCallOnly`.
-
 ### Opting out from the sheet closes it and leaves Today
 
 "Opt out — I won't use this" closes the sheet, opts the credit out with the same snackbar as the swipe, and the credit's row leaves Today.
@@ -1435,17 +1431,57 @@ When the mute lands but the api drops before the follow-up refresh, the device s
 
 Without an api, `toggleBenefitMute` mutes before its future completes and `isMutePending` is never true.
 
-### The sheet's switch is disabled in flight
-
-On the credit sheet, tapping "Silence this credit" with `setMute` held shows the switch on with a null `onChanged`; after the server answers it is on and enabled, and the snackbar's Undo turns it off on the server too.
-
-### A refused switch returns to off
-
-When `setMute` refuses, the sheet's "Silence this credit" switch ends off and enabled.
-
 ### Card editor and row bell are disabled in flight
 
 "Silence every credit" on the card editor and the bell on a Today row sit at the requested state with no callback while `setMute` is held, and are enabled again once it completes.
+
+## Notification levels
+
+`notification_levels_test.dart` drives the per-member level control over a fake api that stores mutes and last calls and can hold or refuse the level route, pinning [[mobile-architecture#The store#Notification levels in flight]].
+
+### Each level goes to the api
+
+`setNotificationLevel` to Last chance, Silence and Periodically each leaves the api's mute and last-call ids as `withLevel` says, and `notificationLevel` reads the level back.
+
+### A level in flight shows the request
+
+While the level route is held, `notificationLevel` reports the requested level and `isMutePending` is true; once it answers, it is false and the level stays.
+
+### A refused level returns to the old one
+
+A refused or offline level route leaves Periodically, nothing pending, and `problem` set (`offlineMessage` when offline).
+
+### Unsilencing returns to Last chance
+
+From Last chance, the row bell's `toggleBenefitMute` silences and a second toggle returns the credit to Last chance, because Silence keeps last call.
+
+### A local level is written at once
+
+Without an api the level shows before its future completes, is never pending, and lands in the saved preferences.
+
+### The sheet has the control and no ladder
+
+The credit sheet shows "Notification levels" with Periodically, Last chance and Silence, Periodically selected with its note "23 days, 7 days and the last day before it shuts", and no "Reminder ladder", "Last call only" or "Silence this credit".
+
+### The sheet's control waits for the server
+
+Choosing Last chance with the route held shows it selected with no `onSelectionChanged`; after the answer it is selected and enabled with "Only on the last day", and the snackbar's Undo restores Periodically on the server.
+
+### A refused level on the sheet is enabled again
+
+When the route refuses, the sheet shows Periodically selected and enabled.
+
+### A silenced card shows Silence, disabled
+
+With the credit's card muted, the control shows Silence with no callback and the note "The whole card is silenced. Unsilence it on the card to choose."
+
+### A reader sets their own level
+
+A reader chooses Last chance on the sheet and it is sent and selected, since the level is the member's own.
+
+### The credit editor offers the same levels
+
+The credit editor shows "Notification levels" in place of the two switches; choosing Silence mutes the credit on the server and Periodically clears it.
 
 ## System and user cards
 

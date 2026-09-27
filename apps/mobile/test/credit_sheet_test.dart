@@ -312,33 +312,6 @@ void main() {
       expect(inSheet('\$90'), findsOneWidget);
     });
 
-    // @lat: [[mobile-tests#Credit sheet#Silence and last call are switches on the sheet]]
-    testWidgets('the silence and last-call switches write the benefit', (
-      tester,
-    ) async {
-      final app = await openResy(tester, phone);
-
-      final silence = find.descendant(
-        of: sheet,
-        matching: find.bySemanticsLabel(
-          'Silence reminders for Resy Dining Credit',
-        ),
-      );
-      await tester.ensureVisible(silence);
-      await tester.tap(silence);
-      await tester.pumpAndSettle();
-      expect(
-        app.store.isBenefitMuted(app.store.data!.benefits.first.id),
-        isTrue,
-      );
-
-      await tester.tap(
-        find.bySemanticsLabel('Last call only for Resy Dining Credit'),
-      );
-      await tester.pumpAndSettle();
-      expect(app.store.data!.benefits.first.lastCallOnly, isTrue);
-    });
-
     // @lat: [[mobile-tests#Credit sheet#Opting out from the sheet closes it and leaves Today]]
     testWidgets('Opt out closes the sheet and takes the row off Today', (
       tester,

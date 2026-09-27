@@ -165,55 +165,6 @@ void main() {
   });
 
   group('controls', () {
-    // @lat: [[mobile-tests#Member mutes#The sheet's switch is disabled in flight]]
-    testWidgets(
-      'the sheet switch sits on, disabled, until the server answers',
-      (tester) async {
-        final api = FakeApi();
-        final store = await loaded(api);
-        final ui = await pumpAt(tester, store);
-        ui.openCredit('benefit-1');
-        await tester.pumpAndSettle();
-
-        final hold = api.holdMute = Completer<void>();
-        final silence = find.widgetWithText(SwitchRow, 'Silence this credit');
-        await tester.ensureVisible(silence);
-        await tester.tap(silence);
-        await tester.pump();
-        expect(switchRow(tester, 'Silence this credit').value, isTrue);
-        expect(switchRow(tester, 'Silence this credit').onChanged, isNull);
-
-        hold.complete();
-        await tester.pumpAndSettle();
-        expect(switchRow(tester, 'Silence this credit').value, isTrue);
-        expect(switchRow(tester, 'Silence this credit').onChanged, isNotNull);
-
-        // The snackbar's Undo goes back through the same path.
-        ui.snackbar.current!.action!.onAct();
-        await tester.pumpAndSettle();
-        expect(switchRow(tester, 'Silence this credit').value, isFalse);
-        expect(api.mutedBenefitIds, isEmpty);
-      },
-    );
-
-    // @lat: [[mobile-tests#Member mutes#A refused switch returns to off]]
-    testWidgets('a refused mute puts the switch back off and enabled', (
-      tester,
-    ) async {
-      final api = FakeApi()..muteAnswer = const ApiError(500, 'boom');
-      final store = await loaded(api);
-      final ui = await pumpAt(tester, store);
-      ui.openCredit('benefit-1');
-      await tester.pumpAndSettle();
-
-      final silence = find.widgetWithText(SwitchRow, 'Silence this credit');
-      await tester.ensureVisible(silence);
-      await tester.tap(silence);
-      await tester.pumpAndSettle();
-      expect(switchRow(tester, 'Silence this credit').value, isFalse);
-      expect(switchRow(tester, 'Silence this credit').onChanged, isNotNull);
-    });
-
     // @lat: [[mobile-tests#Member mutes#Card editor and row bell are disabled in flight]]
     testWidgets('the card editor switch and the row bell wait in flight', (
       tester,

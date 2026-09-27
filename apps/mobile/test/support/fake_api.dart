@@ -124,10 +124,16 @@ class FakeApi implements HouseholdApi {
   final mutedCardIds = <String>{};
   final mutedBenefitIds = <String>{};
 
-  /// Holds the next `setMute` open until completed.
+  /// Credits the member hears about only on the last rung, as the server
+  /// holds them.
+  final lastCallBenefitIds = <String>{};
+
+  /// Holds the next `setMute` or `setNotificationLevel` open until
+  /// completed.
   Completer<void>? holdMute;
 
-  /// Thrown by `setMute` (after any hold) instead of recording the mute.
+  /// Thrown by `setMute` or `setNotificationLevel` (after any hold) instead
+  /// of recording it.
   Object? muteAnswer;
 
   @override
@@ -136,6 +142,7 @@ class FakeApi implements HouseholdApi {
     return defaultMemberPreferences.copyWith(
       mutedCardIds: {...mutedCardIds},
       mutedBenefitIds: {...mutedBenefitIds},
+      lastCallBenefitIds: {...lastCallBenefitIds},
     );
   }
 
@@ -159,6 +166,28 @@ class FakeApi implements HouseholdApi {
     final ids = cardId != null ? mutedCardIds : mutedBenefitIds;
     final id = cardId ?? benefitId!;
     muted ? ids.add(id) : ids.remove(id);
+  }
+
+  @override
+  Future<void> setNotificationLevel(
+    String benefitId,
+    NotificationLevel level,
+  ) async {
+    _check();
+    final hold = holdMute;
+    if (hold != null) {
+      holdMute = null;
+      await hold.future;
+    }
+    final answer = muteAnswer;
+    if (answer != null) throw answer;
+    final next = withLevel(await preferences(), benefitId, level);
+    mutedBenefitIds
+      ..clear()
+      ..addAll(next.mutedBenefitIds);
+    lastCallBenefitIds
+      ..clear()
+      ..addAll(next.lastCallBenefitIds);
   }
 
   @override

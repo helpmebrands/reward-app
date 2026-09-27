@@ -444,11 +444,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(benefitOf(app, uber).optedOutAt, now.toUtc().toIso8601String());
       expect(benefitOf(app, uber).active, isTrue);
-
-      await show(tester, find.bySemanticsLabel('Last call only'));
-      await tester.tap(find.bySemanticsLabel('Last call only'));
-      await tester.pumpAndSettle();
-      expect(benefitOf(app, uber).lastCallOnly, isTrue);
     });
 
     // @lat: [[mobile-tests#Editors#A rolling credit asks for its interval and hides the anchor]]

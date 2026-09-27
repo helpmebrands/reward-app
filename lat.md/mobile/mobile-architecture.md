@@ -125,6 +125,12 @@ In the service-tier mode a mute switch shows the server's resting state; while `
 
 `toggleBenefitMute` and `toggleCardMute` record the requested state per id, notify, and send `setMute(muted: requested)`. While the entry is there `isBenefitMuted` / `isCardMuted` and the instances report it and `isMutePending(id)` is true, so "Silence this credit" on the credit sheet and credit editor, "Silence every credit" on the card editor and the row's bell have no callback. The store never toggles its preferences locally: `_edit`'s refresh brings the server's mutes back, and when the request ends the entry is cleared and the control shows whatever the server holds, the old state with `problem` set if it refused or was offline. If the mute landed but the refresh failed, the requested state is applied so the device matches what the server accepted. A second tap on a pending id is ignored. Without an api the toggle stays synchronous and nothing is ever pending. Decided in #352, after a refresh and a local toggle cancelled out; pinned by [[mobile-tests#Member mutes]].
 
+### Notification levels in flight
+
+A credit's notification level ([[domain#Member preferences#Notification levels]]) is the member's own, so a reader sets it too; the store reads it with `notificationLevel(id)`, `levelFor` over the shown preferences.
+
+`setNotificationLevel(id, level)` follows the mute rule above: in the service-tier mode it records the requested level per id, notifies, and sends `setNotificationLevel` to `PUT /v1/me/benefits/{id}/level`; the shown preferences apply `withLevel` for it and `isMutePending(id)` is true, so the level control and the row's bell have no callback until the api answers. Then the server's state shows, the old level with `problem` set on a refusal or offline; a level that landed but whose refresh failed is applied. Without an api it writes `withLevel` at once. The row bell's `toggleBenefitMute` still flips only the mute, so unsilencing returns to Last chance when that was the level. Pinned by [[mobile-tests#Notification levels]].
+
 ## State management
 
 The app manages state with Flutter's own primitives and adds no state management or injection package: `ChangeNotifier` and `ValueNotifier` hold state, the builder widgets subscribe, and `setState` covers what one widget owns.

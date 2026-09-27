@@ -6,7 +6,6 @@ import 'package:reward/shell/router.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/switch_row.dart';
 
-import 'credit_sheet_test.dart' as sheet;
 import 'editors_test.dart' as editors;
 import 'settings_screen_test.dart' as settings;
 
@@ -38,17 +37,6 @@ void main() {
       expect(store.preferences.enabled, isFalse);
       await tapTitle(tester, 'Send me reminders');
       expect(store.preferences.enabled, isTrue);
-    });
-
-    testWidgets('credit sheet: Last call only and Silence this credit', (
-      tester,
-    ) async {
-      final app = await sheet.openResy(tester, sheet.phone);
-      final id = app.store.data!.benefits.first.id;
-      await tapTitle(tester, 'Last call only');
-      expect(app.store.data!.benefits.first.lastCallOnly, isTrue);
-      await tapTitle(tester, 'Silence this credit');
-      expect(app.store.isBenefitMuted(id), isTrue);
     });
 
     testWidgets('card editor: Silence every credit and Archive this card', (
