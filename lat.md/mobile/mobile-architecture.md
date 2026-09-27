@@ -338,6 +338,17 @@ Its job is to make logging a partial amount as easy as logging the whole thing. 
 
 All three wrap the presentation in `Semantics(scopesRoute, namesRoute)` labelled with the credit's name, so a screen reader hears it as a dialog; a `FocusScope` keeps keyboard traversal inside, the host remembers the focused node on open, moves focus into the scope once the sheet is built (autofocus alone is honoured only when nothing behind has focus) and hands it back after close; `CallbackShortcuts` above the scope closes on Escape; and a `PopScope` with `canPop` false while open closes on the system back, leaving predictive back intact. The scrim is a dismissible `ModalBarrier` labelled "Close …". Pinned by [[mobile-tests#Credit sheet]]; every state and width has a Widget Preview.
 
+## Value bar
+
+`ValueBar` in `apps/mobile/lib/widgets/value_bar.dart` draws a [[domain#Value breakdown]] as four segments, Earned · Available · Missed · Opt out, each as wide as its share of the total (#371).
+
+- **Shape**: 8 high with a 4 radius on the track, segments 2 apart, a $0 segment not drawn. The track is `surfaceSunken`, so an all-zero breakdown draws an empty track and no labels.
+- **Colours**: four tokens on `NocturneTokens`, `valueEarned`, `valueAvailable`, `valueMissed` and `valueOptOut`. The bar's missed is yellow as designed; the missed status tone stays violet everywhere else.
+- **Labels**: each segment's amount in whole dollars over its label, centred under the segment. A block that would hit its left neighbour slides right past it, and one that would then run off the end drops to a new row. A small render object lays each block out at its own size, so the rows follow the text scale to 200%.
+- **Semantics**: one node labelled by `valueBarSentence`, e.g. "$540 earned, $770 available, $180 missed, $360 opt out", with the drawn text excluded, so status never rests on colour alone.
+
+Pinned by [[mobile-tests#Value bar]]; previews show four segments, a narrow missed segment, a single segment and the empty track in both themes.
+
 ## Credits screen
 
 `CreditsScreen` is the PWA's ledger ([[design#Screens]]): everything that exists and where it stands, including what Today hides, with four totals, and a fifth for what is opted out, that are never one.

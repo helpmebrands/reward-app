@@ -73,7 +73,9 @@ void main() {
     for (var i = 0; i < 4; i++) {
       expect(rects[i].height, 8);
       expect(rects[i].width, moreOrLessEquals(amounts[i] / total * drawn));
-      if (i > 0) expect(rects[i].left - rects[i - 1].right, moreOrLessEquals(2));
+      if (i > 0) {
+        expect(rects[i].left - rects[i - 1].right, moreOrLessEquals(2));
+      }
     }
     expect(rects.first.left, 0);
     expect(rects.last.right, moreOrLessEquals(360));
