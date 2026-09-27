@@ -41,7 +41,9 @@ void main() {
     await store.load();
     await tester.pumpWidget(RewardApp(store: store));
     await tester.pumpAndSettle();
-    final context = tester.element(find.text('Start with one card'));
+    final context = tester.element(
+      find.text('Add a card to start tracking its credits'),
+    );
     expect(Theme.of(context).colorScheme.primary, NocturneTokens.dark.accent);
     expect(
       Theme.of(context).extension<NocturneTokens>()!.soon.ground,

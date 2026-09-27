@@ -17,6 +17,7 @@ class ScreenTitle extends StatefulWidget {
     this.text,
     this.windowTitle,
     this.style,
+    this.textAlign,
   });
 
   /// What the heading says to a screen reader, and the window title unless
@@ -27,6 +28,7 @@ class ScreenTitle extends StatefulWidget {
   final String? text;
   final String? windowTitle;
   final TextStyle? style;
+  final TextAlign? textAlign;
 
   @override
   State<ScreenTitle> createState() => ScreenTitleState();
@@ -100,7 +102,11 @@ class ScreenTitleState extends State<ScreenTitle> {
           focusable: true,
           focused: focusNode.hasFocus,
           excludeSemantics: true,
-          child: Text(widget.text ?? widget.label, style: widget.style),
+          child: Text(
+            widget.text ?? widget.label,
+            style: widget.style,
+            textAlign: widget.textAlign,
+          ),
         ),
       ),
     );

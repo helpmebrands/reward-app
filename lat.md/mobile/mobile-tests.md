@@ -87,7 +87,7 @@ The labels of the semantics tree in traversal order at expanded are exactly the 
 
 ### A fresh install shows the first-run screen
 
-With no snapshot the screen shows "Start with one card" and no rows.
+With no snapshot the screen shows the empty state's heading, "Add a card to start tracking its credits", and no rows ([[mobile-tests#Today empty state]]).
 
 ## Empty card slot
 
@@ -104,6 +104,58 @@ The widget is wrapped in `ExcludeSemantics` and the semantics tree under it carr
 ### Every edge clears 3:1 in both themes
 
 Reading the palette the widget paints with, the dashed card edge, the plain card edge and the plus badge each reach 3:1 against every colour they are drawn on, in dark and in light.
+
+## Today empty state
+
+`today_empty_state_test.dart` boots the app at Today on a household with no active card, locally or through the fake service tier, and pins the empty state ([[mobile-architecture#Today screen#Today before any card]]).
+
+### The heading is the screen's first header
+
+With no cards, "Add a card to start tracking its credits" is shown and is the first node flagged as a header in traversal order.
+
+### The body clears 4.5:1 in both themes
+
+The body text is shown, and its painted colour against the page reaches 4.5:1 in light and in dark.
+
+### Add your first card opens the catalogue and Back returns
+
+"Add your first card" pushes `/cards/new`; Back from the catalogue pops to Today, which still shows the empty state.
+
+### Only archived cards read Add a card
+
+With one archived card and no active one, the empty state shows and its button reads "Add a card".
+
+### Loading is not empty
+
+Before the store has loaded, Today shows the progress indicator and not the empty state.
+
+### The first card switches Today to its normal layout
+
+Adding a card from a template while Today is open replaces the empty state with the headline, without a restart.
+
+### A household with only locked credits is not empty
+
+A card whose only credit needs enrolment shows the normal layout with its locked section, not the empty state.
+
+### A reader sees no Add button
+
+A reader of a signed-in household with no cards sees the empty state and the invite button, and no Add button.
+
+### The invite button shows signed in and opens the join screen
+
+Locally there is no invite button. Signed in, "Joining a household? Enter an invite code" opens the invite dialog, and a code typed there opens the join screen for it.
+
+### Both buttons are 48 high
+
+The Add button and the invite button are each at least 48 high.
+
+### Stacked at compact and medium, side by side at expanded
+
+At 402×874 and 768×1024 the illustration sits above the heading, nothing overflows and the Add button is on screen; at 1280×832 the illustration is left of the heading and the Add button is fully on screen without scrolling.
+
+### The app bar and navigation stay
+
+The empty state is inside the shell: the Settings gear and the navigation bar are present.
 
 ## Today interactions
 
@@ -1241,7 +1293,7 @@ Run without it, `ApiConfig.baseUrl` is `ApiConfig.stagingUrl`.
 
 ### A fresh install launches to the first-run screen
 
-Booting the app with an empty snapshot store on a device reaches the Today screen and shows "Start with one card", proving the shell, the store and the screen wire together outside the test harness.
+Booting the app with an empty snapshot store on a device reaches the Today screen and shows "Add a card to start tracking its credits", proving the shell, the store and the screen wire together outside the test harness.
 
 ### The parity flow runs through every screen
 

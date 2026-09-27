@@ -52,7 +52,10 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     app.main();
     await settle(tester);
-    expect(find.text('Start with one card'), findsOneWidget);
+    expect(
+      find.text('Add a card to start tracking its credits'),
+      findsOneWidget,
+    );
   });
 
   // @lat: [[mobile-tests#End to end#The parity flow runs through every screen]]

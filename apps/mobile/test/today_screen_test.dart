@@ -173,7 +173,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Start with one card'), findsOneWidget);
+    expect(
+      find.text('Add a card to start tracking its credits'),
+      findsOneWidget,
+    );
     expect(find.byType(CreditRow), findsNothing);
   });
 }

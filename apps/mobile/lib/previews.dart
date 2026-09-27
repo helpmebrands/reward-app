@@ -360,6 +360,33 @@ Widget snackbarPlain() {
   );
 }
 
+AppStore _emptyStore() {
+  final store = AppStore(
+    store: MemorySnapshotStore(emptyAppData()),
+    clock: () => DateTime(2026, 9, 16),
+  );
+  store.load();
+  return store;
+}
+
+@Preview(name: 'Today, empty, dark', size: Size(402, 874))
+Widget todayEmptyDark() =>
+    _themed(TodayScreen(store: _emptyStore()), Brightness.dark);
+
+@Preview(name: 'Today, empty, light', size: Size(402, 874))
+Widget todayEmptyLight() =>
+    _themed(TodayScreen(store: _emptyStore()), Brightness.light);
+
+/// From expanded the illustration moves beside the text.
+@Preview(name: 'Today, empty, expanded', size: Size(1280, 832))
+Widget todayEmptyExpanded() => _themed(
+  WidthClassScope(
+    widthClass: WidthClass.expanded,
+    child: TodayScreen(store: _emptyStore()),
+  ),
+  Brightness.dark,
+);
+
 @Preview(name: 'Today, interactive', size: Size(402, 874))
 Widget todayInteractive() {
   final store = _store();

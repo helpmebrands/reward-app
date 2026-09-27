@@ -1,13 +1,18 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:go_router/go_router.dart';
 
 import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
 import '../logic/ui_state.dart';
+import 'join_screen.dart';
+import '../shell/router.dart';
 import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
+import '../widgets/add_card_button.dart';
 import '../widgets/credit_row.dart';
+import '../widgets/empty_card_slot.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/today_headline.dart';
 
@@ -34,7 +39,7 @@ class TodayScreen extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (!store.hasCards) {
-          return const _FirstRun();
+          return _EmptyToday(store: store);
         }
         return _TodayBody(store: store, ui: ui);
       },
@@ -386,37 +391,104 @@ class _OverlapCard extends StatelessWidget {
   }
 }
 
-/// The first-run screen: one thing to do, and the reason to do it.
-class _FirstRun extends StatelessWidget {
-  const _FirstRun();
+/// Today before any active card: what to do, why it matters, and one
+/// button to the catalogue. It sits inside the shell, so Settings and
+/// household sharing stay a tap away; the invite button is there for a
+/// signed-in person who meant to join someone else's household.
+class _EmptyToday extends StatelessWidget {
+  const _EmptyToday({required this.store});
+
+  static const heading = 'Add a card to start tracking its credits';
+  static const body =
+      'Reward cards pay back through monthly, quarterly and yearly credits '
+      'that expire if you don’t use them. Add a card and HelpMe Reward will '
+      'show what’s about to close.';
+
+  final AppStore store;
+
+  Future<void> _enterCode(BuildContext context) async {
+    final code = await askForInviteCode(context);
+    if (code != null && context.mounted) context.go(invitePath(code));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
-    return Padding(
-      padding: const EdgeInsets.all(Space.s8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          ScreenTitle(
-            label: 'Today',
-            text: 'HelpMe Reward',
-            style: text.labelSmall,
-          ),
-          const SizedBox(height: Space.s6),
-          Semantics(
-            header: true,
-            headingLevel: 2,
-            child: Text('Start with one card', style: text.titleMedium),
-          ),
-          const SizedBox(height: Space.s3),
-          const Text(
-            'Pick it from the catalogue and its credits arrive pre-filled. HelpMe Reward then '
-            'warns you before each window shuts, and shows what the card is really worth '
-            'against its fee.',
-            textAlign: TextAlign.center,
+    final widthClass = WidthClass.of(context);
+    final expanded = widthClass == WidthClass.expanded;
+    final align = expanded ? TextAlign.start : TextAlign.center;
+
+    final words = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: expanded
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.stretch,
+      children: [
+        ScreenTitle(
+          label: heading,
+          windowTitle: 'Today',
+          style: text.titleLarge,
+          textAlign: align,
+        ),
+        const SizedBox(height: Space.s3),
+        Text(
+          body,
+          textAlign: align,
+          style: text.bodyMedium?.copyWith(color: tokens.textSecondary),
+        ),
+        const SizedBox(height: Space.s8),
+        AddCardButton(store: store),
+        if (store.remote) ...[
+          const SizedBox(height: Space.s2),
+          TextButton(
+            key: const Key('today-invite-code'),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(48, 48),
+              visualDensity: VisualDensity.standard,
+            ),
+            onPressed: () => _enterCode(context),
+            child: Text(
+              'Joining a household? Enter an invite code',
+              textAlign: align,
+            ),
           ),
         ],
+      ],
+    );
+
+    // Beside the text from expanded, so the button stays above the fold on
+    // a laptop; stacked and centred below that.
+    final content = expanded
+        ? Row(
+            children: [
+              const EmptyCardSlot(size: 200),
+              SizedBox(width: widthClass.padding),
+              Expanded(child: words),
+            ],
+          )
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: EmptyCardSlot(size: 160)),
+                const SizedBox(height: Space.s6),
+                words,
+              ],
+            ),
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: EdgeInsets.all(widthClass.padding),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.maxHeight - 2 * widthClass.padding,
+          ),
+          child: Center(child: content),
+        ),
       ),
     );
   }
