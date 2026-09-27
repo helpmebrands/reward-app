@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -25,7 +27,18 @@ abstract final class LogoLayers {
 
   /// The wordmark's and tagline's width in the stacked logo.
   static const double stackedWidth = 224;
+
+  /// `BrandLogo.stacked`'s artwork, `helpmereward-logo-vertical.png`, and
+  /// where its icon, two-line wordmark (`helpmereward-wordmark-stacked`)
+  /// and tagline sit in it, measured from its alpha.
+  static const Size vertical = Size(480, 511);
+  static const Rect verticalIcon = Rect.fromLTRB(130, 0, 351, 220);
+  static const Rect verticalWordmark = Rect.fromLTRB(74, 235, 405, 444);
+  static const Rect verticalTagline = Rect.fromLTRB(0, 490, 480, 511);
 }
+
+/// Where the hand-off lands: a target's rect and the logo it draws.
+typedef LogoLanding = ({Rect rect, LogoShape shape});
 
 /// The logo's hand-off from the native splash, played once per process
 /// over the first screen, [child]: the layers ([LogoHandOffLayers]) fly to
@@ -51,7 +64,7 @@ class _LogoHandOffState extends State<LogoHandOff>
   late final _targets = LogoTargets(widget.play);
   final _stackKey = GlobalKey();
   AnimationController? _progress;
-  Rect? _target;
+  LogoLanding? _target;
   bool _looked = false;
 
   bool get _playing => _targets.hidden;
@@ -78,7 +91,7 @@ class _LogoHandOffState extends State<LogoHandOff>
       if (!mounted) return;
       final target = _measure();
       // Too narrow for the icon beside the wordmark: place it with no move.
-      if (target != null && target.width < BrandLockup.lockupSize.width) {
+      if (target != null && _tooNarrow(target)) {
         progress.value = 1;
         return;
       }
@@ -93,16 +106,25 @@ class _LogoHandOffState extends State<LogoHandOff>
     if (_target != null || _looked || _progress!.value < 0.3) return;
     _looked = true;
     final target = _measure();
-    if (target != null && target.width >= BrandLockup.lockupSize.width) {
+    if (target != null && !_tooNarrow(target)) {
       setState(() => _target = target);
     }
   }
 
-  Rect? _measure() {
-    final box = _targets.laidOut;
+  /// A lockup given less than its width shows the wordmark alone.
+  bool _tooNarrow(LogoLanding target) =>
+      target.shape == LogoShape.lockup &&
+      target.rect.width < BrandLockup.lockupSize.width;
+
+  LogoLanding? _measure() {
+    final target = _targets.laidOut;
     final stack = _stackKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || stack == null) return null;
-    return box.localToGlobal(Offset.zero, ancestor: stack) & box.size;
+    if (target == null || stack == null) return null;
+    final box = target.box;
+    return (
+      rect: box.localToGlobal(Offset.zero, ancestor: stack) & box.size,
+      shape: target.shape,
+    );
   }
 
   @override
@@ -155,8 +177,10 @@ class _LogoHandOffState extends State<LogoHandOff>
 /// 1. to 0.3, the wordmark and tagline fade in under the icon, which stays
 ///    where the splash drew it, forming the stacked logo;
 /// 2. from 0.3 to 0.8, the icon and wordmark move onto [target], the
-///    lockup's rect, while the tagline fades out by 0.5; with no target
-///    they fade out where they are instead;
+///    lockup's rect, while the tagline fades out by 0.5; onto a stacked
+///    logo the stacked layers form its artwork around the icon and the
+///    three move and scale onto their parts of it; with no target they
+///    fade out where they are instead;
 /// 3. the cover fades over the rest, uncovering the screen.
 ///
 /// Decoration only: the target keeps the one semantics node.
@@ -169,8 +193,9 @@ class LogoHandOffLayers extends StatelessWidget {
 
   final Animation<double> progress;
 
-  /// The lockup's rect in this widget's coordinates, once laid out.
-  final Rect? target;
+  /// The target's rect in this widget's coordinates, once laid out, and
+  /// its shape.
+  final LogoLanding? target;
 
   @override
   Widget build(BuildContext context) {
@@ -210,27 +235,65 @@ class LogoHandOffLayers extends StatelessWidget {
                 0.8,
                 curve: Curves.easeInOutCubic,
               ).transform(t);
-              final target = this.target;
+              final target = this.target?.rect;
+              final stacked = this.target?.shape == LogoShape.stacked;
               // With nowhere to land, the move is a fade where they stand.
               final shown = target == null
                   ? 1 - const Interval(0.3, 0.8).transform(t)
                   : 1.0;
-              final taglineOpacity =
-                  fadeIn * (1 - const Interval(0.3, 0.5).transform(t));
-              final icon = target == null
-                  ? splash
-                  : Rect.lerp(
-                      splash,
-                      LogoLayers.lockupIcon.shift(target.topLeft),
-                      move,
-                    )!;
-              final wordmark = target == null
-                  ? stackedWordmark
-                  : Rect.lerp(
-                      stackedWordmark,
-                      LogoLayers.lockupWordmark.shift(target.topLeft),
-                      move,
-                    )!;
+              final taglineOpacity = stacked
+                  ? fadeIn
+                  : fadeIn * (1 - const Interval(0.3, 0.5).transform(t));
+              final Rect icon;
+              final Rect wordmark;
+              var taglineRect = tagline;
+              if (target == null) {
+                icon = splash;
+                wordmark = stackedWordmark;
+              } else if (stacked) {
+                // The vertical artwork, first scaled so its icon is the
+                // splash icon, then fitted to the target as the image is.
+                const art = LogoLayers.vertical;
+                final formed = extent / LogoLayers.verticalIcon.width;
+                final formedAt =
+                    splash.topLeft - LogoLayers.verticalIcon.topLeft * formed;
+                final landed = math.min(
+                  target.width / art.width,
+                  target.height / art.height,
+                );
+                final landedAt =
+                    target.center -
+                    Offset(art.width * landed / 2, art.height * landed / 2);
+                Rect at(Rect part, double scale, Offset origin) =>
+                    Rect.fromLTRB(
+                      origin.dx + part.left * scale,
+                      origin.dy + part.top * scale,
+                      origin.dx + part.right * scale,
+                      origin.dy + part.bottom * scale,
+                    );
+                Rect flight(Rect from, Rect part) =>
+                    Rect.lerp(from, at(part, landed, landedAt), move)!;
+                icon = flight(splash, LogoLayers.verticalIcon);
+                wordmark = flight(
+                  at(LogoLayers.verticalWordmark, formed, formedAt),
+                  LogoLayers.verticalWordmark,
+                );
+                taglineRect = flight(
+                  at(LogoLayers.verticalTagline, formed, formedAt),
+                  LogoLayers.verticalTagline,
+                );
+              } else {
+                icon = Rect.lerp(
+                  splash,
+                  LogoLayers.lockupIcon.shift(target.topLeft),
+                  move,
+                )!;
+                wordmark = Rect.lerp(
+                  stackedWordmark,
+                  LogoLayers.lockupWordmark.shift(target.topLeft),
+                  move,
+                )!;
+              }
 
               Widget layer(String name, String asset, Rect rect, double o) =>
                   Positioned.fromRect(
@@ -252,13 +315,15 @@ class LogoHandOffLayers extends StatelessWidget {
                     layer(
                       'tagline',
                       'helpmereward-tagline$suffix.png',
-                      tagline,
+                      taglineRect,
                       taglineOpacity,
                     ),
                   if (fadeIn > 0)
                     layer(
                       'wordmark',
-                      'helpmereward-wordmark$suffix.png',
+                      stacked
+                          ? 'helpmereward-wordmark-stacked$suffix.png'
+                          : 'helpmereward-wordmark$suffix.png',
                       wordmark,
                       fadeIn,
                     ),

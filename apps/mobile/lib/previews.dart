@@ -25,6 +25,7 @@ import 'shell/logo_hand_off.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
 import 'widgets/brand_lockup.dart';
+import 'widgets/brand_logo.dart';
 import 'widgets/credit_row.dart';
 import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
@@ -217,6 +218,14 @@ Widget logoHandOff() => MaterialApp(
   theme: nocturneTheme(Brightness.light),
   builder: (context, child) => LogoHandOff(play: true, child: child!),
   home: const Scaffold(appBar: BrandAppBar(widthClass: WidthClass.compact)),
+);
+
+/// The same hand-off onto Sign in's stacked logo, in the dark theme.
+@Preview(name: 'Logo hand-off onto the stacked logo', size: Size(402, 874))
+Widget logoHandOffStacked() => MaterialApp(
+  theme: nocturneTheme(Brightness.dark),
+  builder: (context, child) => LogoHandOff(play: true, child: child!),
+  home: const Scaffold(body: Center(child: BrandLogo.stacked())),
 );
 
 @Preview(name: 'Placeholder screen', size: Size(402, 300))

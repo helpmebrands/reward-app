@@ -955,6 +955,26 @@ A cold start into Settings, whose Today underneath is never laid out, keeps the 
 
 At the first frame, midway and after settling, the semantics tree has exactly one node labelled "HelpMe reward".
 
+### Sign in starts from the splash icon
+
+A signed-out cold start with the intro seen opens Sign in, whose first frame is the icon alone, centred at 120 on iOS, with the stacked logo not painted.
+
+### Sign in lands on the stacked logo
+
+At the end of the move the icon, two-line wordmark and tagline layers each cover their part of the 480 x 511 vertical artwork as fitted into the stacked `BrandLogo`'s rect; then layers and cover go and the logo is opaque.
+
+### The stacked layers follow the theme
+
+On Sign in the icon, `wordmark-stacked` and tagline layers draw their `-dark` files in the dark theme and the plain ones in light, like the native splash.
+
+### Sign in settles or skips
+
+On Sign in the sequence is over 999 ms after the first frame, and with `disableAnimations` the first frame is the finished screen with nothing animating.
+
+### Sign in keeps one logo node
+
+On Sign in, at the first frame, midway and after settling, exactly one node is labelled "HelpMe reward".
+
 ## Text scaling
 
 `text_scale_test.dart` carries WCAG 1.4.4 into Flutter terms ([[mobile-architecture#Accessibility]]): the platform text scale is honoured and Today survives 200% on a phone-width viewport.
