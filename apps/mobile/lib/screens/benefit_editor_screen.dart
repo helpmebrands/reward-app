@@ -336,29 +336,29 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
       children: [
         Text('Measured from', style: note),
         const SizedBox(height: Space.s2),
-        // Chips rather than a segmented button: two labels wrap onto two
-        // lines at a large text size instead of overflowing the column.
+        // A segment's label wraps onto a second line at a large text size
+        // rather than overflowing the column.
         Semantics(
           label: 'Measured from',
           container: true,
           explicitChildNodes: true,
-          child: Wrap(
-            spacing: Space.s2,
-            runSpacing: Space.s2,
-            children: [
-              for (final (anchor, label) in const [
-                (CycleAnchor.calendar, 'The calendar'),
-                (CycleAnchor.anniversary, 'Card anniversary'),
-              ])
-                ChoiceChip(
-                  label: Text(label),
-                  selected: current.anchor == anchor,
-                  onSelected: linked
-                      ? null
-                      : (_) =>
-                            _patch(current, (b) => b.copyWith(anchor: anchor)),
-                ),
+          child: SegmentedButton<CycleAnchor>(
+            expandedInsets: EdgeInsets.zero,
+            segments: const [
+              ButtonSegment(
+                value: CycleAnchor.calendar,
+                label: Text('The calendar'),
+              ),
+              ButtonSegment(
+                value: CycleAnchor.anniversary,
+                label: Text('Card anniversary'),
+              ),
             ],
+            selected: {current.anchor},
+            onSelectionChanged: linked
+                ? null
+                : (next) =>
+                      _patch(current, (b) => b.copyWith(anchor: next.single)),
           ),
         ),
         // The window those two fields produce, live.

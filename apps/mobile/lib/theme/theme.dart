@@ -48,8 +48,9 @@ ThemeData nocturneTheme(Brightness brightness) {
     materialTapTargetSize: MaterialTapTargetSize.padded,
     extensions: [tokens],
   );
-  // A selected chip is filled from the accent's tonal range with the ink on
-  // it and a check mark; an unselected one is outlined in the control border.
+  // A selected chip or segment is filled from the accent's tonal range with
+  // the ink on it and a check mark; an unselected chip is outlined in the
+  // control border.
   final chipFill = brightness == Brightness.dark
       ? tokens.accentRamp[800]!
       : tokens.accentRamp[900]!;
@@ -85,6 +86,9 @@ ThemeData nocturneTheme(Brightness brightness) {
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
         visualDensity: const VisualDensity(vertical: 1),
+        foregroundColor: tokens.text,
+        selectedForegroundColor: tokens.text,
+        selectedBackgroundColor: chipFill,
       ),
     ),
     chipTheme: ChipThemeData(

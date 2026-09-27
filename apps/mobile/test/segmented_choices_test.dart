@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/shell/router.dart';
 
@@ -27,6 +30,35 @@ Finder segmentedHolding(String option) => find.ancestor(
   matching: find.byWidgetPredicate((w) => w is SegmentedButton),
 );
 
+/// Loads the SDK's Roboto, the family the Android text theme names, so a
+/// label measures as it does on a device rather than in the test font,
+/// whose glyphs are each a full em wide.
+Future<void> loadRoboto() async {
+  final fonts =
+      '${Platform.environment['FLUTTER_ROOT']}'
+      '/bin/cache/artifacts/material_fonts';
+  final loader = FontLoader('Roboto');
+  for (final face in ['Regular', 'Medium']) {
+    final bytes = File('$fonts/Roboto-$face.ttf').readAsBytesSync();
+    loader.addFont(Future.value(ByteData.sublistView(bytes)));
+  }
+  await loader.load();
+}
+
+/// Scrolls the page's lazy list until [finder] is built and on screen.
+Future<void> reveal(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(
+    finder,
+    200,
+    scrollable: find
+        .byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+        )
+        .first,
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   // @lat: [[mobile-tests#Single choices#Each single-choice group is a segmented button]]
   testWidgets('each single-choice group is one segmented button', (
@@ -35,9 +67,8 @@ void main() {
     for (final (name, location, options) in groups) {
       await editors.pumpAt(tester, location);
       expect(find.byType(ChoiceChip), findsNothing, reason: name);
+      await reveal(tester, find.text(options.first));
       final control = segmentedHolding(options.first);
-      await tester.ensureVisible(control);
-      await tester.pumpAndSettle();
       expect(control, findsOneWidget, reason: name);
       for (final option in options) {
         expect(
@@ -53,21 +84,20 @@ void main() {
   testWidgets('each is drawn 44, fills its column and checks its selection', (
     tester,
   ) async {
+    await loadRoboto();
     for (final (name, location, options) in groups) {
       await editors.pumpAt(tester, location);
+      await reveal(tester, find.text(options.first));
       final control = segmentedHolding(options.first);
-      await tester.ensureVisible(control);
-      await tester.pumpAndSettle();
       expect(sizes.segmentedOutlineHeight(tester, control), 44, reason: name);
       expect(
         tester.getSize(control).height,
         greaterThanOrEqualTo(48),
         reason: name,
       );
-      final column = tester.getSize(
-        find.ancestor(of: control, matching: find.byType(Column)).first,
-      );
-      expect(tester.getSize(control).width, column.width, reason: name);
+      // Full width: as wide as the column lets it be.
+      final box = tester.renderObject<RenderBox>(control);
+      expect(box.size.width, box.constraints.maxWidth, reason: name);
       expect(
         find.descendant(of: control, matching: find.byIcon(Icons.check)),
         findsOneWidget,

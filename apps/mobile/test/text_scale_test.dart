@@ -144,9 +144,8 @@ void main() {
         size: const Size(402, 874),
         textScale: 2,
       );
+      await choices.reveal(tester, find.text(options.first));
       final control = choices.segmentedHolding(options.first);
-      await tester.ensureVisible(control);
-      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull, reason: name);
       for (final option in options) {
         final label = find.descendant(of: control, matching: find.text(option));
