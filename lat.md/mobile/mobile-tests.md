@@ -341,6 +341,26 @@ On each tab the button pushes the catalogue, and Back returns to that tab.
 
 With only an archived card the button reads "Add a card" on each tab, and a reader of an empty signed-in household sees no Add button.
 
+## Switch rows
+
+`switch_row_test.dart` pins Apple's rule that a switch row is one target: the row flips, not only the switch ([[mobile-architecture#The editors]], #330).
+
+### Tapping the title toggles on every screen
+
+Tapping the title text flips Settings' "Send me reminders", the credit sheet's "Last call only" and "Silence this credit", and the card editor's "Silence every credit" and "Archive this card", each read back from the store.
+
+### A disabled row ignores taps
+
+A `SwitchRow` with a null `onChanged` stays off when its title or its switch is tapped, and its node reports disabled.
+
+### Each row is one semantics node
+
+The row's node carries its label, its note as the hint, the toggled state and a tap action, no child is a node of its own, and a semantics tap flips it.
+
+### The credit sheet has no switch row of its own
+
+`credit_sheet.dart` defines no private `_SwitchRow`; the sheet uses the shared `SwitchRow`.
+
 ## Field
 
 `field_test.dart` pumps one required `Field` around a text field with the domain's `requiredError` and a second field to blur into ([[mobile-architecture#Forms and the Field pattern]]).

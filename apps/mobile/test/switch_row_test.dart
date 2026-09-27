@@ -82,7 +82,7 @@ void main() {
     expect(tester.widget<Switch>(find.byType(Switch)).value, isFalse);
     expect(
       tester.getSemantics(find.byType(SwitchRow)),
-      containsSemantics(hasEnabledState: true, isEnabled: false),
+      isSemantics(hasEnabledState: true, isEnabled: false),
     );
   });
 
@@ -105,7 +105,7 @@ void main() {
     final node = tester.getSemantics(find.byType(SwitchRow));
     expect(
       node,
-      containsSemantics(
+      isSemantics(
         label: 'Archive this card',
         hint: 'Hides it everywhere and keeps its history.',
         hasToggledState: true,
@@ -115,8 +115,8 @@ void main() {
     );
     // Nothing inside the row is a node of its own.
     var children = 0;
-    node.visitChildren((_) {
-      children++;
+    node.visitChildren((c) {
+      if (!c.isMergedIntoParent) children++;
       return true;
     });
     expect(children, 0);

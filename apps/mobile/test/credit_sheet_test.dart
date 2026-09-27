@@ -524,7 +524,11 @@ void main() {
             flags.isButton ||
             flags.isTextField ||
             flags.isToggled != Tristate.none;
-        if (control && node.label.isEmpty && node.tooltip.isEmpty) {
+        // A node merged into its parent is read as part of the parent.
+        if (control &&
+            !node.isMergedIntoParent &&
+            node.label.isEmpty &&
+            node.tooltip.isEmpty) {
           unlabelled.add(node.toString());
         }
         node.visitChildren((child) {
