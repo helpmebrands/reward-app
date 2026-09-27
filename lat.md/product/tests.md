@@ -171,6 +171,30 @@ Without preferences no instance is muted; a benefit mute marks only that credit,
 
 Every field reads back as written, and the muted ids write as sorted lists so the same preferences always give the same JSON.
 
+## Notification levels
+
+`levels_test.dart` pins a credit's three notification levels over the member's two flags ([[domain#Member preferences#Notification levels]]).
+
+### A credit's level comes from the member's flags
+
+Nothing set is Periodically, last-call is Last chance, a credit or card mute is Silence even with last-call set, and the household's transitional `lastCallOnly` reads as Last chance.
+
+### Choosing a level sets the two flags
+
+From each level, Periodically clears both flags, Last chance sets last-call and clears the mute, and Silence sets the mute and keeps last-call; other credits' flags are untouched.
+
+### Last chance collapses the member's schedule
+
+A monthly credit in the member's `lastCallBenefitIds` fires only on the last day; the same household with empty preferences fires on every rung left in the window.
+
+### Last call round-trips in the preferences
+
+`lastCallBenefitIds` writes as a sorted list and reads back; preferences saved before it existed load it empty.
+
+### Each level has a one-line note
+
+Periodically on a monthly credit reads "23 days, 7 days and the last day before it shuts", Last chance names only the final rung, and Silence reads "Keeps tracking it, sends nothing."
+
 ## Catalogue versions
 
 `catalog_versions_test.dart` pins the versioned catalogue ([[domain#Catalogue versions]]) with a two-version Platinum: version 2 from 15 October 2026 raises Uber from $15 to $20, drops Resy and adds a locked Equinox credit.

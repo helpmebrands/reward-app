@@ -190,6 +190,9 @@ MemberPreferences memberPreferencesFromJson(Map<String, dynamic> json) =>
       mutedBenefitIds: {
         ...(json['mutedBenefitIds'] as List? ?? const []).cast(),
       },
+      lastCallBenefitIds: {
+        ...(json['lastCallBenefitIds'] as List? ?? const []).cast(),
+      },
     );
 
 Map<String, Object?> memberPreferencesToJson(MemberPreferences prefs) => {
@@ -200,6 +203,7 @@ Map<String, Object?> memberPreferencesToJson(MemberPreferences prefs) => {
   'enrollmentReminder': prefs.enrollmentReminder,
   'mutedCardIds': prefs.mutedCardIds.toList()..sort(),
   'mutedBenefitIds': prefs.mutedBenefitIds.toList()..sort(),
+  'lastCallBenefitIds': prefs.lastCallBenefitIds.toList()..sort(),
 };
 
 AppData appDataFromJson(Map<String, dynamic> json) => AppData(
