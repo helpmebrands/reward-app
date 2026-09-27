@@ -18,6 +18,7 @@ import 'logic/push.dart';
 import 'logic/session.dart';
 import 'logic/ui_state.dart';
 import 'shell/app_scope.dart';
+import 'shell/logo_hand_off.dart';
 import 'shell/router.dart';
 import 'shell/ui_scope.dart';
 import 'theme/theme.dart';
@@ -80,7 +81,9 @@ Future<void> main() async {
         ? store.refresh().then((_) => registerIfOn()).ignore()
         : store.forget().ignore();
   });
-  runApp(RewardApp(store: store, session: session, push: push));
+  runApp(
+    RewardApp(store: store, session: session, push: push, coldStart: true),
+  );
 }
 
 /// The app: Material on Nocturne's tokens, following the system theme, the
@@ -94,6 +97,7 @@ class RewardApp extends StatefulWidget {
     this.session,
     this.push,
     this.initialLocation = Paths.today,
+    this.coldStart = false,
   });
 
   final AppStore store;
@@ -111,6 +115,10 @@ class RewardApp extends StatefulWidget {
 
   /// The transient ui state; created here when not injected by a test.
   final UiState? ui;
+
+  /// Launched from `main`, so the native splash is showing and the logo's
+  /// hand-off plays over the first screen ([LogoHandOff]).
+  final bool coldStart;
 
   @override
   State<RewardApp> createState() => _RewardAppState();
@@ -228,6 +236,8 @@ class _RewardAppState extends State<RewardApp> {
               _ => ThemeMode.system,
             },
             routerConfig: _router,
+            builder: (context, child) =>
+                LogoHandOff(play: widget.coldStart, child: child!),
           ),
         ),
       ),

@@ -907,11 +907,11 @@ After Next twice, the third slide's `WelcomeHero` holds the `PremiumFeaturesHero
 
 ## Welcome logo
 
-`welcome_logo_test.dart` steps the first-launch logo sequence on `WelcomeScreen` in fake time ([[mobile-architecture#Sign-in#The logo hand-off]]).
+`welcome_logo_test.dart` cold-starts the whole `RewardApp` with `coldStart: true` and steps the logo sequence in fake time ([[mobile-architecture#Sign-in#The logo hand-off]]).
 
 ### The first frame is the splash icon
 
-On the first frame of a first launch the icon layer is the only one drawn, centred in the window at the splash's size (120 on iOS, 128 on Android), and the header lockup is not painted.
+On the first frame of a signed-in cold start into Today the icon layer is the only one drawn, centred in the window at the splash's size (120 on iOS, 128 on Android), the cover is opaque, and the app bar's lockup is not painted.
 
 ### The icon follows the theme like the splash
 
@@ -919,19 +919,37 @@ The icon layer draws `helpmereward-icon-dark.png` in the dark theme and `helpmer
 
 ### The layers land on the lockup
 
-Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the header `BrandLockup`'s rect with no tagline, then the layers go and the lockup and slides are opaque.
+Partway through, icon, wordmark and tagline form the stacked logo; at the end of the move icon and wordmark together cover exactly the screen's `BrandLockup` rect with no tagline, then layers and cover go.
+
+It holds for Today, a first run into Welcome, Join and Not found.
+
+### It plays once per process
+
+After it settles, a theme change that rebuilds the app and a move to Credits draw no layers and no cover.
 
 ### It settles within a second
 
-`welcomeLogoDuration` is under a second, and 999 ms after the first frame no ticker is running and the screen is finished.
+`logoHandOffDuration` is under a second, and 999 ms after the first frame no ticker is running, the screen is finished, and the Settings gear opens Settings.
+
+### The cover blocks taps
+
+Midway through, a tap on the Settings gear does nothing.
 
 ### Learn more opens on the lockup
 
-Without `introLogo`, as a replay from "Learn more" builds it, the first frame has no layers, an opaque lockup and slides, and no ticker running.
+After a cold start into Sign in has settled, "Learn more" opens Welcome with no layers, no cover and an opaque lockup.
 
 ### Reduced motion skips the sequence
 
-With `disableAnimations` on, a first launch's first frame is already the finished screen with nothing animating.
+With `disableAnimations` on, a cold start's first frame is already the finished screen with nothing animating.
+
+### Too narrow for the lockup places it
+
+In a 260-wide window the bar's lockup is narrower than 224, and the frame after the first is finished with no move.
+
+### With no logo the layers fade in place
+
+A cold start into Settings, whose Today underneath is never laid out, keeps the icon where the splash drew it midway, then settles with no layers and no cover.
 
 ### One logo node throughout
 
@@ -1301,7 +1319,7 @@ At 402 the bar's bottom edge is at or above the `NavigationBar` and it is centre
 
 ### First launch shows the slideshow
 
-Signed out with the intro unseen, the app opens on `WelcomeScreen` with `introLogo` on; Skip goes to `SignInScreen` and sets `introSeen`.
+Signed out with the intro unseen, the app opens on `WelcomeScreen`; Skip goes to `SignInScreen` and sets `introSeen`.
 
 ### Finishing the slideshow leads to sign-in
 
@@ -1309,7 +1327,7 @@ Next through the slides to "Get started" goes to sign-in and sets `introSeen`.
 
 ### A returning signed-out launch goes to sign-in
 
-With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow without `introLogo`, and Skip returns to sign-in.
+With the intro seen the app opens on sign-in, never the slideshow; "Learn more" replays the slideshow, and Skip returns to sign-in.
 
 ### A signed-in launch opens Today
 

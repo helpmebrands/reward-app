@@ -247,6 +247,10 @@ void main() {
     await tester.tap(find.byKey(const Key('sign-in-learn-more')));
     await tester.pump();
     expect(find.byType(WelcomeScreen), findsOneWidget);
+    expect(layer('icon'), findsNothing);
+    expect(cover, findsNothing);
+    expect(lockupOpacity(tester), 1);
+    await tester.pumpAndSettle();
     expectFinished(tester);
   });
 

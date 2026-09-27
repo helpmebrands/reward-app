@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'logo_target.dart';
+
 /// The brand in the app bar: the icon and one-line wordmark (the lockup)
 /// when the width it is given fits it, otherwise the wordmark alone, scaled
 /// down rather than cut off when even that does not fit.
@@ -7,6 +9,8 @@ import 'package:flutter/material.dart';
 /// Artwork at a fixed size, so it does not follow the system text scale. It
 /// is a labelled image, not a heading: each screen keeps its one level-one
 /// `ScreenTitle`. The dark theme draws the files with light-grey text.
+///
+/// It is where the cold start's logo hand-off lands ([LogoTarget]).
 class BrandLockup extends StatelessWidget {
   const BrandLockup({super.key});
 
@@ -26,17 +30,19 @@ class BrandLockup extends StatelessWidget {
         final name = lockup
             ? 'helpmereward-logo-horz-sanstag'
             : 'helpmereward-logotype-horz';
-        return Semantics(
-          label: label,
-          image: true,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Image.asset(
-              'assets/logo/$name$suffix.png',
-              width: size.width,
-              height: size.height,
-              excludeFromSemantics: true,
+        return LogoTarget(
+          child: Semantics(
+            label: label,
+            image: true,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Image.asset(
+                'assets/logo/$name$suffix.png',
+                width: size.width,
+                height: size.height,
+                excludeFromSemantics: true,
+              ),
             ),
           ),
         );
