@@ -539,35 +539,102 @@ class _CardStat extends StatelessWidget {
       ),
     );
 
+    // Read-only figures in the style of the Fee / Captured / Net row: each
+    // keeps its status colour and adds an icon and a word, and the group is
+    // one sentence for the screen reader, never a button.
+    final figuresOf = [
+      if (summary.claimableCents > 0)
+        (
+          formatMoney(summary.claimableCents),
+          'claimable',
+          Icons.hourglass_top,
+          tokens.available.foreground,
+        ),
+      if (summary.lockedCents > 0)
+        (
+          formatMoney(summary.lockedCents),
+          'locked',
+          Icons.lock_outline,
+          tokens.locked.foreground,
+        ),
+      if (summary.missedCents > 0)
+        (
+          formatMoney(summary.missedCents),
+          'missed',
+          Icons.hourglass_bottom,
+          tokens.missed.foreground,
+        ),
+      (
+        '$count',
+        'credit${count == 1 ? '' : 's'}',
+        Icons.receipt_long_outlined,
+        tokens.textSecondary,
+      ),
+    ];
     final tags = block(
       5,
       Padding(
         padding: const EdgeInsets.only(top: Space.s4),
-        child: Wrap(
-          spacing: Space.s2,
-          runSpacing: Space.s2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (summary.claimableCents > 0)
-              _Tag(
-                '${formatMoney(summary.claimableCents)} claimable',
-                icon: Icons.hourglass_top,
-                palette: tokens.available,
+            Semantics(
+              key: ValueKey('card-status-${card.id}'),
+              container: true,
+              label: [
+                for (final (value, word, _, _) in figuresOf) '$value $word',
+              ].join(', '),
+              child: ExcludeSemantics(
+                child: Wrap(
+                  spacing: Space.s8,
+                  runSpacing: Space.s3,
+                  children: [
+                    for (final (value, word, icon, color) in figuresOf)
+                      Column(
+                        key: ValueKey('status-figure-$word'),
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(icon, size: 12, color: color),
+                              const SizedBox(width: Space.s1),
+                              Text(
+                                word.toUpperCase(),
+                                style: quiet?.copyWith(color: color),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            value,
+                            style: text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
-            if (summary.lockedCents > 0)
-              _Tag(
-                '${formatMoney(summary.lockedCents)} locked',
-                icon: Icons.lock_outline,
-                palette: tokens.locked,
-              ),
-            if (summary.missedCents > 0)
-              _Tag(
-                '${formatMoney(summary.missedCents)} missed',
-                icon: Icons.hourglass_bottom,
-                palette: tokens.missed,
-              ),
-            _Tag('$count credit${count == 1 ? '' : 's'}'),
+            ),
             if (summary.card.kind == CardKind.business)
-              const _Tag('Business', icon: Icons.work_outline),
+              Padding(
+                padding: const EdgeInsets.only(top: Space.s3),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.work_outline,
+                      size: 12,
+                      color: tokens.textSecondary,
+                    ),
+                    const SizedBox(width: Space.s1),
+                    Text('Business', style: quiet),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -627,44 +694,6 @@ class _CardStat extends StatelessWidget {
         border: Border.all(color: tokens.surfaceLine),
       ),
       child: body,
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag(this.text, {this.icon, this.palette});
-
-  final String text;
-  final IconData? icon;
-  final Tone? palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<NocturneTokens>()!;
-    final style = Theme.of(context).textTheme.labelSmall;
-    final foreground = palette?.foreground ?? tokens.textSecondary;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: Space.s3,
-        vertical: Space.s1,
-      ),
-      decoration: BoxDecoration(
-        color: palette?.ground ?? tokens.surfaceQuiet,
-        borderRadius: const BorderRadius.all(Radius.circular(Radii.sm)),
-        border: Border.all(color: palette?.line ?? tokens.surfaceLine),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 11, color: foreground),
-            const SizedBox(width: Space.s1),
-          ],
-          Flexible(
-            child: Text(text, style: style?.copyWith(color: foreground)),
-          ),
-        ],
-      ),
     );
   }
 }

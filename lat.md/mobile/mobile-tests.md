@@ -269,7 +269,9 @@ The fixture carries the fee and captured totals and each active card's figures, 
 
 ### Each card carries the PWA's figures, verdict and tags
 
-"Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage and days to renewal, the verdict headline and body, every tag and the edit button, and the catalogue button follows.
+"Cards" is headed by the fee and captured totals; each card shows its issuer, label, fee, captured, net, percentage, days to renewal, verdict and edit button, and the catalogue button follows.
+
+Each card's status group reads the fixture's tags joined by commas.
 
 ### A card states its usable value, and its potential once anything is opted out
 
@@ -310,6 +312,18 @@ At compact the second card is below the first; at medium the two share a top edg
 ### The screen reader hears the phone order at every width
 
 The semantics labels in traversal order at expanded are exactly those at compact.
+
+### Status figures are read-only
+
+On both sample cards the status group holds no ink, gesture, chip, button or bordered box, and its semantics node is neither a button nor tappable; Kathy's reads "$500 locked".
+
+### Status figures reach 4.5:1 on the card
+
+In light and dark, every text in every card's status group clears 4.5:1 on the raised card surface.
+
+### Status figures wrap at 200%
+
+At 2.0 on 402 Kathy's four figures (claimable, locked, missed, credits) sit inside her card and span more than one row, with no layout exception.
 
 ### Cards at 200% clips nothing
 

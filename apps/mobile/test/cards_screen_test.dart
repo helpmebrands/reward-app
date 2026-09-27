@@ -372,7 +372,11 @@ void main() {
     final card = tester.getRect(find.byKey(const ValueKey('card-card-0002')));
     final figures = find.descendant(
       of: statusOf('card-0002'),
-      matching: find.byKey(const ValueKey('status-figure')),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w.key is ValueKey &&
+            '${(w.key! as ValueKey).value}'.startsWith('status-figure-'),
+      ),
     );
     final tops = <double>{};
     for (var i = 0; i < figures.evaluate().length; i++) {
