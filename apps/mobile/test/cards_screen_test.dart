@@ -10,8 +10,11 @@ import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/screens/cards_screen.dart';
 import 'package:reward/shell/width_class.dart';
+import 'package:reward/theme/nocturne_tokens.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/snackbar_host.dart';
+
+import 'contrast_test.dart' as contrast;
 
 /// The Cards screen against what the PWA shows for the sample household on
 /// 16 September 2026, dumped once by the retired PWA (#174) and pinned.
@@ -54,6 +57,7 @@ Future<Pumped> pumpCards(
   WidthClass widthClass = WidthClass.compact,
   double textScale = 1,
   double height = 3000,
+  Brightness brightness = Brightness.dark,
 }) async {
   final store = AppStore(
     store: MemorySnapshotStore(data ?? sampleHousehold()),
@@ -69,7 +73,7 @@ Future<Pumped> pumpCards(
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   await tester.pumpWidget(
     MaterialApp(
-      theme: nocturneTheme(Brightness.dark),
+      theme: nocturneTheme(brightness),
       home: Scaffold(
         body: WidthClassScope(
           widthClass: widthClass,
@@ -89,6 +93,13 @@ Finder card(String id) => find.byKey(ValueKey('card-$id'));
 
 Finder within(String id, String text) =>
     find.descendant(of: card(id), matching: find.text(text));
+
+/// A card's status figures: claimable, locked, missed and its credits.
+Finder statusOf(String id) => find.byKey(ValueKey('card-status-$id'));
+
+/// What the screen reader hears for a card's status figures.
+String? spokenStatus(WidgetTester tester, String id) =>
+    tester.widget<Semantics>(statusOf(id)).properties.label;
 
 Future<void> openMenu(WidgetTester tester, String label) async {
   await tester.tap(find.bySemanticsLabel('Menu for $label'));
@@ -162,9 +173,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      for (final tag in (c['tags'] as List).cast<String>()) {
-        expect(within(id, tag), findsOneWidget, reason: tag);
-      }
+      expect(
+        spokenStatus(tester, id),
+        (c['tags'] as List).cast<String>().join(', '),
+      );
       expect(within(id, 'Edit card and credits'), findsOneWidget);
     }
     expect(find.text('Add a card from the catalogue'), findsOneWidget);
@@ -286,6 +298,91 @@ void main() {
     );
     expect(within('card-0001', 'Business'), findsOneWidget);
     expect(within('card-0002', 'Business'), findsNothing);
+  });
+
+  // @lat: [[mobile-tests#Cards#Status figures are read-only]]
+  testWidgets('the status figures are not controls', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pumpCards(tester);
+    for (final id in ['card-0001', 'card-0002']) {
+      final status = statusOf(id);
+      expect(status, findsOneWidget);
+      for (final type in [InkWell, GestureDetector, Chip, OutlinedButton]) {
+        expect(
+          find.descendant(of: status, matching: find.byType(type)),
+          findsNothing,
+          reason: '$id: $type',
+        );
+      }
+      final outlined = find.descendant(
+        of: status,
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is Container &&
+              w.decoration is BoxDecoration &&
+              (w.decoration! as BoxDecoration).border != null,
+        ),
+      );
+      expect(outlined, findsNothing, reason: id);
+      final node = tester.getSemantics(status);
+      final data = node.getSemanticsData();
+      expect(data.flagsCollection.isButton, isFalse, reason: id);
+      expect(data.hasAction(SemanticsAction.tap), isFalse, reason: id);
+    }
+    expect(spokenStatus(tester, 'card-0002'), contains(r'$500 locked'));
+    handle.dispose();
+  });
+
+  // @lat: [[mobile-tests#Cards#Status figures reach 4.5:1 on the card]]
+  testWidgets('every status figure reaches 4.5:1 on the card surface', (
+    tester,
+  ) async {
+    for (final brightness in Brightness.values) {
+      await pumpCards(tester, brightness: brightness);
+      final tokens = brightness == Brightness.dark
+          ? NocturneTokens.dark
+          : NocturneTokens.light;
+      final texts = find.descendant(
+        of: find.byWidgetPredicate(
+          (w) =>
+              w.key is ValueKey &&
+              '${(w.key! as ValueKey).value}'.startsWith('card-status-'),
+        ),
+        matching: find.byType(Text),
+      );
+      expect(texts, findsAtLeast(6));
+      final low = <String>[];
+      for (final element in texts.evaluate()) {
+        final widget = element.widget as Text;
+        final colour =
+            widget.style?.color ?? DefaultTextStyle.of(element).style.color!;
+        final r = contrast.ratio(colour, tokens.surfaceRaised);
+        if (r < 4.5) {
+          low.add('$brightness "${widget.data}" ${r.toStringAsFixed(2)}:1');
+        }
+      }
+      expect(low, isEmpty);
+    }
+  });
+
+  // @lat: [[mobile-tests#Cards#Status figures wrap at 200%]]
+  testWidgets('at 2.0 the status figures wrap inside the card', (tester) async {
+    await pumpCards(tester, textScale: 2, height: 8000);
+    expect(tester.takeException(), isNull);
+    final card = tester.getRect(find.byKey(const ValueKey('card-card-0002')));
+    final figures = find.descendant(
+      of: statusOf('card-0002'),
+      matching: find.byKey(const ValueKey('status-figure')),
+    );
+    final tops = <double>{};
+    for (var i = 0; i < figures.evaluate().length; i++) {
+      final rect = tester.getRect(figures.at(i));
+      expect(rect.left, greaterThanOrEqualTo(card.left));
+      expect(rect.right, lessThanOrEqualTo(card.right));
+      tops.add(rect.top);
+    }
+    expect(figures, findsNWidgets(4));
+    expect(tops.length, greaterThan(1), reason: 'the figures never wrapped');
   });
 
   // @lat: [[mobile-tests#Cards#The verdict is the PWA's, case by case]]
