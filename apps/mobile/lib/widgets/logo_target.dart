@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/// The logo a [LogoTarget] draws, which decides how the hand-off lands.
+enum LogoShape {
+  /// The icon beside the one-line wordmark, `BrandLockup`.
+  lockup,
+
+  /// The icon above the two-line wordmark and tagline, `BrandLogo.stacked`.
+  stacked,
+}
+
 /// The logos mounted on screen that the cold start's hand-off can land on
 /// (`LogoHandOff`), and whether they are hidden while its layers stand in
 /// for them.
@@ -17,14 +26,17 @@ class LogoTargets extends ChangeNotifier {
     notifyListeners();
   }
 
-  final List<BuildContext> _mounted = [];
+  final List<_LogoTargetState> _mounted = [];
 
-  /// The render box of the most recently mounted target that has been laid
-  /// out, so one under an opaque route, never laid out, is passed over.
-  RenderBox? get laidOut {
-    for (final context in _mounted.reversed) {
-      final box = context.findRenderObject();
-      if (box is RenderBox && box.attached && box.hasSize) return box;
+  /// The render box and shape of the most recently mounted target that has
+  /// been laid out, so one under an opaque route, never laid out, is passed
+  /// over.
+  ({RenderBox box, LogoShape shape})? get laidOut {
+    for (final target in _mounted.reversed) {
+      final box = target.context.findRenderObject();
+      if (box is RenderBox && box.attached && box.hasSize) {
+        return (box: box, shape: target.widget.shape);
+      }
     }
     return null;
   }
@@ -43,8 +55,13 @@ class LogoTargetsScope extends InheritedNotifier<LogoTargets> {
 /// scope, and while they are hidden draws nothing but stays the one
 /// "HelpMe reward" node. With none in scope it is just [child].
 class LogoTarget extends StatefulWidget {
-  const LogoTarget({super.key, required this.child});
+  const LogoTarget({
+    super.key,
+    this.shape = LogoShape.lockup,
+    required this.child,
+  });
 
+  final LogoShape shape;
   final Widget child;
 
   @override
@@ -61,13 +78,13 @@ class _LogoTargetState extends State<LogoTarget> {
         .dependOnInheritedWidgetOfExactType<LogoTargetsScope>()
         ?.notifier;
     if (targets == _targets) return;
-    _targets?._mounted.remove(context);
-    _targets = targets?.._mounted.add(context);
+    _targets?._mounted.remove(this);
+    _targets = targets?.._mounted.add(this);
   }
 
   @override
   void dispose() {
-    _targets?._mounted.remove(context);
+    _targets?._mounted.remove(this);
     super.dispose();
   }
 
