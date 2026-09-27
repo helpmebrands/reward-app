@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/household_api.dart';
@@ -233,7 +232,9 @@ void main() {
       expect(switchRow(tester, 'Silence every credit').onChanged, isNotNull);
       await store.toggleCardMute('card-1');
 
-      await pumpAt(tester, store, Paths.credits);
+      // A fresh app, since the router keeps its first location.
+      await tester.pumpWidget(const SizedBox());
+      await pumpAt(tester, store);
       hold = api.holdMute = Completer<void>();
       await tester.tap(bell);
       await tester.pump();

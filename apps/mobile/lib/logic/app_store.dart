@@ -470,21 +470,68 @@ class AppStore extends ChangeNotifier {
 
   /// Silences or unsilences every credit on a card, for this member only.
   Future<void> toggleCardMute(String id) async {
-    if (remote &&
-        !await _edit(
-          (api) => api.setMute(cardId: id, muted: !isCardMuted(id)),
-          needsWrite: false,
-        )) {
+    if (!remote) {
+      _setPreferences(
+        _preferences.copyWith(
+          mutedCardIds: _toggled(_preferences.mutedCardIds, id),
+        ),
+      );
       return;
     }
-    _setPreferences(
-      _preferences.copyWith(
-        mutedCardIds: _toggled(_preferences.mutedCardIds, id),
+    if (isMutePending(id)) return;
+    final muted = !isCardMuted(id);
+    _cardMutesInFlight[id] = muted;
+    notifyListeners();
+    final done = await _edit(
+      (api) => api.setMute(cardId: id, muted: muted),
+      needsWrite: false,
+    );
+    _cardMutesInFlight.remove(id);
+    // The refresh after the edit brings the server's mutes; apply the
+    // request only if the edit landed and that refresh did not.
+    if (done && _preferences.mutedCardIds.contains(id) != muted) {
+      await _setPreferences(
+        _preferences.copyWith(
+          mutedCardIds: _toggled(_preferences.mutedCardIds, id),
+        ),
+      );
+      return;
+    }
+    notifyListeners();
+  }
+
+  bool isCardMuted(String id) => _shownPreferences.mutedCardIds.contains(id);
+
+  /// Requested mutes the api has not answered yet, by card or benefit id.
+  final _cardMutesInFlight = <String, bool>{};
+  final _benefitMutesInFlight = <String, bool>{};
+
+  /// A mute for this card or credit is on its way to the api; its control
+  /// shows the requested state and is disabled until the answer.
+  bool isMutePending(String id) =>
+      _cardMutesInFlight.containsKey(id) ||
+      _benefitMutesInFlight.containsKey(id);
+
+  /// The member's preferences with every in-flight mute at its requested
+  /// state.
+  MemberPreferences get _shownPreferences {
+    if (_cardMutesInFlight.isEmpty && _benefitMutesInFlight.isEmpty) {
+      return _preferences;
+    }
+    Set<String> overlay(Set<String> ids, Map<String, bool> inFlight) => {
+      for (final id in ids)
+        if (inFlight[id] ?? true) id,
+      for (final MapEntry(:key, :value) in inFlight.entries)
+        if (value) key,
+    };
+    return _preferences.copyWith(
+      mutedCardIds: overlay(_preferences.mutedCardIds, _cardMutesInFlight),
+      mutedBenefitIds: overlay(
+        _preferences.mutedBenefitIds,
+        _benefitMutesInFlight,
       ),
     );
   }
-
-  bool isCardMuted(String id) => _preferences.mutedCardIds.contains(id);
 
   Future<bool> archiveCard(String id) =>
       updateCard(id, (card) => card.copyWith(archived: true));
@@ -624,21 +671,36 @@ class AppStore extends ChangeNotifier {
 
   /// Silences or unsilences one credit, for this member only.
   Future<void> toggleBenefitMute(String id) async {
-    if (remote &&
-        !await _edit(
-          (api) => api.setMute(benefitId: id, muted: !isBenefitMuted(id)),
-          needsWrite: false,
-        )) {
+    if (!remote) {
+      _setPreferences(
+        _preferences.copyWith(
+          mutedBenefitIds: _toggled(_preferences.mutedBenefitIds, id),
+        ),
+      );
       return;
     }
-    _setPreferences(
-      _preferences.copyWith(
-        mutedBenefitIds: _toggled(_preferences.mutedBenefitIds, id),
-      ),
+    if (isMutePending(id)) return;
+    final muted = !isBenefitMuted(id);
+    _benefitMutesInFlight[id] = muted;
+    notifyListeners();
+    final done = await _edit(
+      (api) => api.setMute(benefitId: id, muted: muted),
+      needsWrite: false,
     );
+    _benefitMutesInFlight.remove(id);
+    if (done && _preferences.mutedBenefitIds.contains(id) != muted) {
+      await _setPreferences(
+        _preferences.copyWith(
+          mutedBenefitIds: _toggled(_preferences.mutedBenefitIds, id),
+        ),
+      );
+      return;
+    }
+    notifyListeners();
   }
 
-  bool isBenefitMuted(String id) => _preferences.mutedBenefitIds.contains(id);
+  bool isBenefitMuted(String id) =>
+      _shownPreferences.mutedBenefitIds.contains(id);
 
   static Set<String> _toggled(Set<String> ids, String id) =>
       ids.contains(id) ? ({...ids}..remove(id)) : {...ids, id};
@@ -816,7 +878,7 @@ class AppStore extends ChangeNotifier {
     final data = _data;
     if (data == null) return const [];
     return [
-      for (final instance in currentInstances(data, today, _preferences))
+      for (final instance in currentInstances(data, today, _shownPreferences))
         if (instance.status != BenefitStatus.optedOut) instance,
     ];
   }
@@ -849,7 +911,9 @@ class AppStore extends ChangeNotifier {
   Totals get totals {
     final data = _data;
     return totalsFor(
-      data == null ? const [] : currentInstances(data, today, _preferences),
+      data == null
+          ? const []
+          : currentInstances(data, today, _shownPreferences),
       missed.fold(0, (sum, m) => sum + m.missedCents),
     );
   }

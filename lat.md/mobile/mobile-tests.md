@@ -1433,7 +1433,7 @@ When `setMute` refuses, the sheet's "Silence this credit" switch ends off and en
 
 ### Card editor and row bell are disabled in flight
 
-"Silence every credit" on the card editor and the bell on a Credits row sit at the requested state with no callback while `setMute` is held, and are enabled again once it completes.
+"Silence every credit" on the card editor and the bell on a Today row sit at the requested state with no callback while `setMute` is held, and are enabled again once it completes.
 
 ## System and user cards
 
