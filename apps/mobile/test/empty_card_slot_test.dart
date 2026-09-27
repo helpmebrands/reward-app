@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/theme/nocturne_tokens.dart';
 import 'package:reward/theme/theme.dart';
@@ -27,9 +28,7 @@ List<String> failures(NocturneTokens tokens) {
 
 Widget _app(Brightness brightness) => MaterialApp(
   theme: nocturneTheme(brightness),
-  home: const Scaffold(
-    body: Center(child: EmptyCardSlot(size: 160)),
-  ),
+  home: const Scaffold(body: Center(child: EmptyCardSlot(size: 160))),
 );
 
 void main() {

@@ -276,6 +276,12 @@ It opens on the headline, counting only what is claimable, under its heading: th
 
 `CreditRow` draws every status in one of five tones from the token set (soon, available, locked, captured, missed), with the card's display name in the subtitle when the household has more than one card, the claimed amount on a captured row, and "Eligible now" in place of a deadline on an open rolling credit. Given callbacks it is the interactive row of [[mobile-architecture#The swipe row]]. The headline number shrinks to fit the column rather than overflow. Every component has a Widget Preview in `lib/previews.dart`. Pinned by [[mobile-tests#Today]].
 
+### Empty card slot
+
+`EmptyCardSlot` is the empty-state illustration: a dashed card where the first card will go, a plain card behind it and a plus badge, on a soft circle.
+
+It is painted by `EmptyCardSlotPainter` from an `EmptyCardSlotPalette` picked from the tokens, so it follows light and dark, and every edge clears 3:1 against what it is drawn on (WCAG 1.4.11). It is decorative and wrapped in `ExcludeSemantics`. Pinned by [[mobile-tests#Empty card slot]].
+
 ### Today's interactions
 
 The screen takes the `UiState` beside the store; without it the screen is static, which is how tests and previews still build it bare.

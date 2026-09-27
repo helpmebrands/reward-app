@@ -28,6 +28,7 @@ import 'widgets/credit_row.dart';
 import 'widgets/catalog_filter_panel.dart';
 import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
+import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/snackbar_host.dart';
@@ -115,6 +116,16 @@ Widget premiumFeaturesHeroDark() =>
 @Preview(name: 'Welcome hero, premium features, light', size: Size(402, 460))
 Widget premiumFeaturesHeroLight() =>
     _heroIn(const PremiumFeaturesHero(), Brightness.light);
+
+/// The empty-state illustration at the size Today draws it.
+Widget _slotIn(Brightness brightness) =>
+    _themed(const Center(child: EmptyCardSlot(size: 160)), brightness);
+
+@Preview(name: 'Empty card slot, dark', size: Size(200, 200))
+Widget emptyCardSlotDark() => _slotIn(Brightness.dark);
+
+@Preview(name: 'Empty card slot, light', size: Size(200, 200))
+Widget emptyCardSlotLight() => _slotIn(Brightness.light);
 
 @Preview(name: 'Sign-in, dark', size: Size(402, 874))
 Widget signInDark() => _themed(
