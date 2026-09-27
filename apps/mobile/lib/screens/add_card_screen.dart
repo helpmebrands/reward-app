@@ -152,7 +152,9 @@ class _AddCardScreenState extends State<AddCardScreen> {
     _label.text = _initialLabel;
   }
 
-  void _leave() => context.go(Paths.cards);
+  /// Back to the tab that pushed the catalogue, or to Cards when it was
+  /// opened by path.
+  void _leave() => context.canPop() ? context.pop() : context.go(Paths.cards);
 
   /// Back: to the catalogue when nothing was typed, after asking otherwise.
   Future<void> _back() async {

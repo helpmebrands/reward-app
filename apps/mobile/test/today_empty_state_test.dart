@@ -58,7 +58,13 @@ Future<AppStore> pumpApp(
 
 /// The first node flagged as a header, in traversal order.
 String? firstHeader(WidgetTester tester) {
-  final root = tester.binding.pipelineOwner.semanticsOwner!.rootSemanticsNode!;
+  final root = tester
+      .binding
+      .renderViews
+      .first
+      .owner!
+      .semanticsOwner!
+      .rootSemanticsNode!;
   String? found;
   void visit(SemanticsNode node) {
     if (found != null) return;
