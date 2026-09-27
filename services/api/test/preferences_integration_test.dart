@@ -144,6 +144,64 @@ void main() {
       );
     });
 
+    Future<Reply> level(String uid, String benefit, Object? level) =>
+        api.as(uid).put('/v1/me/benefits/$benefit/level', {'level': level});
+
+    // @lat: [[api-tests#Member preferences#A reader sets a credit's notification level]]
+    test('each level leaves the flags the rule says, for a reader', () async {
+      final ids = await shared('read');
+      for (final (name, muted, lastCall) in [
+        ('lastChance', <String>{}, {ids.benefit}),
+        ('silenced', {ids.benefit}, {ids.benefit}),
+        ('periodically', <String>{}, <String>{}),
+        ('silenced', {ids.benefit}, <String>{}),
+        ('lastChance', <String>{}, {ids.benefit}),
+      ]) {
+        final reply = await level('bob', ids.benefit, name);
+        expect(reply.status, 200, reason: '$name ${reply.body}');
+        final answered = memberPreferencesFromJson(json(reply));
+        final read = await prefs('bob');
+        for (final p in [answered, read]) {
+          expect(p.mutedBenefitIds, muted, reason: name);
+          expect(p.lastCallBenefitIds, lastCall, reason: name);
+        }
+      }
+    });
+
+    // @lat: [[api-tests#Member preferences#One member's level leaves the other's alone]]
+    test('last chance for one member changes nothing for another', () async {
+      final ids = await shared('edit');
+      expect((await level('ann', ids.benefit, 'lastChance')).status, 200);
+      expect((await prefs('ann')).lastCallBenefitIds, {ids.benefit});
+      expect(
+        memberPreferencesToJson(await prefs('bob')),
+        memberPreferencesToJson(defaultMemberPreferences),
+      );
+    });
+
+    // @lat: [[api-tests#Member preferences#A bad level or another household's credit is refused]]
+    test(
+      'an unknown level is 400; another household\'s credit is 404',
+      () async {
+        final ids = await shared('edit');
+        for (final bad in ['loud', null, 3]) {
+          final reply = await level('ann', ids.benefit, bad);
+          expect(reply.status, 400, reason: '$bad');
+          expect(json(reply)['field'], 'level');
+        }
+        expect((await level('cat', ids.benefit, 'silenced')).status, 404);
+        expect(
+          (await level(
+            'ann',
+            '00000000-0000-4000-8000-000000000000',
+            'silenced',
+          )).status,
+          404,
+        );
+        expect((await level('ann', 'not-a-uuid', 'silenced')).status, 404);
+      },
+    );
+
     // @lat: [[api-tests#Member preferences#Preferences are validated]]
     test('a bad time or floor is 400', () async {
       for (final (field, value) in [

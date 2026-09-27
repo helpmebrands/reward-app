@@ -655,7 +655,33 @@ final preferenceCases = <Case>[
     call('DELETE', path, 204, as: 'reader', url: () => '$prefix/${saved[id]}'),
     call('DELETE', path, 404, as: 'reader', url: '$prefix/$_nobody'),
   ],
+  call(
+    'PUT',
+    _level,
+    200,
+    as: 'reader',
+    url: () => '/v1/me/benefits/${saved['linkedBenefit']}/level',
+    body: const {'level': 'lastChance'},
+  ),
+  call(
+    'PUT',
+    _level,
+    400,
+    as: 'reader',
+    url: () => '/v1/me/benefits/${saved['linkedBenefit']}/level',
+    body: const {'level': 'loud'},
+  ),
+  call(
+    'PUT',
+    _level,
+    404,
+    as: 'reader',
+    url: '/v1/me/benefits/$_nobody/level',
+    body: const {'level': 'silenced'},
+  ),
 ];
+
+const _level = '/v1/me/benefits/{benefitId}/level';
 
 const _draft = '/v1/admin/catalog/{templateId}/drafts/{version}';
 const _publish = '/v1/admin/catalog/{templateId}/drafts/{version}/publish';
