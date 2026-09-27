@@ -408,10 +408,6 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               benefit,
               trailing: TextButton(
                 onPressed: () => store.reactivateBenefit(benefit.id),
-                style: TextButton.styleFrom(
-                  minimumSize: const Size(48, 48),
-                  visualDensity: VisualDensity.standard,
-                ),
                 child: Text(
                   'Reactivate',
                   semanticsLabel: 'Reactivate ${benefit.name}',

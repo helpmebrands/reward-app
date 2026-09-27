@@ -75,6 +75,8 @@ List<String> failures(
 }
 
 void main() {
+  chipContrast();
+
   // @lat: [[mobile-tests#Token contrast#Secondary text reaches 4.5:1 on every ground]]
   test('secondary text reaches 4.5:1 on every ground it sits on', () {
     expect(
@@ -178,5 +180,56 @@ void main() {
       ),
       isEmpty,
     );
+  });
+}
+
+/// A theme's chip colours for [states], resolved as the chip resolves them.
+(Color label, Color? fill, Color? outline) chipColours(
+  ThemeData theme,
+  Set<WidgetState> states,
+) {
+  final chip = theme.chipTheme;
+  return (
+    WidgetStateProperty.resolveAs<Color>(chip.labelStyle!.color!, states),
+    chip.color?.resolve(states),
+    WidgetStateProperty.resolveAs<BorderSide?>(chip.side, states)?.color,
+  );
+}
+
+void chipContrast() {
+  // @lat: [[mobile-tests#Token contrast#A selected chip's label holds on its fill]]
+  test("a selected chip's label reaches 4.5:1 on its accent fill", () {
+    final low = <String>[];
+    for (final MapEntry(key: name, value: tokens) in themes.entries) {
+      final theme = nocturneTheme(
+        tokens == NocturneTokens.dark ? Brightness.dark : Brightness.light,
+      );
+      final (label, fill, _) = chipColours(theme, {WidgetState.selected});
+      expect(fill, isNotNull, reason: name);
+      expect(tokens.accentRamp.values, contains(fill), reason: name);
+      final r = ratio(label, fill!);
+      if (r < 4.5) low.add('$name: ${r.toStringAsFixed(2)}:1');
+      expect(theme.chipTheme.checkmarkColor, label, reason: name);
+    }
+    expect(low, isEmpty);
+  });
+
+  // @lat: [[mobile-tests#Token contrast#An unselected chip's outline reaches 3:1]]
+  test("an unselected chip's outline reaches 3:1 on every ground", () {
+    final low = <String>[];
+    for (final MapEntry(key: name, value: tokens) in themes.entries) {
+      final theme = nocturneTheme(
+        tokens == NocturneTokens.dark ? Brightness.dark : Brightness.light,
+      );
+      final (label, _, outline) = chipColours(theme, {});
+      expect(outline, isNotNull, reason: name);
+      for (final MapEntry(key: g, value: ground) in grounds.entries) {
+        final r = ratio(outline!, ground(tokens));
+        if (r < 3) low.add('$name: outline on $g is ${r.toStringAsFixed(2)}:1');
+        final t = ratio(label, ground(tokens));
+        if (t < 4.5) low.add('$name: label on $g is ${t.toStringAsFixed(2)}:1');
+      }
+    }
+    expect(low, isEmpty);
   });
 }

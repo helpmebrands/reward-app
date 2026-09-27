@@ -119,7 +119,6 @@ class _Snackbar extends StatelessWidget {
                       key: const Key('snackbar-action'),
                       style: TextButton.styleFrom(
                         foregroundColor: tokens.accentRamp[300],
-                        minimumSize: const Size(48, 48),
                       ),
                       onPressed: () {
                         action.onAct();

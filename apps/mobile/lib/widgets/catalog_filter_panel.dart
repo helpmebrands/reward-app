@@ -123,10 +123,6 @@ class _CatalogFilterPanelState extends State<CatalogFilterPanel> {
                 child: TextButton(
                   onPressed: () =>
                       setState(() => _showAllMerchants = !_showAllMerchants),
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    visualDensity: VisualDensity.standard,
-                  ),
                   child: Text(_showAllMerchants ? 'Show fewer' : 'Show all'),
                 ),
               ),
@@ -248,10 +244,6 @@ class CatalogFilterSheet extends StatelessWidget {
                 builder: (context, _) => FilledButton(
                   key: const Key('show-results'),
                   onPressed: () => Navigator.of(context).pop(),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    visualDensity: VisualDensity.standard,
-                  ),
                   child: Text('Show ${controller.results.length}'),
                 ),
               ),
