@@ -7,6 +7,7 @@ import '../logic/credit_actions.dart';
 import '../shell/router.dart';
 import '../theme/nocturne_tokens.dart' hide Tone;
 import 'notification_level_control.dart';
+import 'value_bar.dart';
 
 /// Quick amounts: a quarter and a half of what is left, rounded to whole
 /// dollars because nobody logs $37.53, each at least a dollar and under the
@@ -141,6 +142,7 @@ class _SheetBodyState extends State<_SheetBody> {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final status = instance.status;
+    final breakdown = creditBreakdown(instance);
     final today = store.today;
     final manual = benefit.cadence == Cadence.manual;
     final rolling = benefit.cadence == Cadence.rolling;
@@ -208,6 +210,7 @@ class _SheetBodyState extends State<_SheetBody> {
             children: [
               Text(
                 formatMoney(instance.remainingCents),
+                key: const Key('credit-sheet-balance'),
                 style: text.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
@@ -221,15 +224,15 @@ class _SheetBodyState extends State<_SheetBody> {
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: Space.s4),
-            child: LinearProgressIndicator(
-              value: benefit.valueCents == 0
-                  ? 0
-                  : instance.claimedCents / benefit.valueCents,
-              semanticsLabel: 'Claimed so far',
-            ),
-          ),
+          // The current window as earned, available or opt out; a
+          // spend-gated credit has nothing to show until the spend is met.
+          if (breakdown.totalCents > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: Space.s4),
+              child: ValueBar(breakdown: breakdown),
+            )
+          else
+            const SizedBox(height: Space.s4),
           Row(
             children: [
               Icon(Icons.schedule, size: 14, color: tokens.accentRamp[300]),
