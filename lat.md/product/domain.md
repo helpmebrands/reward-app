@@ -194,7 +194,7 @@ Two views are built on it:
 
 A card is judged against its own annual fee, over its own cardmember year. Six cards with six fees cannot share a dollar axis, so the Value screen plots captured value as a percentage of fee, where 100% is break-even for every card.
 
-`summarizeCard` builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit (`cardYearStart`), and `capturedCents` is the sum of claims logged since that date (`claimedThisCardYear`). `netCents` is captured minus fee; `feeProgress` is the break-even bar.
+`summarizeCard` builds the per-card figures. The cardmember year is found by reusing the cycle maths with a stand-in annual, anniversary-anchored benefit (`cardYearStart`), and `capturedCents` is the sum of claims logged since that date (`claimedThisCardYear`). `netCents` is captured minus fee; `feeProgress` is the share of the fee earned back, which the card states as a percentage; the bar on each card is the [[domain#Value breakdown]], not this.
 
 A card has two annual values. `potentialValueCents` is every credit the card gives, opted-out ones included and spend-gated ones left out; `annualValueCents` is the usable value, without the opted-out credits, and is what the verdict is judged on. `optedOutCents` is the difference.
 

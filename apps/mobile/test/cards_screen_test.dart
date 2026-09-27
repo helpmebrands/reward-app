@@ -13,6 +13,7 @@ import 'package:reward/shell/width_class.dart';
 import 'package:reward/theme/nocturne_tokens.dart';
 import 'package:reward/theme/theme.dart';
 import 'package:reward/widgets/snackbar_host.dart';
+import 'package:reward/widgets/value_bar.dart';
 
 import 'contrast_test.dart' as contrast;
 
@@ -180,6 +181,53 @@ void main() {
       expect(within(id, 'Edit card and credits'), findsOneWidget);
     }
     expect(find.text('Add a card from the catalog'), findsOneWidget);
+  });
+
+  // @lat: [[mobile-tests#Cards#Each card shows its value bar for the year to date]]
+  testWidgets('each card draws its year-to-date value bar at every width', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final data = sampleHousehold();
+    for (final width in WidthClass.values) {
+      await pumpCards(tester, widthClass: width);
+      for (final c in data.cards.where((c) => !c.archived)) {
+        final bar = find.descendant(
+          of: card(c.id),
+          matching: find.byType(ValueBar),
+        );
+        expect(bar, findsOneWidget, reason: '$width ${c.id}');
+        final breakdown = cardYearToDateBreakdown(c, data, '2026-09-16');
+        expect(tester.widget<ValueBar>(bar).breakdown, breakdown);
+        expect(breakdown.totalCents, greaterThan(0));
+        expect(
+          find.descendant(
+            of: card(c.id),
+            matching: find.bySemanticsLabel(valueBarSentence(breakdown)),
+          ),
+          findsOneWidget,
+        );
+        // Where the break-even bar was: under the figures, over the
+        // percentage line.
+        final figures = tester.getRect(
+          find.byKey(ValueKey('card-figures-${c.id}')),
+        );
+        final pct = tester.getRect(
+          find.descendant(
+            of: card(c.id),
+            matching: find.textContaining('% of the fee earned back'),
+          ),
+        );
+        expect(tester.getRect(bar).top, greaterThanOrEqualTo(figures.bottom));
+        expect(tester.getRect(bar).bottom, lessThanOrEqualTo(pct.top));
+      }
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+      expect(
+        find.bySemanticsLabel('Share of the annual fee earned back'),
+        findsNothing,
+      );
+    }
+    handle.dispose();
   });
 
   // @lat: [[mobile-tests#Cards#Add a card sits above the first card]]

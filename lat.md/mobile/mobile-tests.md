@@ -305,6 +305,12 @@ The fixture carries the fee and captured totals and each active card's figures, 
 
 Each card's status group reads the fixture's tags joined by commas.
 
+### Each card shows its value bar for the year to date
+
+At compact, medium and expanded, every active card of the sample household draws a `ValueBar` whose breakdown is `cardYearToDateBreakdown` for that card on 16 September 2026, read as its sentence.
+
+The bar sits under the Fee / Captured / Net row and above the percentage line. No `LinearProgressIndicator` and no "Share of the annual fee earned back" label remain.
+
 ### Add a card sits above the first card
 
 "Add a card from the catalog" is laid out below the "Cards" title and above the first card, so it is reachable without scrolling past every card (#365).

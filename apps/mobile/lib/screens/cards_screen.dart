@@ -11,6 +11,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/add_card_button.dart';
 import '../widgets/screen_title.dart';
+import '../widgets/value_bar.dart';
 
 /// Which colour a verdict is drawn in.
 enum VerdictTone { accent, locked, missed }
@@ -357,7 +358,6 @@ class _CardStat extends StatelessWidget {
       VerdictTone.missed => tokens.missed.foreground,
     };
     final quiet = text.labelSmall?.copyWith(color: tokens.textSecondary);
-    final progress = summary.feeProgress.clamp(0.0, 1.0);
     final count = summary.instances.length;
 
     // Each block carries its place in the phone order, so the two-column
@@ -467,16 +467,13 @@ class _CardStat extends StatelessWidget {
       ),
     );
 
-    // The 100% line is break-even, so cards with different fees stay
-    // comparable.
+    // The calendar year to date split into earned, available, missed and
+    // opt out; the fee comparison stays in the figures and the line below.
     final bar = block(
       2,
       Padding(
         padding: const EdgeInsets.only(top: Space.s4),
-        child: LinearProgressIndicator(
-          value: progress,
-          semanticsLabel: 'Share of the annual fee earned back',
-        ),
+        child: ValueBar(breakdown: store.cardValue(card)),
       ),
     );
 
