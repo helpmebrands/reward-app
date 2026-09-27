@@ -81,6 +81,9 @@ void main() {
               as String;
       await api.as('bob').post('/v1/invites/$code/accept');
       for (final uid in ['ann', 'bob']) {
+        await api.as(uid).put('/v1/me/benefits/$benefit/level', {
+          'level': 'lastChance',
+        });
         await api.as(uid).put('/v1/me/mutes/cards/$card', {});
         await api.as(uid).put('/v1/me/mutes/benefits/$benefit', {});
       }
@@ -202,6 +205,7 @@ void main() {
         );
         expect(prefs.mutedCardIds, {newCard}, reason: uid);
         expect(prefs.mutedBenefitIds, {newBenefit}, reason: uid);
+        expect(prefs.lastCallBenefitIds, {newBenefit}, reason: uid);
       }
     });
 

@@ -228,7 +228,7 @@ Publishing a version 2 of the Gold with a new product name, fee and credits leav
 
 ### Every member's mutes follow the card
 
-Both members who muted the Gold and its credit read mutes of the new card and the new credit id.
+Both members who muted the Gold and its credit, and chose Last chance for the credit, read mutes of the new card and the new credit id and last call on the new credit id.
 
 ### Only a linked card converts
 
@@ -253,6 +253,22 @@ A reader mutes a card of the household (204, and it reads back) and replaces the
 ### Muting another household's card is not found
 
 An outsider muting the household's card or credit, or an id that does not exist, gets 404.
+
+### A reader sets a credit's notification level
+
+A reader walks a credit through Last chance, Silence, Periodically, Silence and Last chance with `PUT /v1/me/benefits/{id}/level`; each 200 answer and the next read carry the mute and last-call flags `withLevel` gives ([[domain#Member preferences#Notification levels]]).
+
+### One member's level leaves the other's alone
+
+Ann choosing Last chance for a credit reads back as hers, while Bob in the same household still reads the defaults.
+
+### A bad level or another household's credit is refused
+
+A level that is not one of the three, null or a number is 400 naming `level`; an outsider's credit, an id that does not exist and one that is not a uuid are 404.
+
+### Last call only migrates to every member
+
+`last_call_migration_integration_test.dart` applies the migrations up to 0012, seeds a `last_call_only` credit in a household of two, and after `0013` finds a last-call row for each of the two members and for no one else.
 
 ### Preferences are validated
 
@@ -377,6 +393,10 @@ With one member's device in London and the other's in New York, the 09:01Z run r
 ### A muted card is silent for that member only
 
 A member who muted the card gets nothing, while the other member of the household gets the reminder.
+
+### Last chance sends only the last day
+
+With Ann on Last chance for the monthly credit and Bob on Periodically, 24 October's week-out reminder goes to Bob only, and Ann gets the 31 October last-day one.
 
 ### An unregistered token deletes its device
 

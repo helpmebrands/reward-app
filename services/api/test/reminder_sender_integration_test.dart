@@ -220,6 +220,35 @@ void main() {
       },
     );
 
+    // @lat: [[api-tests#Reminder sender#Last chance sends only the last day]]
+    test('a member on last chance gets only the last-day reminder', () async {
+      await annsCard();
+      await bobJoins();
+      await remindersOn('ann');
+      await remindersOn('bob');
+      await device('ann', 'ann-phone', 'Europe/London');
+      await device('bob', 'bob-phone', 'Europe/London');
+      final benefit =
+          (await db.execute('SELECT id::text FROM benefits')).single[0]!
+              as String;
+      final set = await api.as('ann').put('/v1/me/benefits/$benefit/level', {
+        'level': 'lastChance',
+      });
+      expect(set.status, 200, reason: '${set.body}');
+
+      // 24 October, 09:01 in London (still BST): the week-out rung.
+      await sendDueReminders(db, push, now: DateTime.utc(2026, 10, 24, 8, 1));
+      expect(push.tagsTo('ann-phone'), isEmpty);
+      expect(push.tagsTo('bob-phone'), ['cardvantage-2026-10-24|notice']);
+
+      await sendDueReminders(
+        db,
+        push,
+        now: londonNine.add(const Duration(minutes: 1)),
+      );
+      expect(push.tagsTo('ann-phone'), [lastDay]);
+    });
+
     // @lat: [[api-tests#Reminder sender#An unregistered token deletes its device]]
     test('a token FCM reports unregistered loses its device row', () async {
       await annsCard();
