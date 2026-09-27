@@ -1006,7 +1006,7 @@ paths:
       operationId: putBenefitState
       summary: Change a credit's household state
       description: |
-        Enrolment, spend met, last call only, active, opted out and tracked
+        Enrollment, spend met, last call only, active, opted out and tracked
         from, on any credit, linked or not. Absent keys stay as they are; null clears.
       parameters:
         - name: benefitId

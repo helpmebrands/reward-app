@@ -304,7 +304,7 @@ void main() {
       },
     );
 
-    // @lat: [[mobile-tests#Store#Enrolment is confirmed and revoked]]
+    // @lat: [[mobile-tests#Store#Enrollment is confirmed and revoked]]
     test(
       'confirmEnrollment stamps enrolledAt and revokeEnrollment clears it',
       () async {

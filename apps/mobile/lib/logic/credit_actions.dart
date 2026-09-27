@@ -71,7 +71,7 @@ class CreditActions {
     );
   }
 
-  /// Records the issuer's enrolment box as ticked, with an undo.
+  /// Records the issuer's enrollment box as ticked, with an undo.
   Future<void> confirmEnrollment(BenefitInstance instance) async {
     final id = instance.benefit.id;
     final name = instance.benefit.name;

@@ -145,7 +145,7 @@ ReminderSchedule buildSchedule(
     if (reason == LockReason.spend) continue;
     final locked = reason != null;
     // A locked credit cannot be spent, so it is only worth a nudge if the user
-    // asked to be told about enrolment; otherwise it is an impossible chore.
+    // asked to be told about enrollment; otherwise it is an impossible chore.
     if (locked && !settings.enrollmentReminder) continue;
 
     for (final cycle in cyclesBetween(benefit, card, from, until)) {
@@ -220,7 +220,7 @@ String _titleFor(List<ReminderItem> items, int totalCents, LadderRung rung) {
   final money = formatMoney(totalCents);
   final locked = items.where((item) => item.locked).toList();
 
-  // When most of the money is behind an enrolment box, lead with the blocker:
+  // When most of the money is behind an enrollment box, lead with the blocker:
   // telling someone to spend money they cannot reach is worse than silence.
   if (locked.isNotEmpty && _sum(locked) > totalCents / 2) {
     return '${formatMoney(_sum(locked))} is still locked';
@@ -246,7 +246,7 @@ String _bodyFor(List<ReminderItem> items, LadderRung rung) {
 
   if (items.length == 1) {
     if (first.locked) {
-      return '${first.benefitName} on $card needs enrolment before you can spend a cent of it.';
+      return '${first.benefitName} on $card needs enrollment before you can spend a cent of it.';
     }
     return '${first.benefitName}$where on $card. '
         '${formatMoney(first.remainingCents)} untouched.';

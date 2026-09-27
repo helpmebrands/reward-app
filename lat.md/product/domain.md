@@ -33,7 +33,7 @@ Two of the same product are told apart by their labels. `defaultLabel` proposes 
 
 The household's cards, credits and claims are shared by its members; reminder settings and mutes are not, so `MemberPreferences` holds one member's.
 
-They are whether reminders are on, the time of day, the value floor, the annual-fee and enrolment switches, the muted card and credit ids, and the last-call credit ids.
+They are whether reminders are on, the time of day, the value floor, the annual-fee and enrollment switches, the muted card and credit ids, and the last-call credit ids.
 
 `isMuted(benefit)` is true when the member muted the credit or its card. `buildSchedule(data, prefs)` and `currentInstances(data, on, prefs)` read them, so one household scheduled for two members gives two schedules, and one member's mute leaves the household's data untouched (#209). The Dart domain dropped the PWA's `Card.muted`, `Benefit.muted` and `Settings.notifications`; the codec ignores them in the PWA's sample. `defaultMemberPreferences` are the PWA's defaults: off, 09:00, a $1 floor, both switches on, nothing muted.
 
@@ -47,7 +47,7 @@ Until #362 removes it, the household's `Benefit.lastCallOnly` also reads as Last
 
 ## Benefit
 
-A benefit is one recurring credit on one card: a value in cents released per cycle, a cadence, an anchor, and the enrolment state that decides whether it is spendable at all.
+A benefit is one recurring credit on one card: a value in cents released per cycle, a cadence, an anchor, and the enrollment state that decides whether it is spendable at all.
 
 Fields with behaviour behind them:
 
@@ -112,7 +112,7 @@ Precedence, from `statusFor` in `packages/domain/lib/src/selectors.dart`:
 0. `opted_out` when `optedOutAt` is set. This outranks everything, captured included: the household has said it will not use the credit.
 1. `captured` when claimed cents reach the value. This outranks everything, including locked: a credit that was used is used.
 2. `manual` for untracked cadences.
-3. `locked` when enrolment is required and unconfirmed, or a spend threshold is not yet met (`lockReason` says which; enrolment outranks spend).
+3. `locked` when enrollment is required and unconfirmed, or a spend threshold is not yet met (`lockReason` says which; enrollment outranks spend).
 4. `available` for a `rolling` credit, whatever the day: its window has no deadline to miss, so it is never `use_soon` or `missed`.
 5. `missed` when the window has closed.
 6. `use_soon` when the window closes within `settings.useSoonDays` (default `useSoonDays`, 30), otherwise `available`.
@@ -123,13 +123,13 @@ Only `use_soon` and `available` are "claimable" (`isClaimable`), and that is the
 
 ### Locked is not unclaimed
 
-A credit behind an unticked enrolment box cannot be spent. Treating it as unclaimed would tell the user to do something they cannot do, so it is counted separately, excluded from the headline, and never dunned.
+A credit behind an unticked enrollment box cannot be spent. Treating it as unclaimed would tell the user to do something they cannot do, so it is counted separately, excluded from the headline, and never dunned.
 
 Consequences elsewhere:
 
 - Today shows locked credits in their own section, below the headline.
 - The Credits screen keeps `lockedCents` as its own figure ([[domain#The five totals]]).
-- Reminders only mention locked credits when the user has opted into enrolment reminders, and then lead with the blocker rather than the spend ([[reminders#Schedule construction#Notification copy]]).
+- Reminders only mention locked credits when the user has opted into enrollment reminders, and then lead with the blocker rather than the spend ([[reminders#Schedule construction#Notification copy]]).
 - The detail sheet offers "I've enrolled — unlock this credit" instead of a spend action. Confirming sets `enrolledAt`; revoking clears it.
 
 ### Opted out is a choice, not a status of the window
@@ -152,10 +152,10 @@ A credit gated behind a year's spend (Business Platinum's $250K credits, the Del
 
 Consequences:
 
-- Today's locked section says which lock applies: "Locked behind enrolment", "Locked behind a spend threshold", or both.
+- Today's locked section says which lock applies: "Locked behind enrollment", "Locked behind a spend threshold", or both.
 - The detail sheet reads "Unlocks after $250,000 spend this year" and offers "I've reached it — unlock", which sets `spendMetAt`; revoking clears it.
 - `summarizeCard` counts nothing for a spend-locked credit in `annualValueCents`, and `templateAnnualValueCents` leaves gated entries out of the catalogue price.
-- Reminders never mention a spend-locked credit, whatever the enrolment-reminder setting: no notification can reach a spend threshold ([[reminders#Schedule construction]]).
+- Reminders never mention a spend-locked credit, whatever the enrollment-reminder setting: no notification can reach a spend threshold ([[reminders#Schedule construction]]).
 
 ## The five totals
 
@@ -166,7 +166,7 @@ Claimable, locked, captured, missed and opted out are five different quantities.
 | Figure | Meaning |
 | --- | --- |
 | `claimableCents` | Open and spendable. Today's headline. |
-| `lockedCents` | Behind an enrolment box. Excluded from claimable on purpose. |
+| `lockedCents` | Behind an enrollment box. Excluded from claimable on purpose. |
 | `capturedCents` | Already used this cycle. |
 | `missedCents` | Windows that closed unused ([[domain#Missed ledger]]). |
 | `optedOutCents` | A year's value of the opted-out credits, which no other figure counts. |
@@ -209,7 +209,7 @@ This is why the Value tab and the Cards tab can disagree: Value covers the last 
 - `anniversaryError`: the cardmember year start is a real calendar date.
 - `endsOnError`: a credit's end date, if given, is a real calendar date; blank means it has none.
 - `intervalMonthsError`: a rolling credit's months between claims is a whole number above zero; every other cadence ignores it.
-- `enrollmentUrlError`: an enrolment page, if given, is an http or https URL.
+- `enrollmentUrlError`: an enrollment page, if given, is an http or https URL.
 
 ## Card catalogue
 
@@ -225,10 +225,10 @@ A card template changes over time, so the catalogue keeps versions of it, and a 
 
 A `TemplateVersion` is a whole `CardTemplate` with its `version` and `effectiveFrom`; `versionInForce(versions, date)` is the latest whose date has passed. A linked card stores `templateId` and each linked benefit `templateBenefitId`, the stable credit id; `maintainedBy(card)` is `system` for a linked card and `user` otherwise, derived and never stored.
 
-`resolveLinkedBenefit(versions, state, card, on)` builds today's `Benefit` from the household's `LinkedBenefitState` (its own id, which claims point at, enrolment, spend and the flags) and the credit's terms, so selectors, `buildSchedule` and the screens need no change:
+`resolveLinkedBenefit(versions, state, card, on)` builds today's `Benefit` from the household's `LinkedBenefitState` (its own id, which claims point at, enrollment, spend and the flags) and the credit's terms, so selectors, `buildSchedule` and the screens need no change:
 
 - The version in force at the start of the current cycle supplies the terms, so a cycle already running keeps them when a new version lands.
-- A credit added in a version appears from its `effectiveFrom` with that version's terms, locked if it needs enrolment.
+- A credit added in a version appears from its `effectiveFrom` with that version's terms, locked if it needs enrollment.
 - A credit dropped from a version ends the day before that version's `effectiveFrom`.
 
 Catalogue storage, drafts and publishing live in the service tier (#214, #215); these are the pure rules both sides share.

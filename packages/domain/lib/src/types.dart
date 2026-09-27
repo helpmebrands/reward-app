@@ -59,10 +59,10 @@ enum CardKind { personal, business }
 /// The status ladder, taken from the design.
 ///
 /// [locked] and [manual] are deliberately *not* variants of "unclaimed":
-/// Today's headline excludes both, because money behind an unticked enrolment
+/// Today's headline excludes both, because money behind an unticked enrollment
 /// box is not money you are failing to spend.
 enum BenefitStatus {
-  /// Enrolment required and not yet confirmed. Nothing is spendable.
+  /// Enrollment required and not yet confirmed. Nothing is spendable.
   locked,
 
   /// No cycle tracks it; the user reviews it by hand.
@@ -503,7 +503,7 @@ class MemberPreferences {
   /// Remind before the annual fee posts.
   final bool annualFeeReminder;
 
-  /// Remind about credits that are locked behind enrolment.
+  /// Remind about credits that are locked behind enrollment.
   final bool enrollmentReminder;
 
   /// Cards whose every credit this member has silenced.

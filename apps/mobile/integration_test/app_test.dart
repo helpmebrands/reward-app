@@ -36,7 +36,7 @@ Future<void> tab(WidgetTester tester, String label) async {
   await settle(tester);
 }
 
-/// A monthly Platinum credit that needs no enrolment, so it lands spendable.
+/// A monthly Platinum credit that needs no enrollment, so it lands spendable.
 const walmart = 'Walmart+ Membership Credit';
 
 Finder row(String name) =>

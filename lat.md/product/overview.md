@@ -15,5 +15,5 @@ So the app is a *household* deadline manager. Cards belong to people (`Card.hold
 Most of the design decisions in the domain layer trace back to one of these three.
 
 - **Cycles are calendar objects.** A monthly credit is "September", not "the last 30 days", and a Sapphire Reserve travel credit runs on the cardmember year. The anchor is recorded per credit, never guessed from the cadence. See [[domain#Benefit#Cycle anchors]].
-- **Locked is not unclaimed.** A credit behind an unticked enrolment box is money you *cannot* spend, not money you are failing to spend. It is counted separately and never dunned. See [[domain#Status ladder#Locked is not unclaimed]].
+- **Locked is not unclaimed.** A credit behind an unticked enrollment box is money you *cannot* spend, not money you are failing to spend. It is counted separately and never dunned. See [[domain#Status ladder#Locked is not unclaimed]].
 - **Partial use is normal.** $40 of a $100 dining credit is the common case. An app that only offers a tick mark trains people to lie to it. See [[domain#Claims]].

@@ -2,7 +2,7 @@
 /// a card linked to a template gets today's `Benefit` from it.
 ///
 /// A version is a whole card template with the date it takes effect. A
-/// linked card stores only the household's state (enrolment, spend, claims
+/// linked card stores only the household's state (enrollment, spend, claims
 /// through the benefit id, its anniversary); the terms come from the version
 /// in force when each cycle starts, so a change reaches every linked card
 /// without touching it, and a cycle already running keeps the terms it
@@ -143,7 +143,7 @@ Benefit benefitFromCredit(
 /// - The version in force at the start of the current cycle supplies the
 ///   terms, so a cycle already running keeps them when a new version lands.
 /// - A credit added in a version appears from its `effectiveFrom`, with that
-///   version's terms, locked if it needs enrolment.
+///   version's terms, locked if it needs enrollment.
 /// - A credit dropped from a version stops the day before that version's
 ///   `effectiveFrom`.
 Benefit? resolveLinkedBenefit(

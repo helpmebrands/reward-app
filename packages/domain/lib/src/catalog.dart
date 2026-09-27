@@ -1728,7 +1728,7 @@ int templateAnnualValueCents(CardTemplate template) {
       );
 }
 
-/// Credits in a template that are stuck behind an enrolment box.
+/// Credits in a template that are stuck behind an enrollment box.
 List<String> templateEnrollmentNames(CardTemplate template) {
   return template.benefits
       .where((b) => b.enrollmentRequired)

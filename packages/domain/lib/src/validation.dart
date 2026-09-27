@@ -92,7 +92,7 @@ bool _isCalendarDate(String value) {
       day <= daysInMonth(year, month);
 }
 
-/// An enrolment page, if given, must be somewhere a browser can open.
+/// An enrollment page, if given, must be somewhere a browser can open.
 String? enrollmentUrlError(String value) {
   if (value.trim().isEmpty) return null;
   final url = Uri.tryParse(value);
