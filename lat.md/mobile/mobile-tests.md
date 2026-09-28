@@ -135,6 +135,26 @@ The widget is wrapped in `ExcludeSemantics` and the semantics tree under it carr
 
 Reading the palette the widget paints with, the dashed card edge, the plain card edge and the plus badge each reach 3:1 against every colour they are drawn on, in dark and in light.
 
+## All caught up illustration
+
+`all_caught_up_test.dart` pins the illustration Today shows once nothing is claimable ([[mobile-architecture#Today screen#All caught up illustration]]).
+
+### Every edge clears 3:1 in both themes
+
+The card edges, the accent ticks, the check badge and the check itself each reach 3:1 against every colour they are drawn on, the page included, in dark and in light.
+
+### The illustration is hidden from the screen reader
+
+The widget is wrapped in `ExcludeSemantics` and the semantics tree under it carries no label.
+
+### The badge pops once
+
+On the first frame the badge is drawn at 0.4 of its size; once the animation settles it is at full size.
+
+### Reduce motion draws the badge at full size
+
+With `MediaQuery.disableAnimations` set, the first frame draws the badge at full size and no animation runs.
+
 ## Value bar
 
 `value_bar_test.dart` pins the `ValueBar` widget ([[mobile-architecture#Value bar]]).

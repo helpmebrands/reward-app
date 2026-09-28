@@ -24,6 +24,7 @@ import 'shell/brand_app_bar.dart';
 import 'shell/logo_hand_off.dart';
 import 'shell/width_class.dart';
 import 'theme/theme.dart';
+import 'widgets/all_caught_up.dart';
 import 'widgets/brand_lockup.dart';
 import 'widgets/brand_logo.dart';
 import 'widgets/credit_row.dart';
@@ -130,6 +131,16 @@ Widget emptyCardSlotDark() => _slotIn(Brightness.dark);
 
 @Preview(name: 'Empty card slot, light', size: Size(200, 200))
 Widget emptyCardSlotLight() => _slotIn(Brightness.light);
+
+/// The all-caught-up illustration at the size Today draws it.
+Widget _caughtUpIn(Brightness brightness) =>
+    _themed(const Center(child: AllCaughtUp(size: 132)), brightness);
+
+@Preview(name: 'All caught up, dark', size: Size(180, 180))
+Widget allCaughtUpDark() => _caughtUpIn(Brightness.dark);
+
+@Preview(name: 'All caught up, light', size: Size(180, 180))
+Widget allCaughtUpLight() => _caughtUpIn(Brightness.light);
 
 /// The value bar at a phone card's width, in each shape it takes.
 Widget _valueBarIn(ValueBreakdown breakdown, Brightness brightness) => _themed(
