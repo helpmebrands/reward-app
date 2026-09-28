@@ -311,6 +311,12 @@ With no active card (`!store.hasCards`, archived cards not counted) and loading 
 
 It is painted by `EmptyCardSlotPainter` from an `EmptyCardSlotPalette` picked from the tokens, so it follows light and dark, and every edge clears 3:1 against what it is drawn on (WCAG 1.4.11). It is decorative and wrapped in `ExcludeSemantics`. Pinned by [[mobile-tests#Empty card slot]].
 
+### All caught up illustration
+
+`AllCaughtUp` is the illustration for the moment nothing is left to claim: two stacked cards on a soft circle, a check badge in `valueEarned` and three small accent ticks (#384).
+
+`AllCaughtUpPainter` paints it from an `AllCaughtUpPalette` picked from the tokens, as the [[mobile-architecture#Today screen#Empty card slot]] does, so it follows light and dark and every edge clears 3:1 against what it is drawn on, the page included. It is wrapped in `ExcludeSemantics`. The badge pops once, from 0.4 to full size over 700 ms with a slight overshoot, when the widget first appears; with `MediaQuery.disableAnimations` it is drawn at full size from the first frame. There is no confetti. Pinned by [[mobile-tests#All caught up illustration]].
+
 ### Today's interactions
 
 The screen takes the `UiState` beside the store; without it the screen is static, which is how tests and previews still build it bare.
