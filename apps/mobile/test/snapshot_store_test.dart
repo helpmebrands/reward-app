@@ -58,6 +58,7 @@ void main() {
       expect(store.soon.first.benefit.name, 'Resy Dining Credit');
       expect(store.totals.claimableCents, 189890);
       expect(store.nextResetOn, '2026-09-30');
+      expect(store.nextOpening?.on, '2026-10-01');
     },
   );
 }
