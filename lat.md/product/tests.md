@@ -121,6 +121,30 @@ On a card, an opted-out $15 monthly credit and an un-enrolled $50 quarterly one 
 
 `householdBreakdown` equals the sum of each unarchived card's `cardYearToDateBreakdown`; an archived card's credits count nowhere.
 
+## Next opening
+
+`packages/domain/test/next_opening_test.dart` pins `nextOpening`, the day the next credit window opens and the credits that open then ([[domain#Next opening]]).
+
+### The sample household opens Uber Cash on Oct 1
+
+With every open credit in the sample household captured on 16 Sep 2026, the next opening is 1 Oct 2026, and both cards' Uber Cash are among its credits.
+
+### Credits opening the same day come together
+
+A $15 monthly and a $100 quarterly credit both open on 1 Oct 2026 and are returned together, worth 11500; the annual credit opening in January is not.
+
+### Opted-out, archived and ending credits are ignored
+
+Opted-out and inactive credits, credits on an archived card, and a credit whose `endsOn` falls before its next window are skipped, leaving the annual credit on 1 Jan 2027.
+
+### A locked credit is not next up
+
+A credit still locked when its next window starts, behind an enrollment box or an unmet spend, is skipped.
+
+### Nothing opening again is null
+
+With only untracked and ending credits, or none at all, `nextOpening` returns null.
+
 ## Ladder and schedule
 
 `packages/domain/test/reminders_test.dart` cover when a notification fires and what it says ([[reminders#The ladder]], [[reminders#Schedule construction]]).

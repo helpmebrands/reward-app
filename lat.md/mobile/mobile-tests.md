@@ -1125,7 +1125,7 @@ A record that is not JSON loads as null rather than throwing.
 
 ### The app store resolves today's instances
 
-After `load` the store reports its cards, the first use-soon credit, the claimable total and the next reset for the fixed date, all from the domain selectors.
+After `load` the store reports its cards, the first use-soon credit, the claimable total, the next reset and the next opening for the fixed date, all from the domain selectors.
 
 `app_store_test.dart` is the mutation suite ([[mobile-architecture#The store#Mutations]]): plain Dart over a `MemorySnapshotStore` with the clock fixed at 16 September 2026, counting notifications. After every mutation the saved snapshot and the store's snapshot are the same JSON, so a write that skipped the store would fail every case.
 
