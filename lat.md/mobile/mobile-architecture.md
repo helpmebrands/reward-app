@@ -317,6 +317,12 @@ The eyebrow stays the `ScreenTitle`, read as "Today"; the number and its line gi
 
 The value bar, the locked section and the captured section stay below in their usual order. Muted credits stay claimable, because muting silences reminders and does not use a credit, so a muted, unused credit keeps the number. The block is at most 440 wide and centred. Pinned by [[mobile-tests#Today all caught up]].
 
+### Nothing due soon
+
+When `store.soon` is empty but `totals.claimableCents > 0`, `NothingDueSoon` takes the Use soon section's place and sort order (2), so a screen reader hears it right after the headline (#386).
+
+"Use soon" covers only windows closing within 30 days, so open money can leave Today with no rows under its number. The note explains that: a small check in `valueEarned` (drawn only), a dashed `controlBorder` outline, "Nothing closes in the next 30 days", then "<name> is next, $X by <date>." for the claimable credit whose window ends first, using its remaining amount. An open rolling credit has no end, so when it is the only one the line reads "<name> is open, $X, with no deadline." The 48-high text button "See open credits on Credits" goes to the Credits tab, which lists every open credit; the bare screen, with no router, leaves it out. Pinned by [[mobile-tests#Today nothing due soon]].
+
 ### Empty card slot
 
 `EmptyCardSlot` is the empty-state illustration: a dashed card where the first card will go, a plain card behind it and a plus badge, on a soft circle.

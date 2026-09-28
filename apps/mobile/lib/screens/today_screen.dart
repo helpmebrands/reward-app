@@ -13,6 +13,7 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/add_card_button.dart';
 import '../widgets/credit_row.dart';
 import '../widgets/empty_card_slot.dart';
+import '../widgets/nothing_due_soon.dart';
 import '../widgets/screen_title.dart';
 import '../widgets/today_caught_up.dart';
 import '../widgets/today_headline.dart';
@@ -126,8 +127,30 @@ class _TodayBody extends StatelessWidget {
       ),
     );
 
+    // With money open but nothing closing within 30 days, a note says why
+    // there are no rows and names the next deadline.
+    final open = store.instances.where(isClaimable).toList();
+    final router = GoRouter.maybeOf(context);
     final soonSection = soon.isEmpty
-        ? null
+        ? open.isEmpty
+              ? null
+              : _Section(
+                  order: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: Space.s8),
+                    child: NothingDueSoon(
+                      next: open.reduce(
+                        (a, b) => compareIsoDate(b.cycle.end, a.cycle.end) < 0
+                            ? b
+                            : a,
+                      ),
+                      today: store.today,
+                      onOpenCredits: router == null
+                          ? null
+                          : () => router.go(Paths.credits),
+                    ),
+                  ),
+                )
         : _Section(
             order: 2,
             child: Column(

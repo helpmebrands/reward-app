@@ -33,6 +33,7 @@ import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
+import 'widgets/nothing_due_soon.dart';
 import 'widgets/notification_level_control.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/today_caught_up.dart';
@@ -278,6 +279,29 @@ Widget todayCaughtUpLight() => _caughtUpHeadline(Brightness.light);
 @Preview(name: 'Today, all caught up, locked', size: Size(402, 420))
 Widget todayCaughtUpLocked() =>
     _caughtUpHeadline(Brightness.dark, lockedCents: 20000);
+
+/// The note where Use soon would be, on 2 October 2026, when the sample
+/// household's Resy credit is open until Dec 31.
+Widget _nothingDueSoonIn(Brightness brightness) {
+  const on = '2026-10-02';
+  final resy = currentInstances(
+    sampleHousehold(),
+    on,
+  ).firstWhere((i) => i.benefit.name == 'Resy Dining Credit');
+  return _themed(
+    Padding(
+      padding: const EdgeInsets.all(16),
+      child: NothingDueSoon(next: resy, today: on, onOpenCredits: () {}),
+    ),
+    brightness,
+  );
+}
+
+@Preview(name: 'Nothing due soon, dark', size: Size(402, 160))
+Widget nothingDueSoonDark() => _nothingDueSoonIn(Brightness.dark);
+
+@Preview(name: 'Nothing due soon, light', size: Size(402, 160))
+Widget nothingDueSoonLight() => _nothingDueSoonIn(Brightness.light);
 
 @Preview(name: 'Shell, compact', size: Size(402, 874))
 Widget shellCompact() => RewardApp(store: _store());
