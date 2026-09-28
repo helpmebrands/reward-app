@@ -221,6 +221,26 @@ At compact and expanded the traversal reads "Today", then the heading, the line,
 
 At compact, medium and expanded, at 1x and 2x text, both the all-caught-up and the locked variant lay out with no overflow.
 
+## Today nothing due soon
+
+`today_nothing_due_soon_test.dart` boots the app at Today on 2 October 2026 over the sample household cut to Kathy's Resy credit, open until 31 December, and pins the note ([[mobile-architecture#Today screen#Nothing due soon]]).
+
+### Open money with nothing due soon shows the note
+
+With the $100 Resy credit open and nothing use-soon, Today shows "Nothing closes in the next 30 days", "Resy Dining Credit is next, $100 by Dec 31." and the link, and no Use soon section.
+
+### The link opens Credits
+
+Tapping "See open credits on Credits" goes to the Credits tab.
+
+### Use soon rows or nothing claimable hide it
+
+With an unused Uber Cash credit closing on 31 October beside Resy, the Use soon section shows and the note does not; with only a used Uber Cash, Today is all caught up and there is no note.
+
+### The note is a 48 target and holds at 2x
+
+At 1x and 2x text the note and its link are each at least 48 high, stay inside 402, and nothing overflows.
+
 ## Today empty state
 
 `today_empty_state_test.dart` boots the app at Today on a household with no active card, locally or through the fake service tier, and pins the empty state ([[mobile-architecture#Today screen#Today before any card]]).
