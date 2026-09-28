@@ -35,6 +35,8 @@ import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
 import 'widgets/notification_level_control.dart';
 import 'widgets/sheet_host.dart';
+import 'widgets/today_caught_up.dart';
+import 'widgets/today_headline.dart';
 import 'widgets/value_bar.dart';
 import 'widgets/snackbar_host.dart';
 import 'logic/session.dart';
@@ -246,6 +248,36 @@ Widget todayDark() => _themed(TodayScreen(store: _store()), Brightness.dark);
 
 @Preview(name: 'Today, light', size: Size(402, 874))
 Widget todayLight() => _themed(TodayScreen(store: _store()), Brightness.light);
+
+/// Today's headline once nothing is claimable, over the sample household's
+/// two Uber Cash credits; the locked variant has $200 still locked.
+Widget _caughtUpHeadline(Brightness brightness, {int lockedCents = 0}) {
+  final uber = sampleHousehold().benefits.where((b) => b.name == 'Uber Cash');
+  return _themed(
+    SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: TodayCaughtUp(
+        eyebrow: todayEyebrow(sampleToday),
+        today: sampleToday,
+        capturedCents: 3000,
+        lockedCents: lockedCents,
+        cards: 2,
+        next: NextOpening(on: '2026-10-01', benefits: uber.toList()),
+      ),
+    ),
+    brightness,
+  );
+}
+
+@Preview(name: 'Today, all caught up, dark', size: Size(402, 520))
+Widget todayCaughtUpDark() => _caughtUpHeadline(Brightness.dark);
+
+@Preview(name: 'Today, all caught up, light', size: Size(402, 520))
+Widget todayCaughtUpLight() => _caughtUpHeadline(Brightness.light);
+
+@Preview(name: 'Today, all caught up, locked', size: Size(402, 420))
+Widget todayCaughtUpLocked() =>
+    _caughtUpHeadline(Brightness.dark, lockedCents: 20000);
 
 @Preview(name: 'Shell, compact', size: Size(402, 874))
 Widget shellCompact() => RewardApp(store: _store());

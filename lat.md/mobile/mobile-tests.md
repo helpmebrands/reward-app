@@ -187,6 +187,40 @@ The four-segment bar is one semantics node labelled "$540 earned, $770 available
 
 An all-zero breakdown draws the 8-high track, no segments and no text.
 
+## Today all caught up
+
+`today_all_caught_up_test.dart` pumps Today over the sample household cut down to its two Uber Cash credits, both used on 16 September 2026, and pins the state that replaces the number ([[mobile-architecture#Today screen#All caught up]]).
+
+### Every open credit used shows All caught up
+
+The `AllCaughtUp` illustration and "All caught up" replace `today-amount`, and the value bar and the captured section stay.
+
+The line reads "You’ve used all $30 open this period across 2 cards.", Next up reads "Next up: Uber Cash, $15 × 2" and "Opens Oct 1, in 15 days".
+
+### Locked credits change the wording
+
+With Kathy's un-enrolled Oura credit added, the heading is "Everything you can use is used", the line says $200 is still locked, the locked section is present, and there is no Next up card and no "All caught up".
+
+### A claimable credit brings the number back
+
+Undoing one Uber Cash claim brings back `today-amount` at 15 on the next frame, with no illustration or heading.
+
+### A muted unused credit is not done
+
+With both Uber Cash credits unused and muted, Today keeps the normal headline: muting silences reminders and does not use a credit.
+
+### No card and loading keep their screens
+
+A household with no card still shows the empty state's heading, and a store that has not loaded shows the progress indicator; neither shows "All caught up".
+
+### The screen reader hears the heading after Today
+
+At compact and expanded the traversal reads "Today", then the heading, the line, Next up and the value bar sentence, and the heading is flagged as a header.
+
+### The state holds at every width and at 2x
+
+At compact, medium and expanded, at 1x and 2x text, both the all-caught-up and the locked variant lay out with no overflow.
+
 ## Today empty state
 
 `today_empty_state_test.dart` boots the app at Today on a household with no active card, locally or through the fake service tier, and pins the empty state ([[mobile-architecture#Today screen#Today before any card]]).
