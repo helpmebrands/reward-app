@@ -193,7 +193,9 @@ An all-zero breakdown draws the 8-high track, no segments and no text.
 
 ### Every open credit used shows All caught up
 
-The `AllCaughtUp` illustration and "All caught up" replace `today-amount`; the line reads "You’ve used all $30 open this period across 2 cards.", Next up reads "Next up: Uber Cash, $15 × 2" and "Opens Oct 1, in 15 days", and the value bar and the captured section stay.
+The `AllCaughtUp` illustration and "All caught up" replace `today-amount`, and the value bar and the captured section stay.
+
+The line reads "You’ve used all $30 open this period across 2 cards.", Next up reads "Next up: Uber Cash, $15 × 2" and "Opens Oct 1, in 15 days".
 
 ### Locked credits change the wording
 

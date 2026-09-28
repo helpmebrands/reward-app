@@ -305,6 +305,18 @@ With no active card (`!store.hasCards`, archived cards not counted) and loading 
 - **The other tabs**: with no active card, Credits says "No cards yet, so no credits to track." in place of the filter's empty message, Cards keeps "Start with one card" and swaps its catalogue button for this one, and Value keeps its note; each adds the same `AddCardButton`, so Back returns to that tab. Pinned by [[mobile-tests#Empty tabs]].
 - **Not empty**: while loading, the progress indicator shows; a household whose credits are all locked has cards, so it shows the normal layout with the locked section.
 
+### All caught up
+
+With an active card, loading finished and nothing claimable (`totals.claimableCents == 0`), `TodayCaughtUp` takes the headline's place (#385).
+
+The eyebrow stays the `ScreenTitle`, read as "Today"; the number and its line give way to the [[mobile-architecture#Today screen#All caught up illustration]], a heading and a line.
+
+- **Heading**: "All caught up", or "Everything you can use is used" when `totals.lockedCents > 0`, since locked is not unclaimed. It is a level-two header in its own semantics node, so a screen reader hears it right after "Today".
+- **Line**: "You’ve used all $X open this period across N cards" from `totals.capturedCents`; with credits locked, "$X is still locked. Unlock it and it will show up here." With nothing captured and nothing locked (only untracked or opted-out credits) it reads "Nothing is open this period."
+- **Next up**: a card from `AppStore.nextOpening` ([[domain#Next opening]]): a calendar leaf with the date, drawn only, then "Next up: Uber Cash, $15 × 2" and "Opens Oct 1, in 15 days", merged into one node. Credits with several names read "Next up: <first> and N more, $total". There is no card when the selector returns null or when anything is locked: then the locked section is the next thing to act on.
+
+The value bar, the locked section and the captured section stay below in their usual order. Muted credits stay claimable, because muting silences reminders and does not use a credit, so a muted, unused credit keeps the number. The block is at most 440 wide and centred. Pinned by [[mobile-tests#Today all caught up]].
+
 ### Empty card slot
 
 `EmptyCardSlot` is the empty-state illustration: a dashed card where the first card will go, a plain card behind it and a plus badge, on a soft circle.

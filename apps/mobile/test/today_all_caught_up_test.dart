@@ -197,7 +197,7 @@ void main() {
         spoken.indexWhere((l) => l.startsWith('Next up')),
         spoken.indexOf(valueBarSentence(store.householdValue)),
       ];
-      expect(order, everyElement(greaterThanOrEqualTo(0)), reason: '$width');
+      expect(order, everyElement(greaterThanOrEqualTo(0)), reason: '$width: $spoken');
       expect(order, [...order]..sort(), reason: '$width: $spoken');
       final heading = tester.getSemantics(find.text('All caught up'));
       expect(
