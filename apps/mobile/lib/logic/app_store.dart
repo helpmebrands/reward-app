@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:domain/domain.dart';
+import 'package:domain/domain.dart' as domain show nextOpening;
 import 'package:flutter/foundation.dart';
 
 import '../data/claim_outbox.dart';
@@ -1009,6 +1010,13 @@ class AppStore extends ChangeNotifier {
   }
 
   IsoDate? get nextResetOn => nextReset(instances);
+
+  /// The next day a credit window opens, which Today's "Next up" names.
+  NextOpening? get nextOpening {
+    final data = _data;
+    return data == null ? null : domain.nextOpening(data, today);
+  }
+
   bool get hasCards => _data?.cards.any((card) => !card.archived) ?? false;
   int get cardCount => _data?.cards.where((card) => !card.archived).length ?? 0;
 }

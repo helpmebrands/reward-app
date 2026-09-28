@@ -214,6 +214,12 @@ Three scopes build on them. `creditBreakdown` is one credit's current window, so
 
 These are calendar-year figures on purpose. The card's Fee, Captured and Net, the percentage of the fee earned back and the verdict stay on the cardmember year ([[domain#Card value and the cardmember year]]).
 
+## Next opening
+
+`nextOpening(data, today)` finds the earliest day after today on which a credit's next window opens, with every credit that opens that day (#383). Today's "Next up" card names them once nothing is claimable.
+
+`nextReset` cannot serve here, since it only looks at claimable credits. `nextOpening` looks at every active, tracked credit on an unarchived card that is not opted out: its next window starts the day after its current one closes. A credit is skipped when it has ended by then, or when it would still be locked on that day, since a locked window is nothing to look forward to. A rolling credit counts only once a claim has closed its window. `NextOpening.valueCents` sums the credits' full values.
+
 ## Form rules
 
 `packages/domain/lib/src/validation.dart` holds the rules the editors apply, as pure functions returning the sentence to show or null. Each sentence says what to enter, not what went wrong.
