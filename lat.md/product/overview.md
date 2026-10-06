@@ -8,7 +8,7 @@ A household signs in, and the service tier keeps its cards, credits and claims (
 
 The hard case is not two different cards with clashing offers. It is the same card held twice: two Platinums in one household means every credit exists twice, and one booking cannot draw on both.
 
-So the app is a *household* deadline manager. Cards belong to people (`Card.holder`), and credits are matched across them by [[domain#Overlaps]]. The holder is asked for at add time rather than inferred, because telling two identical Platinums apart is the whole point.
+So the app is a *household* deadline manager. Each card belongs to the person who added it (`Card.ownerId`), who shares their cards with the people they choose, to view them or to record what they use. Each person sees their own cards and the ones shared with them, and credits are matched across all of those by [[domain#Overlaps]]. Two people's Platinums are told apart by their owners' names and one person's two by their labels, because telling identical Platinums apart is the whole point ([[domain#Card]]).
 
 ## Three distinctions that drive everything
 

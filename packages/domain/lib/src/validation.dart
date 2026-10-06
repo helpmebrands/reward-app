@@ -15,10 +15,11 @@ String? requiredError(String value, String message) {
   return value.trim().isNotEmpty ? null : message;
 }
 
-/// A card's label, checked against every other card in the household: the
-/// display name it gives ([cardLabel]) must not be another card's. [cardId]
-/// is the card being edited, left out for a new one. Case and surrounding
-/// space do not make two names different.
+/// A card's label, checked against the owner's other cards: the display name
+/// it gives ([cardLabel]) must not be another of theirs. Names are unique per
+/// owner, so pass only the owner's [cards], never the cards shared with them.
+/// [cardId] is the card being edited, left out for a new one. Case and
+/// surrounding space do not make two names different.
 String? labelError(
   String label, {
   required List<Card> cards,

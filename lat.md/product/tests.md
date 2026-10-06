@@ -223,6 +223,22 @@ A single-credit reminder on a card labelled "Travel card" reads "Uber Cash at Ub
 
 `label` reads and writes under its own key, and a card without one writes no key.
 
+## Card owner
+
+`json_test.dart` pins `Card.ownerId`, the person who added the card, which the service tier serves and the app caches ([[domain#Card]]).
+
+### An owner round-trips and is omitted when absent
+
+A card with `ownerId` decodes to it and encodes back to the same JSON; a card without one decodes to null and writes no key.
+
+### A snapshot from before owners loads without them
+
+The sample household, saved before `ownerId` existed, loads with every card's owner null.
+
+### copyWith keeps the owner unless given one
+
+`copyWith` that changes another field keeps the owner, and one given a new owner replaces it.
+
 ## Member preferences
 
 `reminders_test.dart`, `selectors_test.dart` and `json_test.dart` pin the split of reminder settings and mutes from the household ([[domain#Member preferences]]).

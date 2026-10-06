@@ -40,6 +40,7 @@ Map<String, Object?> _withoutNulls(Map<String, Object?> json) =>
 
 Card cardFromJson(Map<String, dynamic> json) => Card(
   id: json['id'] as String,
+  ownerId: json['ownerId'] as String?,
   issuer: json['issuer'] as String,
   product: json['product'] as String,
   label: json['label'] as String?,
@@ -58,6 +59,7 @@ Card cardFromJson(Map<String, dynamic> json) => Card(
 
 Map<String, Object?> cardToJson(Card card) => _withoutNulls({
   'id': card.id,
+  'ownerId': card.ownerId,
   'issuer': card.issuer,
   'product': card.product,
   'label': card.label,
