@@ -1,7 +1,8 @@
 /// Catalogue change notices: when a new version of a template is published,
-/// every member holding a linked card on it gets a "terms changed" mark and,
-/// unless they muted the card, a push. Cards the household maintains itself
-/// get neither. Documented in `lat.md/api/api-architecture.md#Change notices`.
+/// the owner of each linked card on it and everyone the card is shared with
+/// get a "terms changed" mark and, unless they muted the card, a push. Cards
+/// their owners maintain themselves get neither. Documented in
+/// `lat.md/api/api-architecture.md#Change notices`.
 library;
 
 import 'dart:convert';
@@ -11,6 +12,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'access.dart';
 import 'auth.dart';
 import 'catalog.dart';
 import 'push.dart';
@@ -94,9 +96,10 @@ PushMessage changeNotice({
   return (at == 0 ? null : sorted[at - 1], sorted[at]);
 }
 
-/// Every publish event not yet told: marks each holder of a linked card on
-/// that template, and pushes to those with reminders on who have not muted
-/// the card, once each ([sendOnce]). Returns the pushes delivered.
+/// Every publish event not yet told: marks everyone who sees a linked card
+/// on that template, its owner and the people it is shared with, and
+/// pushes to those with reminders on who have not muted the card, once
+/// each ([sendOnce]). Returns the pushes delivered.
 Future<int> sendChangeNotices(
   Session db,
   PushSender push, {
@@ -121,14 +124,14 @@ Future<int> sendChangeNotices(
       final changes = termChanges(before, after);
       final holders = await db.execute(
         Sql.named('''
-          SELECT c.id::text, c.label, m.user_id::text,
+          SELECT c.id::text, c.label, a.user_id::text,
                  coalesce(p.enabled, false)
                    AND NOT EXISTS (SELECT 1 FROM member_mutes x
-                                   WHERE x.user_id = m.user_id
+                                   WHERE x.user_id = a.user_id
                                      AND x.card_id = c.id)
           FROM cards c
-          JOIN memberships m ON m.household_id = c.household_id
-          LEFT JOIN member_preferences p ON p.user_id = m.user_id
+          JOIN card_access a ON a.card_id = c.id
+          LEFT JOIN member_preferences p ON p.user_id = a.user_id
           WHERE c.template_id = @t
         '''),
         parameters: {'t': templateId},
@@ -206,24 +209,14 @@ Future<List<Map<String, Object?>>> termsChangedMarks(
 }
 
 /// Adds `POST /v1/cards/<cardId>/terms-seen`, which clears the caller's mark
-/// on a card of their household (204, whether or not there was one; 404 for
-/// any other card). Readers may: it changes nothing shared.
+/// on a card they can see (204, whether or not there was one; 404 for any
+/// other card). Any access will do: it changes nothing shared.
 void addChangeNoticeRoutes(RouteTable routes, SignedIn signedIn) {
-  final uuid = RegExp(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-  );
-
   Future<Response> seen(Request request, Caller caller, Session db) async {
     final cardId = request.params['cardId']!;
-    final found =
-        uuid.hasMatch(cardId) &&
-        (await db.execute(
-          Sql.named(
-            'SELECT 1 FROM cards WHERE id = @c::uuid AND household_id = @h::uuid',
-          ),
-          parameters: {'c': cardId, 'h': caller.householdId},
-        )).isNotEmpty;
-    if (!found) return jsonResponse({'error': 'not found'}, status: 404);
+    if (await accessTo(db, caller.userId, cardId) == null) {
+      return jsonResponse({'error': 'not found'}, status: 404);
+    }
     await db.execute(
       Sql.named(
         'DELETE FROM terms_changed WHERE card_id = @c::uuid AND user_id = @u::uuid',

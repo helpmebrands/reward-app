@@ -1,7 +1,8 @@
-/// A household's cards, credits and claims: served as the domain's
-/// `AppData`, with linked credits resolved from the catalogue, and written
-/// through routes that keep catalogue terms out of the household's hands.
-/// Documented in `lat.md/api/api-architecture.md#Household data`.
+/// The cards a person can see, with their credits and claims: served as
+/// the domain's `AppData`, with linked credits resolved from the catalogue,
+/// and written through routes that keep catalogue terms out of anyone's
+/// hands and each card's own fields in its owner's. Documented in
+/// `lat.md/api/api-architecture.md#Household data`.
 library;
 
 import 'dart:convert';
@@ -11,6 +12,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'access.dart';
 import 'auth.dart';
 import 'catalog.dart';
 import 'catalog_admin.dart' show parseCreditTerms;
@@ -24,7 +26,7 @@ import 'src/signed_in.dart';
 /// The snapshot version the api serves, the app's current one.
 const servedDataVersion = 2;
 
-/// Settings the household does not hold: the app's own defaults.
+/// Settings the service does not hold: the app's own defaults.
 const servedSettings = Settings(useSoonDays: 30, theme: ThemeSetting.system);
 
 String _iso(Object? value) => (value! as DateTime).toUtc().toIso8601String();
@@ -32,31 +34,35 @@ String? _date(Object? value) => value == null
     ? null
     : (value as DateTime).toIso8601String().substring(0, 10);
 
-/// Everything a household holds, as the snapshot the app already reads.
+/// Everything a person can see, as the snapshot the app already reads.
 class HouseholdData {
-  HouseholdData(this.data, this.versionsByTemplate);
+  HouseholdData(this.data, this.versionsByTemplate, this.access);
 
   final AppData data;
 
   /// The published versions of every template a card links to.
   final Map<String, List<TemplateVersion>> versionsByTemplate;
+
+  /// What the person may do with each card, by card id.
+  final Map<String, Access> access;
 }
 
-/// Makes sure every linked card has a benefit row for every credit any
-/// version in force by [today] has had, so a credit added in a new version
-/// has household state (and a claimable id) the day it appears.
+/// Makes sure every linked card [userId] can see has a benefit row for
+/// every credit any version in force by [today] has had, so a credit added
+/// in a new version has state (and a claimable id) the day it appears.
 Future<void> _materializeLinkedCredits(
   Session db,
-  String householdId,
+  String userId,
   Map<String, List<TemplateVersion>> versions,
   IsoDate today,
 ) async {
   final cards = await db.execute(
-    Sql.named(
-      'SELECT id::text, template_id FROM cards '
-      'WHERE household_id = @h::uuid AND template_id IS NOT NULL',
-    ),
-    parameters: {'h': householdId},
+    Sql.named('''
+      SELECT c.id::text, c.template_id FROM cards c
+      JOIN card_access a ON a.card_id = c.id AND a.user_id = @u::uuid
+      WHERE c.template_id IS NOT NULL
+    '''),
+    parameters: {'u': userId},
   );
   for (final [cardId, templateId] in cards) {
     final credits = {
@@ -67,48 +73,54 @@ Future<void> _materializeLinkedCredits(
     for (final credit in credits) {
       await db.execute(
         Sql.named('''
-          INSERT INTO benefits (household_id, card_id, template_credit_id)
-          VALUES (@h::uuid, @c::uuid, @credit)
+          INSERT INTO benefits (card_id, template_credit_id)
+          VALUES (@c::uuid, @credit)
           ON CONFLICT (card_id, template_credit_id) DO NOTHING
         '''),
-        parameters: {'h': householdId, 'c': cardId, 'credit': credit},
+        parameters: {'c': cardId, 'credit': credit},
       );
     }
   }
 }
 
-/// The household as `AppData` on [today]: a linked card named and priced by
-/// its template's version in force, each linked credit resolved by the
-/// domain for the cycle it is in, and a credit not yet or no longer in any
-/// version left out.
+/// The cards [userId] can see, their own and those shared with them, as
+/// `AppData` on [today]: a linked card named and priced by its template's
+/// version in force, each linked credit resolved by the domain for the
+/// cycle it is in, and a credit not yet or no longer in any version left
+/// out.
 Future<HouseholdData> loadHousehold(
   Session db,
-  String householdId,
+  String userId,
   IsoDate today,
 ) async {
   final templateIds = (await db.execute(
-    Sql.named(
-      'SELECT DISTINCT template_id FROM cards '
-      'WHERE household_id = @h::uuid AND template_id IS NOT NULL',
-    ),
-    parameters: {'h': householdId},
+    Sql.named('''
+      SELECT DISTINCT c.template_id FROM cards c
+      JOIN card_access a ON a.card_id = c.id AND a.user_id = @u::uuid
+      WHERE c.template_id IS NOT NULL
+    '''),
+    parameters: {'u': userId},
   )).map((r) => r[0]! as String);
   final versions = {
     for (final id in templateIds)
       id: await publishedVersions(db, templateId: id),
   };
-  await _materializeLinkedCredits(db, householdId, versions, today);
+  await _materializeLinkedCredits(db, userId, versions, today);
 
   final cardRows = await db.execute(
     Sql.named('''
-      SELECT id::text, template_id, label, issuer, product, network, kind,
-             last4, annual_fee_cents, anniversary_on, archived, created_at,
-             updated_at
-      FROM cards WHERE household_id = @h::uuid ORDER BY created_at, id
+      SELECT c.id::text, c.template_id, c.label, c.issuer, c.product,
+             c.network, c.kind, c.last4, c.annual_fee_cents, c.anniversary_on,
+             c.archived, c.created_at, c.updated_at, c.owner_id::text,
+             a.access
+      FROM cards c
+      JOIN card_access a ON a.card_id = c.id AND a.user_id = @u::uuid
+      ORDER BY c.created_at, c.id
     '''),
-    parameters: {'h': householdId},
+    parameters: {'u': userId},
   );
   final cards = <Card>[];
+  final access = <String, Access>{};
   for (final r in cardRows) {
     final templateId = r[1] as String?;
     final template = templateId == null
@@ -116,9 +128,11 @@ Future<HouseholdData> loadHousehold(
         : (versionInForce(versions[templateId]!, today) ??
                   versions[templateId]!.first)
               .template;
+    access[r[0]! as String] = Access.values.byName(r[14]! as String);
     cards.add(
       Card(
         id: r[0]! as String,
+        ownerId: r[13]! as String,
         templateId: templateId,
         label: r[2] as String?,
         issuer: template?.issuer ?? r[3]! as String,
@@ -140,12 +154,14 @@ Future<HouseholdData> loadHousehold(
   final claims = [
     for (final r in await db.execute(
       Sql.named('''
-        SELECT id::text, benefit_id::text, cycle_key, amount_cents,
-               claimed_at, note
-        FROM claims WHERE household_id = @h::uuid
-        ORDER BY claimed_at, created_at
+        SELECT cl.id::text, cl.benefit_id::text, cl.cycle_key,
+               cl.amount_cents, cl.claimed_at, cl.note
+        FROM claims cl
+        JOIN benefits b ON b.id = cl.benefit_id
+        JOIN card_access a ON a.card_id = b.card_id AND a.user_id = @u::uuid
+        ORDER BY cl.claimed_at, cl.created_at
       '''),
-      parameters: {'h': householdId},
+      parameters: {'u': userId},
     ))
       Claim(
         id: r[0]! as String,
@@ -160,15 +176,18 @@ Future<HouseholdData> loadHousehold(
   final benefits = <Benefit>[];
   for (final r in await db.execute(
     Sql.named('''
-      SELECT id::text, card_id::text, template_credit_id, enrolled_at,
-             enrollment_note, enrollment_url, spend_met_at,
-             active, created_at, updated_at, name, description, category,
-             icon, merchant, value_cents, cadence, anchor, interval_months,
-             enrollment_required, spend_threshold_cents, ends_on,
-             redemption_steps, notes, opted_out_at, tracked_from
-      FROM benefits WHERE household_id = @h::uuid ORDER BY created_at, id
+      SELECT b.id::text, b.card_id::text, b.template_credit_id,
+             b.enrolled_at, b.enrollment_note, b.enrollment_url,
+             b.spend_met_at, b.active, b.created_at, b.updated_at, b.name,
+             b.description, b.category, b.icon, b.merchant, b.value_cents,
+             b.cadence, b.anchor, b.interval_months, b.enrollment_required,
+             b.spend_threshold_cents, b.ends_on, b.redemption_steps, b.notes,
+             b.opted_out_at, b.tracked_from
+      FROM benefits b
+      JOIN card_access a ON a.card_id = b.card_id AND a.user_id = @u::uuid
+      ORDER BY b.created_at, b.id
     '''),
-    parameters: {'h': householdId},
+    parameters: {'u': userId},
   )) {
     final card = cardsById[r[1]]!;
     final creditId = r[2] as String?;
@@ -233,6 +252,7 @@ Future<HouseholdData> loadHousehold(
       settings: servedSettings,
     ),
     versions,
+    access,
   );
 }
 
@@ -265,32 +285,38 @@ String? _optionalText(Map<String, dynamic> body, String key) {
   return trimmed.isEmpty ? null : trimmed;
 }
 
+/// Null when [access] allows a write: always the owner's, and with [usage]
+/// (claims and a credit's state) a recorder's too. A card the caller cannot
+/// see is 404, never a hint that it exists; one they see with too little
+/// access is 403.
+Response? _refused(Access? access, {bool usage = false}) => switch (access) {
+  null => _notFound(),
+  Access.owner => null,
+  final Access a when usage && a.records => null,
+  _ => _forbidden(),
+};
+
 /// Adds the household data routes.
 void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
-  Handler writer(SignedInHandler handler) =>
-      signedIn((request, caller, db) async {
-        if (!caller.role.canWrite) return _forbidden();
-        return handler(request, caller, db);
-      });
-
-  /// The row's household and link, or null when it is not this household's.
-  Future<({String? templateId})?> ownCard(
+  /// The card's link and [caller]'s access to it, or null when they cannot
+  /// see it.
+  Future<({String? templateId, Access access})?> seenCard(
     Session db,
     Caller caller,
     String id,
   ) async {
-    if (!_isUuid(id)) return null;
+    final access = await accessTo(db, caller.userId, id);
+    if (access == null) return null;
     final rows = await db.execute(
-      Sql.named(
-        'SELECT template_id FROM cards '
-        'WHERE id = @id::uuid AND household_id = @h::uuid',
-      ),
-      parameters: {'id': id, 'h': caller.householdId},
+      Sql.named('SELECT template_id FROM cards WHERE id = @id::uuid'),
+      parameters: {'id': id},
     );
-    return rows.isEmpty ? null : (templateId: rows.single[0] as String?);
+    return (templateId: rows.single[0] as String?, access: access);
   }
 
-  Future<({String? creditId, String cardId})?> ownBenefit(
+  /// The credit's link and card, and [caller]'s access to that card, or
+  /// null when they cannot see it.
+  Future<({String? creditId, String cardId, Access access})?> seenBenefit(
     Session db,
     Caller caller,
     String id,
@@ -299,23 +325,22 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     final rows = await db.execute(
       Sql.named(
         'SELECT template_credit_id, card_id::text FROM benefits '
-        'WHERE id = @id::uuid AND household_id = @h::uuid',
+        'WHERE id = @id::uuid',
       ),
-      parameters: {'id': id, 'h': caller.householdId},
+      parameters: {'id': id},
     );
-    return rows.isEmpty
+    if (rows.isEmpty) return null;
+    final cardId = rows.single[1]! as String;
+    final access = await accessTo(db, caller.userId, cardId);
+    return access == null
         ? null
-        : (
-            creditId: rows.single[0] as String?,
-            cardId: rows.single[1]! as String,
-          );
+        : (creditId: rows.single[0] as String?, cardId: cardId, access: access);
   }
 
   Future<Response> data(Request request, Caller caller, Session db) async {
     final household = await inTransaction(
       db,
-      (tx) async =>
-          loadHousehold(tx, caller.householdId, await databaseToday(tx)),
+      (tx) async => loadHousehold(tx, caller.userId, await databaseToday(tx)),
     );
     return jsonResponse({
       ...appDataToJson(household.data),
@@ -325,10 +350,18 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         household.data.cards,
         household.versionsByTemplate,
       ),
+      'access': {
+        for (final MapEntry(:key, :value) in household.access.entries)
+          key: value.name,
+      },
+      'people': await people(db, [
+        for (final card in household.data.cards)
+          if (card.ownerId != caller.userId) card.ownerId!,
+      ]),
     });
   }
 
-  /// One card and its credits, as the household sees them now.
+  /// One card and its credits, as the caller sees them now.
   Future<Map<String, Object?>> cardView(
     Session db,
     Caller caller,
@@ -336,7 +369,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
   ) async {
     final household = await loadHousehold(
       db,
-      caller.householdId,
+      caller.userId,
       await databaseToday(db),
     );
     return {
@@ -367,7 +400,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
 
       return await inTransaction(db, (tx) async {
         final today = await databaseToday(tx);
-        final household = await loadHousehold(tx, caller.householdId, today);
+        final household = await loadHousehold(tx, caller.userId, today);
         final String issuer;
         final String product;
         CardKind kind;
@@ -394,7 +427,12 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         }
         if (_has(body, 'kind')) kind = _enum(CardKind.values, body, 'kind');
 
-        final cards = household.data.cards;
+        // Names are unique per owner: cards shared with the caller do not
+        // count.
+        final cards = [
+          for (final card in household.data.cards)
+            if (card.ownerId == caller.userId) card,
+        ];
         final String? stored;
         if (label == null) {
           stored = defaultLabel(cards, issuer, product);
@@ -414,15 +452,15 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         final id =
             (await tx.execute(
                   Sql.named('''
-            INSERT INTO cards (household_id, template_id, label, issuer,
+            INSERT INTO cards (owner_id, template_id, label, issuer,
               product, network, kind, last4, annual_fee_cents,
               anniversary_on)
-            VALUES (@h::uuid, @template, @label, @issuer, @product,
+            VALUES (@owner::uuid, @template, @label, @issuer, @product,
               @network, @kind, @last4, @fee::int, @anniversary::date)
             RETURNING id::text
           '''),
                   parameters: {
-                    'h': caller.householdId,
+                    'owner': caller.userId,
                     'template': templateId,
                     'label': stored,
                     'issuer': version == null ? issuer : null,
@@ -446,11 +484,11 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     final id = request.params['cardId']!;
     final body = await _jsonBody(request);
     return inTransaction(db, (tx) async {
-      final own = await ownCard(tx, caller, id);
-      if (own == null) return _notFound();
+      final card = await seenCard(tx, caller, id);
+      if (_refused(card?.access) case final refusal?) return refusal;
       if (body is! Map<String, dynamic>) return _invalid('body');
       const terms = ['issuer', 'product', 'network', 'annualFeeCents'];
-      if (own.templateId != null && terms.any(body.containsKey)) {
+      if (card!.templateId != null && terms.any(body.containsKey)) {
         return _systemMaintained();
       }
       try {
@@ -488,8 +526,12 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         }
 
         final today = await databaseToday(tx);
-        final household = await loadHousehold(tx, caller.householdId, today);
-        final current = household.data.cards.firstWhere((c) => c.id == id);
+        final household = await loadHousehold(tx, caller.userId, today);
+        final own = [
+          for (final c in household.data.cards)
+            if (c.ownerId == caller.userId) c,
+        ];
+        final current = own.firstWhere((c) => c.id == id);
         if (sets.containsKey('label') ||
             sets.containsKey('issuer') ||
             sets.containsKey('product')) {
@@ -498,7 +540,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
               : current.label;
           if (labelError(
                 label ?? '',
-                cards: household.data.cards,
+                cards: own,
                 issuer: (sets['issuer'] ?? current.issuer) as String,
                 product: (sets['product'] ?? current.product) as String,
                 cardId: id,
@@ -533,7 +575,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     Session db,
   ) async {
     final id = request.params['cardId']!;
-    if (await ownCard(db, caller, id) == null) return _notFound();
+    if (_refused(await accessTo(db, caller.userId, id)) case final refusal?) {
+      return refusal;
+    }
     await db.execute(
       Sql.named('DELETE FROM cards WHERE id = @id::uuid'),
       parameters: {'id': id},
@@ -571,7 +615,7 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
   }) async {
     final household = await loadHousehold(
       db,
-      caller.householdId,
+      caller.userId,
       await databaseToday(db),
     );
     return jsonResponse(
@@ -588,25 +632,21 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     final cardId = request.params['cardId']!;
     final body = await _jsonBody(request);
     return inTransaction(db, (tx) async {
-      final own = await ownCard(tx, caller, cardId);
-      if (own == null) return _notFound();
-      if (own.templateId != null) return _systemMaintained();
+      final card = await seenCard(tx, caller, cardId);
+      if (_refused(card?.access) case final refusal?) return refusal;
+      if (card!.templateId != null) return _systemMaintained();
       if (body is! Map<String, dynamic>) return _invalid('body');
       try {
         final columns = termColumns(body);
         final id =
             (await tx.execute(
                   Sql.named('''
-            INSERT INTO benefits (household_id, card_id, ${columns.keys.join(', ')})
-            VALUES (@h::uuid, @card::uuid,
+            INSERT INTO benefits (card_id, ${columns.keys.join(', ')})
+            VALUES (@card::uuid,
               ${columns.keys.map((c) => '@$c${_casts[c] ?? ''}').join(', ')})
             RETURNING id::text
           '''),
-                  parameters: {
-                    ...columns,
-                    'h': caller.householdId,
-                    'card': cardId,
-                  },
+                  parameters: {...columns, 'card': cardId},
                 )).single[0]!
                 as String;
         return await benefitView(tx, caller, id, status: 201);
@@ -624,9 +664,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     final id = request.params['benefitId']!;
     final body = await _jsonBody(request);
     return inTransaction(db, (tx) async {
-      final own = await ownBenefit(tx, caller, id);
-      if (own == null) return _notFound();
-      if (own.creditId != null) return _systemMaintained();
+      final benefit = await seenBenefit(tx, caller, id);
+      if (_refused(benefit?.access) case final refusal?) return refusal;
+      if (benefit!.creditId != null) return _systemMaintained();
       if (body is! Map<String, dynamic>) return _invalid('body');
       try {
         final columns = termColumns(body);
@@ -649,7 +689,10 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     final id = request.params['benefitId']!;
     final body = await _jsonBody(request);
     return inTransaction(db, (tx) async {
-      if (await ownBenefit(tx, caller, id) == null) return _notFound();
+      final benefit = await seenBenefit(tx, caller, id);
+      if (_refused(benefit?.access, usage: true) case final refusal?) {
+        return refusal;
+      }
       if (body is! Map<String, dynamic>) return _invalid('body');
       final sets = <String, Object?>{};
       for (final (key, column) in [
@@ -697,9 +740,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     Session db,
   ) async {
     final id = request.params['benefitId']!;
-    final own = await ownBenefit(db, caller, id);
-    if (own == null) return _notFound();
-    if (own.creditId != null) return _systemMaintained();
+    final benefit = await seenBenefit(db, caller, id);
+    if (_refused(benefit?.access) case final refusal?) return refusal;
+    if (benefit!.creditId != null) return _systemMaintained();
     await db.execute(
       Sql.named('DELETE FROM benefits WHERE id = @id::uuid'),
       parameters: {'id': id},
@@ -738,18 +781,21 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     });
 
     return inTransaction(db, (tx) async {
-      if (await ownBenefit(tx, caller, benefitId) == null) return _notFound();
+      final benefit = await seenBenefit(tx, caller, benefitId);
+      if (_refused(benefit?.access, usage: true) case final refusal?) {
+        return refusal;
+      }
       final inserted = await tx.execute(
         Sql.named('''
-          INSERT INTO claims (household_id, benefit_id, cycle_key,
+          INSERT INTO claims (recorded_by, benefit_id, cycle_key,
             amount_cents, claimed_at, note, idempotency_key, request_body)
-          VALUES (@h::uuid, @b::uuid, @cycle, @amount, @at, @note, @key,
+          VALUES (@by::uuid, @b::uuid, @cycle, @amount, @at, @note, @key,
             @request)
-          ON CONFLICT (household_id, idempotency_key) DO NOTHING
+          ON CONFLICT (recorded_by, idempotency_key) DO NOTHING
           RETURNING id::text
         '''),
         parameters: {
-          'h': caller.householdId,
+          'by': caller.userId,
           'b': benefitId,
           'cycle': cycleKey,
           'amount': amount,
@@ -763,9 +809,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         Sql.named('''
           SELECT id::text, benefit_id::text, cycle_key, amount_cents,
                  claimed_at, note, request_body
-          FROM claims WHERE household_id = @h::uuid AND idempotency_key = @key
+          FROM claims WHERE recorded_by = @by::uuid AND idempotency_key = @key
         '''),
-        parameters: {'h': caller.householdId, 'key': key},
+        parameters: {'by': caller.userId, 'key': key},
       )).single;
       if (inserted.isEmpty && row[6] != canonical) {
         return jsonResponse({'error': 'idempotency key reused'}, status: 409);
@@ -793,37 +839,48 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
   ) async {
     final id = request.params['claimId']!;
     if (!_isUuid(id)) return _notFound();
-    final removed = await db.execute(
-      Sql.named(
-        'DELETE FROM claims WHERE id = @id::uuid AND household_id = @h::uuid',
-      ),
-      parameters: {'id': id, 'h': caller.householdId},
+    final card = await db.execute(
+      Sql.named('''
+        SELECT b.card_id::text FROM claims cl
+        JOIN benefits b ON b.id = cl.benefit_id
+        WHERE cl.id = @id::uuid
+      '''),
+      parameters: {'id': id},
     );
-    return removed.affectedRows > 0 ? Response(204) : _notFound();
+    final access = card.isEmpty
+        ? null
+        : await accessTo(db, caller.userId, card.single[0]! as String);
+    if (_refused(access, usage: true) case final refusal?) return refusal;
+    await db.execute(
+      Sql.named('DELETE FROM claims WHERE id = @id::uuid'),
+      parameters: {'id': id},
+    );
+    return Response(204);
   }
 
-  /// Replaces a linked card with one the household maintains, in one
+  /// Replaces a linked card with one its owner maintains, in one
   /// transaction: the new card and credits copy the terms resolved today
-  /// and every piece of household state, the claims and every member's
-  /// mutes move to the new ids, and the linked card is deleted.
+  /// and every piece of the card's state; the claims, everyone's mutes and
+  /// last calls, and the card's place in chosen-card shares and pending
+  /// invites move to the new ids; and the linked card is deleted.
   Future<Response> convert(Request request, Caller caller, Session db) async {
     final id = request.params['cardId']!;
     return inTransaction(db, (tx) async {
-      final own = await ownCard(tx, caller, id);
-      if (own == null) return _notFound();
-      if (own.templateId == null) {
+      final linked = await seenCard(tx, caller, id);
+      if (_refused(linked?.access) case final refusal?) return refusal;
+      if (linked!.templateId == null) {
         return jsonResponse({'error': 'user maintained'}, status: 409);
       }
       final today = await databaseToday(tx);
-      final household = await loadHousehold(tx, caller.householdId, today);
+      final household = await loadHousehold(tx, caller.userId, today);
       final card = household.data.cards.firstWhere((c) => c.id == id);
       final created =
           (await tx.execute(
                 Sql.named('''
-          INSERT INTO cards (household_id, label, issuer, product, network,
+          INSERT INTO cards (owner_id, label, issuer, product, network,
             kind, last4, annual_fee_cents, anniversary_on, archived,
             created_at)
-          SELECT household_id, label, @issuer, @product, @network, kind,
+          SELECT owner_id, label, @issuer, @product, @network, kind,
             last4, @fee, anniversary_on, archived, created_at
           FROM cards WHERE id = @id::uuid
           RETURNING id::text
@@ -854,9 +911,9 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
         final newId =
             (await tx.execute(
                   Sql.named('''
-            INSERT INTO benefits (household_id, card_id, created_at,
+            INSERT INTO benefits (card_id, created_at,
               ${columns.keys.join(', ')})
-            SELECT household_id, @card::uuid, created_at,
+            SELECT @card::uuid, created_at,
               ${columns.keys.map((c) => '@$c${_casts[c] ?? ''}').join(', ')}
             FROM benefits WHERE id = @old::uuid
             RETURNING id::text
@@ -875,13 +932,15 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
           );
         }
       }
-      await tx.execute(
-        Sql.named(
-          'UPDATE member_mutes SET card_id = @new::uuid '
-          'WHERE card_id = @old::uuid',
-        ),
-        parameters: {'new': created, 'old': id},
-      );
+      for (final table in ['member_mutes', 'shared_cards', 'invite_cards']) {
+        await tx.execute(
+          Sql.named(
+            'UPDATE $table SET card_id = @new::uuid '
+            'WHERE card_id = @old::uuid',
+          ),
+          parameters: {'new': created, 'old': id},
+        );
+      }
       await tx.execute(
         Sql.named('DELETE FROM cards WHERE id = @id::uuid'),
         parameters: {'id': id},
@@ -896,16 +955,16 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
 
   routes
     ..add('GET', '/v1/household/data', signedIn(data))
-    ..add('POST', '/v1/cards/<cardId>/convert', writer(convert))
-    ..add('POST', '/v1/cards', writer(addCard))
-    ..add('PATCH', '/v1/cards/<cardId>', writer(editCard))
-    ..add('DELETE', '/v1/cards/<cardId>', writer(deleteCard))
-    ..add('POST', '/v1/cards/<cardId>/benefits', writer(addBenefit))
-    ..add('PUT', '/v1/benefits/<benefitId>', writer(editBenefit))
-    ..add('PUT', '/v1/benefits/<benefitId>/state', writer(putState))
-    ..add('DELETE', '/v1/benefits/<benefitId>', writer(deleteBenefit))
-    ..add('POST', '/v1/claims', writer(addClaim))
-    ..add('DELETE', '/v1/claims/<claimId>', writer(deleteClaim));
+    ..add('POST', '/v1/cards/<cardId>/convert', signedIn(convert))
+    ..add('POST', '/v1/cards', signedIn(addCard))
+    ..add('PATCH', '/v1/cards/<cardId>', signedIn(editCard))
+    ..add('DELETE', '/v1/cards/<cardId>', signedIn(deleteCard))
+    ..add('POST', '/v1/cards/<cardId>/benefits', signedIn(addBenefit))
+    ..add('PUT', '/v1/benefits/<benefitId>', signedIn(editBenefit))
+    ..add('PUT', '/v1/benefits/<benefitId>/state', signedIn(putState))
+    ..add('DELETE', '/v1/benefits/<benefitId>', signedIn(deleteBenefit))
+    ..add('POST', '/v1/claims', signedIn(addClaim))
+    ..add('DELETE', '/v1/claims/<claimId>', signedIn(deleteClaim));
 }
 
 /// Casts for the columns a patch writes whose parameter type Postgres

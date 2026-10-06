@@ -33,11 +33,11 @@ Two of one owner's same product are told apart by their labels, and two people's
 
 ## Member preferences
 
-The household's cards, credits and claims are shared by its members; reminder settings and mutes are not, so `MemberPreferences` holds one member's.
+A card, its credits and claims are seen by its owner and everyone it is shared with; reminder settings and mutes are not shared, so `MemberPreferences` holds one person's, on any card they can see.
 
 They are whether reminders are on, the time of day, the value floor, the annual-fee and enrollment switches, the muted card and credit ids, and the last-call credit ids.
 
-`isMuted(benefit)` is true when the member muted the credit or its card. `buildSchedule(data, prefs)` and `currentInstances(data, on, prefs)` read them, so one household scheduled for two members gives two schedules, and one member's mute leaves the household's data untouched (#209). The Dart domain dropped the PWA's `Card.muted`, `Benefit.muted` and `Settings.notifications`; the codec ignores them in the PWA's sample. `defaultMemberPreferences` are the PWA's defaults: off, 09:00, a $1 floor, both switches on, nothing muted.
+`isMuted(benefit)` is true when the member muted the credit or its card. `buildSchedule(data, prefs)` and `currentInstances(data, on, prefs)` read them, so the same cards scheduled for two people give two schedules, and one person's mute leaves the cards untouched (#209). The Dart domain dropped the PWA's `Card.muted`, `Benefit.muted` and `Settings.notifications`; the codec ignores them in the PWA's sample. `defaultMemberPreferences` are the PWA's defaults: off, 09:00, a $1 floor, both switches on, nothing muted.
 
 ### Notification levels
 

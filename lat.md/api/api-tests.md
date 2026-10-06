@@ -464,7 +464,9 @@ A credit's new value, a new fee, a dropped credit and an added one each get thei
 
 ### Each holder of an affected linked card hears once
 
-Ann, the owner, and Bob, whom she shares it with, each get one push naming the Uber Cash change and the date, linking to the card, and a mark of their own. A second run sends nothing; Ann's snapshot carries one mark with the version, date and changes.
+Ann, the owner, and Bob, whom she shares it with, each get one push naming the Uber Cash change and the date, linking to the card, and a mark of their own.
+
+A second run sends nothing; Ann's snapshot carries one mark with the version, date and changes.
 
 ### A muted card gets the mark without the push
 

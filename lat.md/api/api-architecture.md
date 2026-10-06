@@ -34,22 +34,35 @@ Every data route acts for a signed-in person: a Firebase ID token from Identity 
 
 `GoogleCertificates` fetches Google's certificates with `dart:io` and keeps them for the `max-age` Google sends, so a request waits on Google only when the keys rotate. The verifier sits behind `TokenVerifier`, and tests sign their own tokens with an `openssl` key made at run time.
 
-`SignedIn` wraps a protected route: no verifier configured is 503 `no auth`, a missing or unverifiable token 401 `unauthenticated`, no database 503 `no database`. Otherwise `callerFor` finds or creates the caller's `users` row (`0003_users.sql`: `id` uuid, `firebase_uid` unique, `email`, `created_at`) and the handler runs with that `Caller`; path parameters come from `request.params`.
+`SignedIn` wraps a protected route: no verifier configured is 503 `no auth`, a missing or unverifiable token 401 `unauthenticated`, no database 503 `no database`. Otherwise `callerFor` finds or creates the caller's `users` row (`0003_users.sql`: `id` uuid, `firebase_uid` unique, `email`, `created_at`; `name` from `0015`) and the handler runs with that `Caller`; path parameters come from `request.params`.
+
+Each call refreshes the row's `email` and `name` from the token's claims, keeping the stored ones when the token carries none; Google sign-in carries a name, Apple only sometimes. The name is how the app names the owner of a card shared with someone ([[api-architecture#Owners and shares]]).
 
 `GET /v1/me` returns the caller as `{id, email}`. The server builds the verifier from `FIREBASE_PROJECT_ID`, which Pulumi sets on the api service ([[infra-tests#Infrastructure config#The api knows its Firebase project]]).
 
-## Households
+## Owners and shares
 
-The household owns the data; each person has their own login and is in exactly one household at a time (`lib/households.dart`, `0004_households.sql`). Pinned by [[api-tests#Households]].
+A card belongs to the person who added it, and people share their cards person to person (`lib/access.dart`, `lib/shares.dart`, `0015_owners_and_shares.sql`, #418). Pinned by [[api-tests#Owners and shares]].
 
-`households`, `memberships (household_id, user_id UNIQUE, role owner|editor|reader, joined_at)` and `invites (code, household_id, role, created_by, expires_at, used_by, used_at)`. The migration also creates `cards (id, household_id)`, because leaving a household that holds cards needs confirmation; the cards api adds the rest of its columns (#216).
+`cards.owner_id` is the owner. `shares (owner_id, member_id, access view|record, all_cards, created_at)` holds one share per pair of people, never to oneself; `shared_cards` lists a chosen-cards share's cards. An all-cards share also covers cards the owner adds later. A person may receive shares from several people, and two people may share with each other.
 
-`callerFor` runs in one transaction: the user upsert locks the user's row, then a caller without a membership gets a new household with themselves as owner, so a new user always has one and two first calls cannot make two. The `Caller` carries the household id and its `Role`; `Role.canWrite` is false for readers, and every later data route authorises through it.
+The `card_access (card_id, user_id, access)` view is the one rule for who sees which card: its owner as `owner`, and each person a share covers at the share's access. `accessTo` answers `owner`, `record`, `view` or null for a person and a card from it, and every route on a card, a credit or a claim authorises through it:
 
-- `GET /v1/household`: the household id, the caller's role, and every member with email, role and join time.
-- `POST /v1/household/invites {role: read|edit}`: owner only (403 otherwise). An eight-character code from an alphabet without 0, O, 1, I, L or U, single-use, expiring after seven days, plus a link: the code appended to `INVITE_LINK_BASE` (default `https://helpmereward.com/invite/`, set per environment with the invite links, #221).
-- `POST /v1/invites/{code}/accept {confirmLeave?}`: 404 for an unknown code, 410 once used or expired, 409 `already a member`, `owner has members` while an owner has others, or `household holds cards` without `confirmLeave: true`. Otherwise one transaction moves the caller, deletes their old household if they were its last member (its cards cascade), and marks the invite used.
-- `DELETE /v1/household/members/{userId}`: owner only; 409 for the owner themselves, 404 for someone not in the household. The member loses access at once and, on their next call, starts again in a new empty household; they take nothing with them.
+- **owner**: everything, including the card's own fields, its credits' terms, deleting, converting and inviting people to it.
+- **record**: claims (`POST /v1/claims`, `DELETE /v1/claims/{id}`) and a credit's state (`PUT /v1/benefits/{id}/state`), besides reading.
+- **view**: reading, and the person's own mutes, levels and terms-seen marks.
+
+A card the caller cannot see is 404, never a hint that it exists, and a write beyond their access is 403.
+
+Invites carry the share they create:
+
+- `POST /v1/invites {access: view|record, allCards: true | cardIds}`: the cards must be the caller's own (404 otherwise); no cards, an empty list, or both is 400 `cardIds`. An eight-character code from an alphabet without 0, O, 1, I, L or U, single-use, expiring after seven days, plus a link: the code appended to `INVITE_LINK_BASE` (default `https://helpmereward.com/invite/`, set per environment with the invite links, #221). A chosen invite lists its cards in `invite_cards`.
+- `GET /v1/invites/{code}`: the owner as `{id, name, email}`, the access, and `allCards` or `cardCount`, for the join screen; 404 for an unknown code, 410 `invite used` or `invite expired`.
+- `POST /v1/invites/{code}/accept`: one transaction creates the share, copies the invite's cards that are still the owner's, and marks the invite used. It moves and deletes nothing. 404 for an unknown code, 410 once used or expired, 409 `own invite`, and 409 `already shared` when the owner already shares with the caller, who then changes the existing share instead. The answer is the share as the caller sees it: the owner's id, name and email, the access, and the scope.
+
+`callerFor` makes nothing but the user row, so a new user simply owns no cards.
+
+Migration `0015` replaced households. Each household's cards went to its owner (its earliest member when the owner's row was gone, and a household with no members lost its cards), every other member got an all-cards share from that owner (`record` for an editor, `view` for a reader), every claim was attributed to its card's owner, and household invites were deleted along with `households` and `memberships`.
 
 `inTransaction` (`lib/src/database.dart`) runs a body on the handler's `Connection` or `Pool`, or inside a transaction already open.
 
@@ -80,38 +93,38 @@ An admin is a row in `admins (user_id)`, added by hand as runbook 06 shows; ever
 
 ## Household data
 
-A household's cards, credits and claims live in the service tier and reach the app as the domain's `AppData` (`lib/household_data.dart`, `0008_household_data.sql`). Pinned by [[api-tests#Household data]].
+The cards a person can see, their own and those shared with them, live in the service tier with their credits and claims, and reach the app as the domain's `AppData` (`lib/household_data.dart`, `0008_household_data.sql`). Pinned by [[api-tests#Household data]].
 
-A card linked to a template stores only the household's own fields (label, kind, last four, anniversary, archived); a card the household maintains also stores issuer, product, network and fee, which a check constraint requires when there is no template. Each credit is the same split: household state (enrollment, spend met, last call only, active, opted out, tracked from) on every row, terms only on a household credit. `UNIQUE (card_id, template_credit_id)` keeps one row per linked credit.
+A card linked to a template stores only its owner's own fields (label, kind, last four, anniversary, archived); a card its owner maintains, a household card, also stores issuer, product, network and fee, which a check constraint requires when there is no template. Each credit is the same split: its state (enrollment, spend met, active, opted out, tracked from) on every row, terms only on a household credit. `UNIQUE (card_id, template_credit_id)` keeps one row per linked credit.
 
-Opting out ([[domain#Status ladder#Opted out is a choice, not a status of the window]]) is household state like enrollment: `PUT /v1/benefits/{id}/state` sets or clears `optedOutAt` and `trackedFrom` on any credit, and conversion copies both. `0012_opted_out.sql` moved every paused row that had not ended by its `updated_at` (by its own `ends_on`, or its catalogue credit's in the latest published version) to active and opted out at that instant, as the domain's codec does on the device.
+Opting out ([[domain#Status ladder#Opted out is a choice, not a status of the window]]) is a credit's state like enrollment: `PUT /v1/benefits/{id}/state` sets or clears `optedOutAt` and `trackedFrom` on any credit, and conversion copies both. `0012_opted_out.sql` moved every paused row that had not ended by its `updated_at` (by its own `ends_on`, or its catalogue credit's in the latest published version) to active and opted out at that instant, as the domain's codec does on the device.
 
-`loadHousehold` builds the snapshot for the database's today. It first makes sure every linked card has a row for every credit any version in force has had, so a credit added in a new version has an id and state the day it appears. A linked card takes issuer, product, network and fee from its template's version in force; each linked credit is `resolveLinkedBenefit`, with its own claims for a rolling one, and a credit no version in force has is left out.
+`loadHousehold` builds a person's snapshot for the database's today from the cards `card_access` gives them. It first makes sure each of their linked cards has a row for every credit any version in force has had, so a credit added in a new version has an id and state the day it appears. A linked card takes issuer, product, network and fee from its template's version in force; each linked credit is `resolveLinkedBenefit`, with its own claims for a rolling one, and a credit no version in force has is left out.
 
-- `GET /v1/household/data` serves the snapshot; readers may read. Beside the snapshot it carries `termsChanged`, the caller's own marks ([[api-architecture#Change notices]]), which the app's snapshot parser ignores.
-- `POST /v1/cards {templateId | issuer, product, network, annualFeeCents; anniversaryOn, label?, kind?, last4?}` returns the card and its credits. Without a label a duplicate product gets `defaultLabel`; a label `labelError` refuses is 409 `label taken`.
-- `PATCH /v1/cards/{id}` changes household fields on any card and terms only on a household card; `DELETE` cascades to credits and claims.
-- `POST /v1/cards/{id}/benefits`, `PUT /v1/benefits/{id}` and `DELETE /v1/benefits/{id}` work on household credits; on a linked card or credit each is 409 `system maintained`, since conversion is the only way to change catalogue terms. Terms are checked by `parseCreditTerms`, the catalogue admin's parser.
-- `PUT /v1/benefits/{id}/state` patches household state on any credit.
-- `POST /v1/claims` needs an `Idempotency-Key`. The canonical request is stored beside the claim under `UNIQUE (household_id, idempotency_key)`: a retry with the same body answers the stored claim, a different body is 409 `idempotency key reused`. `DELETE /v1/claims/{id}` removes one.
+- `GET /v1/household/data` keeps its path and serves the snapshot of every card the caller can see, each with its `ownerId`. Beside it, which the app's snapshot parser ignores, it carries `termsChanged`, the caller's own marks ([[api-architecture#Change notices]]); `access`, card id to `owner`, `record` or `view`; and `people`, `{id, name, email}` for the owner of each card shared with the caller.
+- `POST /v1/cards {templateId | issuer, product, network, annualFeeCents; anniversaryOn, label?, kind?, last4?}` makes the caller the owner and returns the card and its credits. Labels are unique per owner, so `defaultLabel` and `labelError` see only the caller's own cards: without a label a duplicate gets "<product> (n)", and a label another of their cards shows is 409 `label taken`. Two people may each own a "Platinum".
+- `PATCH /v1/cards/{id}` changes the card's own fields on any card and terms only on a household card; `DELETE` cascades to credits and claims. Both are the owner's.
+- `POST /v1/cards/{id}/benefits`, `PUT /v1/benefits/{id}` and `DELETE /v1/benefits/{id}` are the owner's and work on household credits; on a linked card or credit each is 409 `system maintained`, since conversion is the only way to change catalogue terms. Terms are checked by `parseCreditTerms`, the catalogue admin's parser.
+- `PUT /v1/benefits/{id}/state` patches a credit's state on any credit, for the owner or someone with `record`.
+- `POST /v1/claims` needs an `Idempotency-Key`, for the owner or someone with `record`. `claims.recorded_by` is who logged it, and the canonical request is stored beside the claim under `UNIQUE (recorded_by, idempotency_key)`: a retry with the same body answers the stored claim, a different body is 409 `idempotency key reused`. `DELETE /v1/claims/{id}` removes one, whoever logged it.
 
-Every write needs an editor or owner (403 for a reader), and an id from another household is 404, never a hint that it exists.
+Every route checks the caller's access to the card first ([[api-architecture#Owners and shares]]): a card, credit or claim they cannot see is 404, never a hint that it exists, and a write beyond their access is 403.
 
 ## Conversion
 
-A household that wants to change a linked card's terms, or add a credit to it, converts it into a card it maintains itself; after that the catalogue no longer reaches it (`POST /v1/cards/{cardId}/convert` in `lib/household_data.dart`). Pinned by [[api-tests#Conversion]].
+An owner who wants to change a linked card's terms, or add a credit to it, converts it into a card they maintain themselves; after that the catalogue no longer reaches it (`POST /v1/cards/{cardId}/convert` in `lib/household_data.dart`). Pinned by [[api-tests#Conversion]].
 
-One transaction, for an editor or owner. A new card copies the linked card's household fields, its creation time and the issuer, product, network and fee in force today. Each credit the snapshot resolves becomes a household credit with today's terms and all its household state, under a new id.
+One transaction, for the owner alone. A new card, with the same owner, copies the linked card's own fields, its creation time and the issuer, product, network and fee in force today. Each credit the snapshot resolves becomes a household credit with today's terms and all its state, under a new id.
 
-The claims and every member's mutes and last calls of the card and its credits move to the new ids, and the linked card is deleted, taking any linked row that never resolved. The answer is the new card and credits, the id it replaces and a map from each old credit id to its new one, so a client can follow along. A card the household already maintains is 409 `user maintained`.
+The claims, everyone's mutes and last calls of the card and its credits, and the card's place in chosen-card shares and pending invites move to the new ids, and the linked card is deleted, taking any linked row that never resolved. The answer is the new card and credits, the id it replaces and a map from each old credit id to its new one, so a client can follow along. A card its owner already maintains is 409 `user maintained`.
 
 ## Member preferences
 
-Notification settings, mutes and last calls belong to each member, not the household ([[domain#Member preferences]]), and the server keeps them so it can schedule that member's reminders (`lib/preferences.dart`, migrations `0009` and `0013`). Pinned by [[api-tests#Member preferences]].
+Notification settings, mutes and last calls belong to each person, whoever owns the card ([[domain#Member preferences]]), and the server keeps them so it can schedule that person's reminders (`lib/preferences.dart`, migrations `0009` and `0013`). Pinned by [[api-tests#Member preferences]].
 
-`member_preferences` holds one row per member who has changed anything; without one, `GET /v1/me/preferences` answers `defaultMemberPreferences`. `member_mutes` names a card or a credit, never both, and goes with the row it names. `member_last_calls` names a credit the member hears about only on its last rung. The read returns only mutes and last calls on the caller's current household, so a member who moved households does not carry old ids.
+`member_preferences` holds one row per person who has changed anything; without one, `GET /v1/me/preferences` answers `defaultMemberPreferences`. `member_mutes` names a card or a credit, never both, and goes with the row it names. `member_last_calls` names a credit the person hears about only on its last rung. The read returns only mutes and last calls on the cards the caller can see now; those on a card no longer shared with them stay stored, in case it is shared again.
 
-`PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything outside the caller's household. `PUT /v1/me/benefits/{benefitId}/level` takes `{"level": "periodically" | "lastChance" | "silenced"}`, applies the domain's `withLevel` to the caller's preferences and writes the credit's mute and last call in one transaction, answering the preferences ([[domain#Member preferences#Notification levels]]); another level is 400 naming `level`, a credit outside the household 404. Readers may do all of it, because nothing shared changes.
+`PUT /v1/me/preferences` replaces the five settings, checked as a 24-hour `HH:MM`, a floor of zero or more and three switches (400 naming the field). `PUT`/`DELETE /v1/me/mutes/cards/{cardId}` and `/v1/me/mutes/benefits/{benefitId}` are idempotent (204) and 404 for anything the caller cannot see. `PUT /v1/me/benefits/{benefitId}/level` takes `{"level": "periodically" | "lastChance" | "silenced"}`, applies the domain's `withLevel` to the caller's preferences and writes the credit's mute and last call in one transaction, answering the preferences ([[domain#Member preferences#Notification levels]]); another level is 400 naming `level`, a credit the caller cannot see 404. Any access will do, because nothing shared changes.
 
 Migration `0013` gave every member of a household a last-call row for each credit whose `last_call_only` was set, so no one's reminders changed when last call moved to the member. Migration `0014` then dropped the column (#362).
 
@@ -130,7 +143,7 @@ The invite page carries OpenGraph and Twitter tags, so iMessage, WhatsApp, Slack
 
 The card is `services/api/assets/invite-og.png`, 1200×630 and kept under 300 KB because WhatsApp is reported to skip larger previews. The supplied 630 KB original was remapped without dithering onto a 256-colour palette with Pillow (`quantize(colors=256)` for the palette, then `quantize(palette=…, dither=NONE)`, saved with `optimize=True`), which gives 208 KB. The server reads it from `../assets/` beside its binary, so the Dockerfile copies it to `/assets/`, and CI's container smoke test fetches it.
 
-None needs sign-in. `INVITE_LINK_BASE` on the service is `https://<apiCustomDomain>/invite/`, so the links `POST /v1/household/invites` answers point at the same domain.
+None needs sign-in. `INVITE_LINK_BASE` on the service is `https://<apiCustomDomain>/invite/`, so the links `POST /v1/invites` answers point at the same domain.
 
 ## Entrypoint
 
@@ -152,14 +165,14 @@ Both routes are signed in. `POST /v1/devices` takes `{token, installationId, pla
 
 The server decides and sends reminders, so they arrive even when the app has not been opened for months (`lib/reminder_sender.dart`, `lib/push.dart`, `bin/remind.dart`). Pinned by [[api-tests#Reminder sender]].
 
-Cloud Scheduler starts the Cloud Run job `reward-api-remind` every 15 minutes ([[deployment#Infrastructure]]). `sendDueReminders` takes every member with reminders on and at least one device, and for each:
+Cloud Scheduler starts the Cloud Run job `reward-api-remind` every 15 minutes ([[deployment#Infrastructure]]). `sendDueReminders` takes every person with reminders on and at least one device, and for each:
 
-1. Builds their schedule with the domain's `buildSchedule` ([[reminders#Schedule construction]]) from their household's data, their preferences, mutes and last calls ([[api-architecture#Member preferences]]), starting 36 hours ago.
+1. Builds their schedule with the domain's `buildSchedule` ([[reminders#Schedule construction]]) from the cards they can see, their own and those shared with them, and their preferences, mutes and last calls ([[api-architecture#Member preferences]]), starting 36 hours ago.
 2. Keeps the reminders whose real instant falls in the last 36 hours, the same grace the domain's `dueReminders` gives a device. Anything later is dropped rather than resurfaced.
 3. Claims each in `reminder_sends (user_id, reminder_id)` before sending, so a retried or overlapping run skips it; the id is the schedule's own (`2026-10-31|urgent`), stable across recomputes.
 4. Sends it to every one of the member's devices. If no device took it and none was retired, the claim is dropped so the next run retries.
 
-A member's zone is their most recently registered device's, UTC before they have one. The domain schedules in the process's local time, which on Cloud Run is UTC and nobody's, so `scheduleIn` builds the schedule from the member's wall clock and turns each reminder's wall-clock time back into an instant with Postgres's tz database (`AT TIME ZONE`), which knows every zone's daylight saving rules. Two members of one household in different zones each hear at their own `timeOfDay`.
+A member's zone is their most recently registered device's, UTC before they have one. The domain schedules in the process's local time, which on Cloud Run is UTC and nobody's, so `scheduleIn` builds the schedule from the member's wall clock and turns each reminder's wall-clock time back into an instant with Postgres's tz database (`AT TIME ZONE`), which knows every zone's daylight saving rules. Two people who see one card from different zones each hear at their own `timeOfDay`.
 
 `PushSender` is the seam: `FcmSender` posts to FCM HTTP v1 (`projects/<FIREBASE_PROJECT_ID>/messages:send`), which also reaches APNs, authorised by an OAuth token from the metadata server as the api identity, so no key file exists. The request carries the reminder's title and body, `data` with `reminderId` and `url`, and the reminder's tag as the Android notification tag and the APNs collapse id, so a newer notice for the same day replaces the older one. Only an `UNREGISTERED` error code retires a token, deleting its device row; any other failure keeps the device. Tests use a fake that records.
 
@@ -169,16 +182,16 @@ Two signed-in routes serve the app's Settings screen. `GET /v1/me/reminders/summ
 
 ## Change notices
 
-When a catalogue version is published, the holders of linked cards on that template hear about it (`lib/change_notices.dart`, `0011_change_notices.sql`). Pinned by [[api-tests#Change notices]].
+When a catalogue version is published, everyone who sees a linked card on that template hears about it (`lib/change_notices.dart`, `0011_change_notices.sql`). Pinned by [[api-tests#Change notices]].
 
-Each run of the reminder job takes every `catalog_events` row not yet `noticed_at`, compares the published version with the one before it and words each change with `termChanges`: `Uber Cash credit changes to $20`, `annual fee changes to $350`, `Uber Cash credit ends`, `new $50 Lounge credit starts`, or `terms change` for anything else. Then, for every member of every household with a linked card on the template:
+Each run of the reminder job takes every `catalog_events` row not yet `noticed_at`, compares the published version with the one before it and words each change with `termChanges`: `Uber Cash credit changes to $20`, `annual fee changes to $350`, `Uber Cash credit ends`, `new $50 Lounge credit starts`, or `terms change` for anything else. Then, for each linked card on the template, its owner and each person it is shared with (`card_access`):
 
-1. It upserts a `terms_changed (card_id, user_id, version)` mark, one per member so seeing it clears it for that member only.
-2. If the member has reminders on and has not muted the card, it sends one push through `sendOnce` under the id `terms|<card>|<version>`: "Your Gold's Uber Cash credit changes to $20 on Jan 1, 2027, and 1 other change.", tagged `terms-<card>` so a later notice replaces it, with `url` `/cards/<card>`.
+1. It upserts a `terms_changed (card_id, user_id, version)` mark, one per person so seeing it clears it for that person only.
+2. If the person has reminders on and has not muted the card, it sends one push through `sendOnce` under the id `terms|<card>|<version>`: "Your Gold's Uber Cash credit changes to $20 on Jan 1, 2027, and 1 other change.", tagged `terms-<card>` so a later notice replaces it, with `url` `/cards/<card>`.
 
-The event is then marked noticed, so a second run sends nothing. A card the household maintains has no template, so a converted card gets neither; converting or deleting a card takes its marks. `0011` marks every earlier event noticed, so the seed is never announced.
+The event is then marked noticed, so a second run sends nothing. A household card has no template, so a converted card gets neither; converting or deleting a card takes its marks. `0011` marks every earlier event noticed, so the seed is never announced.
 
-`GET /v1/household/data` carries `termsChanged`: the caller's marks on their household's cards, each `{cardId, version, effectiveFrom, changes}`. `POST /v1/cards/{cardId}/terms-seen` deletes the caller's mark (204, with or without one; 404 outside their household). Readers may, since nothing shared changes.
+`GET /v1/household/data` carries `termsChanged`: the caller's marks on the cards they can see, each `{cardId, version, effectiveFrom, changes}`. `POST /v1/cards/{cardId}/terms-seen` deletes the caller's mark (204, with or without one; 404 for a card they cannot see). Any access will do, since nothing shared changes.
 
 ## Migrations
 
