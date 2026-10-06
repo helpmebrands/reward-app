@@ -148,6 +148,85 @@ final cases = <Case>[
   ...dataCases,
   ...preferenceCases,
   ...convertCases,
+  ...shareCases,
+];
+
+const _share = '/v1/shares/{memberId}';
+const _received = '/v1/shares/received/{ownerId}';
+
+/// Shares last: `owner` changes and ends the share `reader` accepted, then
+/// `third` accepts a new one and stops seeing it.
+final shareCases = <Case>[
+  call('GET', '/v1/me', 200, as: 'owner', capture: keep('owner', 'id')),
+  call('GET', '/v1/me', 200, as: 'reader', capture: keep('reader', 'id')),
+  call('GET', '/v1/shares', 200, as: 'owner'),
+  call(
+    'PATCH',
+    _share,
+    200,
+    as: 'owner',
+    url: () => '/v1/shares/${saved['reader']}',
+    body: {'access': 'record'},
+  ),
+  call(
+    'PATCH',
+    _share,
+    400,
+    as: 'owner',
+    url: () => '/v1/shares/${saved['reader']}',
+    body: {'access': 'admin'},
+  ),
+  call(
+    'PATCH',
+    _share,
+    404,
+    as: 'owner',
+    url: '/v1/shares/$_nobody',
+    body: {'access': 'view'},
+  ),
+  call(
+    'DELETE',
+    _share,
+    204,
+    as: 'owner',
+    url: () => '/v1/shares/${saved['reader']}',
+  ),
+  call(
+    'DELETE',
+    _share,
+    404,
+    as: 'owner',
+    url: () => '/v1/shares/${saved['reader']}',
+  ),
+  call(
+    'POST',
+    '/v1/invites',
+    201,
+    as: 'owner',
+    body: {'access': 'view', 'allCards': true},
+    capture: keep('thirdCode', 'code'),
+  ),
+  call(
+    'POST',
+    _accept,
+    200,
+    as: 'third',
+    url: () => '/v1/invites/${saved['thirdCode']}/accept',
+  ),
+  call(
+    'DELETE',
+    _received,
+    204,
+    as: 'third',
+    url: () => '/v1/shares/received/${saved['owner']}',
+  ),
+  call(
+    'DELETE',
+    _received,
+    404,
+    as: 'third',
+    url: () => '/v1/shares/received/${saved['owner']}',
+  ),
 ];
 
 const _accept = '/v1/invites/{code}/accept';

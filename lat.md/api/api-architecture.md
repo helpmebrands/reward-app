@@ -60,6 +60,12 @@ Invites carry the share they create:
 - `GET /v1/invites/{code}`: the owner as `{id, name, email}`, the access, and `allCards` or `cardCount`, for the join screen; 404 for an unknown code, 410 `invite used` or `invite expired`.
 - `POST /v1/invites/{code}/accept`: one transaction creates the share, copies the invite's cards that are still the owner's, and marks the invite used. It moves and deletes nothing. 404 for an unknown code, 410 once used or expired, 409 `own invite`, and 409 `already shared` when the owner already shares with the caller, who then changes the existing share instead. The answer is the share as the caller sees it: the owner's id, name and email, the access, and the scope.
 
+Either side sees, and can end, what is shared (#422):
+
+- `GET /v1/shares`: `given`, each person the caller shares with, and `received`, each person who shares with the caller, as the other person's `{id, name, email}` with the access and `allCards` or `cardIds`.
+- `PATCH /v1/shares/{memberId} {access?, allCards?, cardIds?}` changes the caller's share with that person, answering the share. Keys left out stay; the cards must be the caller's own (404 otherwise), `allCards: false` needs `cardIds` (400), and a share that does not exist is 404.
+- `DELETE /v1/shares/{memberId}` stops sharing and `DELETE /v1/shares/received/{ownerId}` stops seeing: 204, or 404 for no such share. Both take effect at once and delete nothing else, and a person's mutes on those cards stay, unread, in case they are shared again.
+
 `callerFor` makes nothing but the user row, so a new user simply owns no cards.
 
 Migration `0015` replaced households. Each household's cards went to its owner (its earliest member when the owner's row was gone, and a household with no members lost its cards), every other member got an all-cards share from that owner (`record` for an editor, `view` for a reader), every claim was attributed to its card's owner, and household invites were deleted along with `households` and `memberships`.

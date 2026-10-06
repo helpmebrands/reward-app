@@ -126,6 +126,24 @@ A share the other way, from Bob to Ann, is accepted. An expired invite is 410 `i
 
 An access other than `view` or `record` is 400 naming `access`. No cards, an empty list, or `cardIds` beside `allCards` is 400 naming `cardIds`, and another person's card among them is 404. A chosen invite answers its link, access and card ids.
 
+### Both people list the share
+
+After Ann shares one of her two Golds with Bob to view, Ann's `GET /v1/shares` gives Bob with his name, email, `view` and that card id, and Bob's receives Ann the same way; neither has a share the other way.
+
+### Changing a share changes what the person sees
+
+Bob, at view, gets 403 on a claim; Ann's patch to `record` lets the same claim land. Narrowing to one card hides the other from Bob's snapshot, and `allCards: true` shows both again; a bad access or `allCards: false` without cards is 400.
+
+### Ending a share from either side hides the cards and deletes nothing
+
+When Ann stops sharing (204, 404 a second time), Bob sees only his own card, while Ann's card, Bob's claim on it and Bob's mute stay; shared again, the mute is still his.
+
+Bob then stops seeing Ann's cards (204, 404 a second time) and sees only his own again, while Ann keeps her card.
+
+### A share's cards must be the owner's
+
+A patch naming Bob's card among Ann's `cardIds` is 404 and changes nothing; a patch or delete of a share Ann does not have, given or received, is 404.
+
 ## Catalogue
 
 `catalog_test.dart` holds the seed migration to its generator without a database; `catalog_integration_test.dart` checks the seed, the triggers and the read routes against `DATABASE_URL` in its own `catalog` schema ([[api-architecture#Catalogue]]).
