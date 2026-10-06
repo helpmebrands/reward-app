@@ -16,19 +16,29 @@ const offlineMessage =
     'You are offline. Changes need a connection; claims you log are kept '
     'and sent when you are back.';
 
-/// Said when a reader tries to change the household.
-const readOnlyMessage = 'You can view this household but not change it.';
+/// Said when someone tries to log on, or change, a card shared with them
+/// only to view.
+String viewOnlyMessage(String? owner) =>
+    'You can view ${owner == null ? 'this card' : '$owner’s card'} but not '
+    'change it.';
 
-/// The app store: the household's `AppData`, this member's preferences,
-/// today's date, the derived views the screens read, and the mutations.
+/// Said when someone tries to change a card shared with them to record
+/// usage.
+String ownerOnlyMessage(String? owner) =>
+    'Only ${owner ?? 'its owner'} can change this card.';
+
+/// The app store: the cards this person can see as `AppData`, what they
+/// may do with each, their preferences, today's date, the derived views the
+/// screens read, and the mutations.
 ///
 /// Two modes. Without a [HouseholdApi] (tests, previews) the snapshot is
-/// local: every mutation replaces it, notifies once and writes it through
-/// the [SnapshotStore]. With one, the service tier holds the household: the
-/// store serves the last answer from a versioned [HouseholdCache] while it
-/// fetches, sends an edit and fetches again, refuses edits offline and to a
-/// reader, and queues claims in a [ClaimOutbox] that is flushed in order.
-/// Screens never touch storage or the network.
+/// local and every card is the device user's: every mutation replaces it,
+/// notifies once and writes it through the [SnapshotStore]. With one, the
+/// service tier holds the cards: the store serves the last answer from a
+/// versioned [HouseholdCache] while it fetches, sends an edit and fetches
+/// again, refuses edits offline and beyond a card's access, and queues
+/// claims in a [ClaimOutbox] that is flushed in order. Screens never touch
+/// storage or the network.
 class AppStore extends ChangeNotifier {
   AppStore({
     required SnapshotStore store,
@@ -54,8 +64,11 @@ class AppStore extends ChangeNotifier {
   AppData? _server;
   List<PendingClaim> _pending = const [];
   Settings? _localSettings;
-  MemberRole _role = MemberRole.editor;
-  HouseholdView? _household;
+
+  /// What this person may do with each card, and who owns the cards shared
+  /// with them, as the api last served them.
+  Map<String, CardAccess> _access = const {};
+  Map<String, Person> _people = const {};
   List<CardTemplate> _catalog = const [];
   bool _offline = false;
   String? _problem;
@@ -73,14 +86,56 @@ class AppStore extends ChangeNotifier {
       ? [..._catalog, findTemplate('blank')!]
       : cardTemplates;
 
-  /// The household's members and this member's role, once fetched.
-  HouseholdView? get household => _household;
+  /// What this person may do with the card: everything with a local
+  /// snapshot, where every card is theirs; otherwise what the api says, and
+  /// only viewing for a card it has not named.
+  CardAccess accessTo(String cardId) =>
+      remote ? _access[cardId] ?? CardAccess.view : CardAccess.owner;
 
-  /// Whether this member may change the household at all.
-  bool get canWrite => !remote || _role.canWrite;
+  /// The owner of a card shared with this person, or null for their own.
+  Person? ownerOf(Card card) =>
+      accessTo(card.id) == CardAccess.owner ? null : _people[card.ownerId];
 
-  /// Whether an edit other than a claim can be made now.
-  bool get canEdit => canWrite && !offline;
+  /// Everyone who shares cards with this person, in the api's order.
+  List<Person> get people => _people.values.toList();
+
+  /// The card's name as the app shows it: its display name, followed by
+  /// its owner's name when it is someone else's ("Platinum · Alex").
+  String cardName(Card card) {
+    final owner = ownerOf(card);
+    return owner == null
+        ? cardLabel(card)
+        : '${cardLabel(card)} · ${owner.displayName}';
+  }
+
+  /// The cards this person owns, the only ones their labels must not
+  /// repeat ([labelError], [defaultLabel]).
+  List<Card> get ownCards => [
+    for (final card in _data?.cards ?? const <Card>[])
+      if (accessTo(card.id) == CardAccess.owner) card,
+  ];
+
+  /// Whether the network allows an edit other than a claim now; what may
+  /// be changed depends on each card's [accessTo].
+  bool get canEdit => !offline;
+
+  /// What stops this person writing to [cardId], said with its owner's
+  /// name, or null when nothing does. [usage] is a claim or a credit's
+  /// state, which a card shared to record allows.
+  String? refusal(String cardId, {bool usage = false}) {
+    final access = accessTo(cardId);
+    if (access == CardAccess.owner || (usage && access.records)) return null;
+    final owner = _ownerName(cardId);
+    return access == CardAccess.view
+        ? viewOnlyMessage(owner)
+        : ownerOnlyMessage(owner);
+  }
+
+  /// The name of [cardId]'s owner as the api served it, or null.
+  String? _ownerName(String cardId) {
+    final card = _data?.cards.where((c) => c.id == cardId).firstOrNull;
+    return card == null ? null : _people[card.ownerId]?.displayName;
+  }
 
   /// The sentence to show for the last edit that could not be made, until
   /// [clearProblem].
@@ -95,9 +150,9 @@ class AppStore extends ChangeNotifier {
   /// last person's, and go.
   Future<void> forget() async {
     _server = null;
-    _household = null;
     _pending = const [];
-    _role = MemberRole.editor;
+    _access = const {};
+    _people = const {};
     await _cache.clear();
     await _outbox.save(const []);
     _rebuild();
@@ -107,8 +162,9 @@ class AppStore extends ChangeNotifier {
   /// Whether the claim is still waiting in the outbox.
   bool isPending(String claimId) => _pending.any((p) => p.claim.id == claimId);
 
-  /// Fetches the household, the role and the preferences, then sends any
-  /// queued claims. A second call while one is running joins it.
+  /// Fetches the household with each card's access and owners, and the
+  /// preferences, then sends any queued claims. A second call while one is
+  /// running joins it.
   late final Command0<void> refreshCommand = Command0(_refresh);
 
   Future<void> refresh() => refreshCommand.execute();
@@ -154,7 +210,8 @@ class AppStore extends ChangeNotifier {
     final cached = await _cache.load();
     if (cached != null && cached.version == householdCacheVersion) {
       _server = cached.data;
-      _role = cached.role;
+      _access = cached.access;
+      _people = cached.people;
     } else if (cached != null) {
       // Another version's shape: fetch again rather than migrate.
       _server = null;
@@ -176,18 +233,21 @@ class AppStore extends ChangeNotifier {
   Future<void> _refresh() async {
     final api = _api!;
     try {
-      final data = await api.householdData();
-      final household = await api.household();
-      final role = household.role;
+      final snapshot = await api.householdData();
       final preferences = await api.preferences();
       _catalog = await api.catalog();
-      _server = data;
-      _household = household;
-      _role = role;
+      _server = snapshot.data;
+      _access = snapshot.access;
+      _people = snapshot.people;
       _preferences = preferences;
       _offline = false;
       await _cache.save(
-        CachedHousehold(version: householdCacheVersion, data: data, role: role),
+        CachedHousehold(
+          version: householdCacheVersion,
+          data: snapshot.data,
+          access: snapshot.access,
+          people: snapshot.people,
+        ),
       );
     } on ApiOffline {
       _offline = true;
@@ -258,13 +318,17 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Runs one edit against the api and fetches the household again; false,
-  /// with [problem] set, when it cannot be made.
+  /// with [problem] set, when it cannot be made. An edit to a card names it
+  /// as [cardId] and is refused beyond the card's access; [usage] is a
+  /// claim or a credit's state, which a card shared to record allows.
   Future<bool> _edit(
     Future<void> Function(HouseholdApi api) call, {
-    bool needsWrite = true,
+    String? cardId,
+    bool usage = false,
   }) async {
-    if (needsWrite && !canWrite) {
-      _problem = readOnlyMessage;
+    final refused = cardId == null ? null : refusal(cardId, usage: usage);
+    if (refused != null) {
+      _problem = refused;
       notifyListeners();
       return false;
     }
@@ -283,7 +347,9 @@ class AppStore extends ChangeNotifier {
           'This card follows the catalog. Change the terms to make it '
               'your own first.',
         'label taken' => 'Another card is already called that.',
-        'forbidden' => readOnlyMessage,
+        'forbidden' => ownerOnlyMessage(
+          cardId == null ? null : _ownerName(cardId),
+        ),
         _ => 'That did not work (${e.error}). Try again.',
       };
       notifyListeners();
@@ -298,16 +364,6 @@ class AppStore extends ChangeNotifier {
   }
 
   // The household
-
-  /// Makes an invite with `read` or `edit`; null, with [problem] set, when
-  /// it cannot be made.
-  Future<Invite?> createInvite(String role) async {
-    Invite? invite;
-    final done = await _edit((api) async {
-      invite = await api.createInvite(role);
-    });
-    return done ? invite : null;
-  }
 
   /// Joins the household of [code]. Leaving a household that holds cards
   /// needs [confirmLeave]; the answer says which case this is.
@@ -346,20 +402,16 @@ class AppStore extends ChangeNotifier {
     return JoinOutcome.joined;
   }
 
-  /// Turns a card the catalogue keeps up to date into one the household
-  /// maintains: claims, history, enrollment and every member's silences go
+  /// Turns a card the catalogue keeps up to date into one its owner
+  /// maintains: claims, history, enrollment and everyone's silences go
   /// with it. The new card's id, or null with [problem] set.
   Future<String?> convertCard(String id) async {
     String? newId;
     final done = await _edit((api) async {
       newId = await api.convertCard(id);
-    });
+    }, cardId: id);
     return done ? newId : null;
   }
-
-  /// The owner removes a member, who loses access at once.
-  Future<bool> removeMember(String userId) =>
-      _edit((api) => api.removeMember(userId));
 
   /// Replaces the whole snapshot, as an import does.
   Future<void> replaceAll(AppData data) => _commit(data);
@@ -456,7 +508,7 @@ class AppStore extends ChangeNotifier {
           'annualFeeCents': after.annualFeeCents,
       };
       if (body.isEmpty) return true;
-      return _edit((api) => api.patchCard(id, body));
+      return _edit((api) => api.patchCard(id, body), cardId: id);
     }
     await _commit(
       data.copyWith(
@@ -483,10 +535,7 @@ class AppStore extends ChangeNotifier {
     final muted = !isCardMuted(id);
     _cardMutesInFlight[id] = muted;
     notifyListeners();
-    final done = await _edit(
-      (api) => api.setMute(cardId: id, muted: muted),
-      needsWrite: false,
-    );
+    final done = await _edit((api) => api.setMute(cardId: id, muted: muted));
     _cardMutesInFlight.remove(id);
     // The refresh after the edit brings the server's mutes; apply the
     // request only if the edit landed and that refresh did not.
@@ -552,7 +601,7 @@ class AppStore extends ChangeNotifier {
   /// Removes the card, its benefits and every claim on them.
   Future<void> deleteCard(String id) async {
     if (remote) {
-      await _edit((api) => api.deleteCard(id));
+      await _edit((api) => api.deleteCard(id), cardId: id);
       return;
     }
     final data = _current;
@@ -579,7 +628,7 @@ class AppStore extends ChangeNotifier {
       Benefit? created;
       final done = await _edit((api) async {
         created = await api.addBenefit(draft.cardId, _terms(draft));
-      });
+      }, cardId: draft.cardId);
       if (!done) throw StateError(_problem ?? offlineMessage);
       return created!;
     }
@@ -640,10 +689,16 @@ class AppStore extends ChangeNotifier {
       final terms = _terms(after);
       final termsChanged = '$terms' != '${_terms(before)}';
       if (state.isEmpty && !termsChanged) return true;
-      return _edit((api) async {
-        if (state.isNotEmpty) await api.putBenefitState(id, state);
-        if (termsChanged) await api.putBenefit(id, terms);
-      });
+      // A credit's state is usage, which a card shared to record allows;
+      // its terms are the owner's.
+      return _edit(
+        (api) async {
+          if (state.isNotEmpty) await api.putBenefitState(id, state);
+          if (termsChanged) await api.putBenefit(id, terms);
+        },
+        cardId: before.cardId,
+        usage: !termsChanged,
+      );
     }
     await _commit(
       data.copyWith(
@@ -692,10 +747,7 @@ class AppStore extends ChangeNotifier {
     final muted = !isBenefitMuted(id);
     _benefitMutesInFlight[id] = muted;
     notifyListeners();
-    final done = await _edit(
-      (api) => api.setMute(benefitId: id, muted: muted),
-      needsWrite: false,
-    );
+    final done = await _edit((api) => api.setMute(benefitId: id, muted: muted));
     _benefitMutesInFlight.remove(id);
     if (done && _preferences.mutedBenefitIds.contains(id) != muted) {
       await _setPreferences(
@@ -729,10 +781,7 @@ class AppStore extends ChangeNotifier {
     if (isMutePending(id)) return;
     _levelsInFlight[id] = level;
     notifyListeners();
-    final done = await _edit(
-      (api) => api.setNotificationLevel(id, level),
-      needsWrite: false,
-    );
+    final done = await _edit((api) => api.setNotificationLevel(id, level));
     _levelsInFlight.remove(id);
     // As for a mute: apply the request only if it landed and the refresh
     // after it did not bring it.
@@ -784,7 +833,8 @@ class AppStore extends ChangeNotifier {
   /// Removes the benefit and its claims.
   Future<void> deleteBenefit(String id) async {
     if (remote) {
-      await _edit((api) => api.deleteBenefit(id));
+      final cardId = _current.benefits.firstWhere((b) => b.id == id).cardId;
+      await _edit((api) => api.deleteBenefit(id), cardId: cardId);
       return;
     }
     final data = _current;
@@ -815,7 +865,12 @@ class AppStore extends ChangeNotifier {
       note: note,
     );
     if (remote) {
-      if (!canWrite) throw StateError(readOnlyMessage);
+      final refused = refusal(instance.card.id, usage: true);
+      if (refused != null) {
+        _problem = refused;
+        notifyListeners();
+        throw StateError(refused);
+      }
       // Shown at once as pending; sent when the network allows, under a
       // key made once so every retry is the same request.
       _pending = [..._pending, PendingClaim(key: newId(), claim: claim)];
@@ -846,11 +901,20 @@ class AppStore extends ChangeNotifier {
     }
     final sent = ids.difference(queued);
     if (sent.isEmpty) return;
-    await _edit((api) async {
-      for (final id in sent) {
-        await api.deleteClaim(id);
-      }
-    });
+    // The claims taken back together are one credit's.
+    final benefitId = claims.firstWhere((c) => sent.contains(c.id)).benefitId;
+    final cardId = _current.benefits
+        .firstWhere((b) => b.id == benefitId)
+        .cardId;
+    await _edit(
+      (api) async {
+        for (final id in sent) {
+          await api.deleteClaim(id);
+        }
+      },
+      cardId: cardId,
+      usage: true,
+    );
   }
 
   /// Removes every claim recorded against one cycle.
@@ -902,8 +966,7 @@ class AppStore extends ChangeNotifier {
     MemberPreferences Function(MemberPreferences preferences) patch,
   ) async {
     final next = patch(_preferences);
-    if (remote &&
-        !await _edit((api) => api.putPreferences(next), needsWrite: false)) {
+    if (remote && !await _edit((api) => api.putPreferences(next))) {
       return;
     }
     await _setPreferences(next);

@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter/widget_previews.dart';
 
+import 'data/household_api.dart';
 import 'data/snapshot_store.dart';
 import 'logic/app_store.dart';
 import 'logic/catalog_filter_controller.dart';
@@ -494,6 +495,102 @@ Widget creditSheetUntouched() => _sheetContent('u2', Brightness.dark);
 /// A rolling credit with no claim yet: "Eligible now", no window range.
 @Preview(name: 'Credit sheet, rolling', size: Size(420, 700))
 Widget creditSheetRolling() => _sheetContent('g1', Brightness.dark);
+
+/// A service tier for previews that serves the preview household and
+/// nothing else, with Kathy's card hers, labelled "Platinum" and shared at
+/// [access].
+class _SharedPreviewApi implements HouseholdApi {
+  _SharedPreviewApi(this.access);
+
+  final CardAccess access;
+
+  @override
+  Future<HouseholdSnapshot> householdData() async {
+    final household = sampleHousehold();
+    return HouseholdSnapshot(
+      data: household.copyWith(
+        cards: [
+          for (final card in household.cards)
+            card.id == 'kathy'
+                ? card.copyWith(ownerId: 'user-kathy', label: 'Platinum')
+                : card,
+        ],
+      ),
+      access: {'jim': CardAccess.owner, 'kathy': access},
+      people: const {'user-kathy': Person(id: 'user-kathy', name: 'Kathy')},
+    );
+  }
+
+  @override
+  Future<MemberPreferences> preferences() async => defaultMemberPreferences;
+
+  @override
+  Future<List<CardTemplate>> catalog() async => [
+    for (final template in cardTemplates)
+      if (template.id != 'blank') template,
+  ];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+AppStore _sharedStore(CardAccess access) {
+  final store = AppStore(
+    store: MemorySnapshotStore(),
+    api: _SharedPreviewApi(access),
+    clock: () => DateTime(2026, 9, 16),
+  );
+  store.load();
+  return store;
+}
+
+/// The Resy credit on Kathy's card, as someone she shares it with sees it.
+Widget _sharedSheet(CardAccess access, Brightness brightness) {
+  final store = _sharedStore(access);
+  return _themed(
+    SheetHost(
+      open: true,
+      widthClass: WidthClass.expanded,
+      title: 'Credit',
+      onClose: () {},
+      sheet: CreditSheet(
+        actions: CreditActions(store: store, snackbar: SnackbarState()),
+        benefitId: 'r1',
+        onClose: () {},
+      ),
+      child: const SizedBox.expand(),
+    ),
+    brightness,
+  );
+}
+
+@Preview(name: 'Credit sheet, shared to view, dark', size: Size(420, 900))
+Widget creditSheetSharedViewDark() =>
+    _sharedSheet(CardAccess.view, Brightness.dark);
+
+@Preview(name: 'Credit sheet, shared to view, light', size: Size(420, 900))
+Widget creditSheetSharedViewLight() =>
+    _sharedSheet(CardAccess.view, Brightness.light);
+
+@Preview(name: 'Credit sheet, shared to record, dark', size: Size(420, 900))
+Widget creditSheetSharedRecordDark() =>
+    _sharedSheet(CardAccess.record, Brightness.dark);
+
+@Preview(name: 'Credit sheet, shared to record, light', size: Size(420, 900))
+Widget creditSheetSharedRecordLight() =>
+    _sharedSheet(CardAccess.record, Brightness.light);
+
+@Preview(name: 'Cards, shared with you, dark', size: Size(402, 1400))
+Widget cardsSharedDark() => _themed(
+  CardsScreen(store: _sharedStore(CardAccess.view), ui: UiState()),
+  Brightness.dark,
+);
+
+@Preview(name: 'Cards, shared with you, light', size: Size(402, 1400))
+Widget cardsSharedLight() => _themed(
+  CardsScreen(store: _sharedStore(CardAccess.record), ui: UiState()),
+  Brightness.light,
+);
 
 /// The undo snackbar over Today, as logging a credit shows it.
 Widget _snackbarAt(Size size) {

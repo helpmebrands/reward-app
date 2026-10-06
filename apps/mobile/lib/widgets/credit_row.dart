@@ -33,6 +33,7 @@ class CreditRow extends StatelessWidget {
     super.key,
     required this.instance,
     this.showCard = false,
+    this.cardName,
     this.onOpen,
     this.onLogAll,
     this.onToggleMute,
@@ -42,9 +43,12 @@ class CreditRow extends StatelessWidget {
 
   final BenefitInstance instance;
 
-  /// Shows the card's display name in the subtitle. Off inside a per-card
-  /// group.
+  /// Shows the card's name in the subtitle. Off inside a per-card group.
   final bool showCard;
+
+  /// The card's name as the app shows it, "Platinum · Alex" for someone
+  /// else's card (`AppStore.cardName`); its display name when null.
+  final String? cardName;
 
   /// Opens the credit sheet.
   final VoidCallback? onOpen;
@@ -73,9 +77,10 @@ class CreditRow extends StatelessWidget {
       cadenceLabel(instance.benefit.cadence),
       instance.cycle.label,
     ];
-    // The display name is unique in the household, so two identical
-    // Platinums are told apart by their labels.
-    if (showCard) parts.add(cardLabel(instance.card));
+    // The display name is unique among its owner's cards, so one person's
+    // two Platinums are told apart by their labels, and two people's by
+    // the owner's name in [cardName].
+    if (showCard) parts.add(cardName ?? cardLabel(instance.card));
     return parts.join(' · ');
   }
 

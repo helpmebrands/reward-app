@@ -111,11 +111,11 @@ With a `HouseholdApi` the store is backed by the service tier instead of the dev
 
 `ApiClient` (`lib/data/household_api.dart`) calls the api on `dart:io`'s `HttpClient` with no package, at `ApiConfig.baseUrl`, sending the signed-in user's Firebase ID token. An unreachable host, a timeout or a broken connection is `ApiOffline`; an answer that says no is `ApiError` with the body's `error`. Transport is a function, so the client is testable without a socket.
 
-- **Reading**: `load` shows the last answer from `HouseholdCache` (`household-cache` in `shared_preferences`) at once, then `refresh` fetches `GET /v1/household/data`, the role and the preferences. The cache carries `householdCacheVersion`; a cache of another version is discarded and fetched again, with no migration chain on the device, because the server holds the truth.
-- **Editing**: every mutation other than a claim sends one request and fetches the household again. A card patch sends only the fields that changed; a credit patch splits household state (`PUT …/state`) from terms (`PUT /v1/benefits/{id}`). Offline it is refused with `offlineMessage`, a reader gets `readOnlyMessage`, and an api refusal such as `system maintained` gets its own sentence; the store holds the sentence as `problem` and `RewardApp` shows it in the snackbar.
+- **Reading**: `load` shows the last answer from `HouseholdCache` (`household-cache` in `shared_preferences`) at once, then `refresh` fetches `GET /v1/household/data` with each card's access and the owners' names ([[mobile-architecture#Card access]]), and the preferences. The cache carries `householdCacheVersion`, 2 since it holds the access and names; a cache of another version is discarded and fetched again, with no migration chain on the device, because the server holds the truth.
+- **Editing**: every mutation other than a claim sends one request and fetches the household again. A card patch sends only the fields that changed; a credit patch splits its state (`PUT …/state`) from terms (`PUT /v1/benefits/{id}`). Offline it is refused with `offlineMessage`, beyond a card's access with a sentence naming its owner, and an api refusal such as `system maintained` gets its own sentence; the store holds the sentence as `problem` and `RewardApp` shows it in the snackbar.
 - **Claims**: `claim` puts the claim in the `ClaimOutbox` (`claim-outbox`, kept apart from the cache so discarding the cache never loses one) with an idempotency key made once, shows it at once as pending, and flushes. `flush` sends the queue in order, each under its own key, and concurrent calls share one flush, so a claim is stored once however often it is retried. Taking back a queued claim removes it from the outbox; a sent one is deleted on the api.
 - **When to flush**: after every successful fetch, when the app resumes (`AppLifecycleListener`), and every 30 seconds while offline or with claims queued. No connectivity package: a request that succeeds is the network coming back.
-- **Readers**: `canWrite` is false for a reader, so rows have no swipe-to-log, the credit sheet no logging, unlock, undo or edit, the compare sheet no log buttons and Cards no add, archive, delete or edit; mutes stay, since they are the member's own. `canEdit` is also false offline.
+- **Access**: what a person may do depends on the card ([[mobile-architecture#Card access]]). `canEdit` is false offline.
 - **Commands**: `refresh` runs through `Command0` (`lib/logic/command.dart`), the Command pattern from Flutter's architecture guide with no package: it exposes whether it is running and how it last ended, and a second call joins the first.
 - **Signing out** calls `forget`, which drops the household, the cache and the queued claims, so the next person on the device never sees or sends them; signing in refreshes. Theme and horizon stay this device's settings.
 
@@ -127,7 +127,7 @@ In the service-tier mode a mute switch shows the server's resting state; while `
 
 ### Notification levels in flight
 
-A credit's notification level ([[domain#Member preferences#Notification levels]]) is the member's own, so a reader sets it too; the store reads it with `notificationLevel(id)`, `levelFor` over the shown preferences.
+A credit's notification level ([[domain#Member preferences#Notification levels]]) is the person's own, so someone who can only view the card sets it too; the store reads it with `notificationLevel(id)`, `levelFor` over the shown preferences.
 
 `setNotificationLevel(id, level)` follows the mute rule above: in the service-tier mode it records the requested level per id, notifies, and sends `setNotificationLevel` to `PUT /v1/me/benefits/{id}/level`; the shown preferences apply `withLevel` for it and `isMutePending(id)` is true, so the level control and the row's bell have no callback until the api answers. Then the server's state shows, the old level with `problem` set on a refusal or offline; a level that landed but whose refresh failed is applied. Without an api it writes `withLevel` at once. The row bell's `toggleBenefitMute` still flips only the mute, so unsilencing returns to Last chance when that was the level. Pinned by [[mobile-tests#Notification levels]]; previews of the control choosable in both themes and with its card silenced.
 
@@ -266,7 +266,7 @@ On every cold start the logo carries on from the native splash: the icon where t
 
 A card added from the catalogue is linked to its template and kept up to date by it; a card added blank, or converted, is the household's own ([[domain#Catalogue versions]], [[api-architecture#Conversion]]). Pinned by [[mobile-tests#System and user cards]].
 
-- **Cards** names two groups, "Kept up to date" (`cards-system`) and "Maintained by you" (`cards-user`), each shown when it has cards; a local household with no linked card shows its cards without names, as before sign-in existed.
+- **Cards** names two groups of your own cards, "Kept up to date" (`cards-system`) and "Maintained by you" (`cards-user`), each shown when it has cards, then a section per person who shares with you ([[mobile-architecture#Card access]]); a local household with no linked card shows its cards without names, as before sign-in existed.
 - **Add a card** lists the api's catalogue (`GET /v1/catalog`, `AppStore.templates`) in the service-tier mode, the built-in one until it is fetched, with `blank` last; `CatalogFilterController` reads its templates through a function so a fetch that lands later shows. A template adds a linked card, `blank` a household one, and a second card of a product gets the numbered label ([[domain#Card]]).
 - **A system card's terms are read-only**: in the card editor the fee is read-only, the network cannot change and "Add" is gone; in the benefit editor every term (name, value, cadence, anchor, category, merchant, ends on, spend threshold, enrollment needed, steps) is read-only, while the label, renewal date, kind, enrollment, spend met, tracking stay the household's, and the notification level stays the member's.
 - **"Change the terms"** on either editor opens `ConvertScreen` at `/cards/:id/convert`, titled in its 64-high bar, which says the card will be replaced by one the household maintains, will no longer update automatically, and keeps its claims, history, enrollment and everyone's silences. Nothing changes until "Make it mine", which calls `AppStore.convertCard` (`POST /v1/cards/{id}/convert`) and opens the new card's editor, now fully editable.
@@ -274,12 +274,30 @@ A card added from the catalogue is linked to its template and kept up to date by
 
 Widget Previews: Cards with both groups, and the conversion screen.
 
+## Card access
+
+What a person can do with each card, and whose card it is, come from the snapshot's `access` and `people` ([[api-architecture#Owners and shares]]). Pinned by [[mobile-tests#Card access]].
+
+`AppStore.accessTo(cardId)` answers `CardAccess.owner`, `record` or `view`, from the api's answer, cached with the household. Without an api every card is the owner's, as before sharing existed, and a card the api has not named is view only.
+
+- **view**: rows have no swipe-to-log or opt-out, the credit sheet no logging, unlock, undo, opt-out or "Edit this credit", the compare sheet no log buttons, and Cards no edit link, archive or delete. Mutes and notification levels stay, since they are the person's own.
+- **record**: logging, unlock, undo, enrollment, spend and opt-out work. The card editor's fields and the credits' terms are read-only, and there is no archive, delete, "Add" or "Change the terms".
+- **Refusals name the owner**: an edit the access does not allow is refused before it is sent, with "You can view Alex’s card but not change it." at view and "Only Alex can change this card." at record (`AppStore.refusal`). The editors show the same sentence at their top for someone else's card.
+
+Whose card it is:
+
+- `AppStore.cardName(card)` is the display name, followed by the owner's for someone else's card: "Platinum · Alex". Rows, the credit and compare sheets, Cards, Credits' card groups, Value and the editors' titles use it.
+- The owner's name is their sign-in's, or their email without one (`Person.displayName`).
+- **Cards** lists your own cards in their two groups, then one section per person who shares with you, titled "Alex’s cards" (`cards-shared-<id>`), in the api's order.
+- A card you add is yours, so the label checks and the numbered default see only your own cards (`AppStore.ownCards`).
+
+Widget Previews: the credit sheet of a card shared at view and at record in both themes, and Cards with a shared section in both themes, over a preview api that serves the sample household with Kathy's card hers.
+
 ## Household sharing
 
-Members invite and join each other without typing ids: by a link shared through the system share sheet, or by an eight-character code. Pinned by [[mobile-tests#Household sharing]].
+People join each other's cards without typing ids: by a link from the system share sheet, or by an eight-character code. Pinned by [[mobile-tests#Household sharing]].
 
-- **Settings, Household** (service-tier mode only): every member with their role, "Invite someone" for the owner, a remove button per member for the owner with a confirmation, and "Have an invite code?". Inviting asks read or edit in a bottom sheet, calls `POST /v1/household/invites`, hands the invite to the share sheet (`share_plus`, a Flutter Favorite, behind `share` so tests see the `ShareParams`) and shows the code on the screen.
-- **What an invite shares** (#342): on iOS the link alone as a `uri`, so the sheet's header and the recipient's chat preview come from the invite page's OpenGraph card ([[api-architecture#Invite links]]). Elsewhere the sheet fetches nothing, so it gets the reward message, `Code: <code>` and the link on its last line, the title and subject "Join my household on HelpMe Reward", and `assets/logo/helpmereward-icon.png` as `previewThumbnail`. Both anchor the iPad popover on "Invite someone".
+- **Settings, Household** (service-tier mode only): "Have an invite code?". The member list and the invite button went with the household routes (#421), and sharing your cards returns in #423; `share` (`lib/data/share.dart`, `share_plus`, a Flutter Favorite) stays for it.
 - **Joining**: `/invite/:code` is a full-screen route to `JoinScreen`, reached from an invite link or from a code typed under "Have an invite code?" on sign-in or in Settings. A signed-out person who opens a link is sent to sign-in with `from`, and lands back on the join screen ([[mobile-architecture#Sign-in]]).
 - `AppStore.joinHousehold` first flushes the claims queued for the old household, then accepts. Leaving a household that holds cards asks "Leave your cards behind?" and repeats with `confirmLeave`; used, expired and unknown codes, an owner with members and an existing member each say why and stay. On success the cache is cleared, the household fetched, and the app goes to Today.
 - **Links on the device**: `Runner.entitlements` declares `applinks:api.staging.helpmereward.com`, and the Android manifest an `autoVerify` intent filter for `https://api.staging.helpmereward.com/invite/`; go_router's built-in deep linking routes them, with no `app_links` package ([[api-architecture#Invite links]]).
@@ -299,7 +317,7 @@ It opens on the headline, counting only what is claimable, under its heading: th
 With no active card (`!store.hasCards`, archived cards not counted) and loading finished, Today shows its empty state in place of the headline: the [[mobile-architecture#Today screen#Empty card slot]] illustration, the heading, a line on why credits matter, and the actions. Pinned by [[mobile-tests#Today empty state]].
 
 - **Heading**: "Add a card to start tracking its credits" is the screen's `ScreenTitle`, so it is the first header and takes focus on navigation; the window title stays "Today". The body is in `textSecondary`.
-- **Add your first card**: `AddCardButton`, the only filled button, 48 high and full width on compact. It pushes `/cards/new`, and the catalogue's Back pops to the tab that pushed it (it goes to Cards only when opened by path). It reads "Add a card" when only archived cards remain, and a reader (`!store.canWrite`) gets none.
+- **Add your first card**: `AddCardButton`, the only filled button, 48 high and full width on compact. It pushes `/cards/new`, and the catalogue's Back pops to the tab that pushed it (it goes to Cards only when opened by path). It reads "Add a card" when only archived cards remain. Everyone gets it, since a card anyone adds is their own.
 - **Invite code**: signed in only (`store.remote`), a 48-high text button "Joining a household? Enter an invite code" asks for the code with `askForInviteCode` and goes to `invitePath`, as Settings does.
 - **Layout**: centred in a column of at most 440 on compact and inside the tab's 560 column on medium; from expanded the illustration sits beside the text so the button stays above the fold. The empty state sits inside the shell, so the bar, the gear and the navigation stay.
 - **The other tabs**: with no active card, Credits says "No cards yet, so no credits to track." in place of the filter's empty message, Cards keeps "Start with one card" and swaps its catalogue button for this one, and Value keeps its note; each adds the same `AddCardButton`, so Back returns to that tab. Pinned by [[mobile-tests#Empty tabs]].

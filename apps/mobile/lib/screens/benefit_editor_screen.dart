@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
+import '../data/household_api.dart';
 import '../logic/app_store.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
@@ -228,13 +229,15 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
           },
           child: EditorScaffold(
             title: current.name,
-            subtitle: card == null ? null : cardLabel(card),
+            subtitle: card == null ? null : store.cardName(card),
             onBack: _back,
-            action: EditorAction(
-              icon: Icons.delete_outline,
-              label: 'Delete this credit',
-              onAct: _delete,
-            ),
+            action: store.accessTo(current.cardId) == CardAccess.owner
+                ? EditorAction(
+                    icon: Icons.delete_outline,
+                    label: 'Delete this credit',
+                    onAct: _delete,
+                  )
+                : null,
             snackbar: widget.ui?.snackbar,
             child: Builder(builder: (context) => _form(context, current, card)),
           ),
@@ -251,9 +254,15 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     final today = store.today;
     final cycle = card == null ? null : cycleFor(current, card, today);
     // A credit the catalogue keeps up to date: its terms are the
-    // catalogue's; enrollment, spend, tracking and the page are the
-    // household's.
+    // catalogue's; enrollment, spend, tracking and the page are the card's
+    // state.
     final linked = current.templateBenefitId != null;
+    // Someone else's card: its terms are its owner's, and its state is
+    // theirs and the people it is shared with to record usage.
+    final access = store.accessTo(current.cardId);
+    final owns = access == CardAccess.owner;
+    final records = access.records;
+    final termsFixed = linked || !owns;
 
     Widget field(
       String key,
@@ -277,7 +286,9 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
         focusNode: control.focusNode,
         keyboardType: keyboardType,
         maxLines: maxLines,
-        readOnly: linked && key != 'field-url',
+        // The enrollment page is the card's state; every other field is a
+        // term.
+        readOnly: key == 'field-url' ? !records : termsFixed,
         decoration: control.decoration,
       ),
     );
@@ -297,7 +308,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                 child: Text(cadenceLabel(cadence)),
               ),
           ],
-          onChanged: linked
+          onChanged: termsFixed
               ? null
               : (cadence) {
                   if (cadence != null) {
@@ -356,7 +367,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
               ),
             ],
             selected: {current.anchor},
-            onSelectionChanged: linked
+            onSelectionChanged: termsFixed
                 ? null
                 : (next) =>
                       _patch(current, (b) => b.copyWith(anchor: next.single)),
@@ -378,7 +389,11 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
-        if (linked && card != null) ...[
+        if (!owns) ...[
+          Text(store.refusal(current.cardId)!, style: note),
+          const SizedBox(height: Space.s4),
+        ],
+        if (linked && card != null && owns) ...[
           Text(
             'The terms of this credit come from the catalog and change '
             'when the issuer changes them. Enrollment, spend, tracking and '
@@ -443,7 +458,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                     child: Text(categoryLabel(category)),
                   ),
               ],
-              onChanged: linked
+              onChanged: termsFixed
                   ? null
                   : (category) {
                       if (category != null) {
@@ -467,7 +482,7 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                   'as money you are failing to spend.',
               label: 'Needs enrollment',
               value: current.enrollmentRequired,
-              onChanged: linked
+              onChanged: termsFixed
                   ? null
                   : (next) => _patch(
                       current,
@@ -483,9 +498,11 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                           '${formatDate(current.enrolledAt!.substring(0, 10), today)}.',
                 label: 'Enrolled',
                 value: current.enrolledAt != null,
-                onChanged: (next) => next
-                    ? store.confirmEnrollment(current.id)
-                    : store.revokeEnrollment(current.id),
+                onChanged: records
+                    ? (next) => next
+                          ? store.confirmEnrollment(current.id)
+                          : store.revokeEnrollment(current.id)
+                    : null,
               ),
               field(
                 'field-url',
@@ -518,9 +535,11 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                           '${formatDate(current.spendMetAt!.substring(0, 10), today)}.',
                 label: 'Spend reached this year',
                 value: current.spendMetAt != null,
-                onChanged: (next) => next
-                    ? store.confirmSpend(current.id)
-                    : store.revokeSpend(current.id),
+                onChanged: records
+                    ? (next) => next
+                          ? store.confirmSpend(current.id)
+                          : store.revokeSpend(current.id)
+                    : null,
               ),
             field(
               'field-steps',
@@ -538,9 +557,11 @@ class _BenefitEditorScreenState extends State<BenefitEditorScreen> {
                   'until you reactivate it.',
               label: 'Opted out',
               value: current.optedOutAt != null,
-              onChanged: (next) => next
-                  ? store.optOutBenefit(current.id)
-                  : store.reactivateBenefit(current.id),
+              onChanged: records
+                  ? (next) => next
+                        ? store.optOutBenefit(current.id)
+                        : store.reactivateBenefit(current.id)
+                  : null,
             ),
             NotificationLevelControl(
               benefit: current,

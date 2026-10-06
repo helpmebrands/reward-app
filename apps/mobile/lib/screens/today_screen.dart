@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 import 'package:flutter/semantics.dart';
 import 'package:go_router/go_router.dart';
 
@@ -61,18 +61,21 @@ class _TodayBody extends StatelessWidget {
     final actions = ui == null
         ? null
         : CreditActions(store: store, snackbar: ui.snackbar);
+    // A card shared only to view logs nothing; silencing stays the
+    // person's own.
+    final records = store.accessTo(instance.card.id).records;
     return CreditRow(
       key: ValueKey('row-${instance.benefit.id}'),
       instance: instance,
       showCard: showCard,
+      cardName: store.cardName(instance.card),
       onOpen: ui == null ? null : () => ui.openCredit(instance.benefit.id),
-      // A reader sees the household but logs nothing in it.
-      onLogAll: actions == null || !store.canWrite
+      onLogAll: actions == null || !records
           ? null
           : () => actions.logAll(instance),
       onToggleMute: actions == null ? null : () => actions.toggleMute(instance),
       mutePending: store.isMutePending(instance.benefit.id),
-      onOptOut: actions == null || !store.canWrite
+      onOptOut: actions == null || !records
           ? null
           : () => actions.optOut(instance),
     );
@@ -192,7 +195,11 @@ class _TodayBody extends StatelessWidget {
                 if (widthClass == WidthClass.compact)
                   for (final overlap in overlaps) ...[
                     const SizedBox(height: Space.s2),
-                    _OverlapCard(overlap: overlap, onCompare: compare),
+                    _OverlapCard(
+                      overlap: overlap,
+                      cardName: store.cardName,
+                      onCompare: compare,
+                    ),
                   ]
                 else
                   for (var i = 0; i < overlaps.length; i += 2) ...[
@@ -204,6 +211,7 @@ class _TodayBody extends StatelessWidget {
                           Expanded(
                             child: _OverlapCard(
                               overlap: overlaps[i],
+                              cardName: store.cardName,
                               onCompare: compare,
                             ),
                           ),
@@ -212,6 +220,7 @@ class _TodayBody extends StatelessWidget {
                             child: i + 1 < overlaps.length
                                 ? _OverlapCard(
                                     overlap: overlaps[i + 1],
+                                    cardName: store.cardName,
                                     onCompare: compare,
                                   )
                                 : const SizedBox.shrink(),
@@ -378,16 +387,23 @@ class _SectionTitle extends StatelessWidget {
 /// The one sanctioned saturated ground: the overlap card. Tapping it opens
 /// the compare sheet for the group.
 class _OverlapCard extends StatelessWidget {
-  const _OverlapCard({required this.overlap, this.onCompare});
+  const _OverlapCard({
+    required this.overlap,
+    required this.cardName,
+    this.onCompare,
+  });
 
   final OverlapGroup overlap;
+
+  /// Each card's name as the app shows it (`AppStore.cardName`).
+  final String Function(Card card) cardName;
   final ValueChanged<String>? onCompare;
 
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
-    final cards = overlap.instances.map((i) => cardLabel(i.card)).join(' and ');
+    final cards = overlap.instances.map((i) => cardName(i.card)).join(' and ');
     final onCompare = this.onCompare;
     return Material(
       color: tokens.section,

@@ -2,6 +2,7 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:go_router/go_router.dart';
 
+import '../data/household_api.dart';
 import '../logic/app_store.dart';
 import '../logic/ui_state.dart';
 import '../shell/router.dart';
@@ -88,7 +89,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     if (current == null) return null;
     return labelError(
       _label.text,
-      cards: store.data?.cards ?? const [],
+      cards: store.ownCards,
       issuer: current.issuer,
       product: current.product,
       cardId: current.id,
@@ -185,15 +186,17 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
             if (!didPop) _back();
           },
           child: EditorScaffold(
-            title: cardLabel(current),
+            title: store.cardName(current),
             subtitle:
                 '${benefits.length} credit${benefits.length == 1 ? '' : 's'}',
             onBack: _back,
-            action: EditorAction(
-              icon: Icons.delete_outline,
-              label: 'Delete this card',
-              onAct: _delete,
-            ),
+            action: store.accessTo(current.id) == CardAccess.owner
+                ? EditorAction(
+                    icon: Icons.delete_outline,
+                    label: 'Delete this card',
+                    onAct: _delete,
+                  )
+                : null,
             snackbar: widget.ui?.snackbar,
             child: Builder(
               builder: (context) => _form(context, current, benefits),
@@ -230,8 +233,12 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
       ),
     );
     // A card the catalogue keeps up to date: its terms are the catalogue's,
-    // its household fields the household's.
+    // its own fields its owner's.
     final system = maintainedBy(current) == MaintainedBy.system;
+    // Someone else's card: its fields are read-only, and a card shared to
+    // record still unlocks and reactivates its credits.
+    final access = store.accessTo(current.id);
+    final owns = access == CardAccess.owner;
 
     Widget field(
       String key,
@@ -262,7 +269,11 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
-        if (system) ...[
+        if (!owns) ...[
+          Text(store.refusal(current.id)!, style: note),
+          const SizedBox(height: Space.s4),
+        ],
+        if (system && owns) ...[
           Container(
             padding: const EdgeInsets.all(Space.s4),
             decoration: BoxDecoration(
@@ -304,6 +315,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               error: _labelError,
               controller: _label,
               focusNode: _labelFocus,
+              readOnly: !owns,
             ),
             field(
               'field-fee',
@@ -312,7 +324,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               error: _feeError,
               controller: _fee,
               focusNode: _feeFocus,
-              readOnly: system,
+              readOnly: system || !owns,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
@@ -324,6 +336,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
               error: _anniversaryError,
               controller: _anniversary,
               focusNode: _anniversaryFocus,
+              readOnly: !owns,
               keyboardType: TextInputType.datetime,
             ),
             DropdownButtonFormField<CardNetwork>(
@@ -338,7 +351,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                     child: Text(networkLabel(network)),
                   ),
               ],
-              onChanged: system
+              onChanged: system || !owns
                   ? null
                   : (network) {
                       if (network != null) {
@@ -351,8 +364,12 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
             ),
             KindChoice(
               kind: current.kind,
-              onChanged: (kind) =>
-                  store.updateCard(current.id, (c) => c.copyWith(kind: kind)),
+              onChanged: owns
+                  ? (kind) => store.updateCard(
+                      current.id,
+                      (c) => c.copyWith(kind: kind),
+                    )
+                  : null,
             ),
           ],
           wide: [
@@ -365,16 +382,17 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                   ? null
                   : (_) => store.toggleCardMute(current.id),
             ),
-            SwitchRow(
-              title: 'Archive this card',
-              note: 'Hides it everywhere and keeps its history.',
-              label: 'Archive this card',
-              value: current.archived,
-              onChanged: (next) => store.updateCard(
-                current.id,
-                (c) => c.copyWith(archived: next),
+            if (owns)
+              SwitchRow(
+                title: 'Archive this card',
+                note: 'Hides it everywhere and keeps its history.',
+                label: 'Archive this card',
+                value: current.archived,
+                onChanged: (next) => store.updateCard(
+                  current.id,
+                  (c) => c.copyWith(archived: next),
+                ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: Space.s4),
@@ -386,7 +404,7 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                 child: Text('Credits', style: text.titleSmall),
               ),
             ),
-            if (!system)
+            if (!system && owns)
               OutlinedButton.icon(
                 onPressed: _addBenefit,
                 icon: const Icon(Icons.add, size: 14),
@@ -407,13 +425,15 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
           for (final benefit in optedOut)
             link(
               benefit,
-              trailing: TextButton(
-                onPressed: () => store.reactivateBenefit(benefit.id),
-                child: Text(
-                  'Reactivate',
-                  semanticsLabel: 'Reactivate ${benefit.name}',
-                ),
-              ),
+              trailing: access.records
+                  ? TextButton(
+                      onPressed: () => store.reactivateBenefit(benefit.id),
+                      child: Text(
+                        'Reactivate',
+                        semanticsLabel: 'Reactivate ${benefit.name}',
+                      ),
+                    )
+                  : null,
             ),
         ],
       ],
@@ -427,7 +447,9 @@ class KindChoice extends StatelessWidget {
   const KindChoice({super.key, required this.kind, required this.onChanged});
 
   final CardKind kind;
-  final ValueChanged<CardKind> onChanged;
+
+  /// Null for a card that is someone else's to change.
+  final ValueChanged<CardKind>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -451,7 +473,10 @@ class KindChoice extends StatelessWidget {
               ButtonSegment(value: CardKind.business, label: Text('Business')),
             ],
             selected: {kind},
-            onSelectionChanged: (next) => onChanged(next.single),
+            onSelectionChanged: switch (onChanged) {
+              final onChanged? => (next) => onChanged(next.single),
+              null => null,
+            },
           ),
         ),
         Padding(

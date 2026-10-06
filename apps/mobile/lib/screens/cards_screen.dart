@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' hide Card;
 import 'package:flutter/semantics.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/household_api.dart';
 import '../logic/app_store.dart';
 import '../logic/snackbar_state.dart';
 import '../logic/ui_state.dart';
@@ -149,17 +150,32 @@ class _CardsBody extends StatelessWidget {
       wide: widthClass == WidthClass.expanded,
     );
 
-    // Cards the catalogue keeps up to date, then the household's own, each
-    // group named when it has cards. A local household with no linked card
-    // (no service tier) shows its cards without names.
-    final system = [
+    // Your cards the catalogue keeps up to date, then the ones you maintain,
+    // each group named when it has cards; then one section per person who
+    // shares cards with you. A local household with no linked card (no
+    // service tier) shows its cards without names.
+    final own = [
       for (final s in summaries)
+        if (store.accessTo(s.card.id) == CardAccess.owner) s,
+    ];
+    final system = [
+      for (final s in own)
         if (maintainedBy(s.card) == MaintainedBy.system) s,
     ];
     final user = [
-      for (final s in summaries)
+      for (final s in own)
         if (maintainedBy(s.card) == MaintainedBy.user) s,
     ];
+    final shared = [
+      for (final person in store.people)
+        (
+          person: person,
+          cards: [
+            for (final s in summaries)
+              if (store.ownerOf(s.card)?.id == person.id) s,
+          ],
+        ),
+    ].where((group) => group.cards.isNotEmpty).toList();
 
     // One column on a phone, two across at medium, one wide row per card at
     // expanded with the verdict beside the figures.
@@ -225,14 +241,25 @@ class _CardsBody extends StatelessWidget {
               ),
               grid([for (final s in user) stat(s)]),
             ],
+            for (final (index, (:person, :cards)) in shared.indexed) ...[
+              if (own.isNotEmpty || index > 0) const SizedBox(height: Space.s4),
+              group(
+                'cards-shared-${person.id}',
+                '${person.displayName}’s cards',
+                'Shared with you. Your reminders and silences on them are '
+                    'your own.',
+              ),
+              grid([for (final s in cards) stat(s)]),
+            ],
           ];
 
     return ListView(
       padding: EdgeInsets.all(widthClass.padding),
       children: [
         header,
-        // Empty, the first-run block carries the one Add button.
-        if (store.canWrite && summaries.isNotEmpty) ...[
+        // Empty, the first-run block carries the one Add button. Anyone
+        // adds cards of their own.
+        if (summaries.isNotEmpty) ...[
           const SizedBox(height: Space.s4),
           addCard,
         ],
@@ -288,7 +315,7 @@ class _CardStat extends StatelessWidget {
   final bool wide;
 
   Card get card => summary.card;
-  String get label => cardLabel(card);
+  String get label => store.cardName(card);
 
   Future<void> _act(BuildContext context, _CardAction action) async {
     switch (action) {
@@ -359,6 +386,9 @@ class _CardStat extends StatelessWidget {
     };
     final quiet = text.labelSmall?.copyWith(color: tokens.textSecondary);
     final count = summary.instances.length;
+    // Archiving and deleting are the owner's; the editor opens for anyone
+    // who records usage, read-only where the card is the owner's.
+    final access = store.accessTo(card.id);
 
     // Each block carries its place in the phone order, so the two-column
     // layout reads top to bottom the way the phone does.
@@ -397,7 +427,7 @@ class _CardStat extends StatelessWidget {
                     value: _CardAction.mute,
                     child: Text(store.isCardMuted(card.id) ? 'Unmute' : 'Mute'),
                   ),
-                  if (store.canWrite) ...const [
+                  if (access == CardAccess.owner) ...const [
                     PopupMenuItem(
                       value: _CardAction.archive,
                       child: Text('Archive'),
@@ -667,7 +697,7 @@ class _CardStat extends StatelessWidget {
                 flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [verdictText, tags, if (store.canWrite) edit],
+                  children: [verdictText, tags, if (access.records) edit],
                 ),
               ),
             ],
@@ -681,7 +711,7 @@ class _CardStat extends StatelessWidget {
               pct,
               verdictText,
               tags,
-              if (store.canWrite) edit,
+              if (access.records) edit,
             ],
           );
 
