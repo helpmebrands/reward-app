@@ -231,9 +231,11 @@ void main() {
       );
     });
 
-    // @lat: [[mobile-tests#Notification levels#A reader sets their own level]]
-    testWidgets('a reader can change the level', (tester) async {
-      final api = FakeApi(role: MemberRole.reader);
+    // @lat: [[mobile-tests#Notification levels#A viewer sets their own level]]
+    testWidgets('someone who can only view the card changes the level', (
+      tester,
+    ) async {
+      final api = FakeApi(access: {'card-1': CardAccess.view});
       await openSheet(tester, await loaded(api));
       await choose(tester, 'Last chance');
       await tester.pumpAndSettle();

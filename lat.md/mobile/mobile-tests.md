@@ -277,10 +277,6 @@ Adding a card from a template while Today is open replaces the empty state with 
 
 A card whose only credit needs enrollment shows the normal layout with its locked section, not the empty state.
 
-### A reader sees no Add button
-
-A reader of a signed-in household with no cards sees the empty state and the invite button, and no Add button.
-
 ### The invite button shows signed in and opens the join screen
 
 Locally there is no invite button. Signed in, "Joining a household? Enter an invite code" opens the invite dialog, and a code typed there opens the join screen for it.
@@ -477,9 +473,9 @@ Credits does not say "Nothing matches that filter." and Cards drops its catalogu
 
 On each tab the button pushes the catalogue, and Back returns to that tab.
 
-### Archived cards read Add a card and readers get none
+### Archived cards read Add a card
 
-With only an archived card the button reads "Add a card" on each tab, and a reader of an empty signed-in household sees no Add button.
+With only an archived card the button reads "Add a card" on each tab.
 
 ## Single choices
 
@@ -1545,10 +1541,6 @@ Renaming a card offline returns false, sets `offlineMessage`, changes nothing lo
 
 A cache written with the previous `householdCacheVersion` is cleared on load, leaving no household, while the queued claim stays in the outbox and is posted when the api is back.
 
-### A reader sees no claim or edit controls
-
-For a reader, Today's rows have no log action, the credit sheet has no logging section, and Cards has no add button or edit link.
-
 ## Member mutes
 
 `member_mutes_test.dart` drives mutes in the service-tier mode over a fake api that stores them and can hold or refuse `setMute`, pinning [[mobile-architecture#The store#Member mutes in flight]].
@@ -1617,9 +1609,9 @@ When the route refuses, the sheet shows Periodically selected and enabled.
 
 With the credit's card muted, the control shows Silence with no callback and the note "The whole card is silenced. Unsilence it on the card to choose."
 
-### A reader sets their own level
+### A viewer sets their own level
 
-A reader chooses Last chance on the sheet and it is sent and selected, since the level is the member's own.
+Someone who can only view the card chooses Last chance on the sheet and it is sent and selected, since the level is their own.
 
 ### The credit editor offers the same levels
 
@@ -1645,25 +1637,49 @@ The Gold's editor has a read-only fee, no "Add" and an editable label; "Change t
 
 Adding a Gold from the api's catalogue to a household holding one proposes "American Express Gold (1)"; the catalogue comes from the api with `blank` last.
 
+## Card access
+
+`card_access_test.dart` gives the caller a Gold of their own and Alex's Platinum, labelled "Platinum", shared at view or at record over the fake api ([[mobile-architecture#Card access]]).
+
+### A card shared to view logs nothing
+
+Alex's Uber Cash row has no log or opt-out action but keeps its bell, while the Gold's row logs. Its sheet is headed "PLATINUM · ALEX" and has no logging and no "Edit this credit", only the levels.
+
+A claim attempted anyway is refused with "You can view Alex’s card but not change it." in the snackbar, and nothing is posted.
+
+### A card shared to record logs but stays the owner's
+
+At record the Uber Cash row logs and the sheet's "Mark the full" posts the claim. The card editor's label, fee and renewal date are read-only, archive, delete and "Change the terms" are gone, and it says "Only Alex can change this card.".
+
+A rename attempted anyway is refused with that sentence in the snackbar, and the label stays.
+
+### Cards names whose cards they are
+
+Cards puts the Gold above "Alex’s cards" and Alex's card under it as "Platinum · Alex", with no edit link at view but the add button for your own. Today's rows name it "Platinum · Alex" too.
+
+### Labels count only your own cards
+
+While Alex shares an unlabelled Platinum, adding your own Platinum proposes no label; once you own one, the next proposes "American Express Platinum (1)".
+
+### An offline launch keeps the access and the names
+
+With the api unreachable, a store over the `shared_preferences` cache the last launch wrote still says `record` for Alex's card and `owner` for the Gold, and names the Platinum "Platinum · Alex".
+
+### Without an api every card is yours
+
+A local store says `owner` for Alex's card and names it "Platinum" alone, and its editor is fully editable, with archive, delete and "Change the terms".
+
 ## Household sharing
 
-`household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `shareText` captured ([[mobile-architecture#Household sharing]]).
+`household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart` ([[mobile-architecture#Household sharing]]).
 
-### An owner shares an invite on iOS
+### Settings keeps only the invite code
 
-The owner sees themselves as Owner; "Invite someone", "Can edit" and "Create and share" make one edit invite, share only its link as a URI anchored to the button, and show the code.
-
-### An owner shares an invite on Android
-
-The same steps on Android share the reward message with the code and the link on its own last line, the title and subject "Join my household on HelpMe Reward" and the app icon as a PNG thumbnail.
-
-### Only an owner invites and removes
-
-An editor sees the members but no invite button and no remove button.
+Settings' Household section has "Have an invite code?" and no member list or invite button, which the api no longer serves (#421).
 
 ### A code joins the household
 
-"Have an invite code?" with a lower-case code opens the join screen for it in capitals; "Join this household" accepts it, lands on Today with "You joined the household." and the invite's role.
+"Have an invite code?" with a lower-case code opens the join screen for it in capitals; "Join this household" accepts it and lands on Today with "You joined the household.".
 
 ### A link opens the join screen
 
@@ -1680,10 +1696,6 @@ An expired, a used and an unknown code each stay on the join screen with their o
 ### Leaving cards behind asks first
 
 When the current household holds cards the join asks "Leave your cards behind?", and "Leave and join" repeats it with `confirmLeave` and lands on Today.
-
-### An owner removes a member
-
-The owner's remove button for a member, confirmed, removes them from the api and the list.
 
 ## Api config
 

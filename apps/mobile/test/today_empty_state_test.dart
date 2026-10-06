@@ -2,7 +2,6 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reward/data/household_api.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
@@ -197,19 +196,6 @@ void main() {
     );
     expect(find.text(heading), findsNothing);
     expect(find.textContaining('Locked behind enrollment'), findsOneWidget);
-  });
-
-  // @lat: [[mobile-tests#Today empty state#A reader sees no Add button]]
-  testWidgets('a reader sees the empty state without the Add button', (
-    tester,
-  ) async {
-    await pumpApp(
-      tester,
-      api: FakeApi(data: _household(), role: MemberRole.reader),
-    );
-    expect(find.text(heading), findsOneWidget);
-    expect(addButton, findsNothing);
-    expect(inviteButton, findsOneWidget);
   });
 
   // @lat: [[mobile-tests#Today empty state#The invite button shows signed in and opens the join screen]]

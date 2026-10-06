@@ -1,7 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reward/data/household_api.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
@@ -160,6 +159,5 @@ void main() {
     await store.load();
     expect(store.templates.map((t) => t.id), contains('amex-gold'));
     expect(store.templates.last.id, 'blank');
-    expect(api.role, MemberRole.editor);
   });
 }

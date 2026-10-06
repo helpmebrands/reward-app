@@ -2,14 +2,12 @@ import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reward/data/claim_outbox.dart';
-import 'package:reward/data/household_api.dart';
 import 'package:reward/data/household_cache.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
 import 'package:reward/main.dart';
 import 'package:reward/shell/router.dart';
-import 'package:reward/widgets/credit_row.dart';
 
 import 'support/fake_api.dart';
 
@@ -38,7 +36,6 @@ void main() {
       ..saved = CachedHousehold(
         version: householdCacheVersion,
         data: serverHousehold(label: 'Cached'),
-        role: MemberRole.editor,
       );
     final api = FakeApi()..online = false;
     final store = remoteStore(api, cache: cache);
@@ -189,7 +186,6 @@ void main() {
       ..saved = CachedHousehold(
         version: householdCacheVersion - 1,
         data: serverHousehold(label: 'Old shape'),
-        role: MemberRole.editor,
       );
     final outbox = MemoryClaimOutbox();
     await outbox.save([
@@ -215,32 +211,5 @@ void main() {
     await store.refresh();
     expect(store.data!.cards.single.label, 'Server');
     expect(api.data.claims.single.amountCents, 300);
-  });
-
-  // @lat: [[mobile-tests#Api store#A reader sees no claim or edit controls]]
-  testWidgets('a reader sees no log or edit controls', (tester) async {
-    final api = FakeApi(role: MemberRole.reader);
-    final store = remoteStore(api);
-    await store.load();
-    expect(store.canWrite, isFalse);
-    tester.view.physicalSize = const Size(402, 874);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    await tester.pumpWidget(RewardApp(store: store, ui: UiState()));
-    await tester.pumpAndSettle();
-
-    final row = tester.widget<CreditRow>(find.byType(CreditRow).first);
-    expect(row.onLogAll, isNull);
-    await tester.tap(find.byType(CreditRow).first);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Mark the full'), findsNothing);
-    expect(find.text('Log what you spent'), findsNothing);
-
-    await tester.pumpWidget(
-      RewardApp(store: store, ui: UiState(), initialLocation: Paths.cards),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('add-card')), findsNothing);
-    expect(find.text('Edit card and credits'), findsNothing);
   });
 }
