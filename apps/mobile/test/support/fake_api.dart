@@ -85,19 +85,114 @@ class FakeApi implements HouseholdApi {
     );
   }
 
-  /// What the next accept answers.
-  Object? acceptAnswer;
-  final accepted = <({String code, bool confirmLeave})>[];
+  /// Invites made: the access and the chosen cards, null for all of them.
+  final invites = <({CardAccess access, List<String>? cardIds})>[];
 
   @override
-  Future<void> acceptInvite(String code, {bool confirmLeave = false}) async {
+  Future<Invite> createInvite(
+    CardAccess access, {
+    List<String>? cardIds,
+  }) async {
     _check();
-    accepted.add((code: code, confirmLeave: confirmLeave));
-    final answer = acceptAnswer;
-    if (answer is ApiError &&
-        !(answer.error == 'household holds cards' && confirmLeave)) {
-      throw answer;
-    }
+    invites.add((access: access, cardIds: cardIds));
+    return Invite(
+      code: 'ABCD2345',
+      link: 'https://api.test/invite/ABCD2345',
+      access: access,
+      allCards: cardIds == null,
+      cardIds: cardIds ?? const [],
+      expiresAt: '2026-09-23T10:00:00.000Z',
+    );
+  }
+
+  /// What reading an invite answers, unless [readAnswer] is thrown.
+  InviteOffer offer = const InviteOffer(
+    owner: Person(id: 'user-alex', name: 'Alex', email: 'alex@example.com'),
+    access: CardAccess.view,
+    allCards: true,
+  );
+  Object? readAnswer;
+
+  @override
+  Future<InviteOffer> readInvite(String code) async {
+    _check();
+    if (readAnswer case final answer?) throw answer;
+    return offer;
+  }
+
+  /// Thrown by the next accept; otherwise [onAccept] adds what the share
+  /// brings.
+  Object? acceptAnswer;
+  void Function(FakeApi api)? onAccept;
+  final accepted = <String>[];
+
+  @override
+  Future<void> acceptInvite(String code) async {
+    _check();
+    accepted.add(code);
+    if (acceptAnswer case final answer?) throw answer;
+    onAccept?.call(this);
+  }
+
+  /// The shares the caller gives and receives, as the api holds them.
+  final given = <CardShare>[];
+  final received = <CardShare>[];
+  final changes =
+      <({String memberId, CardAccess access, List<String>? cardIds})>[];
+  final stoppedSharing = <String>[];
+  final stoppedSeeing = <String>[];
+
+  @override
+  Future<CardShares> shares() async {
+    _check();
+    return CardShares(given: [...given], received: [...received]);
+  }
+
+  @override
+  Future<void> changeShare(
+    String memberId, {
+    required CardAccess access,
+    List<String>? cardIds,
+  }) async {
+    _check();
+    changes.add((memberId: memberId, access: access, cardIds: cardIds));
+    final at = given.indexWhere((s) => s.person.id == memberId);
+    given[at] = CardShare(
+      person: given[at].person,
+      access: access,
+      allCards: cardIds == null,
+      cardIds: cardIds ?? const [],
+    );
+  }
+
+  @override
+  Future<void> stopSharing(String memberId) async {
+    _check();
+    stoppedSharing.add(memberId);
+    given.removeWhere((s) => s.person.id == memberId);
+  }
+
+  /// Stops seeing the owner's cards: they leave the household served.
+  @override
+  Future<void> stopSeeing(String ownerId) async {
+    _check();
+    stoppedSeeing.add(ownerId);
+    received.removeWhere((s) => s.person.id == ownerId);
+    final gone = {
+      for (final card in data.cards)
+        if (card.ownerId == ownerId) card.id,
+    };
+    data = data.copyWith(
+      cards: [
+        for (final card in data.cards)
+          if (!gone.contains(card.id)) card,
+      ],
+      benefits: [
+        for (final benefit in data.benefits)
+          if (!gone.contains(benefit.cardId)) benefit,
+      ],
+    );
+    people.remove(ownerId);
   }
 
   /// The member's mutes as the server holds them.
