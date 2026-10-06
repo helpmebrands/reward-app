@@ -404,5 +404,157 @@ void main() {
       expect(json(created)['allCards'], isFalse);
       expect(json(created)['cardIds'], [anns.card]);
     });
+
+    // @lat: [[api-tests#Owners and shares#Both people list the share]]
+    test('both people list the share with names, access and scope', () async {
+      final gold = await addGold('ann');
+      await addGold('ann');
+      await share('ann', 'bob', 'view', cardIds: [gold.card]);
+      final annId = await api.as('ann').id();
+      final bobId = await api.as('bob').id();
+
+      final anns = json(await api.as('ann').get('/v1/shares'));
+      expect(anns['given'], [
+        {
+          'id': bobId,
+          'name': 'Bob',
+          'email': 'bob@x.test',
+          'access': 'view',
+          'allCards': false,
+          'cardIds': [gold.card],
+        },
+      ]);
+      expect(anns['received'], isEmpty);
+      final bobs = json(await api.as('bob').get('/v1/shares'));
+      expect(bobs['received'], [
+        {
+          'id': annId,
+          'name': 'Ann',
+          'email': 'ann@x.test',
+          'access': 'view',
+          'allCards': false,
+          'cardIds': [gold.card],
+        },
+      ]);
+      expect(bobs['given'], isEmpty);
+    });
+
+    // @lat: [[api-tests#Owners and shares#Changing a share changes what the person sees]]
+    test('changing a share changes what the person can do and see', () async {
+      final first = await addGold('ann');
+      final second = await addGold('ann');
+      await share('ann', 'bob', 'view');
+      final bobId = await api.as('bob').id();
+      expect((await claim('bob', first.benefit, 'p-1')).status, 403);
+
+      final record = await api.as('ann').patch('/v1/shares/$bobId', {
+        'access': 'record',
+      });
+      expect(record.status, 200, reason: '${record.body}');
+      expect(json(record)['access'], 'record');
+      expect(json(record)['allCards'], isTrue);
+      expect((await claim('bob', first.benefit, 'p-2')).status, 201);
+
+      final narrowed = await api.as('ann').patch('/v1/shares/$bobId', {
+        'cardIds': [first.card],
+      });
+      expect(narrowed.status, 200, reason: '${narrowed.body}');
+      expect(json(narrowed)['allCards'], isFalse);
+      expect(json(narrowed)['cardIds'], [first.card]);
+      expect(cardsIn(await snapshot('bob')), {first.card});
+
+      final widened = await api.as('ann').patch('/v1/shares/$bobId', {
+        'allCards': true,
+      });
+      expect(json(widened).containsKey('cardIds'), isFalse);
+      expect(cardsIn(await snapshot('bob')), {first.card, second.card});
+      expect(
+        (await api.as('ann').patch('/v1/shares/$bobId', {
+          'access': 'edit',
+        })).status,
+        400,
+      );
+      expect(
+        (await api.as('ann').patch('/v1/shares/$bobId', {
+          'allCards': false,
+        })).status,
+        400,
+      );
+    });
+
+    // @lat: [[api-tests#Owners and shares#Ending a share from either side hides the cards and deletes nothing]]
+    test('ending a share from either side hides the cards at once and '
+        'deletes nothing', () async {
+      final gold = await addGold('ann');
+      final bobs = await addGold('bob');
+      await share('ann', 'bob', 'record');
+      expect((await claim('bob', gold.benefit, 'e-1')).status, 201);
+      expect(
+        (await api.as('bob').put('/v1/me/mutes/cards/${gold.card}', {})).status,
+        204,
+      );
+      final annId = await api.as('ann').id();
+      final bobId = await api.as('bob').id();
+
+      expect((await api.as('ann').delete('/v1/shares/$bobId')).status, 204);
+      expect(cardsIn(await snapshot('bob')), {bobs.card});
+      final annSees = appDataFromJson(await snapshot('ann'));
+      expect(annSees.cards.single.id, gold.card);
+      expect(annSees.claims, hasLength(1));
+      expect(
+        (await db.execute('SELECT count(*) FROM member_mutes')).single[0],
+        1,
+      );
+      expect((await api.as('ann').delete('/v1/shares/$bobId')).status, 404);
+
+      // Shared again, Bob's mute is still his.
+      await share('ann', 'bob', 'view');
+      final prefs = memberPreferencesFromJson(
+        json(await api.as('bob').get('/v1/me/preferences')),
+      );
+      expect(prefs.mutedCardIds, {gold.card});
+
+      expect(
+        (await api.as('bob').delete('/v1/shares/received/$annId')).status,
+        204,
+      );
+      expect(cardsIn(await snapshot('bob')), {bobs.card});
+      expect(appDataFromJson(await snapshot('ann')).cards, hasLength(1));
+      expect(
+        (await api.as('bob').delete('/v1/shares/received/$annId')).status,
+        404,
+      );
+    });
+
+    // @lat: [[api-tests#Owners and shares#A share's cards must be the owner's]]
+    test(
+      'another person’s card in cardIds and a missing share are 404',
+      () async {
+        final bobs = await addGold('bob');
+        final anns = await addGold('ann');
+        await share('ann', 'bob', 'view');
+        final bobId = await api.as('bob').id();
+        final catId = await api.as('cat').id();
+
+        expect(
+          (await api.as('ann').patch('/v1/shares/$bobId', {
+            'cardIds': [anns.card, bobs.card],
+          })).status,
+          404,
+        );
+        expect(
+          (await api.as('ann').patch('/v1/shares/$catId', {
+            'access': 'record',
+          })).status,
+          404,
+        );
+        expect((await api.as('ann').delete('/v1/shares/$catId')).status, 404);
+        expect(
+          (await api.as('ann').delete('/v1/shares/received/$catId')).status,
+          404,
+        );
+        expect(cardsIn(await snapshot('bob')), {anns.card, bobs.card});
+      },
+    );
   }, skip: url == null ? 'DATABASE_URL is not set' : false);
 }

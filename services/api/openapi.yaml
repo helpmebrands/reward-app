@@ -695,6 +695,130 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/shares:
+    get:
+      tags: [sharing]
+      operationId: listShares
+      summary: Who sees your cards, and whose cards you see
+      description: |
+        `given` is each person the caller shares with and `received` each
+        person who shares with the caller, both as the other person with
+        the access and all cards or the chosen card ids.
+      responses:
+        '200':
+          description: The shares both ways.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shares'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/shares/{memberId}:
+    patch:
+      tags: [sharing]
+      operationId: changeShare
+      summary: Change what someone sees of your cards
+      description: |
+        Changes the access, or the scope: all cards (including ones added
+        later) or the chosen `cardIds`, which must be the caller's own.
+        Keys left out stay as they are; `allCards: false` needs `cardIds`.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          description: The user id of the person the caller shares with.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SharePatch'
+      responses:
+        '200':
+          description: The share, as the caller gives it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Share'
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          description: The caller does not share with that person, or a card in `cardIds` is not the caller's (`not found`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: not found
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+    delete:
+      tags: [sharing]
+      operationId: stopSharing
+      summary: Stop sharing your cards with someone
+      description: |
+        Takes effect at once and deletes nothing else: the cards, their
+        claims, and the other person's own mutes on them stay, in case the
+        cards are shared again.
+      parameters:
+        - name: memberId
+          in: path
+          required: true
+          description: The user id of the person the caller shares with.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No longer shared.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/shares/received/{ownerId}:
+    delete:
+      tags: [sharing]
+      operationId: stopSeeing
+      summary: Stop seeing someone's cards
+      description: |
+        Ends the share from the receiving side, at once, deleting nothing
+        else; the caller's own mutes on those cards stay.
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          description: The user id of the person who shares with the caller.
+          schema:
+            type: string
+      responses:
+        '204':
+          description: No longer seen.
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/household/data:
     get:
       tags: [household data]
@@ -1983,6 +2107,36 @@ components:
         cardIds:
           type: array
           description: The chosen cards, when not all of them.
+          items:
+            type: string
+
+    Shares:
+      type: object
+      required: [given, received]
+      additionalProperties: false
+      properties:
+        given:
+          type: array
+          description: Each person the caller shares with.
+          items:
+            $ref: '#/components/schemas/Share'
+        received:
+          type: array
+          description: Each person who shares with the caller.
+          items:
+            $ref: '#/components/schemas/Share'
+
+    SharePatch:
+      type: object
+      properties:
+        access:
+          $ref: '#/components/schemas/ShareAccess'
+        allCards:
+          type: boolean
+          description: True to share every card, including ones added later. Leave out `cardIds` then.
+        cardIds:
+          type: array
+          description: The caller's cards to share, in place of all of them.
           items:
             type: string
 
