@@ -101,6 +101,7 @@ enum ThemeSetting { system, light, dark }
 class Card {
   const Card({
     required this.id,
+    this.ownerId,
     required this.issuer,
     required this.product,
     this.label,
@@ -117,14 +118,19 @@ class Card {
 
   final Uuid id;
 
+  /// The user id of the person who added the card, who alone changes it and
+  /// shares it with others. Null in a local snapshot, and in data from before
+  /// owners existed, where every card is the device user's.
+  final Uuid? ownerId;
+
   /// e.g. "American Express".
   final String issuer;
 
   /// e.g. "Platinum".
   final String product;
 
-  /// What the household calls this card. It wins over `issuer product` as
-  /// the display name, which must be unique within the household, so two of
+  /// What the owner calls this card. It wins over `issuer product` as the
+  /// display name, which must be unique among the owner's cards, so two of
   /// the same product are told apart by it ([defaultLabel], [labelError]).
   final String? label;
 
@@ -148,6 +154,7 @@ class Card {
   /// A copy with the given fields replaced. Pass [label] or [last4] as
   /// null to clear them; leave them out to keep them.
   Card copyWith({
+    Uuid? ownerId,
     String? issuer,
     String? product,
     Object? label = _unset,
@@ -161,6 +168,7 @@ class Card {
     IsoInstant? updatedAt,
   }) => Card(
     id: id,
+    ownerId: ownerId ?? this.ownerId,
     issuer: issuer ?? this.issuer,
     product: product ?? this.product,
     label: identical(label, _unset) ? this.label : label as String?,

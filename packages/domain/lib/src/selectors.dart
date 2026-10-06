@@ -689,7 +689,7 @@ int daysUntilRenewal(Card card, [IsoDate? on]) {
 }
 
 /// A card's display name: its label, or its product name when it has none.
-/// Unique within the household ([labelError]).
+/// Unique among its owner's cards ([labelError]).
 String cardLabel(Card card) {
   final label = card.label?.trim();
   if (label != null && label.isNotEmpty) return label;
@@ -705,7 +705,8 @@ String productName(String issuer, String product) {
 /// The label to propose for a new card of this product: null while its
 /// product name is free, otherwise the first free `<product> (n)` from 1.
 /// The proposal is stored as the card's label, so deleting a card later
-/// renames nothing.
+/// renames nothing. Names are unique per owner, so pass only the owner's
+/// [cards], never the cards shared with them.
 String? defaultLabel(List<Card> cards, String issuer, String product) {
   final taken = {for (final card in cards) _nameKey(cardLabel(card))};
   final name = productName(issuer, product);

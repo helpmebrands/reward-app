@@ -19,9 +19,11 @@ ISO dates are zero-padded, so lexical comparison is chronological (`compareIsoDa
 
 ## Card
 
-A card belongs to the household, not to a person. Its display name (`cardLabel`) is its optional `label`, or `issuer product` when there is none, and it must be unique within the household.
+A card belongs to the person who added it, its owner (`ownerId`), who shares it with whomever they choose. Its display name (`cardLabel`) is its `label`, or `issuer product` without one, unique among the owner's cards.
 
-Two of the same product are told apart by their labels. `defaultLabel` proposes the first free "American Express Platinum (n)" from 1 for a duplicate, and the proposal is stored, so deleting a card renames nothing. `labelError` refuses a label, or a blank one, whose display name another card already shows, ignoring case and surrounding space. The Dart domain dropped the PWA's `holder` and `nickname` (#208); the frozen PWA keeps them, and the Dart codec ignores `holder` when it reads the PWA's sample.
+Only the owner changes the card itself; the people it is shared with can view it, or also record usage, and each keeps their own reminder settings ([[domain#Member preferences]]). `ownerId` is the owner's user id in the snapshot the service tier serves. It is null in a local snapshot, and in data from before owners existed (#419), where every card is the device user's.
+
+Two of one owner's same product are told apart by their labels, and two people's by their owners' names. `defaultLabel` proposes the first free "American Express Platinum (n)" from 1 for a duplicate, and the proposal is stored, so deleting a card renames nothing. `labelError` refuses a label, or a blank one, whose display name another card already shows, ignoring case and surrounding space. Both take only the owner's cards, never the ones shared with them. The Dart domain dropped the PWA's `holder` and `nickname` (#208); the frozen PWA keeps them, and the Dart codec ignores `holder` when it reads the PWA's sample.
 
 - `anniversaryOn` anchors anniversary cycles and the annual-fee countdown. Only month and day matter for recurrence.
 - `annualFeeCents` is what the Cards and Value screens measure captured value against ([[domain#Card value and the cardmember year]]).
