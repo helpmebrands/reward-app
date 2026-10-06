@@ -104,7 +104,7 @@ final cases = <Case>[
     url: '/invite/nope!',
     needsDatabase: false,
   ),
-  call('GET', '/v1/me', 200, as: 'owner', capture: keep('owner', 'id')),
+  call('GET', '/v1/me', 200, as: 'owner'),
   call('POST', '/v1/devices', 200, as: 'owner', body: device),
   call(
     'POST',
@@ -144,105 +144,79 @@ final cases = <Case>[
     url: '/v1/catalog/nope',
   ),
   ...adminCases,
-  call('GET', '/v1/household', 200, as: 'owner'),
+  ...inviteCases,
+  ...dataCases,
+  ...preferenceCases,
+  ...convertCases,
+];
+
+const _accept = '/v1/invites/{code}/accept';
+
+/// Invites first: `reader` accepts a view share of all of `owner`'s cards,
+/// so it sees the cards [dataCases] adds.
+final inviteCases = <Case>[
   call(
     'POST',
-    '/v1/household/invites',
+    '/v1/invites',
     201,
     as: 'owner',
-    body: {'role': 'read'},
+    body: {'access': 'view', 'allCards': true},
     capture: keep('readCode', 'code'),
   ),
   call(
     'POST',
-    '/v1/household/invites',
+    '/v1/invites',
     400,
     as: 'owner',
-    body: {'role': 'admin'},
+    body: {'access': 'admin', 'allCards': true},
   ),
   call(
     'POST',
-    '/v1/invites/{code}/accept',
-    400,
+    '/v1/invites',
+    404,
+    as: 'owner',
+    body: {
+      'access': 'view',
+      'cardIds': [_nobody],
+    },
+  ),
+  call(
+    'GET',
+    '/v1/invites/{code}',
+    200,
     as: 'reader',
+    url: () => '/v1/invites/${saved['readCode']}',
+  ),
+  call('GET', '/v1/invites/{code}', 404, as: 'reader', url: '/v1/invites/NO'),
+  call(
+    'POST',
+    _accept,
+    409,
+    as: 'owner',
     url: () => '/v1/invites/${saved['readCode']}/accept',
-    body: {'confirmLeave': 'yes'},
   ),
   call(
     'POST',
-    '/v1/invites/{code}/accept',
+    _accept,
     200,
     as: 'reader',
     url: () => '/v1/invites/${saved['readCode']}/accept',
   ),
-  call('GET', '/v1/me', 200, as: 'reader', capture: keep('reader', 'id')),
+  call(
+    'GET',
+    '/v1/invites/{code}',
+    410,
+    as: 'third',
+    url: () => '/v1/invites/${saved['readCode']}',
+  ),
   call(
     'POST',
-    '/v1/invites/{code}/accept',
+    _accept,
     410,
     as: 'third',
     url: () => '/v1/invites/${saved['readCode']}/accept',
   ),
-  call(
-    'POST',
-    '/v1/invites/{code}/accept',
-    404,
-    as: 'third',
-    url: '/v1/invites/NOSUCH/accept',
-  ),
-  ...dataCases,
-  ...preferenceCases,
-  ...convertCases,
-  call(
-    'POST',
-    '/v1/household/invites',
-    403,
-    as: 'reader',
-    body: {'role': 'read'},
-  ),
-  call(
-    'DELETE',
-    '/v1/household/members/{userId}',
-    403,
-    as: 'reader',
-    url: () => '/v1/household/members/${saved['owner']}',
-  ),
-  call(
-    'POST',
-    '/v1/household/invites',
-    201,
-    as: 'third',
-    body: {'role': 'edit'},
-    capture: keep('thirdCode', 'code'),
-  ),
-  call(
-    'POST',
-    '/v1/invites/{code}/accept',
-    409,
-    as: 'owner',
-    url: () => '/v1/invites/${saved['thirdCode']}/accept',
-  ),
-  call(
-    'DELETE',
-    '/v1/household/members/{userId}',
-    409,
-    as: 'owner',
-    url: () => '/v1/household/members/${saved['owner']}',
-  ),
-  call(
-    'DELETE',
-    '/v1/household/members/{userId}',
-    204,
-    as: 'owner',
-    url: () => '/v1/household/members/${saved['reader']}',
-  ),
-  call(
-    'DELETE',
-    '/v1/household/members/{userId}',
-    404,
-    as: 'owner',
-    url: () => '/v1/household/members/${saved['reader']}',
-  ),
+  call('POST', _accept, 404, as: 'third', url: '/v1/invites/NOSUCH/accept'),
 ];
 
 const _nobody = '00000000-0000-4000-8000-000000000000';
@@ -265,7 +239,8 @@ Map<String, Object?> _claimBody() => {
   'claimedAt': '2026-09-10T12:00:00.000Z',
 };
 
-/// The household data routes, as the owner and as the reader who joined.
+/// The card, credit and claim routes, as the owner and as the reader they
+/// share their cards with to view.
 final dataCases = <Case>[
   call(
     'POST',
@@ -300,7 +275,6 @@ final dataCases = <Case>[
     as: 'owner',
     body: {..._gold, 'label': 'American Express Gold'},
   ),
-  call('POST', '/v1/cards', 403, as: 'reader', body: _gold),
   call('GET', '/v1/household/data', 200, as: 'reader'),
   call(
     'PATCH',

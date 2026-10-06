@@ -27,6 +27,11 @@ void main() {
     final token = await verifier.verify(key.sign(uid: 'u-1'));
     expect(token.uid, 'u-1');
     expect(token.email, 'jim@example.com');
+    expect(token.name, isNull);
+    final named = await verifier.verify(
+      key.sign(uid: 'u-1', claims: {'name': 'Jim Cook'}),
+    );
+    expect(named.name, 'Jim Cook');
   });
 
   // @lat: [[api-tests#Sign-in#Expired, misaddressed and forged tokens are refused]]

@@ -12,11 +12,11 @@ import 'support/tokens.dart';
 /// The reminder sender job and the reminder routes, against `DATABASE_URL`
 /// in the suite's own schema; skipped without one.
 ///
-/// Ann's household holds one card she maintains, with a $10 monthly credit
-/// on the calendar month, so its October cycle's last-day reminder,
-/// `2026-10-31|urgent`, fires on 31 October at each member's 09:00. That is
-/// 09:00Z in London (back on GMT since the 25th) and 13:00Z in New York
-/// (still on EDT until 1 November).
+/// Ann owns one card she maintains, with a $10 monthly credit on the
+/// calendar month, and some tests share it with Bob. Its October cycle's
+/// last-day reminder, `2026-10-31|urgent`, fires on 31 October at each
+/// person's 09:00. That is 09:00Z in London (back on GMT since the 25th) and
+/// 13:00Z in New York (still on EDT until 1 November).
 void main() {
   final url = Platform.environment['DATABASE_URL'];
 
@@ -32,7 +32,7 @@ void main() {
     tearDownAll(() => dropSchema(db, 'reminder_sender'));
 
     setUp(() async {
-      await db.execute('TRUNCATE users, households CASCADE');
+      await db.execute('TRUNCATE users CASCADE');
       push = FakePush();
       api = TestApi(await TestKey.generate(), db, push: push);
     });
@@ -87,18 +87,16 @@ void main() {
       return card;
     }
 
-    /// Bob joins Ann's household as an editor.
+    /// Ann shares all her cards with Bob, to view them.
     Future<void> bobJoins() async {
-      final code =
-          json(
-                await api.as('ann').post('/v1/household/invites', {
-                  'role': 'edit',
-                }),
-              )['code']
-              as String;
-      final r = await api.as('bob').post('/v1/invites/$code/accept', {
-        'confirmLeave': false,
+      final created = await api.as('ann').post('/v1/invites', {
+        'access': 'view',
+        'allCards': true,
       });
+      expect(created.status, 201, reason: '${created.body}');
+      final r = await api
+          .as('bob')
+          .post('/v1/invites/${json(created)['code']}/accept');
       expect(r.status, 200, reason: '${r.body}');
     }
 
@@ -194,6 +192,29 @@ void main() {
       expect(push.tagsTo('ann-phone'), [lastDay]);
       expect(push.tagsTo('bob-phone'), [lastDay]);
     });
+
+    // @lat: [[api-tests#Reminder sender#A shared card is in the reminders of whoever sees it]]
+    test(
+      'a card reminds the people it is shared with, and nobody else',
+      () async {
+        await annsCard();
+        await bobJoins();
+        for (final uid in ['bob', 'cat']) {
+          await remindersOn(uid);
+          await device(uid, '$uid-phone', 'Europe/London');
+        }
+
+        await sendDueReminders(
+          db,
+          push,
+          now: londonNine.add(const Duration(minutes: 1)),
+        );
+        expect(push.tagsTo('bob-phone'), [lastDay]);
+        expect(push.tagsTo('cat-phone'), isEmpty);
+        final summary = await api.as('bob').get('/v1/me/reminders/summary');
+        expect(json(summary)['count'], greaterThan(0));
+      },
+    );
 
     // @lat: [[api-tests#Reminder sender#A muted card is silent for that member only]]
     test(

@@ -1,5 +1,6 @@
 /// The api under test with a verifier that trusts a throwaway key, and
-/// requests made as named users: `as('jim').post('/v1/…', body)`.
+/// requests made as named users: `as('jim').post('/v1/…', body)`. Each
+/// user's token carries the email `jim@x.test` and the name `Jim`.
 library;
 
 import 'dart:convert';
@@ -23,6 +24,9 @@ TokenVerifier verifierFor(TestKey key) => FirebaseTokenVerifier(
 
 /// A status and a decoded JSON body (null when there is none).
 typedef Reply = ({int status, Object? body});
+
+/// The name on [uid]'s sign-in: `ann` is Ann.
+String nameOf(String uid) => uid[0].toUpperCase() + uid.substring(1);
 
 class TestApi {
   TestApi(this.key, Session? db, {PushSender? push})
@@ -51,7 +55,7 @@ class TestApi {
           if (body != null) 'content-type': 'application/json',
           if (uid != null)
             'authorization':
-                'Bearer ${key.sign(uid: uid, email: '$uid@x.test')}',
+                'Bearer ${key.sign(uid: uid, email: '$uid@x.test', claims: {'name': nameOf(uid)})}',
         },
       ),
     );

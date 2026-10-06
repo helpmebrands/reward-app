@@ -9,8 +9,9 @@ import 'support/api.dart';
 import 'support/database.dart';
 import 'support/tokens.dart';
 
-/// A household's cards, credits and claims through the handler, against
-/// `DATABASE_URL` in the suite's own schema; skipped without one.
+/// A person's cards, credits and claims through the handler, against
+/// `DATABASE_URL` in the suite's own schema; skipped without one. Sharing
+/// them is `shares_integration_test.dart`.
 void main() {
   final url = Platform.environment['DATABASE_URL'];
 
@@ -25,7 +26,7 @@ void main() {
 
     tearDownAll(() => dropSchema(db, 'household_data'));
 
-    setUp(() => db.execute('TRUNCATE users, households CASCADE'));
+    setUp(() => db.execute('TRUNCATE users CASCADE'));
 
     Map<String, dynamic> json(Reply r) => r.body! as Map<String, dynamic>;
     List<Map<String, dynamic>> list(Object? l) =>
@@ -225,50 +226,6 @@ void main() {
         expect(json(fee)['annualFeeCents'], 9500);
       },
     );
-
-    // @lat: [[api-tests#Household data#Readers cannot write the household's data]]
-    test('a reader’s writes are 403 and their reads succeed', () async {
-      final added = await addCard('ann', platinum);
-      final code =
-          json(
-                await api.as('ann').post('/v1/household/invites', {
-                  'role': 'read',
-                }),
-              )['code']
-              as String;
-      await api.as('rex').post('/v1/invites/$code/accept');
-      final cardId = (added['card'] as Map)['id'];
-      final benefitId = list(added['benefits']).first['id'];
-      final writes = [
-        await api.as('rex').post('/v1/cards', platinum),
-        await api.as('rex').patch('/v1/cards/$cardId', {'label': 'x'}),
-        await api.as('rex').delete('/v1/cards/$cardId'),
-        await api.as('rex').put('/v1/benefits/$benefitId/state', {}),
-        await api
-            .as('rex')
-            .send(
-              'POST',
-              '/v1/claims',
-              uid: 'rex',
-              body: {'benefitId': benefitId},
-              headers: {'idempotency-key': 'r'},
-            ),
-      ];
-      expect(writes.map((r) => r.status), everyElement(403));
-      expect((await data('rex')).cards, hasLength(1));
-    });
-
-    // @lat: [[api-tests#Household data#Another household's ids are not found]]
-    test('ids from another household are 404', () async {
-      final added = await addCard('ann', platinum);
-      final cardId = (added['card'] as Map)['id'];
-      expect(
-        (await api.as('bob').patch('/v1/cards/$cardId', {'label': 'x'})).status,
-        404,
-      );
-      expect((await api.as('bob').delete('/v1/cards/$cardId')).status, 404);
-      expect((await data('bob')).cards, isEmpty);
-    });
 
     // @lat: [[api-tests#Household data#Deleting a card takes its credits and claims]]
     test('deleting a card removes its benefits and claims', () async {

@@ -24,7 +24,7 @@ void main() {
 
     tearDownAll(() => dropSchema(db, 'preferences'));
 
-    setUp(() => db.execute('TRUNCATE users, households CASCADE'));
+    setUp(() => db.execute('TRUNCATE users CASCADE'));
 
     Map<String, dynamic> json(Reply r) => r.body! as Map<String, dynamic>;
 
@@ -34,8 +34,8 @@ void main() {
       return memberPreferencesFromJson(json(reply));
     }
 
-    /// Ann's household with a Gold, and Bob in it with [role].
-    Future<({String card, String benefit})> shared(String role) async {
+    /// Ann's Gold, which she shares with Bob at [access].
+    Future<({String card, String benefit})> shared(String access) async {
       final added = json(
         await api.as('ann').post('/v1/cards', {
           'templateId': 'amex-gold',
@@ -44,12 +44,14 @@ void main() {
       );
       final code =
           json(
-                await api.as('ann').post('/v1/household/invites', {
-                  'role': role,
+                await api.as('ann').post('/v1/invites', {
+                  'access': access,
+                  'allCards': true,
                 }),
               )['code']
               as String;
-      await api.as('bob').post('/v1/invites/$code/accept');
+      final accepted = await api.as('bob').post('/v1/invites/$code/accept');
+      expect(accepted.status, 200, reason: '${accepted.body}');
       return (
         card: (added['card'] as Map)['id'] as String,
         benefit: ((added['benefits'] as List).first as Map)['id'] as String,
@@ -66,7 +68,7 @@ void main() {
 
     // @lat: [[api-tests#Member preferences#Preferences are the member's own]]
     test('preferences and mutes are per member', () async {
-      final ids = await shared('edit');
+      final ids = await shared('record');
       final put = await api.as('ann').put('/v1/me/preferences', {
         'enabled': true,
         'timeOfDay': '07:30',
@@ -103,9 +105,9 @@ void main() {
       expect((await prefs('ann')).mutedCardIds, isEmpty);
     });
 
-    // @lat: [[api-tests#Member preferences#A reader can mute]]
-    test('a reader can set preferences and mute', () async {
-      final ids = await shared('read');
+    // @lat: [[api-tests#Member preferences#A viewer can mute]]
+    test('a viewer can set preferences and mute', () async {
+      final ids = await shared('view');
       expect(
         (await api.as('bob').put('/v1/me/mutes/cards/${ids.card}', {})).status,
         204,
@@ -123,9 +125,9 @@ void main() {
       );
     });
 
-    // @lat: [[api-tests#Member preferences#Muting another household's card is not found]]
-    test('muting outside the household is 404', () async {
-      final ids = await shared('edit');
+    // @lat: [[api-tests#Member preferences#Muting a card nobody shared is not found]]
+    test('muting a card nobody shared is 404', () async {
+      final ids = await shared('record');
       final outsider = api.as('cat');
       expect(
         (await outsider.put('/v1/me/mutes/cards/${ids.card}', {})).status,
@@ -147,9 +149,9 @@ void main() {
     Future<Reply> level(String uid, String benefit, Object? level) =>
         api.as(uid).put('/v1/me/benefits/$benefit/level', {'level': level});
 
-    // @lat: [[api-tests#Member preferences#A reader sets a credit's notification level]]
-    test('each level leaves the flags the rule says, for a reader', () async {
-      final ids = await shared('read');
+    // @lat: [[api-tests#Member preferences#A viewer sets a credit's notification level]]
+    test('each level leaves the flags the rule says, for a viewer', () async {
+      final ids = await shared('view');
       for (final (name, muted, lastCall) in [
         ('lastChance', <String>{}, {ids.benefit}),
         ('silenced', {ids.benefit}, {ids.benefit}),
@@ -170,7 +172,7 @@ void main() {
 
     // @lat: [[api-tests#Member preferences#One member's level leaves the other's alone]]
     test('last chance for one member changes nothing for another', () async {
-      final ids = await shared('edit');
+      final ids = await shared('record');
       expect((await level('ann', ids.benefit, 'lastChance')).status, 200);
       expect((await prefs('ann')).lastCallBenefitIds, {ids.benefit});
       expect(
@@ -179,28 +181,25 @@ void main() {
       );
     });
 
-    // @lat: [[api-tests#Member preferences#A bad level or another household's credit is refused]]
-    test(
-      'an unknown level is 400; another household\'s credit is 404',
-      () async {
-        final ids = await shared('edit');
-        for (final bad in ['loud', null, 3]) {
-          final reply = await level('ann', ids.benefit, bad);
-          expect(reply.status, 400, reason: '$bad');
-          expect(json(reply)['field'], 'level');
-        }
-        expect((await level('cat', ids.benefit, 'silenced')).status, 404);
-        expect(
-          (await level(
-            'ann',
-            '00000000-0000-4000-8000-000000000000',
-            'silenced',
-          )).status,
-          404,
-        );
-        expect((await level('ann', 'not-a-uuid', 'silenced')).status, 404);
-      },
-    );
+    // @lat: [[api-tests#Member preferences#A bad level or an unshared credit is refused]]
+    test('an unknown level is 400; an unshared credit is 404', () async {
+      final ids = await shared('record');
+      for (final bad in ['loud', null, 3]) {
+        final reply = await level('ann', ids.benefit, bad);
+        expect(reply.status, 400, reason: '$bad');
+        expect(json(reply)['field'], 'level');
+      }
+      expect((await level('cat', ids.benefit, 'silenced')).status, 404);
+      expect(
+        (await level(
+          'ann',
+          '00000000-0000-4000-8000-000000000000',
+          'silenced',
+        )).status,
+        404,
+      );
+      expect((await level('ann', 'not-a-uuid', 'silenced')).status, 404);
+    });
 
     // @lat: [[api-tests#Member preferences#Preferences are validated]]
     test('a bad time or floor is 400', () async {

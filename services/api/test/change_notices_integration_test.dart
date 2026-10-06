@@ -12,9 +12,9 @@ import 'support/tokens.dart';
 /// Catalogue change notices and the terms-changed mark, against
 /// `DATABASE_URL` in the suite's own schema; skipped without one.
 ///
-/// Ann's household holds a linked Gold and Bob is in it; Cat's household
-/// held a Gold and converted it. An admin then publishes Gold version 2,
-/// raising Uber Cash to $20 from 1 January 2027.
+/// Ann owns a linked Gold and shares her cards with Bob to view; Cat held a
+/// Gold and converted it. An admin then publishes Gold version 2, raising
+/// Uber Cash to $20 from 1 January 2027.
 void main() {
   final url = Platform.environment['DATABASE_URL'];
 
@@ -103,14 +103,14 @@ void main() {
       annsGold = await gold('ann');
       final code =
           json(
-                await api.as('ann').post('/v1/household/invites', {
-                  'role': 'edit',
+                await api.as('ann').post('/v1/invites', {
+                  'access': 'view',
+                  'allCards': true,
                 }),
               )['code']
               as String;
-      await api.as('bob').post('/v1/invites/$code/accept', {
-        'confirmLeave': false,
-      });
+      final accepted = await api.as('bob').post('/v1/invites/$code/accept');
+      expect(accepted.status, 200, reason: '${accepted.body}');
       catsGold = await gold('cat');
       final converted = await api.as('cat').post('/v1/cards/$catsGold/convert');
       expect(converted.status, 200, reason: '${converted.body}');
@@ -123,35 +123,37 @@ void main() {
     });
 
     // @lat: [[api-tests#Change notices#Each holder of an affected linked card hears once]]
-    test(
-      'publishing notifies each member holding the linked card once',
-      () async {
-        await publishGoldV2();
-        final sent = await sendChangeNotices(db, push, now: now);
-        expect(sent, 2);
-        expect(push.tagsTo('ann-phone'), ['terms-$annsGold']);
-        expect(push.tagsTo('bob-phone'), ['terms-$annsGold']);
-        final notice = push.sent.first.message;
-        expect(
-          notice.body,
-          contains(r'Uber Cash credit changes to $20 on Jan 1'),
-        );
-        expect(notice.data['url'], '/cards/$annsGold');
+    test('publishing notifies the owner and each person the linked card is '
+        'shared with, once each', () async {
+      await publishGoldV2();
+      final sent = await sendChangeNotices(db, push, now: now);
+      expect(sent, 2);
+      expect(push.tagsTo('ann-phone'), ['terms-$annsGold']);
+      expect(push.tagsTo('bob-phone'), ['terms-$annsGold']);
+      final notice = push.sent.first.message;
+      expect(
+        notice.body,
+        contains(r'Uber Cash credit changes to $20 on Jan 1'),
+      );
+      expect(notice.data['url'], '/cards/$annsGold');
 
-        expect(await sendChangeNotices(db, push, now: now), 0);
-        expect(push.sent, hasLength(2));
+      expect(await sendChangeNotices(db, push, now: now), 0);
+      expect(push.sent, hasLength(2));
 
-        final data = await api.as('ann').get('/v1/household/data');
-        expect(marks(data), [
-          {
-            'cardId': annsGold,
-            'version': 2,
-            'effectiveFrom': '2027-01-01',
-            'changes': [r'Uber Cash credit changes to $20'],
-          },
-        ]);
-      },
-    );
+      final data = await api.as('ann').get('/v1/household/data');
+      expect(marks(data), [
+        {
+          'cardId': annsGold,
+          'version': 2,
+          'effectiveFrom': '2027-01-01',
+          'changes': [r'Uber Cash credit changes to $20'],
+        },
+      ]);
+      expect(
+        marks(await api.as('bob').get('/v1/household/data')),
+        hasLength(1),
+      );
+    });
 
     // @lat: [[api-tests#Change notices#A muted card gets the mark without the push]]
     test(

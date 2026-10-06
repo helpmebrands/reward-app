@@ -92,6 +92,21 @@ void main() {
       expect(await users(), 2);
     });
 
+    // @lat: [[api-tests#Sign-in#The name on the sign-in is kept like the email]]
+    test('the user keeps the latest name their sign-in carried', () async {
+      Future<String?> name() async =>
+          (await db.execute('SELECT name FROM users')).single[0] as String?;
+
+      await handler(me(key.sign(uid: 'u-new')));
+      expect(await name(), isNull);
+      await handler(me(key.sign(uid: 'u-new', claims: {'name': 'Jim Cook'})));
+      expect(await name(), 'Jim Cook');
+      await handler(me(key.sign(uid: 'u-new')));
+      expect(await name(), 'Jim Cook');
+      await handler(me(key.sign(uid: 'u-new', claims: {'name': 'James'})));
+      expect(await name(), 'James');
+    });
+
     // @lat: [[api-tests#Sign-in#Bad tokens create nobody]]
     test('expired, misaddressed and forged tokens get 401', () async {
       for (final token in [
