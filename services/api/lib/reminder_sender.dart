@@ -94,8 +94,8 @@ String _wallText(DateTime local) =>
     '${local.year}-${_two(local.month)}-${_two(local.day)} '
     '${_two(local.hour)}:${_two(local.minute)}:00';
 
-/// A member's schedule from [from] on: their household's data, their
-/// preferences and mutes, their zone.
+/// A person's schedule from [from] on: the cards they can see, their own
+/// and those shared with them, their preferences and mutes, their zone.
 Future<List<ScheduledReminder>> memberSchedule(
   Session db,
   Caller member,
@@ -104,7 +104,7 @@ Future<List<ScheduledReminder>> memberSchedule(
 }) => inTransaction(db, (tx) async {
   final zone = await memberZone(tx, member.userId);
   final today = todayIso(await _wallClock(tx, zone, from));
-  final household = await loadHousehold(tx, member.householdId, today);
+  final household = await loadHousehold(tx, member.userId, today);
   return scheduleIn(
     tx,
     household.data,
@@ -186,7 +186,7 @@ Future<int> sendOnce(
   return outcome.sent;
 }
 
-/// One run of the sender job at [now]: for every member with reminders on
+/// One run of the sender job at [now]: for every person with reminders on
 /// and a device, each reminder that fell due in the last [lateLimit] and has
 /// not been sent to them goes to all their devices ([sendOnce]). Returns the
 /// pushes delivered.
@@ -198,20 +198,14 @@ Future<int> sendDueReminders(
   final at = (now ?? DateTime.now()).toUtc();
   final since = at.subtract(lateLimit);
   final members = await db.execute('''
-    SELECT u.id::text, u.firebase_uid, m.household_id::text, m.role
+    SELECT u.id::text, u.firebase_uid
     FROM users u
-    JOIN memberships m ON m.user_id = u.id
     JOIN member_preferences p ON p.user_id = u.id AND p.enabled
     WHERE EXISTS (SELECT 1 FROM devices d WHERE d.user_id = u.id)
   ''');
   var delivered = 0;
-  for (final [userId, uid, householdId, role] in members) {
-    final member = Caller(
-      userId: userId! as String,
-      uid: uid! as String,
-      householdId: householdId! as String,
-      role: Role.values.byName(role! as String),
-    );
+  for (final [userId, uid] in members) {
+    final member = Caller(userId: userId! as String, uid: uid! as String);
     // A window of a few days is enough to hold every reminder due now.
     final due = [
       for (final s in await memberSchedule(db, member, since, horizon: 3))

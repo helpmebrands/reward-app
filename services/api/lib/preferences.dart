@@ -9,6 +9,7 @@ import 'package:postgres/postgres.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf_router/shelf_router.dart';
 
+import 'access.dart';
 import 'auth.dart';
 import 'src/database.dart';
 import 'src/responses.dart';
@@ -21,7 +22,8 @@ final _uuid = RegExp(
 );
 
 /// [caller]'s preferences: their row or the defaults, with the mutes and
-/// last calls that name cards and credits of their current household.
+/// last calls on the cards they can see now. Those on a card no longer
+/// shared with them stay stored, in case it is shared again.
 Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
   final row = await db.execute(
     Sql.named('''
@@ -35,21 +37,22 @@ Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
     Sql.named('''
       SELECT m.card_id::text, m.benefit_id::text
       FROM member_mutes m
-      LEFT JOIN cards c ON c.id = m.card_id
       LEFT JOIN benefits b ON b.id = m.benefit_id
+      JOIN card_access a
+        ON a.card_id = coalesce(m.card_id, b.card_id) AND a.user_id = m.user_id
       WHERE m.user_id = @u::uuid
-        AND coalesce(c.household_id, b.household_id) = @h::uuid
     '''),
-    parameters: {'u': caller.userId, 'h': caller.householdId},
+    parameters: {'u': caller.userId},
   );
   final lastCalls = await db.execute(
     Sql.named('''
       SELECT l.benefit_id::text
       FROM member_last_calls l
       JOIN benefits b ON b.id = l.benefit_id
-      WHERE l.user_id = @u::uuid AND b.household_id = @h::uuid
+      JOIN card_access a ON a.card_id = b.card_id AND a.user_id = l.user_id
+      WHERE l.user_id = @u::uuid
     '''),
-    parameters: {'u': caller.userId, 'h': caller.householdId},
+    parameters: {'u': caller.userId},
   );
   final base = row.isEmpty
       ? defaultMemberPreferences
@@ -76,8 +79,28 @@ Future<MemberPreferences> preferencesOf(Session db, Caller caller) async {
 Response _invalid(String field) =>
     jsonResponse({'error': 'invalid', 'field': field}, status: 400);
 
-/// Adds `/v1/me/preferences`, the mute routes and the level route. None needs write access:
-/// a reader's preferences change nothing shared.
+/// The card a mutable [table] row names: a card is its own, a credit is
+/// its card's. Null when there is no such row.
+Future<String?> _cardOf(Session db, String table, String id) async {
+  if (!_uuid.hasMatch(id)) return null;
+  if (table == 'cards') return id;
+  final rows = await db.execute(
+    Sql.named('SELECT card_id::text FROM benefits WHERE id = @id::uuid'),
+    parameters: {'id': id},
+  );
+  return rows.isEmpty ? null : rows.single[0]! as String;
+}
+
+/// Whether [caller] can see the card [table]'s row [id] names, at any
+/// access.
+Future<bool> _sees(Session db, Caller caller, String table, String id) async {
+  final cardId = await _cardOf(db, table, id);
+  return cardId != null && await accessTo(db, caller.userId, cardId) != null;
+}
+
+/// Adds `/v1/me/preferences`, the mute routes and the level route. Any
+/// access to a card will do: a person's own preferences change nothing
+/// shared.
 void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
   Future<Response> get(Request request, Caller caller, Session db) async =>
       jsonResponse(memberPreferencesToJson(await preferencesOf(db, caller)));
@@ -123,8 +146,8 @@ void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
     return get(request, caller, db);
   }
 
-  /// Mutes or unmutes a card (`card_id`) or a credit (`benefit_id`) of the
-  /// caller's household; anything else is 404.
+  /// Mutes or unmutes a card (`card_id`) or a credit (`benefit_id`) the
+  /// caller can see; anything else is 404.
   SignedInHandler mute(
     String table,
     String column,
@@ -132,16 +155,7 @@ void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
     required bool on,
   }) => (request, caller, db) async {
     final id = request.params[param]!;
-    if (!_uuid.hasMatch(id)) {
-      return jsonResponse({'error': 'not found'}, status: 404);
-    }
-    final found = await db.execute(
-      Sql.named(
-        'SELECT 1 FROM $table WHERE id = @id::uuid AND household_id = @h::uuid',
-      ),
-      parameters: {'id': id, 'h': caller.householdId},
-    );
-    if (found.isEmpty) {
+    if (!await _sees(db, caller, table, id)) {
       return jsonResponse({'error': 'not found'}, status: 404);
     }
     await db.execute(
@@ -157,9 +171,9 @@ void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
     return Response(204);
   };
 
-  /// Sets one credit of the caller's household to a [NotificationLevel] by
-  /// the domain's [withLevel] rule, writing the mute and the last call in
-  /// one transaction. Answers the caller's preferences.
+  /// Sets one credit the caller can see to a [NotificationLevel] by the
+  /// domain's [withLevel] rule, writing the mute and the last call in one
+  /// transaction. Answers the caller's preferences.
   Future<Response> level(Request request, Caller caller, Session db) async {
     final id = request.params['benefitId']!;
     final Object? body;
@@ -173,17 +187,8 @@ void addPreferenceRoutes(RouteTable routes, SignedIn signedIn) {
         .where((l) => l.name == name)
         .firstOrNull;
     if (level == null) return _invalid('level');
-    if (!_uuid.hasMatch(id)) {
-      return jsonResponse({'error': 'not found'}, status: 404);
-    }
     return inTransaction(db, (tx) async {
-      final found = await tx.execute(
-        Sql.named(
-          'SELECT 1 FROM benefits WHERE id = @id::uuid AND household_id = @h::uuid',
-        ),
-        parameters: {'id': id, 'h': caller.householdId},
-      );
-      if (found.isEmpty) {
+      if (!await _sees(tx, caller, 'benefits', id)) {
         return jsonResponse({'error': 'not found'}, status: 404);
       }
       final next = withLevel(await preferencesOf(tx, caller), id, level);

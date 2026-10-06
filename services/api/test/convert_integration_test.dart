@@ -25,15 +25,33 @@ void main() {
 
     tearDownAll(() => dropSchema(db, 'convert'));
 
-    setUp(() => db.execute('TRUNCATE users, households CASCADE'));
+    setUp(() => db.execute('TRUNCATE users CASCADE'));
 
     Map<String, dynamic> json(Reply r) => r.body! as Map<String, dynamic>;
 
     Future<AppData> data(String uid) async =>
         appDataFromJson(json(await api.as(uid).get('/v1/household/data')));
 
-    /// Ann's Gold with a claim on its first credit, Bob in the household
-    /// as an editor, and both muting the card and the credit.
+    /// An invite from [owner] as [body] describes it; its code.
+    Future<String> invite(String owner, Map<String, Object?> body) async {
+      final created = await api.as(owner).post('/v1/invites', body);
+      expect(created.status, 201, reason: '${created.body}');
+      return json(created)['code'] as String;
+    }
+
+    /// [owner] shares with [member] as [body] describes it.
+    Future<void> share(
+      String owner,
+      String member,
+      Map<String, Object?> body,
+    ) async {
+      final code = await invite(owner, body);
+      final accepted = await api.as(member).post('/v1/invites/$code/accept');
+      expect(accepted.status, 200, reason: '${accepted.body}');
+    }
+
+    /// Ann's Gold with a claim on its first credit, shared with Bob to
+    /// record usage, and both muting the card and the credit.
     Future<
       ({
         String card,
@@ -72,14 +90,7 @@ void main() {
               headers: {'idempotency-key': key},
             );
       }
-      final code =
-          json(
-                await api.as('ann').post('/v1/household/invites', {
-                  'role': 'edit',
-                }),
-              )['code']
-              as String;
-      await api.as('bob').post('/v1/invites/$code/accept');
+      await share('ann', 'bob', {'access': 'record', 'allCards': true});
       for (final uid in ['ann', 'bob']) {
         await api.as(uid).put('/v1/me/benefits/$benefit/level', {
           'level': 'lastChance',
@@ -88,7 +99,7 @@ void main() {
         await api.as(uid).put('/v1/me/mutes/benefits/$benefit', {});
       }
       final before = await data('ann');
-      final converted = await api.as('bob').post('/v1/cards/$card/convert');
+      final converted = await api.as('ann').post('/v1/cards/$card/convert');
       expect(converted.status, 200, reason: '${converted.body}');
       return (
         card: card,
@@ -194,8 +205,37 @@ void main() {
       expect(appDataToJson(after), appDataToJson(before));
     });
 
-    // @lat: [[api-tests#Conversion#Every member's mutes follow the card]]
-    test('every member’s mutes point at the new ids', () async {
+    // @lat: [[api-tests#Conversion#A converted card stays shared]]
+    test('a chosen-cards share and a pending invite follow the card', () async {
+      final added = json(
+        await api.as('ann').post('/v1/cards', {
+          'templateId': 'amex-gold',
+          'anniversaryOn': '2024-05-01',
+        }),
+      );
+      final id = (added['card'] as Map)['id'] as String;
+      await share('ann', 'cat', {
+        'access': 'view',
+        'cardIds': [id],
+      });
+      final pending = await invite('ann', {
+        'access': 'record',
+        'cardIds': [id],
+      });
+
+      final converted = json(await api.as('ann').post('/v1/cards/$id/convert'));
+      final newId = (converted['card'] as Map)['id'];
+      expect((await data('cat')).cards.map((c) => c.id), [newId]);
+      final offer = json(await api.as('dan').get('/v1/invites/$pending'));
+      expect(offer['cardCount'], 1);
+      final accepted = await api.as('dan').post('/v1/invites/$pending/accept');
+      expect(accepted.status, 200, reason: '${accepted.body}');
+      expect(json(accepted)['cardIds'], [newId]);
+      expect((await data('dan')).cards.map((c) => c.id), [newId]);
+    });
+
+    // @lat: [[api-tests#Conversion#Everyone's mutes follow the card]]
+    test('the owner’s and the sharer’s mutes point at the new ids', () async {
       final ids = await convertedGold();
       final newCard = (ids.converted['card'] as Map)['id'];
       final newBenefit = (ids.converted['benefitIds'] as Map)[ids.benefit];

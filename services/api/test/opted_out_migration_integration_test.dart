@@ -42,6 +42,17 @@ void main() {
                 'INSERT INTO households DEFAULT VALUES RETURNING id::text',
               )).single[0]!
               as String;
+      // The later migrations give a household's cards to its owner.
+      await db.execute(
+        Sql.named('''
+          WITH owner AS (
+            INSERT INTO users (firebase_uid) VALUES ('ann') RETURNING id
+          )
+          INSERT INTO memberships (household_id, user_id, role)
+          SELECT @h::uuid, id, 'owner' FROM owner
+        '''),
+        parameters: {'h': household},
+      );
       Future<String> card(String? templateId) async =>
           (await db.execute(
                 Sql.named('''

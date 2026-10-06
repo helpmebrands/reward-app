@@ -23,7 +23,7 @@ void main() {
 
     tearDownAll(() => dropSchema(db, 'devices'));
 
-    setUp(() => db.execute('TRUNCATE users, households CASCADE'));
+    setUp(() => db.execute('TRUNCATE users CASCADE'));
 
     const body = {
       'token': 'fcm-token-1',

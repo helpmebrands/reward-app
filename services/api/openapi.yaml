@@ -24,14 +24,17 @@ tags:
     description: What lets an invite link open the app, and the page it shows without it.
   - name: me
     description: The signed-in caller.
-  - name: household
-    description: The caller's household, its members and invites.
+  - name: sharing
+    description: Invites, and the shares they create from one person to another.
   - name: catalog
     description: The versioned card catalogue.
   - name: catalog admin
     description: Drafting and publishing catalogue versions. Admins only.
   - name: household data
-    description: The household's cards, credits and claims. Readers may read; editors and owners may write.
+    description: |
+      The cards a person owns and the ones shared with them, with their
+      credits and claims. Only a card's owner changes the card; a share
+      lets the other person view it, or also record usage.
 security:
   - firebase: []
 
@@ -397,9 +400,8 @@ paths:
       operationId: getPreferences
       summary: The caller's notification preferences and mutes
       description: |
-        The member's own, not the household's: the defaults until they
-        change them, and the mutes that name their current household's
-        cards and credits.
+        The caller's own: the defaults until they change them, and the mutes
+        and last calls on the cards they can see.
       responses:
         '200':
           description: The preferences.
@@ -417,7 +419,7 @@ paths:
       tags: [me]
       operationId: putPreferences
       summary: Replace the caller's notification settings
-      description: Readers may set their own; mutes have their own routes and are left as they are.
+      description: Anyone may set their own; mutes have their own routes and are left as they are.
       requestBody:
         required: true
         content:
@@ -445,7 +447,7 @@ paths:
       tags: [me]
       operationId: muteCard
       summary: Silence a card for the caller only
-      description: Idempotent. Readers may mute; nothing shared changes.
+      description: Idempotent. Anyone who can see it may mute it, since nothing shared changes; anything they cannot see is 404.
       parameters:
         - name: cardId
           in: path
@@ -490,7 +492,7 @@ paths:
       tags: [me]
       operationId: muteBenefit
       summary: Silence a benefit for the caller only
-      description: Idempotent. Readers may mute; nothing shared changes.
+      description: Idempotent. Anyone who can see it may mute it, since nothing shared changes; anything they cannot see is 404.
       parameters:
         - name: benefitId
           in: path
@@ -538,7 +540,8 @@ paths:
       description: |
         Periodically clears the credit's mute and last call, Last chance
         sets last call and clears the mute, Silence sets the mute and keeps
-        last call. Readers may set their own; nothing shared changes.
+        last call. Anyone who can see the credit may set their own, since
+        nothing shared changes; anything they cannot see is 404.
       parameters:
         - name: benefitId
           in: path
@@ -573,36 +576,16 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
-  /v1/household:
-    get:
-      tags: [household]
-      operationId: getHousehold
-      summary: The caller's household
-      description: |
-        Every person is in exactly one household. A new user owns a new,
-        empty one, made on their first authenticated call.
-      responses:
-        '200':
-          description: The household and its members.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Household'
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/Unavailable'
-
-  /v1/household/invites:
+  /v1/invites:
     post:
-      tags: [household]
+      tags: [sharing]
       operationId: createInvite
-      summary: Invite someone to the household
+      summary: Invite someone to see your cards
       description: |
-        Owner only. The code is single-use and expires after seven days; the
-        link carries the same code.
+        The invite carries the share it creates: the access, and all the
+        caller's cards (including ones added later) or the cards in
+        `cardIds`, which must be the caller's own. The code is single-use
+        and expires after seven days; the link carries the same code.
       requestBody:
         required: true
         content:
@@ -620,8 +603,48 @@ paths:
           $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: A card in `cardIds` is not the caller's (`not found`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: not found
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
+  /v1/invites/{code}:
+    get:
+      tags: [sharing]
+      operationId: readInvite
+      summary: What an invite shares
+      description: |
+        Who is sharing, at which access, and all their cards or how many,
+        for the join screen.
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The invite's offer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteOffer'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/InviteGone'
         '500':
           $ref: '#/components/responses/Internal'
         '503':
@@ -629,44 +652,34 @@ paths:
 
   /v1/invites/{code}/accept:
     post:
-      tags: [household]
+      tags: [sharing]
       operationId: acceptInvite
-      summary: Join a household with an invite
+      summary: Accept a share
       description: |
-        Moves the caller into the invite's household with its role, leaving
-        their current one. The last member out takes that household, and
-        its data, with them. An owner cannot leave while other members
-        remain. When the current household holds cards, `confirmLeave: true`
-        is required.
+        Creates the share the invite carries, from its owner to the caller,
+        and marks the invite used. Nothing of the caller's is moved or
+        deleted. An invite of the caller's own, or one from someone who
+        already shares with the caller, is refused; the owner changes the
+        existing share instead.
       parameters:
         - name: code
           in: path
           required: true
           schema:
             type: string
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AcceptRequest'
       responses:
         '200':
-          description: The household joined.
+          description: The share, as the caller sees it.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Household'
-        '400':
-          $ref: '#/components/responses/Invalid'
+                $ref: '#/components/schemas/Share'
         '401':
           $ref: '#/components/responses/Unauthenticated'
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: |
-            `household holds cards` without `confirmLeave`, `owner has
-            members`, or `already a member`.
+          description: The caller's own invite (`own invite`), or its owner already shares with the caller (`already shared`).
           content:
             application/json:
               schema:
@@ -674,55 +687,9 @@ paths:
                   - $ref: '#/components/schemas/Error'
                 properties:
                   error:
-                    enum: [household holds cards, owner has members, already a member]
+                    enum: [own invite, already shared]
         '410':
-          description: The invite was used already (`invite used`) or has expired (`invite expired`).
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Error'
-                properties:
-                  error:
-                    enum: [invite used, invite expired]
-        '500':
-          $ref: '#/components/responses/Internal'
-        '503':
-          $ref: '#/components/responses/Unavailable'
-
-  /v1/household/members/{userId}:
-    delete:
-      tags: [household]
-      operationId: removeMember
-      summary: Remove a member
-      description: |
-        Owner only. The member loses access at once; on their next call they
-        start again in a new, empty household. They take nothing with them.
-      parameters:
-        - name: userId
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Removed.
-        '401':
-          $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          description: The owner cannot remove themselves (`owner cannot leave`).
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/Error'
-                properties:
-                  error:
-                    const: owner cannot leave
+          $ref: '#/components/responses/InviteGone'
         '500':
           $ref: '#/components/responses/Internal'
         '503':
@@ -732,15 +699,18 @@ paths:
     get:
       tags: [household data]
       operationId: getHouseholdData
-      summary: The household's cards, credits and claims
+      summary: The caller's cards and the ones shared with them
       description: |
-        The domain's `AppData` snapshot. A linked card takes its issuer,
-        product, network and fee from its template's version in force; each
-        linked credit is resolved against the version in force when its
-        current cycle began. Readers may read.
+        The domain's `AppData` snapshot of every card the caller can see:
+        their own and the ones shared with them, each with its `ownerId`. A
+        linked card takes its issuer, product, network and fee from its
+        template's version in force; each linked credit is resolved against
+        the version in force when its current cycle began. Beside the
+        snapshot, `access` says what the caller may do with each card and
+        `people` names the owner of each card shared with them.
       responses:
         '200':
-          description: The household as a snapshot.
+          description: The cards as a snapshot.
           content:
             application/json:
               schema:
@@ -756,12 +726,14 @@ paths:
     post:
       tags: [household data]
       operationId: addCard
-      summary: Add a card from a template, or one the household maintains
+      summary: Add a card from a template, or one the owner maintains
       description: |
-        With `templateId` the card follows that template; without, the body
-        carries the card's own terms. A card without a label that would
-        repeat another card's display name is given the first free
-        "<product> (n)"; a label another card already shows is 409.
+        The caller owns the card. With `templateId` it follows that
+        template; without, the body carries the card's own terms. A card
+        without a label that would repeat the display name of another of
+        the caller's cards is given the first free "<product> (n)"; a label
+        another of their cards already shows is 409. Cards shared with the
+        caller do not count.
       requestBody:
         required: true
         content:
@@ -779,10 +751,8 @@ paths:
           $ref: '#/components/responses/Invalid'
         '401':
           $ref: '#/components/responses/Unauthenticated'
-        '403':
-          $ref: '#/components/responses/Forbidden'
         '409':
-          description: The label is another card's display name (`label taken`).
+          description: The label is another of the caller's cards' display name (`label taken`).
           content:
             application/json:
               schema:
@@ -796,11 +766,11 @@ paths:
     patch:
       tags: [household data]
       operationId: editCard
-      summary: Change a card's household fields
+      summary: Change a card's own fields
       description: |
-        Label, kind, last four, anniversary and archived on any card; issuer,
-        product, network and fee only on a card the household maintains,
-        and 409 `system maintained` on a linked one.
+        The owner's alone. Label, kind, last four, anniversary and archived
+        on any card; issuer, product, network and fee only on a card the
+        owner maintains, and 409 `system maintained` on a linked one.
       parameters:
         - name: cardId
           in: path
@@ -829,7 +799,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: A term field on a linked card (`system maintained`) or a label another card shows (`label taken`).
+          description: A term field on a linked card (`system maintained`) or a label another of the owner's cards shows (`label taken`).
           content:
             application/json:
               schema:
@@ -846,6 +816,7 @@ paths:
       tags: [household data]
       operationId: deleteCard
       summary: Delete a card with its credits and claims
+      description: The owner's alone.
       parameters:
         - name: cardId
           in: path
@@ -872,8 +843,9 @@ paths:
       operationId: markTermsSeen
       summary: Clear the caller's "terms changed" mark on a card
       description: |
-        For the caller only; other members keep theirs. 204 whether or not
-        there was a mark. Readers may.
+        For the caller only; everyone else who sees the card keeps theirs.
+        204 whether or not there was a mark. Anyone who can see the card
+        may.
       parameters:
         - name: cardId
           in: path
@@ -896,13 +868,15 @@ paths:
     post:
       tags: [household data]
       operationId: convertCard
-      summary: Convert a linked card into one the household maintains
+      summary: Convert a linked card into one the owner maintains
       description: |
-        One transaction: a new card and credits copying the terms resolved
-        today and every piece of household state; the claims and every
-        member's mutes move to the new ids; the linked card is deleted.
-        The new card no longer follows the catalogue. The answer names the
-        card it replaces and maps each old credit id to its new one.
+        The owner's alone. One transaction: a new card and credits copying
+        the terms resolved today and every piece of the card's state; the
+        claims, everyone's mutes and last calls, and the card's place in
+        chosen-card shares and pending invites move to the new ids; the
+        linked card is deleted. The new card no longer follows the
+        catalogue. The answer names the card it replaces and maps each old
+        credit id to its new one.
       parameters:
         - name: cardId
           in: path
@@ -923,7 +897,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
         '409':
-          description: The card is the household's own already (`user maintained`).
+          description: The card is maintained by its owner already (`user maintained`).
           content:
             application/json:
               schema:
@@ -941,8 +915,8 @@ paths:
     post:
       tags: [household data]
       operationId: addBenefit
-      summary: Add a credit to a card the household maintains
-      description: A linked card's credits come from its template; adding one is 409 `system maintained`.
+      summary: Add a credit to a card the owner maintains
+      description: The owner's alone. A linked card's credits come from its template; adding one is 409 `system maintained`.
       parameters:
         - name: cardId
           in: path
@@ -982,7 +956,7 @@ paths:
       tags: [household data]
       operationId: editBenefit
       summary: Replace a household credit's terms
-      description: Only on a credit the household maintains; a linked credit is 409 `system maintained`.
+      description: The owner's alone, and only on a credit they maintain; a linked credit is 409 `system maintained`.
       parameters:
         - name: benefitId
           in: path
@@ -1020,7 +994,7 @@ paths:
       tags: [household data]
       operationId: deleteBenefit
       summary: Delete a household credit and its claims
-      description: A linked credit is 409 `system maintained`; opt out of it through its state instead.
+      description: The owner's alone. A linked credit is 409 `system maintained`; opt out of it through its state instead.
       parameters:
         - name: benefitId
           in: path
@@ -1047,10 +1021,11 @@ paths:
     put:
       tags: [household data]
       operationId: putBenefitState
-      summary: Change a credit's household state
+      summary: Change a credit's state
       description: |
-        Enrollment, spend met, last call only, active, opted out and tracked
-        from, on any credit, linked or not. Absent keys stay as they are; null clears.
+        Enrollment, spend met, active, opted out and tracked from, on any
+        credit, linked or not, for the owner and anyone the card is shared
+        with to record usage. Absent keys stay as they are; null clears.
       parameters:
         - name: benefitId
           in: path
@@ -1089,8 +1064,10 @@ paths:
       operationId: addClaim
       summary: Log a claim, once
       description: |
-        Needs an `Idempotency-Key`. The same key with the same body answers
-        the stored claim again; with a different body it is 409.
+        For the owner and anyone the card is shared with to record usage.
+        Needs an `Idempotency-Key`, unique per person who records. The same
+        key with the same body answers the stored claim again; with a
+        different body it is 409.
       parameters:
         - name: Idempotency-Key
           in: header
@@ -1135,6 +1112,7 @@ paths:
       tags: [household data]
       operationId: deleteClaim
       summary: Remove a claim
+      description: For the owner and anyone the card is shared with to record usage.
       parameters:
         - name: claimId
           in: path
@@ -1569,9 +1547,12 @@ components:
       properties:
         id:
           type: string
+        ownerId:
+          type: string
+          description: The user id of the person who added the card, who alone changes it.
         templateId:
           type: string
-          description: The catalogue template it follows; absent on a card the household maintains.
+          description: The catalogue template it follows; absent on a card its owner maintains.
         label:
           type: string
         issuer:
@@ -1716,6 +1697,16 @@ components:
             app's snapshot parser ignores it.
           items:
             $ref: '#/components/schemas/TermsChanged'
+        access:
+          type: object
+          description: What the caller may do with each card, by card id. The app's snapshot parser ignores it.
+          additionalProperties:
+            $ref: '#/components/schemas/Access'
+        people:
+          type: array
+          description: The owner of each card shared with the caller, once each. The app's snapshot parser ignores it.
+          items:
+            $ref: '#/components/schemas/Person'
 
     TermsChanged:
       type: object
@@ -1944,52 +1935,75 @@ components:
         last, or nothing. Silence keeps last call, so unsilencing returns to
         the earlier level.
 
-    Role:
+    Access:
       type: string
-      enum: [owner, editor, reader]
-      description: Owners manage members; editors change the data; readers only read it.
+      enum: [owner, record, view]
+      description: |
+        What a person may do with a card: everything as its owner; claims
+        and a credit's state with `record`; read it, and keep their own
+        preferences on it, with `view`.
 
-    Member:
-      type: object
-      required: [userId, email, role, joinedAt]
-      additionalProperties: false
-      properties:
-        userId:
-          type: string
-        email:
-          type: [string, 'null']
-        role:
-          $ref: '#/components/schemas/Role'
-        joinedAt:
-          type: string
-          format: date-time
+    ShareAccess:
+      type: string
+      enum: [view, record]
+      description: The access a share gives.
 
-    Household:
+    Person:
       type: object
-      required: [id, role, members]
+      required: [id, name, email]
       additionalProperties: false
       properties:
         id:
           type: string
-        role:
-          $ref: '#/components/schemas/Role'
-          description: The caller's own role.
-        members:
+        name:
+          type: [string, 'null']
+          description: The name on their sign-in, when it carries one.
+        email:
+          type: [string, 'null']
+
+    Share:
+      type: object
+      description: |
+        A share as one side sees it: the other person, the access it gives,
+        and all the owner's cards (including later ones) or the chosen ones.
+      required: [id, name, email, access, allCards]
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          description: The other person's user id.
+        name:
+          type: [string, 'null']
+        email:
+          type: [string, 'null']
+        access:
+          $ref: '#/components/schemas/ShareAccess'
+        allCards:
+          type: boolean
+        cardIds:
           type: array
+          description: The chosen cards, when not all of them.
           items:
-            $ref: '#/components/schemas/Member'
+            type: string
 
     InviteRequest:
       type: object
-      required: [role]
+      required: [access]
       properties:
-        role:
-          type: string
-          enum: [read, edit]
+        access:
+          $ref: '#/components/schemas/ShareAccess'
+        allCards:
+          type: boolean
+          description: True to share every card, including ones added later. Leave out `cardIds` then.
+        cardIds:
+          type: array
+          description: The caller's cards to share, when not all of them.
+          items:
+            type: string
 
     Invite:
       type: object
-      required: [code, link, role, expiresAt]
+      required: [code, link, access, allCards, expiresAt]
       additionalProperties: false
       properties:
         code:
@@ -1999,19 +2013,35 @@ components:
         link:
           type: string
           description: A web address ending in `/invite/<code>`.
-        role:
-          type: string
-          enum: [read, edit]
+        access:
+          $ref: '#/components/schemas/ShareAccess'
+        allCards:
+          type: boolean
+        cardIds:
+          type: array
+          items:
+            type: string
         expiresAt:
           type: string
           format: date-time
 
-    AcceptRequest:
+    InviteOffer:
       type: object
+      required: [owner, access, allCards, expiresAt]
+      additionalProperties: false
       properties:
-        confirmLeave:
+        owner:
+          $ref: '#/components/schemas/Person'
+        access:
+          $ref: '#/components/schemas/ShareAccess'
+        allCards:
           type: boolean
-          description: Required as true when the caller's current household holds cards.
+        cardCount:
+          type: integer
+          description: How many cards it shares, when not all of them.
+        expiresAt:
+          type: string
+          format: date-time
 
     Error:
       type: object
@@ -2044,7 +2074,7 @@ components:
               error:
                 const: system maintained
     Forbidden:
-      description: The caller's role does not allow this.
+      description: The caller can see the card, but their access to it does not allow this.
       content:
         application/json:
           schema:
@@ -2053,6 +2083,16 @@ components:
             properties:
               error:
                 const: forbidden
+    InviteGone:
+      description: The invite was used already (`invite used`) or has expired (`invite expired`).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Error'
+            properties:
+              error:
+                enum: [invite used, invite expired]
     Invalid:
       description: A field is missing, blank or malformed.
       content:

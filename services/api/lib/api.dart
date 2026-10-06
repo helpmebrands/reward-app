@@ -15,10 +15,10 @@ import 'catalog_admin.dart';
 import 'change_notices.dart';
 import 'devices.dart';
 import 'household_data.dart';
-import 'households.dart';
 import 'preferences.dart';
 import 'push.dart';
 import 'reminder_sender.dart';
+import 'shares.dart';
 import 'src/responses.dart';
 import 'src/routes.dart';
 import 'src/signed_in.dart';
@@ -67,7 +67,7 @@ Api buildApi({
   addChangeNoticeRoutes(table, signedIn);
   addPreferenceRoutes(table, signedIn);
   addReminderRoutes(table, signedIn, push);
-  addHouseholdRoutes(table, signedIn, inviteLinkBase: linkBase);
+  addShareRoutes(table, signedIn, inviteLinkBase: linkBase);
   return Api(
     const Pipeline().addMiddleware(_jsonErrors()).addHandler(table.router.call),
     List.unmodifiable(table.routes),

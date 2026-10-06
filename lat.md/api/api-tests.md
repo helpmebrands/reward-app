@@ -76,37 +76,55 @@ A valid token for a new uid answers 200 with an id and the email and leaves one 
 
 An expired, a misaddressed and a forged token each answer 401 and no `users` row exists afterwards.
 
-## Households
+### The name on the sign-in is kept like the email
 
-`households_integration_test.dart` drives the household routes as several signed-in users through `test/support/api.dart`, against `DATABASE_URL` in its own `households` schema ([[api-architecture#Households]]).
+The verifier reads a token's `name`, or null without one. The user row keeps the latest name a sign-in carried: a later token without one leaves it, and a new one replaces it.
 
-### A new user owns a new empty household
+## Owners and shares
 
-A first `GET /v1/household` answers 200 with the caller as sole owner, email included; a second call finds the same household.
+`shares_integration_test.dart` drives cards, invites and shares as several signed-in users through `test/support/api.dart`, against `DATABASE_URL` in its own `shares` schema ([[api-architecture#Owners and shares]]).
 
-### An invite joins its household once, for seven days
+Each test user's token carries the email `ann@x.test` and the name Ann, so the snapshot's `people` can be checked.
 
-An owner's edit invite joins another user as editor, and the household lists both. The code used again answers 410, as does an invite whose `expires_at` has passed; an unknown code is 404; a created invite's link ends in `/invite/<code>`.
+### Households migrate to owners and shares
 
-### Readers cannot write
+`owners_migration_integration_test.dart` seeds a household of an owner, an editor and a reader under the migrations before `0015`, with a card, two claims and an invite, then applies the rest.
 
-A reader's `POST /v1/household/invites` and `DELETE /v1/household/members/{id}` answer 403, and so does an editor's invite, since members are the owner's to manage.
+The card is the owner's, the editor has an all-cards `record` share and the reader a `view` one, both claims were recorded by the owner, the invite is gone, and `households` and `memberships` no longer exist.
 
-### Leaving a household that holds cards needs confirmation
+### A view share reads the owner's card and changes nothing
 
-A user whose household holds a card gets 409 `household holds cards` on accepting; with `confirmLeave: true` they join, and their old household and its card are gone.
+Bob, with a view share, sees Ann's Gold with her `ownerId`, access `view` and Ann in `people` with her name and email, and gets 403 on a claim, a state change and a card patch. Ann's own snapshot says `owner` and names nobody.
 
-### An owner with members cannot leave
+### A record share logs usage and changes nothing else
 
-An owner with an editor who accepts another household's invite gets 409 `owner has members`.
+Bob, with a record share, claims on Ann's Gold and enrolls a credit, and Ann sees both; he deletes his claim. His card patch, terms edit, new credit, credit delete, card delete and conversion are each 403.
 
-### A removed member loses access at once
+### Without a share a card is not found
 
-After the owner removes an editor (204, and 404 a second time), the editor's next call finds them owner of a new household of one, and the owner's household has one member.
+Cat, whom nobody shares with, gets 404 for Ann's card patch and delete, a credit's state, a claim and its delete, both mutes, a level and terms-seen, and her snapshot is empty.
 
-### An invite names a role
+### A chosen-cards share shows only those cards
 
-A role other than `read` or `edit` answers 400 `{"error":"invalid","field":"role"}`.
+Bob shares all of Ann's cards and Cat only the first; after Ann adds a third card Bob sees all three and Cat only the first, with its credits and none of the second card's claims.
+
+### Labels are unique per owner
+
+While Bob sees Ann's unlabelled Gold, his own first Gold gets no number and his second is "American Express Gold (1)". Bob may label one "Platinum" while Ann has one; Ann's second " platinum " is 409 `label taken`.
+
+### Accepting an invite creates a share and deletes nothing
+
+Bob, who owns a Gold, accepts Ann's view invite (200, the share with Ann's name) and sees both cards. The code again is 410 `invite used`, a second invite from Ann is 409 `already shared`, and Ann's own is 409 `own invite`.
+
+A share the other way, from Bob to Ann, is accepted. An expired invite is 410 `invite expired` and an unknown code 404.
+
+### An invite says who shares what
+
+`GET /v1/invites/{code}` names Ann with her id, name and email, the access and `allCards`; a chosen invite of two cards says `cardCount` 2 and `record`. An unknown code is 404 and a used one 410 `invite used`.
+
+### An invite shares the inviter's own cards
+
+An access other than `view` or `record` is 400 naming `access`. No cards, an empty list, or `cardIds` beside `allCards` is 400 naming `cardIds`, and another person's card among them is 404. A chosen invite answers its link, access and card ids.
 
 ## Catalogue
 
@@ -166,7 +184,7 @@ A credit made rolling without months answers 400 naming `credits[0].intervalMont
 
 ## Household data
 
-`household_data_integration_test.dart` drives the card, credit and claim routes as several users against `DATABASE_URL` in its own `household_data` schema ([[api-architecture#Household data]]).
+`household_data_integration_test.dart` drives the card, credit and claim routes as their owners against `DATABASE_URL` in its own `household_data` schema ([[api-architecture#Household data]]). Sharing them is [[api-tests#Owners and shares]].
 
 ### A template card's benefits are the resolved version
 
@@ -183,14 +201,6 @@ The same claim with the same `Idempotency-Key` answers 201 twice with one id and
 ### System-maintained terms cannot be edited
 
 On a linked card, editing a credit's value, the card's fee, or adding a credit is 409 `system maintained`, while its enrollment state changes. On a household card, a credit is added and its value edited, and the fee and label change.
-
-### Readers cannot write the household's data
-
-A reader's add, edit and delete of a card, state change and claim are 403, while their snapshot read shows the household's card.
-
-### Another household's ids are not found
-
-Another user's edit or delete of the card is 404, and their snapshot is empty.
 
 ### Deleting a card takes its credits and claims
 
@@ -210,7 +220,7 @@ A paused credit that had not ended by its `updated_at` is active and opted out a
 
 ## Conversion
 
-`convert_integration_test.dart` converts a Gold with claims, enrollment and two members' mutes against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).
+`convert_integration_test.dart` converts a Gold with claims, enrollment, and the mutes of its owner and of the person it is shared with, against `DATABASE_URL` in its own `convert` schema ([[api-architecture#Conversion]]).
 
 ### Conversion keeps totals and history
 
@@ -226,9 +236,13 @@ The converted card's credits equal the linked card's resolved credits apart from
 
 Publishing a version 2 of the Gold with a new product name, fee and credits leaves the converted household's snapshot byte-for-byte the same.
 
-### Every member's mutes follow the card
+### A converted card stays shared
 
-Both members who muted the Gold and its credit, and chose Last chance for the credit, read mutes of the new card and the new credit id and last call on the new credit id.
+Ann's Gold, shared with Cat as a chosen card and offered in a pending chosen invite, converts; Cat sees the new card, and the invite still offers one card, which Dan accepts and sees.
+
+### Everyone's mutes follow the card
+
+Ann and Bob, who both muted the Gold and its credit and chose Last chance for the credit, read mutes of the new card and the new credit id and last call on the new credit id.
 
 ### Only a linked card converts
 
@@ -236,7 +250,7 @@ Adding a credit to a linked card is 409; converting the converted card is 409 `u
 
 ## Member preferences
 
-`preferences_integration_test.dart` drives the preference and mute routes as members of one household and an outsider, against `DATABASE_URL` in its own `preferences` schema ([[api-architecture#Member preferences]]).
+`preferences_integration_test.dart` drives the preference and mute routes as a card's owner, the person she shares it with, and an outsider, against `DATABASE_URL` in its own `preferences` schema ([[api-architecture#Member preferences]]).
 
 ### A new member reads the defaults
 
@@ -244,25 +258,25 @@ A first `GET /v1/me/preferences` equals `defaultMemberPreferences`, nothing mute
 
 ### Preferences are the member's own
 
-Ann's new time, floor and switches, her card mute and her credit mute read back as hers, while Bob in the same household still reads the defaults; unmuting the card clears it.
+Ann's new time, floor and switches, her card mute and her credit mute read back as hers, while Bob, who sees her card, still reads the defaults; unmuting the card clears it.
 
-### A reader can mute
+### A viewer can mute
 
-A reader mutes a card of the household (204, and it reads back) and replaces their settings (200).
+Someone with a view share mutes the shared card (204, and it reads back) and replaces their settings (200).
 
-### Muting another household's card is not found
+### Muting a card nobody shared is not found
 
-An outsider muting the household's card or credit, or an id that does not exist, gets 404.
+An outsider muting Ann's card or credit, or an id that does not exist, gets 404.
 
-### A reader sets a credit's notification level
+### A viewer sets a credit's notification level
 
-A reader walks a credit through Last chance, Silence, Periodically, Silence and Last chance with `PUT /v1/me/benefits/{id}/level`; each 200 answer and the next read carry the mute and last-call flags `withLevel` gives ([[domain#Member preferences#Notification levels]]).
+Someone with a view share walks a shared credit through Last chance, Silence, Periodically, Silence and Last chance with `PUT /v1/me/benefits/{id}/level`; each 200 answer and the next read carry the mute and last-call flags `withLevel` gives ([[domain#Member preferences#Notification levels]]).
 
 ### One member's level leaves the other's alone
 
-Ann choosing Last chance for a credit reads back as hers, while Bob in the same household still reads the defaults.
+Ann choosing Last chance for a credit reads back as hers, while Bob, who sees it, still reads the defaults.
 
-### A bad level or another household's credit is refused
+### A bad level or an unshared credit is refused
 
 A level that is not one of the three, null or a number is 400 naming `level`; an outsider's credit, an id that does not exist and one that is not a uuid are 404.
 
@@ -374,7 +388,7 @@ A member deleting a token another member registered gets 404, and the device sta
 
 `reminder_sender_integration_test.dart` runs `sendDueReminders` with a recording push sender against `DATABASE_URL`; `push_test.dart` covers the FCM request and answers without a network ([[api-architecture#Reminder sender]]).
 
-The fixture is one card the household maintains with a $10 monthly credit on the calendar month, so its last-day reminder `2026-10-31|urgent` fires at 09:00 on 31 October: 09:00Z in London and 13:00Z in New York.
+The fixture is one card Ann maintains with a $10 monthly credit on the calendar month, shared with Bob to view in the tests with two people, so its last-day reminder `2026-10-31|urgent` fires at 09:00 on 31 October: 09:00Z in London and 13:00Z in New York.
 
 ### A due reminder is sent once to each device
 
@@ -392,9 +406,13 @@ A member who never turned reminders on gets nothing, device or not.
 
 With one member's device in London and the other's in New York, the 09:01Z run reaches only the Londoner and the 13:01Z run then reaches the New Yorker, once each.
 
+### A shared card is in the reminders of whoever sees it
+
+Bob, whom Ann shares the card with, gets its last-day reminder and counts it in his summary, while Cat, with reminders on and a device but no share, gets nothing.
+
 ### A muted card is silent for that member only
 
-A member who muted the card gets nothing, while the other member of the household gets the reminder.
+A member who muted the card gets nothing, while the other person who sees it gets the reminder.
 
 ### Last chance sends only the last day
 
@@ -434,7 +452,7 @@ A 2xx is sent, a 404 whose details carry `UNREGISTERED` is unregistered, and a 4
 
 Version 2 raises Uber Cash to $20 from 1 January 2027. Each test gets a fresh schema, because a published version can never be deleted.
 
-The fixture: Ann's household holds a linked Gold with Bob in it, and Cat's household converted its Gold; all three have reminders on and a device.
+The fixture: Ann owns a linked Gold and shares her cards with Bob to view, and Cat converted her Gold; all three have reminders on and a device.
 
 ### Each change is worded from the two versions
 
@@ -446,11 +464,13 @@ A credit's new value, a new fee, a dropped credit and an added one each get thei
 
 ### Each holder of an affected linked card hears once
 
-Ann and Bob each get one push naming the Uber Cash change and the date, linking to the card; a second run sends nothing; Ann's household data carries one mark with the version, date and changes.
+Ann, the owner, and Bob, whom she shares it with, each get one push naming the Uber Cash change and the date, linking to the card, and a mark of their own.
+
+A second run sends nothing; Ann's snapshot carries one mark with the version, date and changes.
 
 ### A muted card gets the mark without the push
 
-Bob, who muted the card, gets no push while Ann does, and Bob's household data still carries the mark.
+Bob, who muted the card, gets no push while Ann does, and Bob's snapshot still carries the mark.
 
 ### A converted card hears nothing
 
