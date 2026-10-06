@@ -953,9 +953,96 @@ void addHouseholdDataRoutes(RouteTable routes, SignedIn signedIn) {
     });
   }
 
+  /// Hands a card to someone who already sees it, in one transaction: they
+  /// own it; the previous owner keeps it through the new owner's share with
+  /// them (it joins that share's chosen cards, or a new share gives it to
+  /// them to record usage); the previous owner's other shares and pending
+  /// invites stop covering it. Claims, credits, their state and everyone's
+  /// mutes stay.
+  Future<Response> transfer(Request request, Caller caller, Session db) async {
+    final id = request.params['cardId']!;
+    final body = await _jsonBody(request);
+    return inTransaction(db, (tx) async {
+      if (_refused(await accessTo(tx, caller.userId, id)) case final refusal?) {
+        return refusal;
+      }
+      if (body is! Map<String, dynamic>) return _invalid('body');
+      final to = body['userId'];
+      if (to is! String || to == caller.userId) return _invalid('userId');
+      if (!_isUuid(to) || await accessTo(tx, to, id) == null) {
+        return _notFound();
+      }
+      // Names are unique per owner, so the card's must be free among the
+      // new owner's own cards.
+      final theirs = await loadHousehold(tx, to, await databaseToday(tx));
+      final card = theirs.data.cards.firstWhere((c) => c.id == id);
+      if (labelError(
+            card.label ?? '',
+            cards: [
+              for (final c in theirs.data.cards)
+                if (c.ownerId == to) c,
+            ],
+            issuer: card.issuer,
+            product: card.product,
+            cardId: id,
+          ) !=
+          null) {
+        return jsonResponse({'error': 'label taken'}, status: 409);
+      }
+
+      final from = {'card': id, 'from': caller.userId};
+      final parties = {'from': caller.userId, 'to': to};
+      // The previous owner's shares and invites stop covering the card.
+      await tx.execute(
+        Sql.named(
+          'DELETE FROM shared_cards '
+          'WHERE owner_id = @from::uuid AND card_id = @card::uuid',
+        ),
+        parameters: from,
+      );
+      await tx.execute(
+        Sql.named(
+          'DELETE FROM invite_cards ic USING invites i '
+          'WHERE ic.code = i.code AND i.owner_id = @from::uuid '
+          'AND ic.card_id = @card::uuid',
+        ),
+        parameters: from,
+      );
+      await tx.execute(
+        Sql.named(
+          'UPDATE cards SET owner_id = @to::uuid, updated_at = now() '
+          'WHERE id = @card::uuid',
+        ),
+        parameters: {'card': id, 'to': to},
+      );
+      // The previous owner keeps it through the new owner's share with
+      // them, made to record usage when there is none.
+      await tx.execute(
+        Sql.named('''
+          INSERT INTO shares (owner_id, member_id, access, all_cards)
+          VALUES (@to::uuid, @from::uuid, 'record', false)
+          ON CONFLICT (owner_id, member_id) DO NOTHING
+        '''),
+        parameters: parties,
+      );
+      await tx.execute(
+        Sql.named('''
+          INSERT INTO shared_cards (owner_id, member_id, card_id)
+          SELECT owner_id, member_id, @card::uuid FROM shares
+          WHERE owner_id = @to::uuid AND member_id = @from::uuid
+            AND NOT all_cards
+          ON CONFLICT DO NOTHING
+        '''),
+        parameters: {...parties, 'card': id},
+      );
+      return Response(204);
+    });
+  }
+
   routes
     ..add('GET', '/v1/household/data', signedIn(data))
     ..add('POST', '/v1/cards/<cardId>/convert', signedIn(convert))
+    ..add('POST', '/v1/cards/<cardId>/transfer', signedIn(transfer))
     ..add('POST', '/v1/cards', signedIn(addCard))
     ..add('PATCH', '/v1/cards/<cardId>', signedIn(editCard))
     ..add('DELETE', '/v1/cards/<cardId>', signedIn(deleteCard))

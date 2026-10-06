@@ -111,7 +111,7 @@ void main() {
     // @lat: [[api-tests#Card transfer#A share the new owner already gives takes the card]]
     test('a share the new owner already gives takes the card in', () async {
       final gold = await addGold('ann');
-      final bobs = await addGold('bob');
+      final bobs = await addGold('bob', label: 'Bob’s Gold');
       await share('ann', 'bob', 'view');
       await share('bob', 'ann', 'view', cardIds: [bobs.card]);
       final bobId = await api.as('bob').id();

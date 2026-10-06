@@ -454,6 +454,24 @@ class AppStore extends ChangeNotifier {
   Future<bool> stopSharing(String memberId) =>
       _shareEdit((api) => api.stopSharing(memberId));
 
+  /// Hands the card to [userId], someone it is shared with: they own it,
+  /// and this person keeps seeing it through their share.
+  Future<bool> transferCard(String cardId, String userId) async {
+    final done = await _edit(
+      (api) => api.transferCard(cardId, userId),
+      cardId: cardId,
+    );
+    if (done) await loadShares();
+    return done;
+  }
+
+  /// The people this person shares [cardId] with, from the shares last
+  /// fetched ([loadShares]).
+  List<Person> sharedWith(String cardId) => [
+    for (final given in _shares?.given ?? const <CardShare>[])
+      if (given.allCards || given.cardIds.contains(cardId)) given.person,
+  ];
+
   /// Stops seeing [ownerId]'s cards, at once: they leave every list.
   Future<bool> stopSeeing(String ownerId) =>
       _shareEdit((api) => api.stopSeeing(ownerId));

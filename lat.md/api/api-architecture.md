@@ -72,6 +72,19 @@ Migration `0015` replaced households. Each household's cards went to its owner (
 
 `inTransaction` (`lib/src/database.dart`) runs a body on the handler's `Connection` or `Pool`, or inside a transaction already open.
 
+### Handing a card over
+
+The owner can give a card to someone it is shared with, for instance so they can monitor it through their bank, without deleting and re-adding it (`POST /v1/cards/{cardId}/transfer {userId}`, #424). Pinned by [[api-tests#Card transfer]].
+
+It is the owner's alone (403 at record or view, 404 for a card the caller cannot see). The new owner must already see the card (404 otherwise, and a `userId` that is not a string, or the caller's own, is 400), and no card of theirs may already show its name (409 `label taken`).
+
+One transaction answers 204:
+
+- the new owner becomes the card's owner;
+- the previous owner keeps seeing it through the new owner's share with them: the card joins that share's chosen cards, an all-cards share already covers it, and without a share a new one gives it to them to record usage;
+- the previous owner's other shares and pending invites stop covering it;
+- claims, credits, their state, everyone's mutes and terms-changed marks stay.
+
 ## Catalogue
 
 The card catalogue lives in Postgres as versions of whole templates, so terms change without a deploy ([[domain#Catalogue versions]], `lib/catalog.dart`). Pinned by [[api-tests#Catalogue]].
