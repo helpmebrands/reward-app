@@ -10,6 +10,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/editor_scaffold.dart';
 import '../widgets/field.dart';
+import '../widgets/give_card_sheet.dart';
 import '../widgets/switch_row.dart';
 
 String networkLabel(CardNetwork network) => switch (network) {
@@ -71,6 +72,8 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     for (final c in [_label, _fee, _anniversary]) {
       c.addListener(_changed);
     }
+    // Who the card can be handed to.
+    if (store.remote) store.loadShares();
   }
 
   @override
@@ -139,6 +142,38 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
     await store.deleteCard(current.id);
     widget.ui?.snackbar.show('Card deleted.');
     if (mounted) _leave();
+  }
+
+  /// Hands the card to someone it is shared with, after a confirmation.
+  Future<void> _give(Card current) async {
+    final person = await showModalBottomSheet<Person>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => GiveCardSheet(
+        cardName: cardLabel(current),
+        people: store.sharedWith(current.id),
+      ),
+    );
+    if (person == null || !mounted) return;
+    final who = person.displayName;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Give ${cardLabel(current)} to $who?'),
+        content: Text('$who will own this card. You’ll still see it.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Give it to $who'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await store.transferCard(current.id, person.id);
   }
 
   Future<void> _addBenefit() async {
@@ -391,6 +426,18 @@ class _CardEditorScreenState extends State<CardEditorScreen> {
                 onChanged: (next) => store.updateCard(
                   current.id,
                   (c) => c.copyWith(archived: next),
+                ),
+              ),
+            // Only the owner hands a card over, and only to someone who
+            // already sees it.
+            if (owns && store.sharedWith(current.id).isNotEmpty)
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: OutlinedButton.icon(
+                  key: const Key('give-card'),
+                  onPressed: () => _give(current),
+                  icon: const Icon(Icons.swap_horiz, size: 16),
+                  label: const Text('Give this card to…'),
                 ),
               ),
           ],

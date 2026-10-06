@@ -293,6 +293,12 @@ Whose card it is:
 
 Widget Previews: the credit sheet of a card shared at view and at record in both themes, and Cards with a shared section in both themes, over a preview api that serves the sample household with Kathy's card hers.
 
+### Handing a card over
+
+The card editor offers "Give this card to…" to the card's owner only, and only when someone sees the card ([[api-architecture#Owners and shares#Handing a card over]]). Pinned by [[mobile-tests#Card transfer]].
+
+The editor fetches the shares when it opens, and `AppStore.sharedWith(cardId)` names the people whose share covers the card. `GiveCardSheet` lists them; choosing one asks "Bob will own this card. You’ll still see it." before `AppStore.transferCard`, whose refresh turns the editor read-only, the card now Bob's. Widget Previews: the sheet in both themes.
+
 ## Household sharing
 
 People share their cards with each other without typing ids: by a link from the system share sheet, or by an eight-character code ([[api-architecture#Owners and shares]]). Pinned by [[mobile-tests#Household sharing]].

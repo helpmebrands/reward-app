@@ -1035,6 +1035,69 @@ paths:
         '503':
           $ref: '#/components/responses/Unavailable'
 
+  /v1/cards/{cardId}/transfer:
+    post:
+      tags: [household data]
+      operationId: transferCard
+      summary: Hand a card to someone it is shared with
+      description: |
+        The owner's alone. One transaction: the new owner, who must already
+        see the card, owns it; the previous owner keeps seeing it through
+        the new owner's share with them (the card joins its chosen cards,
+        or a new share gives it to them to record usage); the previous
+        owner's other shares stop covering it. Claims, credits, their state
+        and everyone's mutes stay.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId]
+              properties:
+                userId:
+                  type: string
+                  description: The user id of the new owner.
+      responses:
+        '204':
+          description: Handed over.
+        '400':
+          $ref: '#/components/responses/Invalid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: The caller cannot see the card, or the new owner cannot (`not found`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: not found
+        '409':
+          description: One of the new owner's cards already has its name (`label taken`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Error'
+                properties:
+                  error:
+                    const: label taken
+        '500':
+          $ref: '#/components/responses/Internal'
+        '503':
+          $ref: '#/components/responses/Unavailable'
+
   /v1/cards/{cardId}/benefits:
     post:
       tags: [household data]

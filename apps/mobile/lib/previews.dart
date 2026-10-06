@@ -34,6 +34,7 @@ import 'widgets/compare_sheet.dart';
 import 'widgets/credit_sheet.dart';
 import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
+import 'widgets/give_card_sheet.dart';
 import 'widgets/nothing_due_soon.dart';
 import 'widgets/notification_level_control.dart';
 import 'widgets/share_choices.dart';
@@ -277,6 +278,24 @@ Widget shareChoicesDark() => _shareChoicesIn(Brightness.dark);
 
 @Preview(name: 'Share choices, light', size: Size(402, 760))
 Widget shareChoicesLight() => _shareChoicesIn(Brightness.light);
+
+/// Handing Jim's Platinum to one of the two people it is shared with.
+Widget _giveCardIn(Brightness brightness) => _themed(
+  const GiveCardSheet(
+    cardName: 'Jim’s Platinum',
+    people: [
+      _kathy,
+      Person(id: 'user-bob', name: 'Bob', email: 'bob@example.com'),
+    ],
+  ),
+  brightness,
+);
+
+@Preview(name: 'Give a card, dark', size: Size(402, 400))
+Widget giveCardDark() => _giveCardIn(Brightness.dark);
+
+@Preview(name: 'Give a card, light', size: Size(402, 400))
+Widget giveCardLight() => _giveCardIn(Brightness.light);
 
 /// The preview household with its first card linked to the Platinum
 /// template, so Cards shows both groups.

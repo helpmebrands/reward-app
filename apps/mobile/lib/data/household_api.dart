@@ -227,6 +227,9 @@ abstract interface class HouseholdApi {
   /// Replaces a linked card with one its owner maintains; the new id.
   Future<String> convertCard(String cardId);
 
+  /// Hands the caller's card to [userId], who already sees it.
+  Future<void> transferCard(String cardId, String userId);
+
   /// An invite at [access] to all the caller's cards, or to [cardIds].
   Future<Invite> createInvite(CardAccess access, {List<String>? cardIds});
   Future<InviteOffer> readInvite(String code);
@@ -364,6 +367,10 @@ class ApiClient implements HouseholdApi {
             as Map<String, dynamic>;
     return (json['card']! as Map<String, dynamic>)['id']! as String;
   }
+
+  @override
+  Future<void> transferCard(String cardId, String userId) =>
+      _send('POST', '/v1/cards/$cardId/transfer', body: {'userId': userId});
 
   @override
   Future<Invite> createInvite(
