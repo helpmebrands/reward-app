@@ -222,4 +222,43 @@ void main() {
       expect(cleared.containsKey('spendMetAt'), isFalse);
     },
   );
+
+  const ownedCard = {
+    'id': 'c',
+    'ownerId': 'u-ann',
+    'issuer': 'Chase',
+    'product': 'Ink',
+    'network': 'visa',
+    'kind': 'personal',
+    'annualFeeCents': 0,
+    'anniversaryOn': '2021-03-14',
+    'archived': false,
+    'createdAt': 't',
+    'updatedAt': 't',
+  };
+
+  // @lat: [[tests#Card owner#An owner round-trips and is omitted when absent]]
+  test('round-trips ownerId and omits it when the card has no owner', () {
+    final owned = cardFromJson(ownedCard);
+    expect(owned.ownerId, 'u-ann');
+    expect(cardToJson(owned), ownedCard);
+    final unowned = cardFromJson({...ownedCard}..remove('ownerId'));
+    expect(unowned.ownerId, isNull);
+    expect(cardToJson(unowned).containsKey('ownerId'), isFalse);
+  });
+
+  // @lat: [[tests#Card owner#A snapshot from before owners loads without them]]
+  test('loads the sample household, saved before owners, with none', () {
+    final raw = File('test/fixtures/sample-household.json').readAsStringSync();
+    final data = appDataFromJson(jsonDecode(raw) as Map<String, dynamic>);
+    expect(data.cards, isNotEmpty);
+    expect(data.cards.map((card) => card.ownerId), everyElement(isNull));
+  });
+
+  // @lat: [[tests#Card owner#copyWith keeps the owner unless given one]]
+  test('copyWith keeps the owner unless it is given a new one', () {
+    final card = cardFromJson(ownedCard);
+    expect(card.copyWith(label: 'Office').ownerId, 'u-ann');
+    expect(card.copyWith(ownerId: 'u-bob').ownerId, 'u-bob');
+  });
 }
