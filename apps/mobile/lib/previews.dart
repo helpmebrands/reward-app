@@ -36,6 +36,7 @@ import 'widgets/empty_card_slot.dart';
 import 'widgets/field.dart';
 import 'widgets/nothing_due_soon.dart';
 import 'widgets/notification_level_control.dart';
+import 'widgets/share_choices.dart';
 import 'widgets/sheet_host.dart';
 import 'widgets/today_caught_up.dart';
 import 'widgets/today_headline.dart';
@@ -208,13 +209,74 @@ Widget signInExpanded() => _themed(
   Brightness.light,
 );
 
-@Preview(name: 'Join a household, dark', size: Size(402, 874))
-Widget joinDark() =>
-    _themed(JoinScreen(store: _store(), code: 'ABCD2345'), Brightness.dark);
+const _kathy = Person(id: 'user-kathy', name: 'Kathy');
 
-@Preview(name: 'Join a household, light', size: Size(402, 874))
-Widget joinLight() =>
-    _themed(JoinScreen(store: _store(), code: 'ABCD2345'), Brightness.light);
+/// The join screen for an invite to all of Kathy's cards at view, or to two
+/// of them at record.
+Widget _joinFor(bool allCards, Brightness brightness) => _themed(
+  JoinScreen(
+    store: _sharedStore(
+      CardAccess.view,
+      offer: allCards
+          ? const InviteOffer(
+              owner: _kathy,
+              access: CardAccess.view,
+              allCards: true,
+            )
+          : const InviteOffer(
+              owner: _kathy,
+              access: CardAccess.record,
+              allCards: false,
+              cardCount: 2,
+            ),
+    ),
+    code: 'ABCD2345',
+  ),
+  brightness,
+);
+
+@Preview(name: 'Accept an invite, all cards, dark', size: Size(402, 874))
+Widget joinAllDark() => _joinFor(true, Brightness.dark);
+
+@Preview(name: 'Accept an invite, all cards, light', size: Size(402, 874))
+Widget joinAllLight() => _joinFor(true, Brightness.light);
+
+@Preview(name: 'Accept an invite, chosen cards, dark', size: Size(402, 874))
+Widget joinChosenDark() => _joinFor(false, Brightness.dark);
+
+@Preview(name: 'Accept an invite, chosen cards, light', size: Size(402, 874))
+Widget joinChosenLight() => _joinFor(false, Brightness.light);
+
+/// Settings with shares both ways: Bob sees your cards, Kathy shares hers.
+@Preview(name: 'Household sharing, dark', size: Size(402, 1600))
+Widget householdSharingDark() => _themed(
+  SettingsScreen(store: _sharedStore(CardAccess.record)),
+  Brightness.dark,
+);
+
+@Preview(name: 'Household sharing, light', size: Size(402, 1600))
+Widget householdSharingLight() => _themed(
+  SettingsScreen(store: _sharedStore(CardAccess.record)),
+  Brightness.light,
+);
+
+/// The share choices at record with one card chosen.
+Widget _shareChoicesIn(Brightness brightness) => _themed(
+  ShareChoices(
+    title: 'Share your cards',
+    cards: sampleHousehold().cards,
+    action: 'Create and share',
+    access: CardAccess.record,
+    cardIds: const ['jim'],
+  ),
+  brightness,
+);
+
+@Preview(name: 'Share choices, dark', size: Size(402, 760))
+Widget shareChoicesDark() => _shareChoicesIn(Brightness.dark);
+
+@Preview(name: 'Share choices, light', size: Size(402, 760))
+Widget shareChoicesLight() => _shareChoicesIn(Brightness.light);
 
 /// The preview household with its first card linked to the Platinum
 /// template, so Cards shows both groups.
@@ -496,13 +558,36 @@ Widget creditSheetUntouched() => _sheetContent('u2', Brightness.dark);
 @Preview(name: 'Credit sheet, rolling', size: Size(420, 700))
 Widget creditSheetRolling() => _sheetContent('g1', Brightness.dark);
 
-/// A service tier for previews that serves the preview household and
-/// nothing else, with Kathy's card hers, labelled "Platinum" and shared at
-/// [access].
+/// A service tier for previews that serves the preview household, with
+/// Kathy's card hers, labelled "Platinum" and shared at [access]; the
+/// shares both ways (Bob sees your cards); and [offer] for an invite.
 class _SharedPreviewApi implements HouseholdApi {
-  _SharedPreviewApi(this.access);
+  _SharedPreviewApi(this.access, {this.offer});
 
   final CardAccess access;
+  final InviteOffer? offer;
+
+  @override
+  Future<InviteOffer> readInvite(String code) async => offer!;
+
+  @override
+  Future<CardShares> shares() async => CardShares(
+    given: const [
+      CardShare(
+        person: Person(id: 'user-bob', name: 'Bob'),
+        access: CardAccess.view,
+        allCards: true,
+      ),
+    ],
+    received: [
+      CardShare(
+        person: _kathy,
+        access: access,
+        allCards: false,
+        cardIds: const ['kathy'],
+      ),
+    ],
+  );
 
   @override
   Future<HouseholdSnapshot> householdData() async {
@@ -517,7 +602,7 @@ class _SharedPreviewApi implements HouseholdApi {
         ],
       ),
       access: {'jim': CardAccess.owner, 'kathy': access},
-      people: const {'user-kathy': Person(id: 'user-kathy', name: 'Kathy')},
+      people: const {'user-kathy': _kathy},
     );
   }
 
@@ -534,10 +619,10 @@ class _SharedPreviewApi implements HouseholdApi {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-AppStore _sharedStore(CardAccess access) {
+AppStore _sharedStore(CardAccess access, {InviteOffer? offer}) {
   final store = AppStore(
     store: MemorySnapshotStore(),
-    api: _SharedPreviewApi(access),
+    api: _SharedPreviewApi(access, offer: offer),
     clock: () => DateTime(2026, 9, 16),
   );
   store.load();

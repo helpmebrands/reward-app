@@ -505,10 +505,7 @@ class _EmptyToday extends StatelessWidget {
           TextButton(
             key: const Key('today-invite-code'),
             onPressed: () => _enterCode(context),
-            child: Text(
-              'Joining a household? Enter an invite code',
-              textAlign: align,
-            ),
+            child: Text('Have an invite code?', textAlign: align),
           ),
         ],
       ],

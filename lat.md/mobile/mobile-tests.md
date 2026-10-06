@@ -1689,7 +1689,9 @@ The same steps on Android share the reward message with the code and the link on
 
 ### The join screen says who shares what
 
-An invite to two of Alex's cards at record reads "Alex wants to share 2 of their cards with you." and "You’ll be able to view them and record what you use."; Accept sends the code and lands on Today with Alex's Uber Cash and "You can see Alex’s cards now.".
+An invite to two of Alex's cards at record reads "Alex wants to share 2 of their cards with you." and "You’ll be able to view them and record what you use.".
+
+Accept sends the code and lands on Today with Alex's Uber Cash and "You can see Alex’s cards now.".
 
 ### An invite to all cards to view says so
 

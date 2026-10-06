@@ -203,9 +203,9 @@ void main() {
     await tapText(tester, 'American Express Gold');
     await tapText(tester, 'Chase Sapphire Reserve');
     await tapText(tester, 'Create and share');
-    expect(app.api.invites, [
-      (access: CardAccess.record, cardIds: ['card-1', 'card-2']),
-    ]);
+    final invite = app.api.invites.single;
+    expect(invite.access, CardAccess.record);
+    expect(invite.cardIds, ['card-1', 'card-2']);
     expect(shared, hasLength(1));
   });
 

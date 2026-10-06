@@ -295,14 +295,25 @@ Widget Previews: the credit sheet of a card shared at view and at record in both
 
 ## Household sharing
 
-People join each other's cards without typing ids: by a link from the system share sheet, or by an eight-character code. Pinned by [[mobile-tests#Household sharing]].
+People share their cards with each other without typing ids: by a link from the system share sheet, or by an eight-character code ([[api-architecture#Owners and shares]]). Pinned by [[mobile-tests#Household sharing]].
 
-- **Settings, Household** (service-tier mode only): "Have an invite code?". The member list and the invite button went with the household routes (#421), and sharing your cards returns in #423; `share` (`lib/data/share.dart`, `share_plus`, a Flutter Favorite) stays for it.
-- **Joining**: `/invite/:code` is a full-screen route to `JoinScreen`, reached from an invite link or from a code typed under "Have an invite code?" on sign-in or in Settings. A signed-out person who opens a link is sent to sign-in with `from`, and lands back on the join screen ([[mobile-architecture#Sign-in]]).
-- `AppStore.joinHousehold` first flushes the claims queued for the old household, then accepts. Leaving a household that holds cards asks "Leave your cards behind?" and repeats with `confirmLeave`; used, expired and unknown codes, an owner with members and an existing member each say why and stay. On success the cache is cleared, the household fetched, and the app goes to Today.
+**Settings, Household** (service-tier mode only), with the shares fetched when it opens (`AppStore.loadShares`):
+
+- **People who see your cards**: a `ShareLine` per person, their name over "All cards" or "2 cards" and "View" or "Can record usage". Tapping one opens `ShareChoices` on their share; Save sends `changeShare`, and "Stop sharing" asks "Stop sharing with Bob?" before `stopSharing`.
+- **Shared with you**: a line per person who shares with you, the same way. Tapping one asks before "Stop seeing their cards" (`stopSeeing`), and the refresh after it takes their cards off every list at once.
+- **Share your cards**: `ShareChoices` asks View or Can record usage, then All cards (the default, which includes cards added later) or Chosen cards ticked from your own; "Create and share" makes the invite (`createInvite`), hands it to the share sheet and shows the code. `share` is `share_plus`, a Flutter Favorite, behind a variable so tests see the `ShareParams`.
+- **What an invite shares** (#342): on iOS the link alone as a `uri`, so the sheet's header and the recipient's chat preview come from the invite page's OpenGraph card ([[api-architecture#Invite links]]). Elsewhere the sheet fetches nothing, so it gets the reward message, `Code: <code>` and the link on its last line, the title and subject "Join my household on HelpMe Reward", and `assets/logo/helpmereward-icon.png` as `previewThumbnail`. Both anchor the iPad popover on "Share your cards".
+- "Have an invite code?" stays.
+
+**Accepting**: `/invite/:code` is a full-screen route to `JoinScreen`, reached from an invite link or from a code typed under "Have an invite code?" on Today, sign-in or Settings. A signed-out person who opens a link is sent to sign-in with `from`, and lands back on the join screen ([[mobile-architecture#Sign-in]]).
+
+- It reads the invite first (`readInvite`) and says "Alex wants to share all their cards with you." or "… 2 of their cards …", then "You’ll be able to view them." or "… view them and record what you use.", and that your own cards stay as they are.
+- "Accept" (`acceptInvite`) makes the share, fetches the household and the shares, and goes to Today with "You can see Alex’s cards now.". "Not now" goes to Today.
+- A used, expired or unknown code says why as soon as it is read, with no Accept. Your own invite, or one from someone who already shares with you, says why after Accept; the screen stays either way.
+
 - **Links on the device**: `Runner.entitlements` declares `applinks:api.staging.helpmereward.com`, and the Android manifest an `autoVerify` intent filter for `https://api.staging.helpmereward.com/invite/`; go_router's built-in deep linking routes them, with no `app_links` package ([[api-architecture#Invite links]]).
 
-Every new screen has a Widget Preview: the join screen in both themes.
+Widget Previews in both themes: the Household section with shares both ways, the share choices, and the join screen for all cards and for chosen cards.
 
 ## Today screen
 
@@ -318,7 +329,7 @@ With no active card (`!store.hasCards`, archived cards not counted) and loading 
 
 - **Heading**: "Add a card to start tracking its credits" is the screen's `ScreenTitle`, so it is the first header and takes focus on navigation; the window title stays "Today". The body is in `textSecondary`.
 - **Add your first card**: `AddCardButton`, the only filled button, 48 high and full width on compact. It pushes `/cards/new`, and the catalogue's Back pops to the tab that pushed it (it goes to Cards only when opened by path). It reads "Add a card" when only archived cards remain. Everyone gets it, since a card anyone adds is their own.
-- **Invite code**: signed in only (`store.remote`), a 48-high text button "Joining a household? Enter an invite code" asks for the code with `askForInviteCode` and goes to `invitePath`, as Settings does.
+- **Invite code**: signed in only (`store.remote`), a 48-high text button "Have an invite code?" asks for the code with `askForInviteCode` and goes to `invitePath`, as Settings does.
 - **Layout**: centred in a column of at most 440 on compact and inside the tab's 560 column on medium; from expanded the illustration sits beside the text so the button stays above the fold. The empty state sits inside the shell, so the bar, the gear and the navigation stay.
 - **The other tabs**: with no active card, Credits says "No cards yet, so no credits to track." in place of the filter's empty message, Cards keeps "Start with one card" and swaps its catalogue button for this one, and Value keeps its note; each adds the same `AddCardButton`, so Back returns to that tab. Pinned by [[mobile-tests#Empty tabs]].
 - **Not empty**: while loading, the progress indicator shows; a household whose credits are all locked has cards, so it shows the normal layout with the locked section.
