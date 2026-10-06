@@ -69,7 +69,7 @@ class _ValueScreenState extends State<ValueScreen> {
       ].reduce((a, b) => a > b ? a : b),
     );
     final scope = summaries.length == 1
-        ? cardLabel(summaries.single.card)
+        ? store.cardName(summaries.single.card)
         : '${summaries.length} cards';
 
     Widget sectionTitle(String title) => Semantics(
@@ -229,7 +229,10 @@ class _ValueScreenState extends State<ValueScreen> {
           for (final summary in ranked)
             Padding(
               padding: const EdgeInsets.only(bottom: Space.s3),
-              child: _Rank(summary: summary),
+              child: _Rank(
+                summary: summary,
+                name: store.cardName(summary.card),
+              ),
             ),
         ],
 
@@ -456,9 +459,13 @@ class _Legend extends StatelessWidget {
 
 /// One card on the percentage-of-fee axis, with the break-even line at 100%.
 class _Rank extends StatelessWidget {
-  const _Rank({required this.summary});
+  const _Rank({required this.summary, required this.name});
 
   final CardSummary summary;
+
+  /// The card's name as the app shows it, with its owner's when it is
+  /// someone else's.
+  final String name;
 
   @override
   Widget build(BuildContext context) {
@@ -473,7 +480,7 @@ class _Rank extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                cardLabel(summary.card),
+                name,
                 key: ValueKey('rank-label-$id'),
                 style: text.bodySmall,
               ),

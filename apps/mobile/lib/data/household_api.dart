@@ -26,56 +26,58 @@ class ApiError implements Exception {
   String toString() => 'api $status: $error';
 }
 
-/// The caller's role in their household, as the api names it.
-enum MemberRole {
+/// What the caller may do with a card, as the api names it: everything as
+/// its owner; claims and a credit's state with [record]; read it, and keep
+/// their own preferences on it, with [view].
+enum CardAccess {
   owner,
-  editor,
-  reader;
+  record,
+  view;
 
-  bool get canWrite => this != reader;
+  /// Whether this access logs usage: claims, enrollment, spend and opting
+  /// out.
+  bool get records => this != view;
 }
 
-/// One person in the household.
-class HouseholdMember {
-  const HouseholdMember({
-    required this.userId,
-    required this.email,
-    required this.role,
-  });
+/// Someone whose cards are shared with the caller.
+class Person {
+  const Person({required this.id, this.name, this.email});
 
-  final String userId;
-  final String? email;
-  final MemberRole role;
-}
-
-/// The caller's household: who is in it and the caller's own role.
-class HouseholdView {
-  const HouseholdView({
-    required this.id,
-    required this.role,
-    required this.members,
-  });
+  factory Person.fromJson(Map<String, dynamic> json) => Person(
+    id: json['id']! as String,
+    name: json['name'] as String?,
+    email: json['email'] as String?,
+  );
 
   final String id;
-  final MemberRole role;
-  final List<HouseholdMember> members;
+
+  /// The name on their sign-in, when it carries one.
+  final String? name;
+  final String? email;
+
+  /// What the app calls them: their name, or their email without one.
+  String get displayName => name ?? email ?? 'Someone';
+
+  Map<String, Object?> toJson() => {'id': id, 'name': name, 'email': email};
 }
 
-/// An invite just made: the code to read out and the link to share.
-class Invite {
-  const Invite({
-    required this.code,
-    required this.link,
-    required this.role,
-    required this.expiresAt,
+/// `GET /v1/household/data`: the cards the caller can see as the domain's
+/// snapshot, what they may do with each, and the owners of the ones shared
+/// with them.
+class HouseholdSnapshot {
+  const HouseholdSnapshot({
+    required this.data,
+    this.access = const {},
+    this.people = const {},
   });
 
-  final String code;
-  final String link;
+  final AppData data;
 
-  /// `read` or `edit`.
-  final String role;
-  final String expiresAt;
+  /// By card id.
+  final Map<String, CardAccess> access;
+
+  /// By user id.
+  final Map<String, Person> people;
 }
 
 /// One installation as the api registers it for push: its FCM token, an
@@ -127,17 +129,14 @@ class ReminderSummary {
 /// The service tier as the app uses it; `ApiClient` is the real one, tests
 /// stand in their own. Bodies are the domain's JSON spelling.
 abstract interface class HouseholdApi {
-  Future<AppData> householdData();
-  Future<HouseholdView> household();
+  Future<HouseholdSnapshot> householdData();
 
   /// Every template as it stands today, without `blank`.
   Future<List<CardTemplate>> catalog();
 
-  /// Replaces a linked card with one the household maintains; the new id.
+  /// Replaces a linked card with one its owner maintains; the new id.
   Future<String> convertCard(String cardId);
-  Future<Invite> createInvite(String role);
   Future<void> acceptInvite(String code, {bool confirmLeave = false});
-  Future<void> removeMember(String userId);
   Future<MemberPreferences> preferences();
   Future<void> putPreferences(MemberPreferences preferences);
   Future<void> setMute({
@@ -228,24 +227,20 @@ class ApiClient implements HouseholdApi {
   }
 
   @override
-  Future<AppData> householdData() async => appDataFromJson(
-    (await _send('GET', '/v1/household/data'))! as Map<String, dynamic>,
-  );
-
-  @override
-  Future<HouseholdView> household() async {
-    final json = (await _send('GET', '/v1/household'))! as Map<String, dynamic>;
-    return HouseholdView(
-      id: json['id']! as String,
-      role: MemberRole.values.byName(json['role']! as String),
-      members: [
-        for (final m in (json['members']! as List).cast<Map<String, dynamic>>())
-          HouseholdMember(
-            userId: m['userId']! as String,
-            email: m['email'] as String?,
-            role: MemberRole.values.byName(m['role']! as String),
-          ),
-      ],
+  Future<HouseholdSnapshot> householdData() async {
+    final json =
+        (await _send('GET', '/v1/household/data'))! as Map<String, dynamic>;
+    return HouseholdSnapshot(
+      data: appDataFromJson(json),
+      access: {
+        for (final MapEntry(:key, :value)
+            in ((json['access'] as Map?) ?? const {}).entries)
+          key as String: CardAccess.values.byName(value as String),
+      },
+      people: {
+        for (final p in ((json['people'] as List?) ?? const []))
+          (p as Map<String, dynamic>)['id']! as String: Person.fromJson(p),
+      },
     );
   }
 
@@ -264,28 +259,11 @@ class ApiClient implements HouseholdApi {
   }
 
   @override
-  Future<Invite> createInvite(String role) async {
-    final json =
-        (await _send('POST', '/v1/household/invites', body: {'role': role}))!
-            as Map<String, dynamic>;
-    return Invite(
-      code: json['code']! as String,
-      link: json['link']! as String,
-      role: json['role']! as String,
-      expiresAt: json['expiresAt']! as String,
-    );
-  }
-
-  @override
   Future<void> acceptInvite(String code, {bool confirmLeave = false}) => _send(
     'POST',
     '/v1/invites/${Uri.encodeComponent(code)}/accept',
     body: {'confirmLeave': confirmLeave},
   );
-
-  @override
-  Future<void> removeMember(String userId) =>
-      _send('DELETE', '/v1/household/members/$userId');
 
   @override
   Future<MemberPreferences> preferences() async => memberPreferencesFromJson(

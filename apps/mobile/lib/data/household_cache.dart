@@ -9,19 +9,26 @@ import 'household_api.dart';
 /// changes: a cache of another version is discarded and fetched again,
 /// with no migration chain on the device, because the server holds the
 /// truth.
-const householdCacheVersion = 1;
+const householdCacheVersion = 2;
 
-/// The last household the api served, kept for viewing offline.
+/// The last snapshot the api served, kept for viewing offline: the cards,
+/// what the person may do with each, and the owners of the shared ones.
 class CachedHousehold {
   const CachedHousehold({
     required this.version,
     required this.data,
-    required this.role,
+    this.access = const {},
+    this.people = const {},
   });
 
   final int version;
   final AppData data;
-  final MemberRole role;
+
+  /// By card id.
+  final Map<String, CardAccess> access;
+
+  /// By user id.
+  final Map<String, Person> people;
 }
 
 abstract interface class HouseholdCache {
@@ -45,16 +52,20 @@ class SharedPreferencesHouseholdCache implements HouseholdCache {
       final version = json['version'] as int;
       // Another version's data may not even parse; only the number is read.
       if (version != householdCacheVersion) {
-        return CachedHousehold(
-          version: version,
-          data: emptyHousehold,
-          role: MemberRole.reader,
-        );
+        return CachedHousehold(version: version, data: emptyHousehold);
       }
       return CachedHousehold(
         version: version,
         data: appDataFromJson(json['data'] as Map<String, dynamic>),
-        role: MemberRole.values.byName(json['role'] as String),
+        access: {
+          for (final MapEntry(:key, :value)
+              in (json['access'] as Map<String, dynamic>).entries)
+            key: CardAccess.values.byName(value as String),
+        },
+        people: {
+          for (final p in json['people'] as List)
+            (p as Map<String, dynamic>)['id']! as String: Person.fromJson(p),
+        },
       );
     } on Object {
       return null;
@@ -67,8 +78,12 @@ class SharedPreferencesHouseholdCache implements HouseholdCache {
         key,
         jsonEncode({
           'version': cached.version,
-          'role': cached.role.name,
           'data': appDataToJson(cached.data),
+          'access': {
+            for (final MapEntry(:key, :value) in cached.access.entries)
+              key: value.name,
+          },
+          'people': [for (final p in cached.people.values) p.toJson()],
         }),
       );
 

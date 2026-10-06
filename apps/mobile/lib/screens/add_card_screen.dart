@@ -111,10 +111,12 @@ class _AddCardScreenState extends State<AddCardScreen> {
   String? get _productError => _isBlank
       ? requiredError(_product.text, 'Enter the name of the card.')
       : null;
-  List<Card> get _cards => store.data?.cards ?? const [];
+
+  /// The new card is the caller's, so only their own cards' names count.
+  List<Card> get _cards => store.ownCards;
 
   /// The label the card is saved with: what was typed or, when nothing was,
-  /// the numbered default for a product the household already holds.
+  /// the numbered default for a product the caller already holds.
   String get _effectiveLabel {
     final typed = _label.text.trim();
     if (typed.isNotEmpty) return typed;

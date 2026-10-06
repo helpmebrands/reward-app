@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 
 import '../logic/app_store.dart';
 import '../logic/credit_actions.dart';
@@ -97,12 +97,14 @@ class CreditGroup {
 }
 
 /// Buckets the rows by card, cadence or status, in first-seen order as the
-/// PWA does, each with its label and figure.
+/// PWA does, each with its label and figure. A card's group is titled by
+/// [cardName], which names the owner of someone else's card.
 List<CreditGroup> groupRows(
   List<BenefitInstance> rows,
   CreditsGrouping grouping,
-  CreditsFilter filter,
-) {
+  CreditsFilter filter, {
+  String Function(Card card) cardName = cardLabel,
+}) {
   final buckets = <String, List<BenefitInstance>>{};
   for (final row in rows) {
     final key = switch (grouping) {
@@ -117,7 +119,7 @@ List<CreditGroup> groupRows(
       CreditGroup(
         key: entry.key,
         label: switch (grouping) {
-          CreditsGrouping.card => cardLabel(entry.value.first.card),
+          CreditsGrouping.card => cardName(entry.value.first.card),
           CreditsGrouping.cycle => cadenceLabel(
             entry.value.first.benefit.cadence,
           ),
@@ -179,7 +181,12 @@ class _CreditsScreenState extends State<CreditsScreen> {
     final missed = missedRows(store);
     final totals = store.totals;
     final rows = filterRows([...live, ...missed], _filter);
-    final groups = groupRows(rows, _grouping, _filter);
+    final groups = groupRows(
+      rows,
+      _grouping,
+      _filter,
+      cardName: store.cardName,
+    );
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
 
     final header = Column(
@@ -310,6 +317,7 @@ class _CreditsScreenState extends State<CreditsScreen> {
         else
           for (final group in groups)
             _Group(
+              store: store,
               group: group,
               grouping: _grouping,
               showCard: _grouping != CreditsGrouping.card,
@@ -390,6 +398,7 @@ class _Total extends StatelessWidget {
 
 class _Group extends StatelessWidget {
   const _Group({
+    required this.store,
     required this.group,
     required this.grouping,
     required this.showCard,
@@ -397,6 +406,7 @@ class _Group extends StatelessWidget {
     required this.actions,
   });
 
+  final AppStore store;
   final CreditGroup group;
   final CreditsGrouping grouping;
   final bool showCard;
@@ -476,18 +486,20 @@ class _Group extends StatelessWidget {
                 ),
                 instance: instance,
                 showCard: showCard,
+                cardName: store.cardName(instance.card),
                 onOpen: onOpen == null
                     ? null
                     : () => onOpen.call(instance.benefit.id),
-                onLogAll: actions == null || !actions.store.canWrite
+                onLogAll:
+                    actions == null || !store.accessTo(instance.card.id).records
                     ? null
                     : () => actions.logAll(instance),
                 onToggleMute: actions == null
                     ? null
                     : () => actions.toggleMute(instance),
-                mutePending:
-                    actions?.store.isMutePending(instance.benefit.id) ?? false,
-                onOptOut: actions == null || !actions.store.canWrite
+                mutePending: store.isMutePending(instance.benefit.id),
+                onOptOut:
+                    actions == null || !store.accessTo(instance.card.id).records
                     ? null
                     : () => actions.optOut(instance),
               ),

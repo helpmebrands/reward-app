@@ -8,8 +8,8 @@ import '../shell/router.dart';
 /// returns to the tab it was tapped on.
 ///
 /// It reads "Add your first card" in a household that never had one and
-/// "Add a card" when only archived cards remain, and a reader, who cannot
-/// add, gets nothing.
+/// "Add a card" when only archived cards remain. Everyone gets it, since a
+/// card anyone adds is their own.
 class AddCardButton extends StatelessWidget {
   const AddCardButton({super.key, required this.store});
 
@@ -17,7 +17,6 @@ class AddCardButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!store.canWrite) return const SizedBox.shrink();
     final first = store.data?.cards.isEmpty ?? true;
     return FilledButton(
       key: const Key('empty-add-card'),

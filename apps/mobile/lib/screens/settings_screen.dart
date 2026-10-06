@@ -1,11 +1,8 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../data/household_api.dart';
-import '../data/share.dart';
 import '../logic/app_store.dart';
 import '../logic/push.dart';
 import '../logic/session.dart';
@@ -54,81 +51,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _minValue = TextEditingController();
   final _timeFocus = FocusNode(debugLabel: 'time');
   final _minValueFocus = FocusNode(debugLabel: 'min-value');
-
-  /// The invite just made, shown until the screen is left.
-  Invite? _invite;
-
-  Future<void> _createInvite() async {
-    final role = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => const _InviteRoleSheet(),
-    );
-    if (role == null) return;
-    final invite = await store.createInvite(role);
-    if (invite == null || !mounted) return;
-    setState(() => _invite = invite);
-    final box = _inviteButton.currentContext?.findRenderObject() as RenderBox?;
-    final origin = box == null
-        ? null
-        : box.localToGlobal(Offset.zero) & box.size;
-    // iOS builds the sheet's header, and the recipient's chat its preview,
-    // from the invite page's OpenGraph card, so the link goes alone. Android's
-    // sheet fetches nothing, so it gets the message and the icon.
-    if (Theme.of(context).platform == TargetPlatform.iOS) {
-      await share(
-        ShareParams(uri: Uri.parse(invite.link), sharePositionOrigin: origin),
-      );
-      return;
-    }
-    final icon = await rootBundle.load('assets/logo/helpmereward-icon.png');
-    await share(
-      ShareParams(
-        text:
-            'Help me stop leaving card rewards on the table. Join my '
-            "household on HelpMe Reward and we'll track every credit "
-            'together, so none expire unused.\n'
-            'Code: ${invite.code}\n'
-            '${invite.link}',
-        title: _inviteTitle,
-        subject: _inviteTitle,
-        previewThumbnail: XFile.fromData(
-          icon.buffer.asUint8List(icon.offsetInBytes, icon.lengthInBytes),
-          mimeType: 'image/png',
-          name: 'helpmereward-icon.png',
-        ),
-        sharePositionOrigin: origin,
-      ),
-    );
-  }
-
-  static const _inviteTitle = 'Join my household on HelpMe Reward';
-
-  /// Anchors the share sheet's popover on iPad.
-  final _inviteButton = GlobalKey();
-
-  Future<void> _remove(HouseholdMember member) async {
-    final who = member.email ?? 'this member';
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Remove $who?'),
-        content: const Text(
-          'They lose access at once and take nothing with them.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) await store.removeMember(member.userId);
-  }
 
   Future<void> _enterCode() async {
     final code = await askForInviteCode(context);
@@ -461,123 +383,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget Function(String) title,
     TextStyle? note,
   ) {
-    final text = Theme.of(context).textTheme;
-    final household = store.household;
-    final owner = household?.role == MemberRole.owner;
-    final invite = _invite;
     return [
       const SizedBox(height: Space.s8),
       title('Household'),
       const SizedBox(height: Space.s2),
       Text(
-        'Everyone here shares the same cards and credits. Reminders and '
-        'silences stay each person’s own.',
+        'People share their cards with each other. Reminders and silences '
+        'stay each person’s own.',
         style: note,
       ),
       const SizedBox(height: Space.s3),
-      for (final member in household?.members ?? const <HouseholdMember>[])
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: Space.s1),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(member.email ?? 'Someone', style: text.bodyMedium),
-              ),
-              Text(_roleLabel(member.role), style: note),
-              if (owner && member.role != MemberRole.owner)
-                IconButton(
-                  tooltip: 'Remove ${member.email ?? 'this member'}',
-                  icon: const Icon(Icons.person_remove_outlined),
-                  onPressed: () => _remove(member),
-                ),
-            ],
-          ),
+      Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TextButton(
+          key: const Key('have-code'),
+          onPressed: _enterCode,
+          child: const Text('Have an invite code?'),
         ),
-      const SizedBox(height: Space.s3),
-      Wrap(
-        spacing: Space.s2,
-        runSpacing: Space.s2,
-        children: [
-          if (owner)
-            KeyedSubtree(
-              key: _inviteButton,
-              child: FilledButton.icon(
-                key: const Key('invite'),
-                onPressed: _createInvite,
-                icon: const Icon(Icons.person_add_outlined),
-                label: const Text('Invite someone'),
-              ),
-            ),
-          TextButton(
-            key: const Key('have-code'),
-            onPressed: _enterCode,
-            child: const Text('Have an invite code?'),
-          ),
-        ],
       ),
-      if (invite != null) ...[
-        const SizedBox(height: Space.s3),
-        Text(
-          'Share the link, or read out the code. It works once, for seven '
-          'days, and lets them ${invite.role == 'edit' ? 'change' : 'view'} '
-          'the household.',
-          style: note,
-        ),
-        const SizedBox(height: Space.s2),
-        SelectableText(
-          invite.code,
-          style: text.headlineSmall?.copyWith(letterSpacing: 4),
-        ),
-      ],
     ];
   }
-}
-
-String _roleLabel(MemberRole role) => switch (role) {
-  MemberRole.owner => 'Owner',
-  MemberRole.editor => 'Editor',
-  MemberRole.reader => 'Reader',
-};
-
-/// Read or edit, then make the invite.
-class _InviteRoleSheet extends StatefulWidget {
-  const _InviteRoleSheet();
-
-  @override
-  State<_InviteRoleSheet> createState() => _InviteRoleSheetState();
-}
-
-class _InviteRoleSheetState extends State<_InviteRoleSheet> {
-  String _role = 'read';
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    child: Padding(
-      padding: const EdgeInsets.all(Space.s6),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Invite someone',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: Space.s4),
-          SegmentedButton<String>(
-            segments: const [
-              ButtonSegment(value: 'read', label: Text('Can read')),
-              ButtonSegment(value: 'edit', label: Text('Can edit')),
-            ],
-            selected: {_role},
-            onSelectionChanged: (s) => setState(() => _role = s.single),
-          ),
-          const SizedBox(height: Space.s4),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(_role),
-            child: const Text('Create and share'),
-          ),
-        ],
-      ),
-    ),
-  );
 }

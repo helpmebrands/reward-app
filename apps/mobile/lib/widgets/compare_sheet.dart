@@ -1,5 +1,5 @@
 import 'package:domain/domain.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Card;
 
 import '../logic/credit_actions.dart';
 import '../theme/nocturne_tokens.dart';
@@ -24,8 +24,12 @@ class CompareSheet extends StatelessWidget {
   final VoidCallback onClose;
   final ValueChanged<String> onOpenCredit;
 
-  /// What to do, in one paragraph, from the two balances.
-  static String advice(OverlapGroup overlap) {
+  /// What to do, in one paragraph, from the two balances, each card called
+  /// by [cardName], which names the owner of someone else's card.
+  static String advice(
+    OverlapGroup overlap, {
+    String Function(Card card) cardName = cardLabel,
+  }) {
     if (overlap.instances.length < 2) return '';
     final first = overlap.instances[0];
     final second = overlap.instances[1];
@@ -35,9 +39,9 @@ class CompareSheet extends StatelessWidget {
     final ahead = identical(behind, first) ? second : first;
     if (behind.status == BenefitStatus.locked &&
         ahead.status != BenefitStatus.locked) {
-      return 'The ${cardLabel(behind.card)} side is still behind an enrollment '
+      return 'The ${cardName(behind.card)} side is still behind an enrollment '
           'box, so only the ${formatMoney(ahead.remainingCents)} on '
-          '${cardLabel(ahead.card)} can actually be spent today. Unlock it '
+          '${cardName(ahead.card)} can actually be spent today. Unlock it '
           'first — the money is already on the card.';
     }
     if (behind.remainingCents == ahead.remainingCents) {
@@ -45,9 +49,9 @@ class CompareSheet extends StatelessWidget {
           'each. They cannot be combined, so this needs two separate purchases '
           '— not one larger one.';
     }
-    return 'The ${cardLabel(behind.card)} side is the one at risk: '
+    return 'The ${cardName(behind.card)} side is the one at risk: '
         '${formatMoney(behind.remainingCents)} against '
-        '${formatMoney(ahead.remainingCents)} on ${cardLabel(ahead.card)}. One '
+        '${formatMoney(ahead.remainingCents)} on ${cardName(ahead.card)}. One '
         'purchase cannot draw on both cards, so clear the larger one first.';
   }
 
@@ -55,7 +59,8 @@ class CompareSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
-    final today = actions.store.today;
+    final store = actions.store;
+    final today = store.today;
     final note = text.bodySmall?.copyWith(color: tokens.textSecondary);
 
     return SingleChildScrollView(
@@ -114,6 +119,7 @@ class CompareSheet extends StatelessWidget {
                   Expanded(
                     child: _Side(
                       instance: instance,
+                      name: store.cardName(instance.card),
                       today: today,
                       onTap: () => onOpenCredit(instance.benefit.id),
                     ),
@@ -141,7 +147,7 @@ class CompareSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: Space.s2),
                 Text(
-                  advice(overlap),
+                  advice(overlap, cardName: store.cardName),
                   style: text.bodySmall?.copyWith(color: tokens.neutral[300]),
                 ),
               ],
@@ -150,7 +156,7 @@ class CompareSheet extends StatelessWidget {
           const SizedBox(height: Space.s6),
           for (final instance in overlap.instances)
             if (instance.status != BenefitStatus.locked &&
-                actions.store.canWrite)
+                store.accessTo(instance.card.id).records)
               Padding(
                 padding: const EdgeInsets.only(bottom: Space.s2),
                 child: OutlinedButton.icon(
@@ -161,7 +167,7 @@ class CompareSheet extends StatelessWidget {
                   icon: const Icon(Icons.check_circle_outline, size: 16),
                   label: Text(
                     'Log ${formatMoney(instance.remainingCents)} on '
-                    '${cardLabel(instance.card)}',
+                    '${store.cardName(instance.card)}',
                   ),
                 ),
               ),
@@ -174,11 +180,16 @@ class CompareSheet extends StatelessWidget {
 class _Side extends StatelessWidget {
   const _Side({
     required this.instance,
+    required this.name,
     required this.today,
     required this.onTap,
   });
 
   final BenefitInstance instance;
+
+  /// The card's name as the app shows it, with its owner's when it is
+  /// someone else's.
+  final String name;
   final IsoDate today;
   final VoidCallback onTap;
 
@@ -188,7 +199,6 @@ class _Side extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final locked = instance.status == BenefitStatus.locked;
     final palette = locked ? tokens.locked : tokens.available;
-    final name = cardLabel(instance.card);
     return Material(
       color: tokens.surfaceQuiet,
       shape: RoundedRectangleBorder(

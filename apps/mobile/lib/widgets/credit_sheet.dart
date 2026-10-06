@@ -147,6 +147,9 @@ class _SheetBodyState extends State<_SheetBody> {
     final manual = benefit.cadence == Cadence.manual;
     final rolling = benefit.cadence == Cadence.rolling;
     final claims = store.claimsFor(benefit.id, instance.cycle.key);
+    // Logging, unlocking, undoing and opting out are usage, which a card
+    // shared only to view does not allow; the level stays the person's own.
+    final records = store.accessTo(instance.card.id).records;
     // The deadline line under the meter, by what kind of window this is.
     final deadline = manual
         ? 'Tracked by hand — no deadline'
@@ -180,7 +183,7 @@ class _SheetBodyState extends State<_SheetBody> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      cardLabel(instance.card).toUpperCase(),
+                      store.cardName(instance.card).toUpperCase(),
                       style: text.labelSmall?.copyWith(
                         color: tokens.accentRamp[400],
                       ),
@@ -280,7 +283,7 @@ class _SheetBodyState extends State<_SheetBody> {
                     ],
                   ),
                   const SizedBox(height: Space.s4),
-                  if (!store.canWrite)
+                  if (!records)
                     const SizedBox.shrink()
                   else if (lockReason(benefit, instance.card, today) ==
                       LockReason.spend)
@@ -298,7 +301,7 @@ class _SheetBodyState extends State<_SheetBody> {
             ),
           ],
 
-          if (store.canWrite &&
+          if (records &&
               (status == BenefitStatus.useSoon ||
                   status == BenefitStatus.available)) ...[
             const SizedBox(height: Space.s8),
@@ -396,7 +399,7 @@ class _SheetBodyState extends State<_SheetBody> {
                             padding: const EdgeInsets.only(right: Space.s2),
                             child: Text('Pending', style: note),
                           ),
-                        if (store.canWrite)
+                        if (records)
                           OutlinedButton(
                             onPressed: () =>
                                 actions.removeClaim(instance, claim),
@@ -426,7 +429,7 @@ class _SheetBodyState extends State<_SheetBody> {
                       'Fully captured. Reminders stay off until it resets.',
                     ),
                   ),
-                  if (store.canWrite)
+                  if (records)
                     OutlinedButton(
                       onPressed: () => actions.unclaimAll(instance),
                       child: const Text('Undo'),
@@ -508,7 +511,7 @@ class _SheetBodyState extends State<_SheetBody> {
                 : (level) => actions.setLevel(instance, level),
           ),
           const SizedBox(height: Space.s6),
-          if (store.canWrite)
+          if (records)
             TextButton.icon(
               onPressed: () {
                 widget.onClose();
@@ -517,7 +520,7 @@ class _SheetBodyState extends State<_SheetBody> {
               icon: const Icon(Icons.do_not_disturb_on_outlined, size: 14),
               label: const Text('Opt out — I won\'t use this'),
             ),
-          if (store.canWrite)
+          if (records)
             TextButton.icon(
               onPressed: () {
                 widget.onClose();

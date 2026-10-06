@@ -5,8 +5,8 @@ import 'package:reward/data/household_api.dart';
 import 'package:reward/data/snapshot_store.dart';
 
 /// A fake service tier for widget and store tests: an in-memory household
-/// that dedupes claims by idempotency key as the real api does, and records
-/// the household calls it is sent.
+/// that dedupes claims by idempotency key as the real api does, serves what
+/// the caller may do with each card, and records the calls it is sent.
 
 const stamp = '2026-01-01T00:00:00.000Z';
 
@@ -49,11 +49,21 @@ AppData serverHousehold({String label = 'Server'}) => AppData(
 /// An in-memory service tier that dedupes claims by idempotency key, as
 /// the real one does.
 class FakeApi implements HouseholdApi {
-  FakeApi({AppData? data, this.role = MemberRole.editor})
-    : data = data ?? serverHousehold();
+  FakeApi({
+    AppData? data,
+    Map<String, CardAccess>? access,
+    Map<String, Person>? people,
+  }) : data = data ?? serverHousehold(),
+       access = access ?? {},
+       people = people ?? {};
 
   AppData data;
-  MemberRole role;
+
+  /// What the caller may do with each card; a card not named is theirs.
+  Map<String, CardAccess> access;
+
+  /// The owners of the cards shared with the caller, by user id.
+  Map<String, Person> people;
   bool online = true;
   int claimPosts = 0;
   final _claimsByKey = <String, Claim>{};
@@ -63,42 +73,21 @@ class FakeApi implements HouseholdApi {
   }
 
   @override
-  Future<AppData> householdData() async {
+  Future<HouseholdSnapshot> householdData() async {
     _check();
-    return data;
-  }
-
-  final members = <HouseholdMember>[
-    const HouseholdMember(
-      userId: 'user-owner',
-      email: 'ann@example.com',
-      role: MemberRole.owner,
-    ),
-  ];
-
-  @override
-  Future<HouseholdView> household() async {
-    _check();
-    return HouseholdView(id: 'household-1', role: role, members: members);
-  }
-
-  /// Invites made, by role; what the next accept answers.
-  final invites = <String>[];
-  Object? acceptAnswer;
-  final accepted = <({String code, bool confirmLeave})>[];
-  final removed = <String>[];
-
-  @override
-  Future<Invite> createInvite(String role) async {
-    _check();
-    invites.add(role);
-    return Invite(
-      code: 'ABCD2345',
-      link: 'https://api.test/invite/ABCD2345',
-      role: role,
-      expiresAt: '2026-09-23T10:00:00.000Z',
+    return HouseholdSnapshot(
+      data: data,
+      access: {
+        for (final card in data.cards)
+          card.id: access[card.id] ?? CardAccess.owner,
+      },
+      people: {...people},
     );
   }
+
+  /// What the next accept answers.
+  Object? acceptAnswer;
+  final accepted = <({String code, bool confirmLeave})>[];
 
   @override
   Future<void> acceptInvite(String code, {bool confirmLeave = false}) async {
@@ -109,14 +98,6 @@ class FakeApi implements HouseholdApi {
         !(answer.error == 'household holds cards' && confirmLeave)) {
       throw answer;
     }
-    role = MemberRole.editor;
-  }
-
-  @override
-  Future<void> removeMember(String userId) async {
-    _check();
-    removed.add(userId);
-    members.removeWhere((m) => m.userId == userId);
   }
 
   /// The member's mutes as the server holds them.

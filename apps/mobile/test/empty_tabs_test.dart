@@ -1,7 +1,6 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart' hide Card;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reward/data/household_api.dart';
 import 'package:reward/data/snapshot_store.dart';
 import 'package:reward/logic/app_store.dart';
 import 'package:reward/logic/ui_state.dart';
@@ -30,11 +29,9 @@ Future<void> pumpAt(
   WidgetTester tester,
   String location, {
   AppData? data,
-  FakeApi? api,
 }) async {
   final store = AppStore(
-    store: MemorySnapshotStore(api == null ? (data ?? emptyAppData()) : null),
-    api: api,
+    store: MemorySnapshotStore(data ?? emptyAppData()),
     clock: () => DateTime(2026, 9, 16, 10),
   );
   await store.load();
@@ -87,23 +84,14 @@ void main() {
     }
   });
 
-  // @lat: [[mobile-tests#Empty tabs#Archived cards read Add a card and readers get none]]
-  testWidgets('archived-only reads Add a card; a reader sees none', (
-    tester,
-  ) async {
+  // @lat: [[mobile-tests#Empty tabs#Archived cards read Add a card]]
+  testWidgets('archived-only reads Add a card', (tester) async {
     final archived = emptyAppData().copyWith(
       cards: [card1.copyWith(archived: true)],
     );
     for (final (path, _, _) in tabs) {
       await pumpAt(tester, path, data: archived);
       expect(label('Add a card'), findsOneWidget, reason: path);
-
-      await pumpAt(
-        tester,
-        path,
-        api: FakeApi(data: emptyAppData(), role: MemberRole.reader),
-      );
-      expect(addButton, findsNothing, reason: path);
     }
   });
 }
