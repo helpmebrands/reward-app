@@ -165,6 +165,25 @@ class FakeApi implements HouseholdApi {
     );
   }
 
+  /// Cards handed over, and to whom.
+  final transfers = <({String cardId, String userId})>[];
+
+  /// Hands the card to someone it is shared with: theirs now, shared back
+  /// with the caller to record usage.
+  @override
+  Future<void> transferCard(String cardId, String userId) async {
+    _check();
+    transfers.add((cardId: cardId, userId: userId));
+    data = data.copyWith(
+      cards: [
+        for (final card in data.cards)
+          card.id == cardId ? card.copyWith(ownerId: userId) : card,
+      ],
+    );
+    access[cardId] = CardAccess.record;
+    people[userId] = given.firstWhere((s) => s.person.id == userId).person;
+  }
+
   @override
   Future<void> stopSharing(String memberId) async {
     _check();

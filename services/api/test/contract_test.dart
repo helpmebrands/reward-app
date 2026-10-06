@@ -227,6 +227,97 @@ final shareCases = <Case>[
     as: 'third',
     url: () => '/v1/shares/received/${saved['owner']}',
   ),
+  ...transferCases,
+];
+
+const _transfer = '/v1/cards/{cardId}/transfer';
+
+/// Transfers after the shares: `owner` adds a card, shares it with `third`
+/// to record usage, and hands it over; `third` then owns it.
+final transferCases = <Case>[
+  call(
+    'POST',
+    '/v1/cards',
+    201,
+    as: 'owner',
+    body: {..._gold, 'label': 'Handed over'},
+    capture: (body) =>
+        saved['handedCard'] = (body['card'] as Map)['id'] as String,
+  ),
+  call(
+    'POST',
+    '/v1/invites',
+    201,
+    as: 'owner',
+    body: () => {
+      'access': 'record',
+      'cardIds': [saved['handedCard']],
+    },
+    capture: keep('handCode', 'code'),
+  ),
+  call(
+    'POST',
+    _accept,
+    200,
+    as: 'third',
+    url: () => '/v1/invites/${saved['handCode']}/accept',
+  ),
+  call('GET', '/v1/me', 200, as: 'third', capture: keep('third', 'id')),
+  call(
+    'POST',
+    _transfer,
+    403,
+    as: 'third',
+    url: () => '/v1/cards/${saved['handedCard']}/transfer',
+    body: () => {'userId': saved['owner']},
+  ),
+  call(
+    'POST',
+    _transfer,
+    400,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['handedCard']}/transfer',
+    body: {'userId': 7},
+  ),
+  call(
+    'POST',
+    _transfer,
+    404,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['handedCard']}/transfer',
+    body: {'userId': _nobody},
+  ),
+  call(
+    'POST',
+    '/v1/cards',
+    201,
+    as: 'third',
+    body: {..._gold, 'label': 'Handed over'},
+  ),
+  call(
+    'POST',
+    _transfer,
+    409,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['handedCard']}/transfer',
+    body: () => {'userId': saved['third']},
+  ),
+  call(
+    'PATCH',
+    _card,
+    200,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['handedCard']}',
+    body: {'label': 'Yours now'},
+  ),
+  call(
+    'POST',
+    _transfer,
+    204,
+    as: 'owner',
+    url: () => '/v1/cards/${saved['handedCard']}/transfer',
+    body: () => {'userId': saved['third']},
+  ),
 ];
 
 const _accept = '/v1/invites/{code}/accept';

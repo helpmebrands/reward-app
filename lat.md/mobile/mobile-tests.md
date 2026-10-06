@@ -1669,6 +1669,20 @@ With the api unreachable, a store over the `shared_preferences` cache the last l
 
 A local store says `owner` for Alex's card and names it "Platinum" alone, and its editor is fully editable, with archive, delete and "Change the terms".
 
+## Card transfer
+
+`card_transfer_test.dart` drives "Give this card to…" on the card editor over the fake api ([[mobile-architecture#Card access#Handing a card over]]).
+
+### The owner gives a card to someone it is shared with
+
+With the Gold shared with Bob as one of all cards and the Reserve alone with Cat, "Give this card to…" lists Bob and not Cat.
+
+Choosing Bob asks "Bob will own this card. You’ll still see it."; "Give it to Bob" sends the transfer, and the editor turns read-only with "Only Bob can change this card." and no transfer.
+
+### A card that is not yours offers no transfer
+
+The editor of a card shared with you to record usage has no "Give this card to…", and neither does one of yours that nobody sees.
+
 ## Household sharing
 
 `household_sharing_test.dart` drives Settings, the share sheet, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `share` captured ([[mobile-architecture#Household sharing]]).

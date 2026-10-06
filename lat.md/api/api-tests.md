@@ -144,6 +144,30 @@ Bob then stops seeing Ann's cards (204, 404 a second time) and sees only his own
 
 A patch naming Bob's card among Ann's `cardIds` is 404 and changes nothing; a patch or delete of a share Ann does not have, given or received, is 404.
 
+## Card transfer
+
+`transfer_integration_test.dart` hands cards between people who share them, against `DATABASE_URL` in its own `transfer` schema ([[api-architecture#Owners and shares#Handing a card over]]).
+
+### The new owner owns the card and the previous owner keeps it
+
+After Ann hands her Gold to Bob, who saw it to view, Bob's snapshot says `owner`; Ann's says `record` and names Bob in `people`, through a new share from Bob to Ann of that one card at `record`.
+
+### A share the new owner already gives takes the card
+
+When Bob already shares one of his cards with Ann to view, the Gold Ann hands him joins that share, so Ann sees both at `view`.
+
+### Claims, state and mutes stay
+
+Bob's claim on the Gold, Ann's enrollment of its credit, Ann's mute of the card and Bob's mute of the credit read the same after the transfer.
+
+### The previous owner's other shares stop covering it
+
+Cat, to whom Ann shared the Gold and another card, sees only the other card once Ann hands the Gold to Bob.
+
+### Only the owner hands a card to someone who sees it
+
+Bob, at record, gets 403; Cat, who cannot see the card, 404, and so does Ann handing it to Cat. A `userId` that is not a string is 400; to Bob once he owns a card of its name, 409 `label taken`, and Ann still owns it.
+
 ## Catalogue
 
 `catalog_test.dart` holds the seed migration to its generator without a database; `catalog_integration_test.dart` checks the seed, the triggers and the read routes against `DATABASE_URL` in its own `catalog` schema ([[api-architecture#Catalogue]]).
