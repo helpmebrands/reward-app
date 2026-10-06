@@ -1,8 +1,11 @@
 import 'package:domain/domain.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../data/household_api.dart';
+import '../data/share.dart';
 import '../logic/app_store.dart';
 import '../logic/push.dart';
 import '../logic/session.dart';
@@ -12,6 +15,7 @@ import '../shell/width_class.dart';
 import '../theme/nocturne_tokens.dart';
 import '../widgets/editor_scaffold.dart';
 import '../widgets/field.dart';
+import '../widgets/share_choices.dart';
 import '../widgets/switch_row.dart';
 import 'join_screen.dart';
 
@@ -51,6 +55,137 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _minValue = TextEditingController();
   final _timeFocus = FocusNode(debugLabel: 'time');
   final _minValueFocus = FocusNode(debugLabel: 'min-value');
+
+  /// The invite just made, shown until the screen is left.
+  Invite? _invite;
+
+  /// View or record usage, then all cards or chosen ones; then the invite,
+  /// handed to the share sheet.
+  Future<void> _shareCards() async {
+    final choice = await showModalBottomSheet<ShareChoice>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => ShareChoices(
+        title: 'Share your cards',
+        cards: store.ownCards,
+        action: 'Create and share',
+      ),
+    );
+    if (choice == null) return;
+    final invite = await store.createInvite(
+      choice.access,
+      cardIds: choice.cardIds,
+    );
+    if (invite == null || !mounted) return;
+    setState(() => _invite = invite);
+    final box = _shareButton.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    // iOS builds the sheet's header, and the recipient's chat its preview,
+    // from the invite page's OpenGraph card, so the link goes alone. Android's
+    // sheet fetches nothing, so it gets the message and the icon.
+    if (Theme.of(context).platform == TargetPlatform.iOS) {
+      await share(
+        ShareParams(uri: Uri.parse(invite.link), sharePositionOrigin: origin),
+      );
+      return;
+    }
+    final icon = await rootBundle.load('assets/logo/helpmereward-icon.png');
+    await share(
+      ShareParams(
+        text:
+            'Help me stop leaving card rewards on the table. Join my '
+            "household on HelpMe Reward and we'll track every credit "
+            'together, so none expire unused.\n'
+            'Code: ${invite.code}\n'
+            '${invite.link}',
+        title: _inviteTitle,
+        subject: _inviteTitle,
+        previewThumbnail: XFile.fromData(
+          icon.buffer.asUint8List(icon.offsetInBytes, icon.lengthInBytes),
+          mimeType: 'image/png',
+          name: 'helpmereward-icon.png',
+        ),
+        sharePositionOrigin: origin,
+      ),
+    );
+  }
+
+  static const _inviteTitle = 'Join my household on HelpMe Reward';
+
+  /// Anchors the share sheet's popover on iPad.
+  final _shareButton = GlobalKey();
+
+  /// Changes what someone sees of your cards, or stops sharing with them
+  /// after a confirmation.
+  Future<void> _changeShare(CardShare given) async {
+    final who = given.person.displayName;
+    final choice = await showModalBottomSheet<ShareChoice>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => ShareChoices(
+        title: who,
+        cards: store.ownCards,
+        action: 'Save',
+        access: given.access,
+        cardIds: given.allCards ? null : given.cardIds,
+        canStop: true,
+      ),
+    );
+    if (choice == null || !mounted) return;
+    if (!choice.stop) {
+      await store.changeShare(
+        given.person.id,
+        choice.access,
+        cardIds: choice.cardIds,
+      );
+      return;
+    }
+    final confirmed = await _confirm(
+      title: 'Stop sharing with $who?',
+      body: '$who stops seeing your cards at once. Nothing is deleted.',
+      action: 'Stop sharing',
+    );
+    if (confirmed) await store.stopSharing(given.person.id);
+  }
+
+  /// Stops seeing someone's cards, after a confirmation.
+  Future<void> _stopSeeing(CardShare received) async {
+    final who = received.person.displayName;
+    final confirmed = await _confirm(
+      title: '$who’s cards',
+      body:
+          'They leave your lists and reminders at once. $who can share them '
+          'again.',
+      action: 'Stop seeing their cards',
+    );
+    if (confirmed) await store.stopSeeing(received.person.id);
+  }
+
+  Future<bool> _confirm({
+    required String title,
+    required String body,
+    required String action,
+  }) async =>
+      await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(title),
+          content: Text(body),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(action),
+            ),
+          ],
+        ),
+      ) ??
+      false;
 
   Future<void> _enterCode() async {
     final code = await askForInviteCode(context);
@@ -107,6 +242,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _time.addListener(_changed);
     _minValue.addListener(_changed);
     if (current.enabled) widget.push?.refreshSummary();
+    if (store.remote) store.loadShares();
   }
 
   @override
@@ -383,6 +519,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget Function(String) title,
     TextStyle? note,
   ) {
+    final text = Theme.of(context).textTheme;
+    final shares = store.shares;
+    final invite = _invite;
+    Widget subheading(String label) => Padding(
+      padding: const EdgeInsets.only(top: Space.s4, bottom: Space.s1),
+      child: Semantics(
+        header: true,
+        child: Text(label, style: text.titleSmall),
+      ),
+    );
     return [
       const SizedBox(height: Space.s8),
       title('Household'),
@@ -392,15 +538,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
         'stay each person’s own.',
         style: note,
       ),
-      const SizedBox(height: Space.s3),
-      Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: TextButton(
-          key: const Key('have-code'),
-          onPressed: _enterCode,
-          child: const Text('Have an invite code?'),
+      subheading('People who see your cards'),
+      if (shares != null && shares.given.isEmpty)
+        Text('Nobody sees your cards yet.', style: note),
+      for (final given in shares?.given ?? const <CardShare>[])
+        ShareLine(
+          key: Key('given-${given.person.id}'),
+          share: given,
+          onTap: () => _changeShare(given),
         ),
+      subheading('Shared with you'),
+      if (shares != null && shares.received.isEmpty)
+        Text('Nobody shares cards with you yet.', style: note),
+      for (final received in shares?.received ?? const <CardShare>[])
+        ShareLine(
+          key: Key('received-${received.person.id}'),
+          share: received,
+          onTap: () => _stopSeeing(received),
+        ),
+      const SizedBox(height: Space.s4),
+      Wrap(
+        spacing: Space.s2,
+        runSpacing: Space.s2,
+        children: [
+          KeyedSubtree(
+            key: _shareButton,
+            child: FilledButton.icon(
+              key: const Key('share-cards'),
+              onPressed: _shareCards,
+              icon: const Icon(Icons.person_add_outlined),
+              label: const Text('Share your cards'),
+            ),
+          ),
+          TextButton(
+            key: const Key('have-code'),
+            onPressed: _enterCode,
+            child: const Text('Have an invite code?'),
+          ),
+        ],
       ),
+      if (invite != null) ...[
+        const SizedBox(height: Space.s3),
+        Text(
+          'Share the link, or read out the code. It works once, for seven '
+          'days, and lets them view '
+          '${invite.allCards ? 'all your cards' : '${invite.cardIds.length} of your cards'}'
+          '${invite.access == CardAccess.record ? ' and record what they use' : ''}.',
+          style: note,
+        ),
+        const SizedBox(height: Space.s2),
+        SelectableText(
+          invite.code,
+          style: text.headlineSmall?.copyWith(letterSpacing: 4),
+        ),
+      ],
     ];
   }
+}
+
+/// One share in Settings: the other person, how many cards and what it
+/// lets them do ("All cards · View"), tapped to change or end it.
+class ShareLine extends StatelessWidget {
+  const ShareLine({super.key, required this.share, required this.onTap});
+
+  final CardShare share;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    title: Text(share.person.displayName),
+    subtitle: Text(
+      '${scopeLabel(share.allCards, share.cardIds.length)} · '
+      '${accessLabel(share.access)}',
+    ),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
 }

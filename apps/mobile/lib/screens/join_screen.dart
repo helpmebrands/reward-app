@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../data/household_api.dart';
 import '../logic/app_store.dart';
 import '../logic/ui_state.dart';
 import '../shell/brand_app_bar.dart';
@@ -10,9 +11,11 @@ import '../theme/nocturne_tokens.dart';
 import '../widgets/brand_logo.dart';
 import '../widgets/screen_title.dart';
 
-/// Joining a household with an invite, from a link (`/invite/<code>`) or a
-/// code typed in. Leaving a household that holds cards asks first; a used,
-/// expired or unknown code says so and stays.
+/// Accepting an invite, from a link (`/invite/<code>`) or a code typed in.
+/// It reads the invite first and says whose cards it shares, all of them or
+/// how many, and at which access; a used, expired, unknown, own or
+/// already-shared code says so and stays. Accepting moves and deletes
+/// nothing of yours.
 ///
 /// Reached from a link, so it carries the brand: the lockup in the bar
 /// instead of Back and a title, and the two-line logo above the message.
@@ -36,72 +39,75 @@ class JoinScreen extends StatefulWidget {
   State<JoinScreen> createState() => _JoinScreenState();
 }
 
+/// Why an invite cannot be read or accepted, as the join screen says it.
+/// [owner] names the person who shares, once the invite has been read.
+String joinProblem(JoinOutcome outcome, {String? owner}) => switch (outcome) {
+  JoinOutcome.used => 'This invite has been used. Ask for a new one.',
+  JoinOutcome.expired =>
+    'This invite has expired. Invites last seven days; ask for a new one.',
+  JoinOutcome.notFound => 'No invite has that code. Check the letters.',
+  JoinOutcome.ownInvite =>
+    'This is your own invite. Send it to the person you want to share with.',
+  JoinOutcome.alreadyShared =>
+    '${owner ?? 'This person'} already shares cards with you. Ask them to '
+        'change what you see instead.',
+  JoinOutcome.offline => 'You are offline. Accepting needs a connection.',
+  JoinOutcome.accepted || JoinOutcome.failed => 'That did not work. Try again.',
+};
+
+/// "Alex wants to share all their cards with you." or "… 2 of their cards
+/// …".
+String offerHeadline(InviteOffer offer) {
+  final who = offer.owner.displayName;
+  final count = offer.cardCount ?? 0;
+  final cards = offer.allCards
+      ? 'all their cards'
+      : '$count of their card${count == 1 ? '' : 's'}';
+  return '$who wants to share $cards with you.';
+}
+
+/// What accepting lets you do with the cards.
+String offerAccess(InviteOffer offer) => offer.access == CardAccess.view
+    ? 'You’ll be able to view them.'
+    : 'You’ll be able to view them and record what you use.';
+
 class _JoinScreenState extends State<JoinScreen> {
+  InviteOffer? _offer;
+  bool _reading = true;
   bool _busy = false;
   String? _error;
 
-  Future<void> _join({bool confirmLeave = false}) async {
+  @override
+  void initState() {
+    super.initState();
+    _read();
+  }
+
+  Future<void> _read() async {
+    final (:offer, :problem) = await widget.store.readInvite(widget.code);
+    if (!mounted) return;
+    setState(() {
+      _reading = false;
+      _offer = offer;
+      _error = problem == null ? null : joinProblem(problem);
+    });
+  }
+
+  Future<void> _accept() async {
+    final owner = _offer?.owner.displayName;
     setState(() {
       _busy = true;
       _error = null;
     });
-    final outcome = await widget.store.joinHousehold(
-      widget.code,
-      confirmLeave: confirmLeave,
-    );
+    final outcome = await widget.store.acceptInvite(widget.code);
     if (!mounted) return;
     setState(() => _busy = false);
-    switch (outcome) {
-      case JoinOutcome.joined:
-        widget.ui?.snackbar.show('You joined the household.');
-        context.go(Paths.today);
-      case JoinOutcome.holdsCards:
-        final leave = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Leave your cards behind?'),
-            content: const Text(
-              'Your household holds cards. They stay with it, and you will '
-              'not see them once you join. Anyone else in it keeps them.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Stay'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Leave and join'),
-              ),
-            ],
-          ),
-        );
-        if (leave == true) await _join(confirmLeave: true);
-      case JoinOutcome.used:
-        setState(
-          () => _error = 'This invite has been used. Ask for a new one.',
-        );
-      case JoinOutcome.expired:
-        setState(
-          () => _error =
-              'This invite has expired. Invites last seven days; ask for a '
-              'new one.',
-        );
-      case JoinOutcome.notFound:
-        setState(() => _error = 'No invite has that code. Check the letters.');
-      case JoinOutcome.ownerHasMembers:
-        setState(
-          () => _error =
-              'You own a household with other people in it. Remove them '
-              'first, or ask one of them to take it over.',
-        );
-      case JoinOutcome.alreadyMember:
-        setState(() => _error = 'You are already in this household.');
-      case JoinOutcome.offline:
-        setState(() => _error = 'You are offline. Joining needs a connection.');
-      case JoinOutcome.failed:
-        setState(() => _error = 'That did not work. Try again.');
+    if (outcome == JoinOutcome.accepted) {
+      widget.ui?.snackbar.show('You can see $owner’s cards now.');
+      context.go(Paths.today);
+      return;
     }
+    setState(() => _error = joinProblem(outcome, owner: owner));
   }
 
   @override
@@ -109,6 +115,7 @@ class _JoinScreenState extends State<JoinScreen> {
     final tokens = Theme.of(context).extension<NocturneTokens>()!;
     final text = Theme.of(context).textTheme;
     final error = _error;
+    final offer = _offer;
     return Scaffold(
       appBar: BrandAppBar(
         widthClass: WidthClass.forWidth(MediaQuery.sizeOf(context).width),
@@ -128,17 +135,29 @@ class _JoinScreenState extends State<JoinScreen> {
                   const Center(child: BrandLogo()),
                   const SizedBox(height: Space.s6),
                   ScreenTitle(
-                    label: 'Join a household',
+                    label: 'Accept an invite',
                     style: text.headlineSmall,
                   ),
                   const SizedBox(height: Space.s2),
-                  Text(
-                    'You have been invited to share a household’s cards and '
-                    'credits. Joining moves you out of your own.',
-                    style: text.bodyMedium?.copyWith(
-                      color: tokens.textSecondary,
+                  if (_reading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (offer != null) ...[
+                    Text(offerHeadline(offer), style: text.bodyLarge),
+                    const SizedBox(height: Space.s1),
+                    Text(
+                      offerAccess(offer),
+                      style: text.bodyMedium?.copyWith(
+                        color: tokens.textSecondary,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: Space.s1),
+                    Text(
+                      'Your own cards stay as they are.',
+                      style: text.bodyMedium?.copyWith(
+                        color: tokens.textSecondary,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: Space.s6),
                   Semantics(
                     label: 'Invite code ${widget.code.split('').join(' ')}',
@@ -151,11 +170,13 @@ class _JoinScreenState extends State<JoinScreen> {
                     ),
                   ),
                   const SizedBox(height: Space.s6),
-                  FilledButton(
-                    key: const Key('join'),
-                    onPressed: _busy ? null : _join,
-                    child: const Text('Join this household'),
-                  ),
+                  // An invite that cannot be read has nothing to accept.
+                  if (offer != null)
+                    FilledButton(
+                      key: const Key('accept'),
+                      onPressed: _busy ? null : _accept,
+                      child: const Text('Accept'),
+                    ),
                   // The bar has no Back, so the way out is here.
                   const SizedBox(height: Space.s2),
                   TextButton(

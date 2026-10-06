@@ -209,7 +209,7 @@ void main() {
     expect(
       find.descendant(
         of: inviteButton,
-        matching: find.text('Joining a household? Enter an invite code'),
+        matching: find.text('Have an invite code?'),
       ),
       findsOneWidget,
     );

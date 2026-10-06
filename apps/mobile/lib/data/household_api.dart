@@ -61,6 +61,96 @@ class Person {
   Map<String, Object?> toJson() => {'id': id, 'name': name, 'email': email};
 }
 
+CardAccess _accessFromJson(Object? name) =>
+    CardAccess.values.byName(name! as String);
+
+List<String> _ids(Object? json) => ((json as List?) ?? const []).cast<String>();
+
+/// An invite just made: the code to read out, the link to share, and the
+/// share it carries.
+class Invite {
+  const Invite({
+    required this.code,
+    required this.link,
+    required this.access,
+    required this.allCards,
+    this.cardIds = const [],
+    required this.expiresAt,
+  });
+
+  factory Invite.fromJson(Map<String, dynamic> json) => Invite(
+    code: json['code']! as String,
+    link: json['link']! as String,
+    access: _accessFromJson(json['access']),
+    allCards: json['allCards']! as bool,
+    cardIds: _ids(json['cardIds']),
+    expiresAt: json['expiresAt']! as String,
+  );
+
+  final String code;
+  final String link;
+  final CardAccess access;
+  final bool allCards;
+  final List<String> cardIds;
+  final String expiresAt;
+}
+
+/// What an invite offers, read before accepting it: whose cards, all of
+/// them or how many, and at which access.
+class InviteOffer {
+  const InviteOffer({
+    required this.owner,
+    required this.access,
+    required this.allCards,
+    this.cardCount,
+  });
+
+  factory InviteOffer.fromJson(Map<String, dynamic> json) => InviteOffer(
+    owner: Person.fromJson(json['owner']! as Map<String, dynamic>),
+    access: _accessFromJson(json['access']),
+    allCards: json['allCards']! as bool,
+    cardCount: json['cardCount'] as int?,
+  );
+
+  final Person owner;
+  final CardAccess access;
+  final bool allCards;
+
+  /// How many cards it shares, when not all of them.
+  final int? cardCount;
+}
+
+/// A share as one side sees it: the other person, what it lets them do,
+/// and all the owner's cards or the chosen ones.
+class CardShare {
+  const CardShare({
+    required this.person,
+    required this.access,
+    required this.allCards,
+    this.cardIds = const [],
+  });
+
+  factory CardShare.fromJson(Map<String, dynamic> json) => CardShare(
+    person: Person.fromJson(json),
+    access: _accessFromJson(json['access']),
+    allCards: json['allCards']! as bool,
+    cardIds: _ids(json['cardIds']),
+  );
+
+  final Person person;
+  final CardAccess access;
+  final bool allCards;
+  final List<String> cardIds;
+}
+
+/// The shares a person gives and the ones they receive.
+class CardShares {
+  const CardShares({this.given = const [], this.received = const []});
+
+  final List<CardShare> given;
+  final List<CardShare> received;
+}
+
 /// `GET /v1/household/data`: the cards the caller can see as the domain's
 /// snapshot, what they may do with each, and the owners of the ones shared
 /// with them.
@@ -136,7 +226,24 @@ abstract interface class HouseholdApi {
 
   /// Replaces a linked card with one its owner maintains; the new id.
   Future<String> convertCard(String cardId);
-  Future<void> acceptInvite(String code, {bool confirmLeave = false});
+
+  /// An invite at [access] to all the caller's cards, or to [cardIds].
+  Future<Invite> createInvite(CardAccess access, {List<String>? cardIds});
+  Future<InviteOffer> readInvite(String code);
+
+  /// Makes the share the invite carries.
+  Future<void> acceptInvite(String code);
+  Future<CardShares> shares();
+
+  /// Sets what [memberId] sees of the caller's cards: [access] to all of
+  /// them, or to [cardIds].
+  Future<void> changeShare(
+    String memberId, {
+    required CardAccess access,
+    List<String>? cardIds,
+  });
+  Future<void> stopSharing(String memberId);
+  Future<void> stopSeeing(String ownerId);
   Future<MemberPreferences> preferences();
   Future<void> putPreferences(MemberPreferences preferences);
   Future<void> setMute({
@@ -259,11 +366,65 @@ class ApiClient implements HouseholdApi {
   }
 
   @override
-  Future<void> acceptInvite(String code, {bool confirmLeave = false}) => _send(
-    'POST',
-    '/v1/invites/${Uri.encodeComponent(code)}/accept',
-    body: {'confirmLeave': confirmLeave},
+  Future<Invite> createInvite(
+    CardAccess access, {
+    List<String>? cardIds,
+  }) async => Invite.fromJson(
+    (await _send(
+          'POST',
+          '/v1/invites',
+          body: {
+            'access': access.name,
+            if (cardIds == null) 'allCards': true else 'cardIds': cardIds,
+          },
+        ))!
+        as Map<String, dynamic>,
   );
+
+  @override
+  Future<InviteOffer> readInvite(String code) async => InviteOffer.fromJson(
+    (await _send('GET', '/v1/invites/${Uri.encodeComponent(code)}'))!
+        as Map<String, dynamic>,
+  );
+
+  @override
+  Future<void> acceptInvite(String code) =>
+      _send('POST', '/v1/invites/${Uri.encodeComponent(code)}/accept');
+
+  @override
+  Future<CardShares> shares() async {
+    final json = (await _send('GET', '/v1/shares'))! as Map<String, dynamic>;
+    List<CardShare> list(Object? shares) => [
+      for (final share in (shares! as List).cast<Map<String, dynamic>>())
+        CardShare.fromJson(share),
+    ];
+    return CardShares(
+      given: list(json['given']),
+      received: list(json['received']),
+    );
+  }
+
+  @override
+  Future<void> changeShare(
+    String memberId, {
+    required CardAccess access,
+    List<String>? cardIds,
+  }) => _send(
+    'PATCH',
+    '/v1/shares/$memberId',
+    body: {
+      'access': access.name,
+      if (cardIds == null) 'allCards': true else 'cardIds': cardIds,
+    },
+  );
+
+  @override
+  Future<void> stopSharing(String memberId) =>
+      _send('DELETE', '/v1/shares/$memberId');
+
+  @override
+  Future<void> stopSeeing(String ownerId) =>
+      _send('DELETE', '/v1/shares/received/$ownerId');
 
   @override
   Future<MemberPreferences> preferences() async => memberPreferencesFromJson(

@@ -279,7 +279,7 @@ A card whose only credit needs enrollment shows the normal layout with its locke
 
 ### The invite button shows signed in and opens the join screen
 
-Locally there is no invite button. Signed in, "Joining a household? Enter an invite code" opens the invite dialog, and a code typed there opens the join screen for it.
+Locally there is no invite button. Signed in, "Have an invite code?" opens the invite dialog, and a code typed there opens the join screen for it.
 
 ### Both buttons are 48 high
 
@@ -1671,15 +1671,51 @@ A local store says `owner` for Alex's card and names it "Platinum" alone, and it
 
 ## Household sharing
 
-`household_sharing_test.dart` drives Settings, the join screen and the router over the fake api of `test/support/fake_api.dart` ([[mobile-architecture#Household sharing]]).
+`household_sharing_test.dart` drives Settings, the share sheet, the join screen and the router over the fake api of `test/support/fake_api.dart`, with `share` captured ([[mobile-architecture#Household sharing]]).
 
-### Settings keeps only the invite code
+The caller owns a Gold and a Sapphire Reserve; Bob is someone they share with and Alex someone who shares a Gold with them.
 
-Settings' Household section has "Have an invite code?" and no member list or invite button, which the api no longer serves (#421).
+### Sharing all your cards opens the share sheet on iOS
 
-### A code joins the household
+"Share your cards" at its defaults, View and All cards, then "Create and share" makes one invite at `view` to all cards, shares only its link as a URI anchored to the button, and shows the code.
 
-"Have an invite code?" with a lower-case code opens the join screen for it in capitals; "Join this household" accepts it and lands on Today with "You joined the household.".
+### Sharing your cards on Android sends the message
+
+The same steps on Android share the reward message with the code and the link on its own last line, the title and subject "Join my household on HelpMe Reward" and the app icon as a PNG thumbnail.
+
+### Chosen cards send their ids
+
+"Can record usage" and "Chosen cards" with both cards ticked make one invite at `record` with the two card ids, and open the share sheet.
+
+### The join screen says who shares what
+
+An invite to two of Alex's cards at record reads "Alex wants to share 2 of their cards with you." and "You’ll be able to view them and record what you use.".
+
+Accept sends the code and lands on Today with Alex's Uber Cash and "You can see Alex’s cards now.".
+
+### An invite to all cards to view says so
+
+The default offer reads "Alex wants to share all their cards with you." and "You’ll be able to view them.".
+
+### Used, expired, own and already-shared codes say why
+
+An expired, a used and an unknown code each say so when read, with no Accept. Accepting your own invite, or one from someone who already shares with you, says why, and the screen stays.
+
+### Changing a share updates its line
+
+Bob's line under "People who see your cards" reads "All cards · View"; his sheet's "Can record usage" and Save send the change and the line reads "All cards · Can record usage".
+
+### Stopping sharing asks first
+
+Bob's sheet's "Stop sharing" asks "Stop sharing with Bob?"; confirming tells the api, removes his line and says nobody sees your cards yet.
+
+### Stopping seeing removes their cards
+
+Alex's line under "Shared with you" reads "All cards · View"; "Stop seeing their cards" tells the api, and Alex's Uber Cash is gone from the store and from Today without a restart.
+
+### A code opens the join screen
+
+"Have an invite code?" with a lower-case code opens the join screen for it in capitals.
 
 ### A link opens the join screen
 
@@ -1688,14 +1724,6 @@ Opening `/invite/ZZZZ2222` shows the join screen for that code.
 ### A signed-out link joins after sign-in
 
 Signed out, the link shows sign-in; signing in lands on the join screen for the code.
-
-### Used, expired and unknown codes say so
-
-An expired, a used and an unknown code each stay on the join screen with their own sentence.
-
-### Leaving cards behind asks first
-
-When the current household holds cards the join asks "Leave your cards behind?", and "Leave and join" repeats it with `confirmLeave` and lands on Today.
 
 ## Api config
 

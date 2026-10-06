@@ -153,6 +153,7 @@ class AppStore extends ChangeNotifier {
     _pending = const [];
     _access = const {};
     _people = const {};
+    _shares = null;
     await _cache.clear();
     await _outbox.save(const []);
     _rebuild();
@@ -363,43 +364,105 @@ class AppStore extends ChangeNotifier {
     return true;
   }
 
-  // The household
+  // Sharing
 
-  /// Joins the household of [code]. Leaving a household that holds cards
-  /// needs [confirmLeave]; the answer says which case this is.
-  Future<JoinOutcome> joinHousehold(
-    String code, {
-    bool confirmLeave = false,
-  }) async {
-    // Claims logged in this household are sent to it before leaving; if
-    // they cannot be, neither can the join.
-    await flush();
-    if (hasPending) return JoinOutcome.offline;
+  CardShares? _shares;
+
+  /// The shares this person gives and receives, once [loadShares] has
+  /// fetched them.
+  CardShares? get shares => _shares;
+
+  /// Fetches the shares both ways.
+  Future<void> loadShares() async {
     try {
-      await _api!.acceptInvite(code, confirmLeave: confirmLeave);
+      _shares = await _api!.shares();
+      _offline = false;
+    } on ApiOffline {
+      _offline = true;
+    }
+    notifyListeners();
+  }
+
+  /// Makes an invite at [access] to all of this person's cards, or to
+  /// [cardIds]; null, with [problem] set, when it cannot be made.
+  Future<Invite?> createInvite(
+    CardAccess access, {
+    List<String>? cardIds,
+  }) async {
+    Invite? invite;
+    final done = await _edit((api) async {
+      invite = await api.createInvite(access, cardIds: cardIds);
+    });
+    return done ? invite : null;
+  }
+
+  /// What the invite [code] offers, or why it cannot be read.
+  Future<({InviteOffer? offer, JoinOutcome? problem})> readInvite(
+    String code,
+  ) async {
+    if (!remote) return (offer: null, problem: JoinOutcome.failed);
+    try {
+      return (offer: await _api!.readInvite(code), problem: null);
+    } on ApiOffline {
+      return (offer: null, problem: JoinOutcome.offline);
+    } on ApiError catch (e) {
+      return (offer: null, problem: _joinProblem(e));
+    }
+  }
+
+  /// Accepts the invite [code]: the share it carries is made, and the
+  /// cards it brings are fetched. Nothing of this person's changes.
+  Future<JoinOutcome> acceptInvite(String code) async {
+    try {
+      await _api!.acceptInvite(code);
     } on ApiOffline {
       _offline = true;
       notifyListeners();
       return JoinOutcome.offline;
     } on ApiError catch (e) {
-      return switch (e.error) {
-        'household holds cards' => JoinOutcome.holdsCards,
-        'owner has members' => JoinOutcome.ownerHasMembers,
-        'already a member' => JoinOutcome.alreadyMember,
-        'invite used' => JoinOutcome.used,
-        'invite expired' => JoinOutcome.expired,
-        'not found' => JoinOutcome.notFound,
-        _ => JoinOutcome.failed,
-      };
+      return _joinProblem(e);
     }
-    // The old household's cache is not this one's.
-    await _cache.clear();
     try {
       await refresh();
+      await loadShares();
     } on Object {
-      // Joined; the next refresh shows it.
+      // Accepted; the next refresh shows the cards.
     }
-    return JoinOutcome.joined;
+    return JoinOutcome.accepted;
+  }
+
+  static JoinOutcome _joinProblem(ApiError e) => switch (e.error) {
+    'invite used' => JoinOutcome.used,
+    'invite expired' => JoinOutcome.expired,
+    'not found' => JoinOutcome.notFound,
+    'own invite' => JoinOutcome.ownInvite,
+    'already shared' => JoinOutcome.alreadyShared,
+    _ => JoinOutcome.failed,
+  };
+
+  /// Sets what [memberId] sees of this person's cards: [access] to all of
+  /// them, or to [cardIds].
+  Future<bool> changeShare(
+    String memberId,
+    CardAccess access, {
+    List<String>? cardIds,
+  }) => _shareEdit(
+    (api) => api.changeShare(memberId, access: access, cardIds: cardIds),
+  );
+
+  /// Stops sharing this person's cards with [memberId], at once.
+  Future<bool> stopSharing(String memberId) =>
+      _shareEdit((api) => api.stopSharing(memberId));
+
+  /// Stops seeing [ownerId]'s cards, at once: they leave every list.
+  Future<bool> stopSeeing(String ownerId) =>
+      _shareEdit((api) => api.stopSeeing(ownerId));
+
+  /// An edit to a share, followed by the shares fetched again.
+  Future<bool> _shareEdit(Future<void> Function(HouseholdApi api) call) async {
+    final done = await _edit(call);
+    if (done) await loadShares();
+    return done;
   }
 
   /// Turns a card the catalogue keeps up to date into one its owner
@@ -1084,15 +1147,14 @@ class AppStore extends ChangeNotifier {
   int get cardCount => _data?.cards.where((card) => !card.archived).length ?? 0;
 }
 
-/// What joining a household by code came to.
+/// What reading or accepting an invite came to.
 enum JoinOutcome {
-  joined,
-  holdsCards,
-  ownerHasMembers,
-  alreadyMember,
+  accepted,
   used,
   expired,
   notFound,
+  ownInvite,
+  alreadyShared,
   offline,
   failed,
 }
